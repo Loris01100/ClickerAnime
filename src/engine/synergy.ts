@@ -1,3 +1,4 @@
+import { levelGrowth, passiveLevel } from "./growth";
 import type { ActiveModifier, Arc, Character, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
@@ -18,15 +19,19 @@ export function synergyMultiplier(character: Character, activeArc: Arc, config: 
 }
 
 /**
- * Converts one owned character's base stats + passive into modifiers, pre-scaled by
- * their synergy with the currently active arc.
+ * Converts one owned character's stats + passive into modifiers, pre-scaled by their synergy with
+ * the currently active arc and by their level. Damage grows with every level; the passive stops
+ * growing at the cap for their rarity.
  */
 export function characterContributions(
   character: Character,
   activeArc: Arc | null,
-  config: SynergyConfig = defaultSynergyConfig
+  config: SynergyConfig = defaultSynergyConfig,
+  level = 0
 ): ActiveModifier[] {
   const synergy = activeArc ? synergyMultiplier(character, activeArc, config) : 1;
+  const damageGrowth = levelGrowth(level);
+  const passiveGrowth = levelGrowth(passiveLevel(level, character.rarity));
 
   const contributions: ActiveModifier[] = [
     {
@@ -34,14 +39,14 @@ export function characterContributions(
       sourceId: character.id,
       target: "clickPower",
       kind: "flat",
-      value: character.baseClickPower * synergy,
+      value: character.baseClickPower * damageGrowth * synergy,
     },
     {
       id: `${character.id}:base-dps`,
       sourceId: character.id,
       target: "teamDps",
       kind: "flat",
-      value: character.baseDps * synergy,
+      value: character.baseDps * damageGrowth * synergy,
     },
   ];
 
@@ -49,7 +54,7 @@ export function characterContributions(
     contributions.push({
       ...character.passive,
       sourceId: character.id,
-      value: character.passive.value * synergy,
+      value: character.passive.value * passiveGrowth * synergy,
     });
   }
 

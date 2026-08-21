@@ -10,6 +10,7 @@ import {
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
 import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits } from "./combat";
+import { levelUpCost, narratorClickPower, passiveLevel, PASSIVE_LEVEL_CAP } from "./growth";
 import {
   animeTier,
   arcsOfAnime,
@@ -18,20 +19,19 @@ import {
   isAnimeComplete,
   isArcUnlocked,
 } from "./progression";
-import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy } from "./types";
+import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy, Item } from "./types";
 
 export interface GameData {
   animes: Anime[];
   arcs: Arc[];
   characters: Character[];
   combos: ComboDefinition[];
+  items: Item[];
 }
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-const SAVE_KEY = "clicker-anime:save:v3";
-/** The narrator's own click — guarantees damage before the first character joins the team. */
-const NARRATOR_CLICK_POWER = 1;
+const SAVE_KEY = "clicker-anime:save:v4";
 
 interface SaveFile {
   currency: number;
@@ -42,6 +42,8 @@ interface SaveFile {
   unlockedAnimeIds: string[];
   arcKills: Record<string, number>;
   clearedArcIds: string[];
+  characterLevels: Record<string, number>;
+  foundItemIds: string[];
 }
 
 function readSave(): SaveFile | null {
@@ -66,6 +68,8 @@ export function createGameStore(data: GameData) {
   const [activeArcId, setActiveArcId] = createSignal<string | null>(saved?.activeArcId ?? null);
   const [arcKills, setArcKills] = createSignal<Record<string, number>>(saved?.arcKills ?? {});
   const [clearedArcIds, setClearedArcIds] = createSignal<string[]>(saved?.clearedArcIds ?? []);
+  const [characterLevels, setCharacterLevels] = createSignal<Record<string, number>>(saved?.characterLevels ?? {});
+  const [foundItemIds, setFoundItemIds] = createSignal<string[]>(saved?.foundItemIds ?? []);
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -87,14 +91,24 @@ export function createGameStore(data: GameData) {
 
   const ownedCharacters = createMemo(() => data.characters.filter((c) => ownedCharacterIds().includes(c.id)));
 
+  const levelOf = (characterId: string) => characterLevels()[characterId] ?? 0;
+
+  /** Items found across every world; never lost, not even on prestige. */
+  const foundItems = createMemo(() => data.items.filter((i) => foundItemIds().includes(i.id)));
+
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const arc = activeArc();
-    const fromCharacters = ownedCharacters().flatMap((c) => characterContributions(c, arc, defaultSynergyConfig));
+    const fromCharacters = ownedCharacters().flatMap((c) =>
+      characterContributions(c, arc, defaultSynergyConfig, levelOf(c.id))
+    );
     return [...fromCharacters, ...pruneExpired(temporaryModifiers(), now())];
   });
 
+  /** What one narrator click is worth before any modifier: allies at their side, plus every item found. */
+  const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length, foundItems()));
+
   /** Damage of one narrator click. */
-  const clickPower = createMemo(() => computeEffectiveStat(NARRATOR_CLICK_POWER, "clickPower", allModifiers(), now()));
+  const clickPower = createMemo(() => computeEffectiveStat(narratorBase(), "clickPower", allModifiers(), now()));
   /** Damage the team deals on its own, per second. */
   const teamDps = createMemo(() => computeEffectiveStat(0, "teamDps", allModifiers(), now()));
 
@@ -173,6 +187,10 @@ export function createGameStore(data: GameData) {
       setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
     }
 
+    if (target.itemId && !foundItemIds().includes(target.itemId)) {
+      setFoundItemIds((ids) => [...ids, target.itemId!]);
+    }
+
     if (target.id === arc.boss.id) {
       if (!clearedArcIds().includes(arc.id)) setClearedArcIds((ids) => [...ids, arc.id]);
     } else {
@@ -211,6 +229,25 @@ export function createGameStore(data: GameData) {
     const deadline = timerDeadline();
     return deadline === null ? null : Math.max(0, deadline - now());
   });
+
+  // --- levelling ---
+
+  const nextLevelCost = (character: Character) => levelUpCost(character, levelOf(character.id));
+
+  /** Levels are uncapped and bought with currency — the one thing currency is spent on. */
+  function levelUp(characterId: string) {
+    const character = ownedCharacters().find((c) => c.id === characterId);
+    if (!character) return false;
+    const cost = nextLevelCost(character);
+    if (currency() < cost) return false;
+    setCurrency((c) => c - cost);
+    setCharacterLevels((levels) => ({ ...levels, [characterId]: (levels[characterId] ?? 0) + 1 }));
+    return true;
+  }
+
+  /** Level the passive is actually running at, and the cap it stops growing at. */
+  const passiveLevelOf = (character: Character) => passiveLevel(levelOf(character.id), character.rarity);
+  const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
   // --- actions ---
 
@@ -279,6 +316,7 @@ export function createGameStore(data: GameData) {
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
+    setCharacterLevels({});
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
     spawnNext();
@@ -295,6 +333,8 @@ export function createGameStore(data: GameData) {
       unlockedAnimeIds: prestige().unlockedAnimeIds,
       arcKills: arcKills(),
       clearedArcIds: clearedArcIds(),
+      characterLevels: characterLevels(),
+      foundItemIds: foundItemIds(),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(file));
   }
@@ -308,6 +348,8 @@ export function createGameStore(data: GameData) {
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
     setPrestige(createInitialPrestigeState());
+    setCharacterLevels({});
+    setFoundItemIds([]);
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
@@ -342,7 +384,14 @@ export function createGameStore(data: GameData) {
     ownedCharacters,
     ownedCharacterIds,
     clickPower,
+    narratorBase,
     teamDps,
+    foundItems,
+    levelOf,
+    nextLevelCost,
+    passiveLevelOf,
+    passiveCapOf,
+    levelUp,
     unlockedAbilities,
     synergyOf,
     // combat

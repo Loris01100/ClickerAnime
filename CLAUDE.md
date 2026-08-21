@@ -34,17 +34,37 @@ An arc is a zone the player fights through. `combat.ts` is pure and decides who 
 cycle `arc.mobs` in order until `mobsToBoss` kills, then `arc.boss`; once the arc is cleared the boss
 stops appearing and the zone farms mobs forever. Mobs carrying a `characterId` are the anime's
 characters — beating one adds them to the team for free, and they drop out of the pool afterwards.
+Enemies carrying an `itemId` hand over that item, once.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
 change — by default only bosses carry one, because timed mobs would break idling.
 
-Damage has two sources, both modifier-driven: `clickPower` (one narrator click) and `teamDps`
-(applied every tick as `dps * delta`). Currency only ever comes from kills — there is no passive
+Damage has two sources, both modifier-driven: `clickPower` (one narrator click, based on
+`narratorClickPower`) and `teamDps` (applied every tick as `dps * delta`). Currency only ever comes from kills — there is no passive
 income any more, and `lifetimeEarned` is what feeds prestige.
 
 Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved: a reload
 restarts the current fight. Only kill counts and cleared arcs persist.
+
+### Character growth (`growth.ts`)
+
+Two knobs, deliberately decoupled — this is the main/secondary distinction:
+
+- **Level is uncapped** and every level grants the *same* flat damage as the one before
+  (`levelGrowth(level) = 1 + level` applied to `baseClickPower` and `baseDps`). Linear on purpose.
+- **The passive stops at a cap**: `PASSIVE_LEVEL_CAP` is 10 for `rarity: "main"`, 5 for
+  `"secondary"`. Levels past it still buy damage; they just stop deepening the passive.
+
+Levels are bought with currency (`levelUpCost`, geometric, dearer for the main cast) — that is the
+only currency sink in the game. Levels die with the team on `prestigeReset`.
+
+### The narrator's click
+
+`narratorClickPower(allyCount, foundItems)` is the *base* fed into the `clickPower` pipeline, not a
+constant: it rises with the number of allies in the team and with every item ever found. Items are
+granted by beating the enemy holding them (`Enemy.itemId`, one per boss, no RNG) and are never lost
+— not on prestige, not on travel — so this floor only ever rises.
 
 ### The modifier pipeline
 

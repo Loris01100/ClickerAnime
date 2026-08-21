@@ -35,28 +35,67 @@ export default function RosterPanel(props: { game: GameStore }) {
         <header class="panel-head">Équipe ({props.game.ownedCharacters().length})</header>
         <ul class="list">
           <For each={props.game.ownedCharacters()}>
-            {(character) => (
-              <li class="row">
-                <div>
-                  <strong>{character.name}</strong>
+            {(character) => {
+              const level = () => props.game.levelOf(character.id);
+              const cost = () => props.game.nextLevelCost(character);
+              const maxed = () => props.game.passiveLevelOf(character) >= props.game.passiveCapOf(character);
+              return (
+                <li class="member">
+                  <div class="member-head">
+                    <strong>
+                      {character.name} <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                    </strong>
+                    <span
+                      class="synergy"
+                      classList={{
+                        good: props.game.synergyOf(character) > 1,
+                        bad: props.game.synergyOf(character) < 1,
+                      }}
+                    >
+                      x{props.game.synergyOf(character).toFixed(2)}
+                    </span>
+                  </div>
                   <small class="muted">
-                    {fmt(character.baseClickPower)} /clic · {fmt(character.baseDps)} dps
+                    Niv. {level()} · {fmt(character.baseClickPower * (1 + level()))} /clic ·{" "}
+                    {fmt(character.baseDps * (1 + level()))} dps
                   </small>
-                </div>
-                <span
-                  class="synergy"
-                  classList={{ good: props.game.synergyOf(character) > 1, bad: props.game.synergyOf(character) < 1 }}
-                >
-                  x{props.game.synergyOf(character).toFixed(2)}
-                </span>
-              </li>
-            )}
+                  <Show when={character.passive}>
+                    <small classList={{ muted: !maxed(), capped: maxed() }}>
+                      Passif niv. {props.game.passiveLevelOf(character)}/{props.game.passiveCapOf(character)}
+                      {maxed() ? " (max)" : ""}
+                    </small>
+                  </Show>
+                  <button disabled={props.game.currency() < cost()} onClick={() => props.game.levelUp(character.id)}>
+                    Niveau +1 — {fmt(cost())}
+                  </button>
+                </li>
+              );
+            }}
           </For>
           <Show when={props.game.ownedCharacters().length === 0}>
             <li class="muted">Équipe vide — les personnages rejoignent l'équipe quand vous les battez.</li>
           </Show>
         </ul>
       </section>
+
+      <Show when={props.game.foundItems().length > 0}>
+        <section class="panel">
+          <header class="panel-head">
+            <span>Objets</span>
+            <small class="muted">+{fmt(props.game.narratorBase())} au clic</small>
+          </header>
+          <ul class="list">
+            <For each={props.game.foundItems()}>
+              {(item) => (
+                <li class="row">
+                  <strong>🔖 {item.name}</strong>
+                  <span class="muted">+{fmt(item.clickBonus)}</span>
+                </li>
+              )}
+            </For>
+          </ul>
+        </section>
+      </Show>
 
       <Show when={props.game.arcRecruits().length > 0}>
         <section class="panel">
@@ -66,7 +105,9 @@ export default function RosterPanel(props: { game: GameStore }) {
               {(character) => (
                 <li class="row">
                   <div>
-                    <strong>⭐ {character.name}</strong>
+                    <strong>
+                      ⭐ {character.name} <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                    </strong>
                     <small class="muted">
                       {fmt(character.baseClickPower)} /clic · {fmt(character.baseDps)} dps
                     </small>

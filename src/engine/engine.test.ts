@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { computeEffectiveStat } from "./modifiers";
-import { synergyMultiplier, defaultSynergyConfig } from "./synergy";
+import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeComplete, isArcUnlocked } from "./progression";
 import { encounterPool, enemyHp, nextEnemy, pendingRecruits } from "./combat";
+import { levelGrowth, levelUpCost, narratorClickPower, PASSIVE_LEVEL_CAP, passiveLevel } from "./growth";
 import type { ActiveModifier, Arc, Character, ComboDefinition, Enemy } from "./types";
 
 function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobsToBoss = 3): Arc {
@@ -48,7 +49,7 @@ describe("computeEffectiveStat", () => {
 
 describe("synergyMultiplier", () => {
   const arc = makeArc("arc-1", "anime-1", 0, []);
-  const base = { name: "C", baseClickPower: 1, baseDps: 1 };
+  const base = { name: "C", baseClickPower: 1, baseDps: 1, rarity: "secondary" as const };
 
   it("gives the bonus when the character's arc matches", () => {
     const character: Character = { ...base, id: "c1", animeId: "anime-1", arcIds: ["arc-1"] };
@@ -91,7 +92,7 @@ describe("prestige", () => {
 });
 
 describe("abilities", () => {
-  const base = { animeId: "anime-1", arcIds: [], baseClickPower: 1, baseDps: 1 };
+  const base = { animeId: "anime-1", arcIds: [], baseClickPower: 1, baseDps: 1, rarity: "main" as const };
   const withAbility: Character = {
     ...base,
     id: "c1",
@@ -196,5 +197,56 @@ describe("combat", () => {
   it("goes back to farming mobs once the arc is cleared", () => {
     expect(nextEnemy(arc, 3, [], true).id).not.toBe("a1-boss");
     expect(nextEnemy(arc, 99, ["c1"], true).id).toBe("mob");
+  });
+});
+
+describe("character growth", () => {
+  const main: Character = {
+    id: "m", name: "Main", animeId: "a", rarity: "main", arcIds: [], baseClickPower: 2, baseDps: 3,
+    passive: { id: "p", target: "clickPower", kind: "percent", value: 0.1 },
+  };
+  const side: Character = { ...main, id: "s", name: "Side", rarity: "secondary" };
+
+  it("caps the passive at 10 for the main cast and 5 for the supporting one", () => {
+    expect(PASSIVE_LEVEL_CAP).toEqual({ main: 10, secondary: 5 });
+    expect(passiveLevel(30, "main")).toBe(10);
+    expect(passiveLevel(30, "secondary")).toBe(5);
+    expect(passiveLevel(3, "main")).toBe(3);
+  });
+
+  it("keeps adding the same damage every level, with no cap", () => {
+    const at = (level: number) =>
+      characterContributions(main, null, undefined, level).find((m) => m.target === "clickPower")!.value;
+    // each level is worth exactly one more baseClickPower, forever
+    expect(at(1) - at(0)).toBe(main.baseClickPower);
+    expect(at(100) - at(99)).toBe(main.baseClickPower);
+    expect(levelGrowth(4)).toBe(5);
+  });
+
+  it("stops growing the passive past the cap while damage keeps going", () => {
+    const passiveAt = (character: Character, level: number) =>
+      characterContributions(character, null, undefined, level).find((m) => m.kind === "percent")!.value;
+    expect(passiveAt(side, 5)).toBe(passiveAt(side, 50));
+    expect(passiveAt(main, 5)).toBeLessThan(passiveAt(main, 10));
+    expect(passiveAt(main, 10)).toBe(passiveAt(main, 50));
+  });
+
+  it("charges more for each level, and more for the main cast", () => {
+    expect(levelUpCost(main, 3)).toBeGreaterThan(levelUpCost(main, 0));
+    expect(levelUpCost(main, 0)).toBeGreaterThan(levelUpCost(side, 0));
+  });
+});
+
+describe("narrator click", () => {
+  const items = [
+    { id: "i1", name: "I1", clickBonus: 2 },
+    { id: "i2", name: "I2", clickBonus: 8 },
+  ];
+
+  it("grows with the number of allies and with every item found", () => {
+    const alone = narratorClickPower(0, []);
+    expect(narratorClickPower(3, [])).toBeGreaterThan(alone);
+    expect(narratorClickPower(0, items)).toBe(alone + 10);
+    expect(narratorClickPower(3, items)).toBe(narratorClickPower(3, []) + 10);
   });
 });

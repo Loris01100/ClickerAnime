@@ -445,3 +445,30 @@ small {
   color: var(--muted);
   cursor: default;
 }
+
+/* --- team members --- */
+.member {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+}
+.member-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.member button {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+}
+.rarity {
+  color: #ffd166;
+}
+.capped {
+  color: var(--good);
+  font-size: 0.8rem;
+}

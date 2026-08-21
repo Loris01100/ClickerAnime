@@ -1,3 +1,6 @@
+/** Main cast carries a deeper passive than the supporting cast — see PASSIVE_LEVEL_CAP. */
+export type Rarity = "main" | "secondary";
+
 export type ModifierTarget = "clickPower" | "teamDps";
 export type ModifierKind = "flat" | "percent" | "multiplier";
 
@@ -24,6 +27,14 @@ export interface Anime {
   unlockCost: number;
 }
 
+/** Found by beating the enemy that holds it; every item ever found feeds the narrator's click. */
+export interface Item {
+  id: string;
+  name: string;
+  /** flat damage added to every narrator click, forever, in every world */
+  clickBonus: number;
+}
+
 /** Anything the player fights. Enemies never deal damage — they only have to fall. */
 export interface Enemy {
   id: string;
@@ -34,6 +45,8 @@ export interface Enemy {
   reward: number;
   /** defeating this enemy recruits that character into the team, for free */
   characterId?: string;
+  /** defeating this enemy adds that item to the collection, once */
+  itemId?: string;
   /** must be defeated within this window or it comes back at full hp; bosses only, by default */
   timerMs?: number;
 }
@@ -56,9 +69,12 @@ export interface Character {
   id: string;
   name: string;
   animeId: string;
+  rarity: Rarity;
   /** arcs (within its own anime) this character is strong in */
   arcIds: string[];
+  /** click damage at level 0; every level adds this much again */
   baseClickPower: number;
+  /** dps at level 0; every level adds this much again */
   baseDps: number;
   /** innate bonus granted to the whole run while this character is in the team */
   passive?: ModifierTemplate;
