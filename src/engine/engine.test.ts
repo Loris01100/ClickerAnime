@@ -7,6 +7,7 @@ import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeComplete, isArcUnlocke
 import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import {
   itemClickBonus,
+  LEVEL_DAMAGE_STEP,
   levelFromXp,
   levelGrowth,
   narratorClickPower,
@@ -226,10 +227,11 @@ describe("character growth", () => {
   it("keeps adding the same damage every level, with no cap", () => {
     const at = (level: number) =>
       characterContributions(main, null, undefined, level).find((m) => m.target === "clickPower")!.value;
-    // each level is worth exactly one more baseClickPower, forever
-    expect(at(1) - at(0)).toBe(main.baseClickPower);
-    expect(at(100) - at(99)).toBe(main.baseClickPower);
-    expect(levelGrowth(4)).toBe(5);
+    // each level is worth the same slice of baseClickPower, forever
+    const step = main.baseClickPower * LEVEL_DAMAGE_STEP;
+    expect(at(1) - at(0)).toBeCloseTo(step);
+    expect(at(100) - at(99)).toBeCloseTo(step);
+    expect(levelGrowth(4)).toBeCloseTo(1 + 4 * LEVEL_DAMAGE_STEP);
   });
 
   it("stops growing the passive past the cap while damage keeps going", () => {

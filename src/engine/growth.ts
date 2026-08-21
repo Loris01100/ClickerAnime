@@ -17,9 +17,12 @@ export function isPassiveMaxed(level: number, rarity: Rarity): boolean {
 /**
  * Multiplier applied to a base stat at a given level. Linear on purpose: every level grants the
  * same flat damage as the one before, and levels themselves are uncapped.
+ * `LEVEL_DAMAGE_STEP` is the pacing knob: how much of the base stat one level is worth.
  */
+export const LEVEL_DAMAGE_STEP = 0.6;
+
 export function levelGrowth(level: number): number {
-  return 1 + level;
+  return 1 + level * LEVEL_DAMAGE_STEP;
 }
 
 /** ponytail: one global xp curve for every character, split per rarity if pacing needs it. */

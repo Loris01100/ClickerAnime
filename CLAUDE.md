@@ -76,7 +76,8 @@ restarts the current fight. Only kill counts and cleared arcs persist.
 Two knobs, deliberately decoupled — this is the main/secondary distinction:
 
 - **Level is uncapped** and every level grants the *same* flat damage as the one before
-  (`levelGrowth(level) = 1 + level` applied to `baseClickPower` and `baseDps`). Linear on purpose.
+  (`levelGrowth(level) = 1 + level * LEVEL_DAMAGE_STEP` applied to `baseClickPower` and `baseDps`).
+  Linear on purpose; `LEVEL_DAMAGE_STEP` is the pacing knob for how fast damage outruns enemy hp.
 - **The passive stops at a cap**: `PASSIVE_LEVEL_CAP` is 10 for `rarity: "main"`, 5 for
   `"secondary"`. Levels past it still add damage; they just stop deepening the passive.
 
