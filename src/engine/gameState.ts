@@ -22,6 +22,7 @@ import {
   arcsOfAnime,
   canEnterNewAnime,
   difficultyMultiplier,
+  isAnimeAvailable,
   isAnimeComplete,
   isArcUnlocked,
 } from "./progression";
@@ -346,10 +347,21 @@ export function createGameStore(data: GameData) {
     return true;
   }
 
+  /** True when this world's own prerequisite is cleared — the universe's reading order. */
+  const animeAvailable = (animeId: string) => isAnimeAvailable(data.animes, animeId, data.arcs, clearedArcIds());
+
+  /** The anime that has to be cleared first, when this one is still shut behind it. */
+  function animeBlockedBy(animeId: string): Anime | null {
+    const required = data.animes.find((a) => a.id === animeId)?.requiresAnimeId;
+    if (!required || animeAvailable(animeId)) return null;
+    return data.animes.find((a) => a.id === required) ?? null;
+  }
+
   /** Free move into a new anime: the first pick of the run, or a new world after clearing the last. */
   function travelTo(animeId: string) {
     if (prestige().unlockedAnimeIds.includes(animeId)) return false;
     if (!data.animes.some((a) => a.id === animeId)) return false;
+    if (!animeAvailable(animeId)) return false;
     if (!canTravel()) return false;
     setPrestige((p) => ({ ...p, unlockedAnimeIds: [...p.unlockedAnimeIds, animeId] }));
     setActiveArcId(arcsOf(animeId)[0]?.id ?? null);
@@ -360,7 +372,8 @@ export function createGameStore(data: GameData) {
   /** Paid shortcut: enter an anime early, without having finished the current one. */
   function unlockAnime(animeId: string) {
     const anime = data.animes.find((a) => a.id === animeId);
-    if (!anime || !canUnlockAnime(prestige(), animeId, anime.unlockCost)) return false;
+    if (!anime || !animeAvailable(animeId)) return false;
+    if (!canUnlockAnime(prestige(), animeId, anime.unlockCost)) return false;
     setPrestige((p) => unlockAnimeState(p, animeId, anime.unlockCost));
     return true;
   }
@@ -488,6 +501,8 @@ export function createGameStore(data: GameData) {
     timerRemaining,
     lastTimeout,
     // world progression
+    animeAvailable,
+    animeBlockedBy,
     arcsOf,
     arcCleared,
     arcOpen,

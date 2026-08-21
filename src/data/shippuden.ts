@@ -5,7 +5,7 @@
 import type { GameData } from "../engine/gameState";
 
 export const shippudenData: GameData = {
-  animes: [{ id: "shippuden", name: "Naruto Shippūden", unlockCost: 8 }],
+  animes: [{ id: "shippuden", name: "Naruto Shippūden", requiresAnimeId: "naruto", unlockCost: 8 }],
 
   arcs: [
     {

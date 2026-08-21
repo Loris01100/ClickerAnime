@@ -139,9 +139,16 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   number of worlds already finished — the difficulty ramp the design calls for. Freezing the tier at
   entry is what stops a cleared anime from un-clearing itself when global difficulty rises; do not
   recompute a tier from the live completed-count or you reintroduce that circularity.
-- The player picks their first world freely and travels freely after each clear (`travelTo`, free).
-  `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige points to enter early.
-- Kill counts and cleared arcs survive `prestigeReset` — worlds are meta-progression, not a run.
+- **Worlds of one universe are ordered.** `Anime.requiresAnimeId` names the world that must be
+  *cleared* first, and `isAnimeAvailable` gates both routes into a world — free travel and the paid
+  shortcut alike. Prestige buys an early entry, never a way to read a sequel first: Shippūden sits
+  behind part 1, and Boruto is meant to sit behind Shippūden. An anime with no `requiresAnimeId` is
+  an entry point, i.e. a world the player may start a run on.
+- The player picks their first world freely among the entry points and travels freely after each
+  clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige
+  points to enter early — but only into a world whose prerequisite is already cleared.
+- Kill counts and cleared arcs survive `prestigeReset` — worlds are meta-progression, not a run,
+  which is also why the universe order survives it: a cleared part 1 stays cleared.
   The team does **not**: a prestige wipes it, and characters must be beaten again.
 
 ### Synergy

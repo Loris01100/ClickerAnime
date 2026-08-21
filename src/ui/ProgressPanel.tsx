@@ -66,25 +66,37 @@ export default function ProgressPanel(props: { game: GameStore }) {
             </Show>
           </p>
           <For each={otherAnimes()}>
-            {(anime) => (
-              <div class="row">
-                <span class="name">{anime.name}</span>
-                <Show
-                  when={props.game.canTravel()}
-                  fallback={
-                    <button
-                      disabled={props.game.prestige().prestigePoints < anime.unlockCost}
-                      title="Raccourci payant : entrer sans avoir fini le monde en cours"
-                      onClick={() => props.game.unlockAnime(anime.id)}
+            {(anime) => {
+              // Un monde peut attendre son prédécesseur : ni le voyage ni le raccourci payant ne
+              // permettent de prendre une suite avant son histoire.
+              const blockedBy = () => props.game.animeBlockedBy(anime.id);
+              return (
+                <div class="row">
+                  <span class="name">
+                    {blockedBy() ? `🔒 ${anime.name}` : anime.name}
+                  </span>
+                  <Show
+                    when={!blockedBy()}
+                    fallback={<small class="muted">après {blockedBy()!.name}</small>}
+                  >
+                    <Show
+                      when={props.game.canTravel()}
+                      fallback={
+                        <button
+                          disabled={props.game.prestige().prestigePoints < anime.unlockCost}
+                          title="Raccourci payant : entrer sans avoir fini le monde en cours"
+                          onClick={() => props.game.unlockAnime(anime.id)}
+                        >
+                          {anime.unlockCost} ✦
+                        </button>
+                      }
                     >
-                      {anime.unlockCost} ✦
-                    </button>
-                  }
-                >
-                  <button onClick={() => props.game.travelTo(anime.id)}>Partir</button>
-                </Show>
-              </div>
-            )}
+                      <button onClick={() => props.game.travelTo(anime.id)}>Partir</button>
+                    </Show>
+                  </Show>
+                </div>
+              );
+            }}
           </For>
         </section>
       </Show>

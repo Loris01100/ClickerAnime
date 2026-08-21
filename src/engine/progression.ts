@@ -1,4 +1,4 @@
-import type { Arc } from "./types";
+import type { Anime, Arc } from "./types";
 
 /** Each world entered after a finished one costs this much more to clear. */
 export const DIFFICULTY_GROWTH = 2.5;
@@ -33,6 +33,23 @@ export function isArcUnlocked(arcs: Arc[], arc: Arc, clearedArcIds: string[]): b
 export function isAnimeComplete(arcs: Arc[], animeId: string, clearedArcIds: string[]): boolean {
   const ordered = arcsOfAnime(arcs, animeId);
   return ordered.length > 0 && ordered.every((arc) => clearedArcIds.includes(arc.id));
+}
+
+/**
+ * Worlds of one universe are ordered: an anime with a `requiresAnimeId` stays shut until that one is
+ * cleared. It applies to the paid shortcut too — prestige buys you an early entry, never a way to
+ * skip a story. The chain is transitive on its own: clearing Shippuden means having entered it,
+ * which already required part 1.
+ */
+export function isAnimeAvailable(
+  animes: Anime[],
+  animeId: string,
+  arcs: Arc[],
+  clearedArcIds: string[]
+): boolean {
+  const anime = animes.find((a) => a.id === animeId);
+  if (!anime) return false;
+  return !anime.requiresAnimeId || isAnimeComplete(arcs, anime.requiresAnimeId, clearedArcIds);
 }
 
 /**

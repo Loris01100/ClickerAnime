@@ -6,7 +6,14 @@ import { computeEffectiveStat } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { getUnlockedAbilities, isAbilityReady } from "./abilities";
-import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeComplete, isArcUnlocked } from "./progression";
+import {
+  animeTier,
+  arcsOfAnime,
+  canEnterNewAnime,
+  isAnimeAvailable,
+  isAnimeComplete,
+  isArcUnlocked,
+} from "./progression";
 import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import {
   isPassiveMaxed,
@@ -20,7 +27,7 @@ import {
   xpProgress,
   xpToReach,
 } from "./growth";
-import type { ActiveModifier, Arc, Character, ComboDefinition, Enemy } from "./types";
+import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy } from "./types";
 
 function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobsToBoss = 3): Arc {
   return {
@@ -379,5 +386,45 @@ describe("game data", () => {
         expect(gameData.arcs.find((a) => a.id === arcId)?.animeId).toBe(character.animeId);
       }
     }
+  });
+});
+
+describe("universe order", () => {
+  const animes: Anime[] = [
+    { id: "w1", name: "W1", unlockCost: 1 },
+    { id: "w2", name: "W2", unlockCost: 1, requiresAnimeId: "w1" },
+    { id: "w3", name: "W3", unlockCost: 1, requiresAnimeId: "w2" },
+  ];
+  const arcs = [makeArc("w1-a", "w1", 0, []), makeArc("w2-a", "w2", 0, []), makeArc("w3-a", "w3", 0, [])];
+
+  it("opens a sequel only once its predecessor is cleared", () => {
+    expect(isAnimeAvailable(animes, "w1", arcs, [])).toBe(true);
+    expect(isAnimeAvailable(animes, "w2", arcs, [])).toBe(false);
+    expect(isAnimeAvailable(animes, "w2", arcs, ["w1-a"])).toBe(true);
+    // the last world stays shut until the middle one is done, not just the first
+    expect(isAnimeAvailable(animes, "w3", arcs, ["w1-a"])).toBe(false);
+    expect(isAnimeAvailable(animes, "w3", arcs, ["w1-a", "w2-a"])).toBe(true);
+  });
+
+  it("ships Shippuden behind part 1", () => {
+    const shippuden = gameData.animes.find((a) => a.id === "shippuden")!;
+    expect(shippuden.requiresAnimeId).toBe("naruto");
+    expect(isAnimeAvailable(gameData.animes, "shippuden", gameData.arcs, [])).toBe(false);
+    expect(isAnimeAvailable(gameData.animes, "naruto", gameData.arcs, [])).toBe(true);
+
+    const narutoArcIds = gameData.arcs.filter((a) => a.animeId === "naruto").map((a) => a.id);
+    expect(isAnimeAvailable(gameData.animes, "shippuden", gameData.arcs, narutoArcIds)).toBe(true);
+  });
+
+  it("refuses the paid shortcut into a world whose predecessor is unfinished", () => {
+    const game = createRoot((dispose) => {
+      const store = createGameStore(gameData);
+      dispose();
+      return store;
+    });
+    expect(game.travelTo("shippuden")).toBe(false);
+    expect(game.unlockAnime("shippuden")).toBe(false);
+    expect(game.animeBlockedBy("shippuden")?.id).toBe("naruto");
+    expect(game.travelTo("naruto")).toBe(true);
   });
 });

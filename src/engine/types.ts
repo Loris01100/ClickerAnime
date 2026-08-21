@@ -21,6 +21,12 @@ export interface Anime {
   id: string;
   name: string;
   /**
+   * The anime that must be **cleared** before this one can be entered, free travel or paid shortcut
+   * alike. This is how a universe keeps its order: Shippuden after part 1, Boruto after Shippuden.
+   * Absent means it is an entry point — a world the player may start on.
+   */
+  requiresAnimeId?: string;
+  /**
    * prestige points to enter this anime early, without having finished the current one.
    * The normal route (first pick, or travelling after clearing a world) is always free.
    */
