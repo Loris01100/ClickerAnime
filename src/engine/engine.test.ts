@@ -3,6 +3,7 @@ import { computeEffectiveStat } from "./modifiers";
 import { synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { recruitCost } from "./economy";
 import type { ActiveModifier, Arc, Character, ComboDefinition } from "./types";
 
 describe("computeEffectiveStat", () => {
@@ -137,5 +138,22 @@ describe("abilities", () => {
     expect(isAbilityReady(undefined, 1000, 0)).toBe(true);
     expect(isAbilityReady(0, 1000, 500)).toBe(false);
     expect(isAbilityReady(0, 1000, 1000)).toBe(true);
+  });
+});
+
+describe("recruitCost", () => {
+  const cheap: Character = {
+    id: "cheap", name: "Cheap", animeId: "a", arcIds: [], baseClickPower: 1, basePassiveIncome: 0,
+  };
+  const strong: Character = {
+    id: "strong", name: "Strong", animeId: "a", arcIds: [], baseClickPower: 3, basePassiveIncome: 2,
+  };
+
+  it("charges more for a stronger character", () => {
+    expect(recruitCost(strong, 0)).toBeGreaterThan(recruitCost(cheap, 0));
+  });
+
+  it("scales up with the size of the roster", () => {
+    expect(recruitCost(cheap, 3)).toBeGreaterThan(recruitCost(cheap, 0));
   });
 });

@@ -1,8 +1,15 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
 import { computeEffectiveStat, pruneExpired } from "./modifiers";
-import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime as unlockAnimeState } from "./prestige";
-import { characterContributions, defaultSynergyConfig } from "./synergy";
+import {
+  applyPrestige,
+  calculatePrestigeGain,
+  canUnlockAnime,
+  createInitialPrestigeState,
+  unlockAnime as unlockAnimeState,
+} from "./prestige";
+import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
 import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { recruitCost } from "./economy";
 import type { ActiveModifier, Anime, Arc, Character, ComboDefinition } from "./types";
 
 export interface GameData {
@@ -13,20 +20,50 @@ export interface GameData {
 }
 
 const TICK_MS = 200;
+const AUTOSAVE_MS = 5_000;
+const SAVE_KEY = "clicker-anime:save:v1";
 /** Guaranteed click income so the run is never stuck at zero before the first character is recruited. */
 const BASE_CLICK_POWER = 1;
 
+interface SaveFile {
+  currency: number;
+  lifetimeEarned: number;
+  ownedCharacterIds: string[];
+  activeArcId: string | null;
+  prestigePoints: number;
+  unlockedAnimeIds: string[];
+}
+
+function readSave(): SaveFile | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null");
+    // A save from another build must never break the boot — fall back to a fresh run instead.
+    if (!parsed || typeof parsed.currency !== "number" || !Array.isArray(parsed.ownedCharacterIds)) return null;
+    return parsed as SaveFile;
+  } catch {
+    return null;
+  }
+}
+
 export function createGameStore(data: GameData) {
   const starterAnimeIds = data.animes.filter((a) => a.unlockCost === 0).map((a) => a.id);
+  const saved = readSave();
+  const defaultArcId = data.arcs.find((a) => starterAnimeIds.includes(a.animeId))?.id ?? data.arcs[0]?.id ?? null;
 
   const [now, setNow] = createSignal(Date.now());
-  const [currency, setCurrency] = createSignal(0);
-  const [lifetimeEarned, setLifetimeEarned] = createSignal(0);
-  const [ownedCharacterIds, setOwnedCharacterIds] = createSignal<string[]>([]);
-  const [activeArcId, setActiveArcId] = createSignal<string | null>(
-    data.arcs.find((a) => starterAnimeIds.includes(a.animeId))?.id ?? data.arcs[0]?.id ?? null
+  const [currency, setCurrency] = createSignal(saved?.currency ?? 0);
+  const [lifetimeEarned, setLifetimeEarned] = createSignal(saved?.lifetimeEarned ?? 0);
+  const [ownedCharacterIds, setOwnedCharacterIds] = createSignal<string[]>(saved?.ownedCharacterIds ?? []);
+  const [activeArcId, setActiveArcId] = createSignal<string | null>(saved?.activeArcId ?? defaultArcId);
+  const [prestige, setPrestige] = createSignal(
+    saved
+      ? {
+          prestigePoints: saved.prestigePoints ?? 0,
+          unlockedAnimeIds: saved.unlockedAnimeIds ?? [...starterAnimeIds],
+        }
+      : createInitialPrestigeState(starterAnimeIds)
   );
-  const [prestige, setPrestige] = createSignal(createInitialPrestigeState(starterAnimeIds));
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
 
@@ -53,15 +90,31 @@ export function createGameStore(data: GameData) {
     getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos)
   );
 
+  /** Prestige points the player would bank by resetting right now. */
+  const pendingPrestigeGain = createMemo(() => calculatePrestigeGain(lifetimeEarned()));
+
+  /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
+  function synergyOf(character: Character): number {
+    const arc = activeArc();
+    return arc ? synergyMultiplier(character, arc, defaultSynergyConfig) : 1;
+  }
+
+  function costOf(character: Character): number {
+    return recruitCost(character, ownedCharacterIds().length);
+  }
+
   function click() {
     const gain = clickPower();
     setCurrency((c) => c + gain);
     setLifetimeEarned((l) => l + gain);
+    return gain;
   }
 
-  function recruitCharacter(characterId: string, cost: number) {
+  function recruitCharacter(characterId: string) {
     if (ownedCharacterIds().includes(characterId)) return false;
-    if (!availableCharacters().some((c) => c.id === characterId)) return false;
+    const character = availableCharacters().find((c) => c.id === characterId);
+    if (!character) return false;
+    const cost = costOf(character);
     if (currency() < cost) return false;
     setCurrency((c) => c - cost);
     setOwnedCharacterIds((ids) => [...ids, characterId]);
@@ -114,6 +167,31 @@ export function createGameStore(data: GameData) {
     setAbilityLastUsed({});
   }
 
+  function save() {
+    if (typeof localStorage === "undefined") return;
+    const file: SaveFile = {
+      currency: currency(),
+      lifetimeEarned: lifetimeEarned(),
+      ownedCharacterIds: ownedCharacterIds(),
+      activeArcId: activeArcId(),
+      prestigePoints: prestige().prestigePoints,
+      unlockedAnimeIds: prestige().unlockedAnimeIds,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(file));
+  }
+
+  /** Wipes the save and every bit of progress, prestige included. */
+  function hardReset() {
+    if (typeof localStorage !== "undefined") localStorage.removeItem(SAVE_KEY);
+    setCurrency(0);
+    setLifetimeEarned(0);
+    setOwnedCharacterIds([]);
+    setTemporaryModifiers([]);
+    setAbilityLastUsed({});
+    setPrestige(createInitialPrestigeState(starterAnimeIds));
+    setActiveArcId(defaultArcId);
+  }
+
   const interval = setInterval(() => {
     const nowMs = Date.now();
     const deltaSeconds = (nowMs - now()) / 1000;
@@ -124,7 +202,12 @@ export function createGameStore(data: GameData) {
       setLifetimeEarned((l) => l + income);
     }
   }, TICK_MS);
-  onCleanup(() => clearInterval(interval));
+  const autosave = setInterval(save, AUTOSAVE_MS);
+  onCleanup(() => {
+    clearInterval(interval);
+    clearInterval(autosave);
+    save();
+  });
 
   return {
     data,
@@ -132,13 +215,17 @@ export function createGameStore(data: GameData) {
     currency,
     lifetimeEarned,
     prestige,
+    pendingPrestigeGain,
     activeArc,
     unlockedAnimes,
     availableCharacters,
     ownedCharacters,
+    ownedCharacterIds,
     clickPower,
     passiveIncomePerSecond,
     unlockedAbilities,
+    synergyOf,
+    costOf,
     click,
     recruitCharacter,
     setActiveArc,
@@ -146,6 +233,8 @@ export function createGameStore(data: GameData) {
     activateAbility,
     abilityCooldownRemaining,
     prestigeReset,
+    save,
+    hardReset,
   };
 }
 
