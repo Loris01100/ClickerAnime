@@ -1,6 +1,6 @@
 export interface PrestigeState {
   prestigePoints: number;
-  /** anime rosters permanently unlocked by spending prestige points; persists across resets */
+  /** animes entered this run, in entry order (index = difficulty tier); wiped by a prestige */
   unlockedAnimeIds: string[];
 }
 
@@ -27,8 +27,10 @@ export function unlockAnime(state: PrestigeState, animeId: string, cost: number)
   };
 }
 
+/** Banks the gain and sends the player back to square one: the worlds entered are wiped too. */
 export function applyPrestige(state: PrestigeState, lifetimeEarned: number): PrestigeState {
-  const gained = calculatePrestigeGain(lifetimeEarned);
-  if (gained <= 0) return state;
-  return { ...state, prestigePoints: state.prestigePoints + gained };
+  return {
+    prestigePoints: state.prestigePoints + calculatePrestigeGain(lifetimeEarned),
+    unlockedAnimeIds: [],
+  };
 }

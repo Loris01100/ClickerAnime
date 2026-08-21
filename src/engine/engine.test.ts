@@ -98,6 +98,11 @@ describe("prestige", () => {
     expect(applyPrestige(createInitialPrestigeState(), 4_000_000).prestigePoints).toBe(2);
   });
 
+  it("sends the player back to square one: the worlds entered are wiped", () => {
+    const after = applyPrestige({ prestigePoints: 1, unlockedAnimeIds: ["anime-a"] }, 4_000_000);
+    expect(after).toEqual({ prestigePoints: 3, unlockedAnimeIds: [] });
+  });
+
   it("lets the player unlock any anime they can afford, in any order", () => {
     const state = { prestigePoints: 10, unlockedAnimeIds: [] as string[] };
     const after = unlockAnime(state, "anime-b", 5);

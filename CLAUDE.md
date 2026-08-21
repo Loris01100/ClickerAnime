@@ -110,7 +110,7 @@ copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRan
 chooses which character of an arc gets the copies. `passiveUpgradeOf` is what the UI reads — rank,
 cost, copies held, affordable. Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
-Ranks survive `prestigeReset` like the items that paid for them, even though the roster does not.
+Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
 
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
@@ -147,9 +147,9 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
 - The player picks their first world freely among the entry points and travels freely after each
   clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige
   points to enter early — but only into a world whose prerequisite is already cleared.
-- Kill counts and cleared arcs survive `prestigeReset` — worlds are meta-progression, not a run,
-  which is also why the universe order survives it: a cleared part 1 stays cleared.
-  The team does **not**: a prestige wipes it, and characters must be beaten again.
+- Nothing survives `prestigeReset` except the prestige points: kill counts, cleared arcs, the worlds
+  entered and the team all go, and the player picks an entry world again from scratch. Tier is the
+  index in `unlockedAnimeIds`, so the difficulty ramp restarts with it.
 
 ### Synergy
 
@@ -166,9 +166,10 @@ version when the shape changes. There is no offline-progress catch-up.
 
 ### Prestige
 
-`prestigeReset()` wipes the run (currency, roster, temp buffs, cooldowns) but keeps `PrestigeState`.
-Gain is `floor(sqrt(lifetimeEarned / scale))`, zero below `scale`. Prestige points unlock anime
-rosters permanently and in any order the player can afford — no forced progression sequence.
+`prestigeReset()` wipes everything but the prestige points: currency, roster, xp, items, passive
+ranks, kills, cleared arcs and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale))`,
+zero below `scale`. Points are only spent on `unlockAnime`, the paid early entry, which now has to be
+re-bought each run — the planned global skill tree is what they are meant to feed.
 
 ### Abilities
 

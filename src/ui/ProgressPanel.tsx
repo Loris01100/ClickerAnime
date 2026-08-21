@@ -115,8 +115,8 @@ export default function ProgressPanel(props: { game: GameStore }) {
             Prestige (+{props.game.pendingPrestigeGain()})
           </button>
           <p class="muted small">
-            Réinitialise la run : monnaie, équipe et niveaux. Conserve les points, les mondes, les arcs
-            terminés et les objets.
+            Réinitialise tout : monnaie, équipe, niveaux, mondes, arcs terminés, objets et passifs.
+            Seuls les points de prestige sont conservés.
           </p>
         </div>
       </section>

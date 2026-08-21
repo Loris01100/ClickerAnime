@@ -78,7 +78,6 @@ export function createGameStore(data: GameData) {
   const [clearedArcIds, setClearedArcIds] = createSignal<string[]>(saved?.clearedArcIds ?? []);
   const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
-  // Bought with items, so they outlive a prestige just like the items that paid for them.
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
   const [prestige, setPrestige] = createSignal(
     saved
@@ -108,7 +107,7 @@ export function createGameStore(data: GameData) {
 
   const progressOf = (characterId: string) => xpProgress(xpOf(characterId));
 
-  /** Items found across every world; never lost, not even on prestige. Commons stack. */
+  /** Items found this run; wiped by a prestige along with the ranks they bought. Commons stack. */
   const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
 
   const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
@@ -401,8 +400,9 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * Resets the run (currency, team, temp buffs) but keeps prestige points, the animes entered and
-   * the arcs already cleared — world progression is not part of the run.
+   * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared, items and
+   * passive ranks all go. Only the prestige points survive — the whole point is to redo the climb
+   * faster.
    */
   function prestigeReset() {
     setPrestige((p) => applyPrestige(p, lifetimeEarned()));
@@ -412,6 +412,11 @@ export function createGameStore(data: GameData) {
     setCharacterXp({});
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
+    setItemCounts({});
+    setPassiveRanks({});
+    setArcKills({});
+    setClearedArcIds([]);
+    setActiveArcId(null);
     spawnNext();
   }
 
