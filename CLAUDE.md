@@ -171,8 +171,20 @@ last-used timestamps in a record, not as counters.
 
 ## Content
 
-`src/data/sample.ts` is placeholder fixture data (Anime A/B, Character A1…) shaped as `GameData`,
-not real content. Real content replaces this file; the engine reads only from the `GameData` passed
-into `createGameStore`, so nothing else needs to change.
+`src/data/` holds the real content, one file per world plus `index.ts`, which is the only thing the
+app imports (`gameData` = every world concatenated). Adding a world means adding a file and one entry
+to the `worlds` array there.
+
+- `naruto.ts` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
+- `shippuden.ts` — **Naruto Shippūden**, 15 arcs, deliberately the long one: it is the climax of the
+  Naruto worlds. Generated from a table, so its hp, rewards and recruit stats all ramp by the same
+  ~1.85 per arc — keep that ratio when editing, it is what keeps the pace flat while the numbers
+  explode. Boruto is meant to come last and hardest.
+
+A character belongs to exactly one world and is recruitable in exactly one arc: Shippūden reuses no
+one from part 1, it introduces new faces only (`engine.test.ts` enforces both rules, along with every
+id being unique and every reference resolvable). Combos may still span worlds — the team only wipes
+on prestige, not on travel — which is what makes "Le Sommet des Cinq Kage" (Gaara and Tsunade from
+part 1, plus the Shippūden Kage) worth keeping a mixed team for.
 
 UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.

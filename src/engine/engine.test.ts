@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore } from "./gameState";
-import { narutoData } from "../data/naruto";
+import { gameData } from "../data";
 import { computeEffectiveStat } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
@@ -326,7 +326,7 @@ describe("store boot", () => {
 
     try {
       const game = createRoot((dispose) => {
-        const store = createGameStore(narutoData);
+        const store = createGameStore(gameData);
         dispose();
         return store;
       });
@@ -338,6 +338,46 @@ describe("store boot", () => {
       expect(game.passiveUpgradeOf(kakashi).cost).toBeGreaterThan(0);
     } finally {
       (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+});
+
+describe("game data", () => {
+  it("keeps every id unique and every reference resolvable", () => {
+    const dupes = (ids: string[]) => ids.filter((id, i) => ids.indexOf(id) !== i);
+    expect(dupes(gameData.characters.map((c) => c.id))).toEqual([]);
+    expect(dupes(gameData.items.map((i) => i.id))).toEqual([]);
+    expect(dupes(gameData.arcs.map((a) => a.id))).toEqual([]);
+    expect(dupes(gameData.animes.map((a) => a.id))).toEqual([]);
+
+    const characterIds = gameData.characters.map((c) => c.id);
+    const itemIds = gameData.items.map((i) => i.id);
+    for (const arc of gameData.arcs) {
+      expect(gameData.animes.some((a) => a.id === arc.animeId)).toBe(true);
+      for (const enemy of [...arc.mobs, arc.boss]) {
+        if (enemy.characterId) expect(characterIds).toContain(enemy.characterId);
+        if (enemy.itemId) expect(itemIds).toContain(enemy.itemId);
+      }
+      // one common item per arc: it is what the passives of that arc's characters are paid with
+      expect(arc.mobs.some((m) => m.itemId)).toBe(true);
+    }
+    for (const combo of gameData.combos) {
+      for (const id of combo.requiredCharacterIds) expect(characterIds).toContain(id);
+    }
+  });
+
+  it("recruits each character in exactly one world, and never twice", () => {
+    const recruited = gameData.arcs.flatMap((a) => [...a.mobs, a.boss]).map((e) => e.characterId).filter(Boolean);
+    expect(recruited.filter((id, i) => recruited.indexOf(id) !== i)).toEqual([]);
+    for (const character of gameData.characters) {
+      const arc = gameData.arcs.find(
+        (a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)
+      );
+      expect(arc, `${character.id} n'est recrutable nulle part`).toBeDefined();
+      expect(arc!.animeId).toBe(character.animeId);
+      for (const arcId of character.arcIds) {
+        expect(gameData.arcs.find((a) => a.id === arcId)?.animeId).toBe(character.animeId);
+      }
     }
   });
 });

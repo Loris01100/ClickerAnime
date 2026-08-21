@@ -1,6 +1,6 @@
 import { For, Show, createSignal } from "solid-js";
 import { createGameStore } from "./engine/gameState";
-import { narutoData } from "./data/naruto";
+import { gameData } from "./data";
 import ClickStage from "./ui/ClickStage";
 import Codex from "./ui/Codex";
 import WorldMap from "./ui/WorldMap";
@@ -10,7 +10,7 @@ import ProgressPanel from "./ui/ProgressPanel";
 import { NEXT_THEME, setTheme, theme, THEME_ICON, THEME_LABEL } from "./ui/theme";
 
 export default function App() {
-  const game = createGameStore(narutoData);
+  const game = createGameStore(gameData);
   const [codexOpen, setCodexOpen] = createSignal(false);
 
   function hardReset() {
