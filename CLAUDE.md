@@ -31,12 +31,15 @@ and combos. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
 
-**Pixel art is generated, not authored.** `ui/pixel.ts` turns any id into a stable mirrored sprite
-(FNV-1a hash seeding an xorshift32 fill), rendered as SVG rects by `ui/Sprite.tsx`. Same id always
-gives the same sprite, which is what makes it usable as an identity — pass a character id, an enemy
-id or a boss id. When real artwork lands, swap the body of `Sprite.tsx`; nothing else changes.
-Note the filename casing: `pixel.ts` and `Sprite.tsx` must not collide on case-insensitive
-filesystems.
+**Pixel art is generated, not authored — until a file says otherwise.** `ui/pixel.ts` turns any id
+into a stable mirrored sprite (FNV-1a hash seeding an xorshift32 fill), rendered as SVG rects by
+`ui/Sprite.tsx`. Same id always gives the same sprite, which is what makes it usable as an identity
+— pass a character id, an enemy id or a boss id. `Sprite.tsx` checks `src/assets/sprites/<id>.*`
+first (via `import.meta.glob`, eager) and only falls back to the generated grid when no file matches;
+real art is scaled with `object-fit: contain` into the exact box the placeholder would have used, so
+dropping a file in never shifts layout. Adding real art for an id is therefore just adding the file —
+see `src/assets/sprites/README.md` for the naming rule. Note the filename casing: `pixel.ts` and
+`Sprite.tsx` must not collide on case-insensitive filesystems.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.

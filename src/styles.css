@@ -238,6 +238,8 @@ small {
 }
 .sprite {
   flex: none;
+}
+.sprite.pixel {
   image-rendering: pixelated;
 }
 .sprite.dim {
