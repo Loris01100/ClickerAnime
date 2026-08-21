@@ -17,6 +17,7 @@
   --bad: #d13a3a;
   --gold: #c98a00;
   --boss: #c2620a;
+  --blue: #2f7dd1;
   --topbar-bg: rgba(255, 255, 255, 0.88);
   --stage-bg: linear-gradient(160deg, #e6ebfa, #f5f7fd 60%, #eaeefb);
   --label-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
@@ -39,6 +40,7 @@
     --bad: #f87171;
     --gold: #ffd166;
     --boss: #ffb15c;
+    --blue: #6fb3ff;
     --topbar-bg: rgba(15, 18, 32, 0.85);
     --stage-bg: linear-gradient(160deg, #2b3160, #171a2e 60%, #101326);
     --label-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
@@ -70,6 +72,12 @@
 
 * {
   box-sizing: border-box;
+}
+
+.icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: -0.15em;
 }
 
 body {
@@ -271,6 +279,18 @@ small {
 }
 .coin.violet {
   color: var(--accent);
+}
+.coin.blue {
+  color: var(--blue);
+}
+.coin.green {
+  color: var(--good);
+}
+.icon.gold {
+  color: var(--gold);
+}
+.icon.blue {
+  color: var(--blue);
 }
 
 /* --- team & item tables --- */

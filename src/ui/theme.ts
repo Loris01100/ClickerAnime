@@ -5,7 +5,6 @@ const KEY = "clicker-anime:theme";
 /** "system" leaves the choice to prefers-color-scheme by stamping no attribute at all. */
 export type Theme = "system" | "light" | "dark";
 
-export const THEME_ICON: Record<Theme, string> = { system: "🖥️", light: "☀️", dark: "🌙" };
 export const THEME_LABEL: Record<Theme, string> = { system: "Thème système", light: "Thème clair", dark: "Thème sombre" };
 export const NEXT_THEME: Record<Theme, Theme> = { system: "light", light: "dark", dark: "system" };
 

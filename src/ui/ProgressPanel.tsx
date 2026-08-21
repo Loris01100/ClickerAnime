@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { fmt } from "./format";
+import { IconLock } from "./icons";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -36,7 +37,12 @@ export default function ProgressPanel(props: { game: GameStore }) {
                     disabled={!open()}
                     onClick={() => props.game.setActiveArc(arc.id)}
                   >
-                    <span class="arc-name">{open() ? arc.name : `🔒 ${arc.name}`}</span>
+                    <span class="arc-name">
+                      <Show when={!open()}>
+                        <IconLock />{" "}
+                      </Show>
+                      {arc.name}
+                    </span>
                     <div class="bar arc-bar">
                       <div
                         class="bar-fill"

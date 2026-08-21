@@ -3,6 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
+import { IconBookmark, IconTrophy } from "./icons";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
 
@@ -178,7 +179,7 @@ export default function RosterPanel(props: { game: GameStore }) {
             {(item) => (
               <div class="item-grid item-row">
                 <span class="name">
-                  {item.kind === "unique" ? "🏆" : "🔖"} {item.name}
+                  {item.kind === "unique" ? <IconTrophy class="gold" /> : <IconBookmark class="blue" />} {item.name}
                 </span>
                 <span classList={{ unique: item.kind === "unique" }}>
                   {item.kind === "unique" ? "unique" : "commun"}

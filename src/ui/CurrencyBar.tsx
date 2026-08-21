@@ -1,5 +1,6 @@
 import type { GameStore } from "../engine/gameState";
 import { fmt } from "./format";
+import { IconBookmark, IconGlobe } from "./icons";
 
 /** The row of running totals at the top of the middle column. */
 export default function CurrencyBar(props: { game: GameStore }) {
@@ -18,11 +19,11 @@ export default function CurrencyBar(props: { game: GameStore }) {
           <strong>{props.game.prestige().prestigePoints}</strong>
         </div>
         <div class="currency">
-          <span class="coin blue">🔖</span>
+          <span class="coin blue"><IconBookmark /></span>
           <strong>{props.game.foundItems().length}</strong>
         </div>
         <div class="currency">
-          <span class="coin green">🌍</span>
+          <span class="coin green"><IconGlobe /></span>
           <strong>{props.game.clearedAnimes().length}</strong>
         </div>
       </div>

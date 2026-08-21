@@ -2,6 +2,7 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
+import { IconLock } from "./icons";
 
 /** The route map of one world: its arcs as nodes on a path, in order. */
 export default function WorldMap(props: { game: GameStore }) {
@@ -61,7 +62,7 @@ export default function WorldMap(props: { game: GameStore }) {
                       title={arc.name}
                       onClick={() => props.game.setActiveArc(arc.id)}
                     >
-                      <Show when={open()} fallback={<span class="map-lock">🔒</span>}>
+                      <Show when={open()} fallback={<span class="map-lock"><IconLock /></span>}>
                         <Sprite seed={arc.boss.id} px={4} dim={!open()} />
                       </Show>
                       <span class="map-name">{arc.name}</span>

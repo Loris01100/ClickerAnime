@@ -1,4 +1,5 @@
 import { For, Show, createSignal } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { gameData } from "./data";
 import ClickStage from "./ui/ClickStage";
@@ -7,7 +8,10 @@ import WorldMap from "./ui/WorldMap";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
-import { NEXT_THEME, setTheme, theme, THEME_ICON, THEME_LABEL } from "./ui/theme";
+import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
+import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
+
+const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
 export default function App() {
   const game = createGameStore(gameData);
@@ -27,7 +31,7 @@ export default function App() {
             title={THEME_LABEL[theme()]}
             onClick={() => setTheme(NEXT_THEME[theme()])}
           >
-            {THEME_ICON[theme()]}
+            <Dynamic component={THEME_ICON[theme()]} />
           </button>
           <button onClick={() => setCodexOpen(true)}>Codex</button>
           <button onClick={() => game.save()}>Sauvegarder</button>

@@ -2,6 +2,7 @@ import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
+import { IconCrown, IconStar } from "./icons";
 
 interface Pop {
   id: number;
@@ -80,8 +81,12 @@ export default function ClickStage(props: { game: GameStore }) {
                 <Sprite seed={current().characterId ?? current().id} px={isBoss() ? 12 : 9} />
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
-                <Show when={isBoss()}>👑 </Show>
-                <Show when={current().characterId}>⭐ </Show>
+                <Show when={isBoss()}>
+                  <IconCrown class="gold" />{" "}
+                </Show>
+                <Show when={current().characterId}>
+                  <IconStar class="gold" />{" "}
+                </Show>
                 {current().name}
               </div>
 
