@@ -35,7 +35,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
                     >
                       <span>{open() ? arc.name : `🔒 ${arc.name}`}</span>
                       <small class="muted">
-                        {cleared() ? "✓" : `${fmt(props.game.progressOf(arc))} / ${fmt(props.game.goalOf(arc))}`}
+                        {cleared() ? "✓" : `${Math.min(props.game.killsIn(arc), arc.mobsToBoss)}/${arc.mobsToBoss}`}
                       </small>
                     </button>
                   );

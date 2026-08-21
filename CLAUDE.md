@@ -28,6 +28,24 @@ prop. Components must never compute balance themselves — if a number needs der
 the engine and gets exposed on the store (that is why `synergyOf`, `costOf` and `pendingPrestigeGain`
 exist). Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 
+### The combat loop
+
+An arc is a zone the player fights through. `combat.ts` is pure and decides who shows up next:
+cycle `arc.mobs` in order until `mobsToBoss` kills, then `arc.boss`; once the arc is cleared the boss
+stops appearing and the zone farms mobs forever. Mobs carrying a `characterId` are the anime's
+characters — beating one adds them to the team for free, and they drop out of the pool afterwards.
+
+Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
+full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
+change — by default only bosses carry one, because timed mobs would break idling.
+
+Damage has two sources, both modifier-driven: `clickPower` (one narrator click) and `teamDps`
+(applied every tick as `dps * delta`). Currency only ever comes from kills — there is no passive
+income any more, and `lifetimeEarned` is what feeds prestige.
+
+Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved: a reload
+restarts the current fight. Only kill counts and cleared arcs persist.
+
 ### The modifier pipeline
 
 Everything that affects a stat becomes an `ActiveModifier`, and `computeEffectiveStat` folds them:
@@ -45,28 +63,26 @@ can never inflate a stat.
 
 Animes are the worlds; arcs are the stages inside them. `progression.ts` holds it all, pure:
 
-- An arc clears when the currency earned **while it is the active arc** reaches its goal. Arcs open
-  in `order`, one after the previous clears; an anime clears when all of its arcs do.
-- `arcGoal = baseGoal * 2.5^tier`, where **tier = the anime's index in `unlockedAnimeIds`**. Entering
+- An arc clears when its **boss** falls. Arcs open in `order`, one after the previous clears; an
+  anime clears when all of its arcs do.
+- Enemy hp and rewards scale by `2.5^tier`, where **tier = the anime's index in `unlockedAnimeIds`**. Entering
   a new world is only allowed once everything already entered is cleared, so that index equals the
   number of worlds already finished — the difficulty ramp the design calls for. Freezing the tier at
   entry is what stops a cleared anime from un-clearing itself when global difficulty rises; do not
   recompute a tier from the live completed-count or you reintroduce that circularity.
 - The player picks their first world freely and travels freely after each clear (`travelTo`, free).
   `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige points to enter early.
-- Arc progress survives `prestigeReset` — worlds are meta-progression, not part of a run.
+- Kill counts and cleared arcs survive `prestigeReset` — worlds are meta-progression, not a run.
+  The team does **not**: a prestige wipes it, and characters must be beaten again.
 
 ### Synergy
 
-`synergyMultiplier` is the core mechanic and the "characters weaken outside their world" rule: a character is strong in their own arcs
+`synergyMultiplier` is the core mechanic and the "characters weaken outside their world" rule. It
+scales both `clickPower` and `teamDps` contributions: a character is strong in their own arcs
 (`matchingArcMultiplier`), weaker in other arcs of their own anime (`sameAnimeMalus`), weakest in
 another anime's arc (`otherAnimeMalus`). Tuning `defaultSynergyConfig` is the main balance knob.
 
-### Economy & persistence
-
-`recruitCost(character, ownedCount)` derives a price from the character's raw worth then scales it
-`1.35^ownedCount`, so each recruit costs more than the last — the main pacing knob. Costs are never
-passed in from the UI; `recruitCharacter(id)` computes and charges them itself.
+### Persistence
 
 The save is a flat `SaveFile` in `localStorage` under a versioned key. `readSave` shape-checks it and
 falls back to a fresh run rather than throwing, so an old save can never brick the boot. Bump the key

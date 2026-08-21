@@ -37,11 +37,11 @@ export function characterContributions(
       value: character.baseClickPower * synergy,
     },
     {
-      id: `${character.id}:base-passive`,
+      id: `${character.id}:base-dps`,
       sourceId: character.id,
-      target: "passiveIncome",
+      target: "teamDps",
       kind: "flat",
-      value: character.basePassiveIncome * synergy,
+      value: character.baseDps * synergy,
     },
   ];
 

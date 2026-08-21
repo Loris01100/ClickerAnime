@@ -2,10 +2,8 @@ import { For, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { fmt, seconds } from "./format";
 
-/** Left column: activable abilities on top (like a battle-item bar), roster and recruiting below. */
+/** Left column: activable abilities, the team, and the characters still to beat in this zone. */
 export default function RosterPanel(props: { game: GameStore }) {
-  const recruitable = () => props.game.availableCharacters().filter((c) => !props.game.ownedCharacterIds().includes(c.id));
-
   return (
     <div class="column">
       <section class="panel">
@@ -28,7 +26,7 @@ export default function RosterPanel(props: { game: GameStore }) {
             }}
           </For>
           <Show when={props.game.unlockedAbilities().length === 0}>
-            <p class="muted">Recrutez des personnages pour débloquer des capacités et des combos.</p>
+            <p class="muted">Battez des personnages pour débloquer des capacités et des combos.</p>
           </Show>
         </div>
       </section>
@@ -42,48 +40,43 @@ export default function RosterPanel(props: { game: GameStore }) {
                 <div>
                   <strong>{character.name}</strong>
                   <small class="muted">
-                    {fmt(character.baseClickPower)} /clic · {fmt(character.basePassiveIncome)} /s
+                    {fmt(character.baseClickPower)} /clic · {fmt(character.baseDps)} dps
                   </small>
                 </div>
-                <span class="synergy" classList={{ good: props.game.synergyOf(character) > 1, bad: props.game.synergyOf(character) < 1 }}>
+                <span
+                  class="synergy"
+                  classList={{ good: props.game.synergyOf(character) > 1, bad: props.game.synergyOf(character) < 1 }}
+                >
                   x{props.game.synergyOf(character).toFixed(2)}
                 </span>
               </li>
             )}
           </For>
           <Show when={props.game.ownedCharacters().length === 0}>
-            <li class="muted">Équipe vide.</li>
+            <li class="muted">Équipe vide — les personnages rejoignent l'équipe quand vous les battez.</li>
           </Show>
         </ul>
       </section>
 
-      <section class="panel">
-        <header class="panel-head">Recrutement</header>
-        <ul class="list">
-          <For each={recruitable()}>
-            {(character) => {
-              const cost = () => props.game.costOf(character);
-              return (
+      <Show when={props.game.arcRecruits().length > 0}>
+        <section class="panel">
+          <header class="panel-head">À battre ici</header>
+          <ul class="list">
+            <For each={props.game.arcRecruits()}>
+              {(character) => (
                 <li class="row">
                   <div>
-                    <strong>{character.name}</strong>
+                    <strong>⭐ {character.name}</strong>
                     <small class="muted">
-                      {fmt(character.baseClickPower)} /clic · {fmt(character.basePassiveIncome)} /s
-                      {character.ability ? " · capacité" : ""}
+                      {fmt(character.baseClickPower)} /clic · {fmt(character.baseDps)} dps
                     </small>
                   </div>
-                  <button disabled={props.game.currency() < cost()} onClick={() => props.game.recruitCharacter(character.id)}>
-                    {fmt(cost())}
-                  </button>
                 </li>
-              );
-            }}
-          </For>
-          <Show when={recruitable().length === 0}>
-            <li class="muted">Tous les personnages disponibles sont recrutés.</li>
-          </Show>
-        </ul>
-      </section>
+              )}
+            </For>
+          </ul>
+        </section>
+      </Show>
     </div>
   );
 }

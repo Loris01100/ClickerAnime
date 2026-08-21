@@ -20,7 +20,7 @@ export default function App() {
         <div class="wallet">
           <span class="coin">◆</span>
           <strong>{fmt(game.currency())}</strong>
-          <small>+{fmt(game.passiveIncomePerSecond())}/s</small>
+          <small>{fmt(game.teamDps())} dps</small>
         </div>
         <div class="topbar-actions">
           <button onClick={() => game.save()}>Sauvegarder</button>
