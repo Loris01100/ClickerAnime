@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { createRoot } from "solid-js";
+import { createGameStore } from "./gameState";
+import { narutoData } from "../data/naruto";
 import { computeEffectiveStat } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
@@ -293,5 +296,48 @@ describe("narrator click", () => {
     const alone = narratorClickPower(0);
     expect(narratorClickPower(3)).toBeGreaterThan(alone);
     expect(narratorClickPower(3) - narratorClickPower(2)).toBe(narratorClickPower(1) - alone);
+  });
+});
+
+describe("store boot", () => {
+  it("boots from a save that already holds a team", () => {
+    // The empty-roster path never reads the passive helpers: only a save with characters does, which
+    // is why a helper declared below the `allModifiers` memo blanked the app on reload and not on a
+    // fresh run. Solid runs that memo as soon as something reads it, so its helpers must be hoisted.
+    const save = {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["naruto-uzumaki", "kakashi-hatake"],
+      activeArcId: "naruto-vagues",
+      prestigePoints: 0,
+      unlockedAnimeIds: ["naruto"],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: { "naruto-uzumaki": 500 },
+      itemCounts: { "item-shuriken": 20 },
+      passiveRanks: { "kakashi-hatake": 1 },
+    };
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(narutoData);
+        dispose();
+        return store;
+      });
+      expect(game.ownedCharacters()).toHaveLength(2);
+      expect(game.teamDps()).toBeGreaterThan(0);
+      const kakashi = game.ownedCharacters().find((c) => c.id === "kakashi-hatake")!;
+      expect(game.passiveRankOf(kakashi)).toBe(1);
+      expect(game.passiveItemOf(kakashi)?.id).toBe("item-shuriken");
+      expect(game.passiveUpgradeOf(kakashi).cost).toBeGreaterThan(0);
+    } finally {
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
   });
 });

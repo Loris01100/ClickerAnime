@@ -123,22 +123,30 @@ export function createGameStore(data: GameData) {
   /** What one narrator click is worth before any modifier: just the allies standing at their side. */
   const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length));
 
-  /** The arc a character is met in — the one whose common item feeds their passive. */
-  const originArcOf = (character: Character) =>
-    data.arcs.find((a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)) ??
-    null;
+  /**
+   * The arc a character is met in — the one whose common item feeds their passive.
+   * Declared as functions, not consts: `allModifiers` is a memo created above and Solid runs it
+   * straight away, so anything it reads must already be hoisted.
+   */
+  function originArcOf(character: Character): Arc | null {
+    return (
+      data.arcs.find(
+        (a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)
+      ) ?? null
+    );
+  }
 
   /** The common item that ranks up this character's passive, i.e. the one their home arc drops. */
-  const passiveItemOf = (character: Character): Item | null => {
+  function passiveItemOf(character: Character): Item | null {
     const arc = originArcOf(character);
     const itemId = arc?.mobs.find((m) => m.itemId)?.itemId;
     return data.items.find((i) => i.id === itemId) ?? null;
-  };
+  }
 
-  const passiveCopiesOf = (character: Character) => {
+  function passiveCopiesOf(character: Character): number {
     const item = passiveItemOf(character);
     return item ? countOf(item.id) : 0;
-  };
+  }
 
   /** Damage of one narrator click. */
   const clickPower = createMemo(() => computeEffectiveStat(narratorBase(), "clickPower", allModifiers(), now()));
@@ -302,9 +310,13 @@ export function createGameStore(data: GameData) {
   }
 
   /** Rank the passive runs at (0 = still locked), what the next one costs, and the cap. */
-  const passiveRankOf = (character: Character) => passiveRanks()[character.id] ?? 0;
-  const passiveUpgradeOf = (character: Character) =>
-    passiveUpgrade(passiveRankOf(character), character.rarity, passiveCopiesOf(character));
+  function passiveRankOf(character: Character): number {
+    return passiveRanks()[character.id] ?? 0;
+  }
+
+  function passiveUpgradeOf(character: Character) {
+    return passiveUpgrade(passiveRankOf(character), character.rarity, passiveCopiesOf(character));
+  }
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
   /** Spends the origin item to buy the next rank of a character's passive. */
