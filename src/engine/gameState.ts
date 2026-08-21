@@ -160,6 +160,23 @@ export function createGameStore(data: GameData) {
   /** True when nothing is left in progress, so the player may head to a new anime. */
   const canTravel = createMemo(() => canEnterNewAnime(prestige().unlockedAnimeIds, data.arcs, clearedArcIds()));
 
+  /**
+   * Every arc the player can actually fight in right now, in travel order: animes in the order they
+   * were entered, arcs in their own order. Drives the prev/next arc stepper.
+   */
+  const playableArcs = createMemo<Arc[]>(() =>
+    prestige()
+      .unlockedAnimeIds.flatMap((animeId) => arcsOf(animeId))
+      .filter((arc) => arcOpen(arc))
+  );
+
+  function stepArc(direction: 1 | -1) {
+    const arcs = playableArcs();
+    const index = arcs.findIndex((a) => a.id === activeArcId());
+    const target = arcs[index + direction];
+    return target ? setActiveArc(target.id) : false;
+  }
+
   /** Characters of the active arc still waiting to be beaten. */
   const arcRecruits = createMemo(() => {
     const arc = activeArc();
@@ -436,6 +453,8 @@ export function createGameStore(data: GameData) {
     nextDifficulty,
     canTravel,
     travelTo,
+    playableArcs,
+    stepArc,
     // actions
     click,
     setActiveArc,

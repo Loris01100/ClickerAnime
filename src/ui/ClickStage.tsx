@@ -9,7 +9,7 @@ interface Pop {
   y: number;
 }
 
-/** Center panel: the fight — enemy hp, boss timer, and the narrator's click. */
+/** Middle column: the arc stepper, the fight, and the running combat stats. */
 export default function ClickStage(props: { game: GameStore }) {
   const [pops, setPops] = createSignal<Pop[]>([]);
   let popId = 0;
@@ -34,71 +34,54 @@ export default function ClickStage(props: { game: GameStore }) {
   const isBoss = () => !!enemy() && enemy()!.id === arc()?.boss.id;
   const hpRatio = () => (props.game.enemyMaxHp() > 0 ? props.game.enemyHpLeft() / props.game.enemyMaxHp() : 0);
   const timer = () => props.game.timerRemaining();
-  const killsLeft = () => {
+
+  const neighbour = (offset: number) => {
+    const arcs = props.game.playableArcs();
+    const index = arcs.findIndex((a) => a.id === arc()?.id);
+    return index < 0 ? undefined : arcs[index + offset];
+  };
+
+  const kills = () => {
     const current = arc();
-    return current ? Math.max(0, current.mobsToBoss - props.game.killsIn(current)) : 0;
+    return current ? props.game.killsIn(current) : 0;
+  };
+  const killsGoal = () => arc()?.mobsToBoss ?? 0;
+  const cleared = () => {
+    const current = arc();
+    return current ? props.game.arcCleared(current) : false;
   };
 
   return (
-    <section class="panel stage-panel">
+    <section class="panel">
       <header class="panel-head">
-        <span class="stage-title">{arc()?.name ?? "Aucun arc actif"}</span>
-        <span class="stage-sub">
-          {anime()?.name ?? "—"}
-          <Show when={anime()}>{(a) => <> · difficulté x{fmt(props.game.difficultyOf(a().id))}</>}</Show>
-        </span>
+        <span>Combat</span>
+        <small class="muted">
+          {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
+        </small>
       </header>
+
+      <div class="arc-stepper">
+        <button disabled={!neighbour(-1)} onClick={() => props.game.stepArc(-1)}>
+          ‹ {neighbour(-1)?.name ?? "—"}
+        </button>
+        <span class="arc-current">{arc()?.name ?? "Aucun arc"}</span>
+        <button disabled={!neighbour(1)} onClick={() => props.game.stepArc(1)}>
+          {neighbour(1)?.name ?? "—"} ›
+        </button>
+      </div>
 
       <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour combattre.</div>}>
         {(current) => (
           <>
-            <div class="enemy-head" classList={{ boss: isBoss() }}>
-              <span>
-                <Show when={isBoss()}>👑 </Show>
-                <Show when={current().characterId}>⭐ </Show>
-                {current().name}
-              </span>
-              <Show when={timer() !== null}>
-                <span class="timer" classList={{ urgent: (timer() ?? 0) < 10_000 }}>
-                  ⏱ {seconds(timer() ?? 0)}
-                </span>
-              </Show>
-            </div>
-
-            <div class="bar hp-bar" classList={{ boss: isBoss() }}>
-              <div class="bar-fill" style={{ width: `${Math.max(0, hpRatio()) * 100}%` }} />
-              <span class="bar-label">
-                {fmt(Math.max(0, props.game.enemyHpLeft()))} / {fmt(props.game.enemyMaxHp())} PV
-              </span>
-            </div>
-
-            <Show when={timer() !== null}>
-              <div class="bar timer-bar">
-                <div class="bar-fill" style={{ width: `${((timer() ?? 0) / (current().timerMs ?? 1)) * 100}%` }} />
-              </div>
-            </Show>
-
             <div class="stage" onClick={handleClick}>
               <div class="stage-hint">Clic du Narrateur</div>
               <div class="enemy" classList={{ boss: isBoss(), rival: !!current().characterId }}>
                 {current().name.slice(0, 2).toUpperCase()}
               </div>
-              <Show
-                when={props.game.arcCleared(arc()!)}
-                fallback={<p class="stage-empty">Encore {killsLeft()} adversaire(s) avant le boss.</p>}
-              >
-                <p class="stage-empty">Arc terminé — la zone reste farmable.</p>
-              </Show>
-
-              <div class="stage-team">
-                <For each={props.game.ownedCharacters()}>
-                  {(character) => (
-                    <div class="token" classList={{ "token-strong": props.game.synergyOf(character) > 1 }}>
-                      <span>{character.name.slice(0, 2).toUpperCase()}</span>
-                      <small>x{props.game.synergyOf(character).toFixed(2)}</small>
-                    </div>
-                  )}
-                </For>
+              <div class="enemy-name" classList={{ boss: isBoss() }}>
+                <Show when={isBoss()}>👑 </Show>
+                <Show when={current().characterId}>⭐ </Show>
+                {current().name}
               </div>
 
               <For each={pops()}>
@@ -109,11 +92,25 @@ export default function ClickStage(props: { game: GameStore }) {
                 )}
               </For>
             </div>
+
+            <div class="bar hp-bar" classList={{ boss: isBoss() }}>
+              <div class="bar-fill" style={{ width: `${Math.max(0, hpRatio()) * 100}%` }} />
+              <span class="bar-label">
+                {fmt(Math.max(0, props.game.enemyHpLeft()))} / {fmt(props.game.enemyMaxHp())} PV
+              </span>
+            </div>
+
+            <Show when={timer() !== null}>
+              <div class="bar timer-bar" classList={{ urgent: (timer() ?? 0) < 10_000 }}>
+                <div class="bar-fill" style={{ width: `${((timer() ?? 0) / (current().timerMs ?? 1)) * 100}%` }} />
+                <span class="bar-label">⏱ {seconds(timer() ?? 0)}</span>
+              </div>
+            </Show>
           </>
         )}
       </Show>
 
-      <footer class="stage-stats">
+      <div class="stat-grid">
         <div>
           <small>Clic du Narrateur</small>
           <strong>{fmt(props.game.clickPower())}</strong>
@@ -123,10 +120,18 @@ export default function ClickStage(props: { game: GameStore }) {
           <strong>{fmt(props.game.teamDps())}</strong>
         </div>
         <div>
+          <small>Avant le boss</small>
+          <strong>
+            <Show when={!cleared()} fallback="terminé">
+              {Math.min(kills(), killsGoal())} / {killsGoal()}
+            </Show>
+          </strong>
+        </div>
+        <div>
           <small>Total gagné</small>
           <strong>{fmt(props.game.lifetimeEarned())}</strong>
         </div>
-      </footer>
+      </div>
     </section>
   );
 }

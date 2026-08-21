@@ -1,15 +1,36 @@
-import { For, Show } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import type { Character } from "../engine/types";
 import { fmt, seconds } from "./format";
 
-const xpPercent = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
+type SortKey = "level" | "click" | "dps" | "synergy";
 
-/** Left column: activable abilities, the team, and the characters still to beat in this zone. */
+const SORTS: Record<SortKey, { label: string; value: (game: GameStore, c: Character) => number }> = {
+  level: { label: "Niveau", value: (game, c) => game.levelOf(c.id) },
+  click: { label: "Clic", value: (game, c) => c.baseClickPower * (1 + game.levelOf(c.id)) },
+  dps: { label: "DPS", value: (game, c) => c.baseDps * (1 + game.levelOf(c.id)) },
+  synergy: { label: "Synergie", value: (game, c) => game.synergyOf(c) },
+};
+
+const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
+
+/** Left column: abilities, the sortable team list, and the item collection. */
 export default function RosterPanel(props: { game: GameStore }) {
+  const [sortKey, setSortKey] = createSignal<SortKey>("level");
+
+  const sortedTeam = createMemo(() =>
+    [...props.game.ownedCharacters()].sort(
+      (a, b) => SORTS[sortKey()].value(props.game, b) - SORTS[sortKey()].value(props.game, a)
+    )
+  );
+
   return (
     <div class="column">
       <section class="panel">
-        <header class="panel-head">Capacités</header>
+        <header class="panel-head">
+          <span>Capacités</span>
+          <small class="muted">{props.game.unlockedAbilities().length}</small>
+        </header>
         <div class="ability-bar">
           <For each={props.game.unlockedAbilities()}>
             {(unlocked) => {
@@ -28,25 +49,44 @@ export default function RosterPanel(props: { game: GameStore }) {
             }}
           </For>
           <Show when={props.game.unlockedAbilities().length === 0}>
-            <p class="muted">Battez des personnages pour débloquer des capacités et des combos.</p>
+            <p class="muted pad">Battez des personnages pour débloquer des capacités et des combos.</p>
           </Show>
         </div>
       </section>
 
       <section class="panel">
-        <header class="panel-head">Équipe ({props.game.ownedCharacters().length})</header>
-        <ul class="list">
-          <For each={props.game.ownedCharacters()}>
+        <header class="panel-head">
+          <span>Équipe ({props.game.ownedCharacters().length})</span>
+          <select value={sortKey()} onChange={(e) => setSortKey(e.currentTarget.value as SortKey)}>
+            <For each={Object.entries(SORTS)}>{([key, sort]) => <option value={key}>{sort.label}</option>}</For>
+          </select>
+        </header>
+
+        <div class="table-head member-grid">
+          <span>Nom</span>
+          <span>Niv.</span>
+          <span>Clic</span>
+          <span>DPS</span>
+          <span>Syn.</span>
+        </div>
+
+        <div class="scroll">
+          <For each={sortedTeam()}>
             {(character) => {
               const progress = () => props.game.progressOf(character.id);
               const level = () => progress().level;
               const maxed = () => props.game.passiveLevelOf(character) >= props.game.passiveCapOf(character);
               return (
-                <li class="member">
-                  <div class="member-head">
-                    <strong>
-                      {character.name} <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
-                    </strong>
+                <div class="member">
+                  <div class="member-grid">
+                    <span class="name">
+                      <span class="avatar">{character.name.slice(0, 2).toUpperCase()}</span>
+                      {character.name}
+                      <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                    </span>
+                    <span>{level()}</span>
+                    <span>{fmt(character.baseClickPower * (1 + level()))}</span>
+                    <span>{fmt(character.baseDps * (1 + level()))}</span>
                     <span
                       class="synergy"
                       classList={{
@@ -54,81 +94,82 @@ export default function RosterPanel(props: { game: GameStore }) {
                         bad: props.game.synergyOf(character) < 1,
                       }}
                     >
-                      x{props.game.synergyOf(character).toFixed(2)}
+                      {props.game.synergyOf(character).toFixed(2)}
                     </span>
                   </div>
-                  <small class="muted">
-                    Niv. {level()} · {fmt(character.baseClickPower * (1 + level()))} /clic ·{" "}
-                    {fmt(character.baseDps * (1 + level()))} dps
-                  </small>
+                  <div class="bar xp-bar" title={`${fmt(progress().into)} / ${fmt(progress().need)} xp`}>
+                    <div class="bar-fill" style={{ width: `${pct(progress().into, progress().need)}%` }} />
+                  </div>
                   <Show when={character.passive}>
                     <small classList={{ muted: !maxed(), capped: maxed() }}>
-                      Passif niv. {props.game.passiveLevelOf(character)}/{props.game.passiveCapOf(character)}
-                      {maxed() ? " (max)" : ""}
+                      Passif {props.game.passiveLevelOf(character)}/{props.game.passiveCapOf(character)}
+                      {maxed() ? " · max" : ""}
                     </small>
                   </Show>
-                  <div class="bar xp-bar">
-                    <div
-                      class="bar-fill"
-                      style={{ width: `${xpPercent(progress().into, progress().need)}%` }}
-                    />
-                    <span class="bar-label">
-                      {fmt(progress().into)} / {fmt(progress().need)} xp
-                    </span>
-                  </div>
-                </li>
+                </div>
               );
             }}
           </For>
           <Show when={props.game.ownedCharacters().length === 0}>
-            <li class="muted">Équipe vide — les personnages rejoignent l'équipe quand vous les battez.</li>
+            <p class="muted pad">Les personnages rejoignent l'équipe quand vous les battez.</p>
           </Show>
-        </ul>
+        </div>
       </section>
-
-      <Show when={props.game.foundItems().length > 0}>
-        <section class="panel">
-          <header class="panel-head">
-            <span>Objets</span>
-            <small class="muted">+{fmt(props.game.narratorBase())} au clic</small>
-          </header>
-          <ul class="list">
-            <For each={props.game.foundItems()}>
-              {(item) => (
-                <li class="row">
-                  <strong>
-                    {item.kind === "unique" ? "🏆" : "🔖"} {item.name}
-                    {props.game.countOf(item.id) > 1 ? ` x${props.game.countOf(item.id)}` : ""}
-                  </strong>
-                  <span class="muted">+{fmt(item.clickBonus * props.game.countOf(item.id))}</span>
-                </li>
-              )}
-            </For>
-          </ul>
-        </section>
-      </Show>
 
       <Show when={props.game.arcRecruits().length > 0}>
         <section class="panel">
-          <header class="panel-head">À battre ici</header>
-          <ul class="list">
-            <For each={props.game.arcRecruits()}>
-              {(character) => (
-                <li class="row">
-                  <div>
-                    <strong>
-                      ⭐ {character.name} <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
-                    </strong>
-                    <small class="muted">
-                      {fmt(character.baseClickPower)} /clic · {fmt(character.baseDps)} dps
-                    </small>
-                  </div>
-                </li>
-              )}
-            </For>
-          </ul>
+          <header class="panel-head">
+            <span>À battre ici</span>
+            <small class="muted">{props.game.arcRecruits().length}</small>
+          </header>
+          <For each={props.game.arcRecruits()}>
+            {(character) => (
+              <div class="row">
+                <span class="name">
+                  <span class="avatar">{character.name.slice(0, 2).toUpperCase()}</span>
+                  {character.name}
+                  <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                </span>
+                <small class="muted">
+                  {fmt(character.baseClickPower)} / {fmt(character.baseDps)}
+                </small>
+              </div>
+            )}
+          </For>
         </section>
       </Show>
+
+      <section class="panel">
+        <header class="panel-head">
+          <span>Objets</span>
+          <small class="muted">+{fmt(props.game.narratorBase())} au clic</small>
+        </header>
+        <div class="table-head item-grid">
+          <span>Nom</span>
+          <span>Type</span>
+          <span>Qté</span>
+          <span>Bonus</span>
+        </div>
+        <div class="scroll">
+          <For each={props.game.foundItems()}>
+            {(item) => (
+              <div class="item-grid item-row">
+                <span class="name">
+                  {item.kind === "unique" ? "🏆" : "🔖"} {item.name}
+                </span>
+                <span classList={{ unique: item.kind === "unique" }}>
+                  {item.kind === "unique" ? "unique" : "commun"}
+                </span>
+                <span>{props.game.countOf(item.id)}</span>
+                <span>+{fmt(item.clickBonus * props.game.countOf(item.id))}</span>
+              </div>
+            )}
+          </For>
+          <Show when={props.game.foundItems().length === 0}>
+            <p class="muted pad">Aucun objet trouvé. Les mobs lâchent des communs, les boss des uniques.</p>
+          </Show>
+        </div>
+      </section>
     </div>
   );
 }

@@ -2,9 +2,10 @@ import { For, Show } from "solid-js";
 import { createGameStore } from "./engine/gameState";
 import { sampleData } from "./data/sample";
 import ClickStage from "./ui/ClickStage";
+import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
-import { fmt } from "./ui/format";
+import { NEXT_THEME, setTheme, theme, THEME_ICON, THEME_LABEL } from "./ui/theme";
 
 export default function App() {
   const game = createGameStore(sampleData);
@@ -17,12 +18,14 @@ export default function App() {
     <>
       <header class="topbar">
         <h1>ClickerAnime</h1>
-        <div class="wallet">
-          <span class="coin">◆</span>
-          <strong>{fmt(game.currency())}</strong>
-          <small>{fmt(game.teamDps())} dps</small>
-        </div>
         <div class="topbar-actions">
+          <button
+            class="theme-toggle"
+            title={THEME_LABEL[theme()]}
+            onClick={() => setTheme(NEXT_THEME[theme()])}
+          >
+            {THEME_ICON[theme()]}
+          </button>
           <button onClick={() => game.save()}>Sauvegarder</button>
           <button onClick={hardReset}>Réinitialiser</button>
         </div>
@@ -51,7 +54,10 @@ export default function App() {
       >
         <main class="game">
           <RosterPanel game={game} />
-          <ClickStage game={game} />
+          <div class="column">
+            <CurrencyBar game={game} />
+            <ClickStage game={game} />
+          </div>
           <ProgressPanel game={game} />
         </main>
       </Show>

@@ -22,9 +22,21 @@ wires the pure functions into memos, runs the 200ms tick that accrues passive in
 to `localStorage` every 5s. Components call its returned actions (`click`, `recruitCharacter`,
 `activateAbility`, `prestigeReset`, …) and read its accessors.
 
-**`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell (roster left, click
-stage centre, progression right); each column is one component taking `game: GameStore` as its only
-prop. Components must never compute balance themselves — if a number needs deriving, it belongs in
+**`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
+PokéClicker's density: many small stacked panels, everything visible at once, no modals. Left is the
+roster (abilities, sortable team table, item table), middle is resources + the fight, right is the
+arc lists per world plus travel and prestige. Each component takes `game: GameStore` as its only
+prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
+a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
+
+**Theming.** Light and dark both ship, in the usual three states: bare `:root` holds the light
+palette, and the dark palette is repeated twice — once under `prefers-color-scheme: dark` guarded by
+`:root:not([data-theme="light"])`, once under `:root[data-theme="dark"]` — so the explicit toggle
+wins in both directions. `ui/theme.ts` owns the `data-theme` attribute and remembers the choice in
+`localStorage`; "system" stamps no attribute at all. Every colour must come from a token defined in
+the bare `:root` block: gradients, the sticky topbar tint and the bar-label text-shadow are all
+tokenised (`--stage-bg`, `--topbar-bg`, `--label-shadow`, `--active-tint`) precisely because they
+have to flip. Never hard-code a colour in a rule. Components must never compute balance themselves — if a number needs deriving, it belongs in
 the engine and gets exposed on the store (that is why `synergyOf`, `costOf` and `pendingPrestigeGain`
 exist). Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 
