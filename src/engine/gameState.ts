@@ -9,8 +9,15 @@ import {
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
 import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
-import { enemyHp, enemyReward, nextEnemy, pendingRecruits } from "./combat";
-import { levelUpCost, narratorClickPower, passiveLevel, PASSIVE_LEVEL_CAP } from "./growth";
+import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
+import {
+  itemClickBonus,
+  levelFromXp,
+  narratorClickPower,
+  passiveLevel,
+  PASSIVE_LEVEL_CAP,
+  xpProgress,
+} from "./growth";
 import {
   animeTier,
   arcsOfAnime,
@@ -31,7 +38,7 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-const SAVE_KEY = "clicker-anime:save:v4";
+const SAVE_KEY = "clicker-anime:save:v5";
 
 interface SaveFile {
   currency: number;
@@ -42,8 +49,8 @@ interface SaveFile {
   unlockedAnimeIds: string[];
   arcKills: Record<string, number>;
   clearedArcIds: string[];
-  characterLevels: Record<string, number>;
-  foundItemIds: string[];
+  characterXp: Record<string, number>;
+  itemCounts: Record<string, number>;
 }
 
 function readSave(): SaveFile | null {
@@ -68,8 +75,8 @@ export function createGameStore(data: GameData) {
   const [activeArcId, setActiveArcId] = createSignal<string | null>(saved?.activeArcId ?? null);
   const [arcKills, setArcKills] = createSignal<Record<string, number>>(saved?.arcKills ?? {});
   const [clearedArcIds, setClearedArcIds] = createSignal<string[]>(saved?.clearedArcIds ?? []);
-  const [characterLevels, setCharacterLevels] = createSignal<Record<string, number>>(saved?.characterLevels ?? {});
-  const [foundItemIds, setFoundItemIds] = createSignal<string[]>(saved?.foundItemIds ?? []);
+  const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
+  const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -91,10 +98,17 @@ export function createGameStore(data: GameData) {
 
   const ownedCharacters = createMemo(() => data.characters.filter((c) => ownedCharacterIds().includes(c.id)));
 
-  const levelOf = (characterId: string) => characterLevels()[characterId] ?? 0;
+  const xpOf = (characterId: string) => characterXp()[characterId] ?? 0;
 
-  /** Items found across every world; never lost, not even on prestige. */
-  const foundItems = createMemo(() => data.items.filter((i) => foundItemIds().includes(i.id)));
+  /** Levels are read off accumulated xp rather than stored, so the two can never drift apart. */
+  const levelOf = (characterId: string) => levelFromXp(xpOf(characterId));
+
+  const progressOf = (characterId: string) => xpProgress(xpOf(characterId));
+
+  /** Items found across every world; never lost, not even on prestige. Commons stack. */
+  const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
+
+  const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
 
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const arc = activeArc();
@@ -105,7 +119,9 @@ export function createGameStore(data: GameData) {
   });
 
   /** What one narrator click is worth before any modifier: allies at their side, plus every item found. */
-  const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length, foundItems()));
+  const narratorBase = createMemo(() =>
+    narratorClickPower(ownedCharacterIds().length, itemClickBonus(data.items, itemCounts()))
+  );
 
   /** Damage of one narrator click. */
   const clickPower = createMemo(() => computeEffectiveStat(narratorBase(), "clickPower", allModifiers(), now()));
@@ -187,9 +203,9 @@ export function createGameStore(data: GameData) {
       setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
     }
 
-    if (target.itemId && !foundItemIds().includes(target.itemId)) {
-      setFoundItemIds((ids) => [...ids, target.itemId!]);
-    }
+    // xp equals the currency reward: one number to balance, and both scale with the world.
+    grantXp(reward);
+    maybeDropItem(target);
 
     if (target.id === arc.boss.id) {
       if (!clearedArcIds().includes(arc.id)) setClearedArcIds((ids) => [...ids, arc.id]);
@@ -198,6 +214,15 @@ export function createGameStore(data: GameData) {
     }
 
     spawnNext();
+  }
+
+  /** Uniques are one copy only; commons stack, so farming a zone keeps paying into the click. */
+  function maybeDropItem(target: Enemy) {
+    if (!target.itemId || !rollsDrop(target, Math.random())) return;
+    const item = data.items.find((i) => i.id === target.itemId);
+    if (!item) return;
+    if (item.kind === "unique" && countOf(item.id) > 0) return;
+    setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) + 1 }));
   }
 
   function dealDamage(amount: number) {
@@ -232,17 +257,14 @@ export function createGameStore(data: GameData) {
 
   // --- levelling ---
 
-  const nextLevelCost = (character: Character) => levelUpCost(character, levelOf(character.id));
-
-  /** Levels are uncapped and bought with currency — the one thing currency is spent on. */
-  function levelUp(characterId: string) {
-    const character = ownedCharacters().find((c) => c.id === characterId);
-    if (!character) return false;
-    const cost = nextLevelCost(character);
-    if (currency() < cost) return false;
-    setCurrency((c) => c - cost);
-    setCharacterLevels((levels) => ({ ...levels, [characterId]: (levels[characterId] ?? 0) + 1 }));
-    return true;
+  /** Every kill trains the whole team equally; levels are uncapped so this never stops paying. */
+  function grantXp(amount: number) {
+    if (amount <= 0) return;
+    setCharacterXp((xp) => {
+      const next = { ...xp };
+      for (const id of ownedCharacterIds()) next[id] = (next[id] ?? 0) + amount;
+      return next;
+    });
   }
 
   /** Level the passive is actually running at, and the cap it stops growing at. */
@@ -316,7 +338,7 @@ export function createGameStore(data: GameData) {
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
-    setCharacterLevels({});
+    setCharacterXp({});
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
     spawnNext();
@@ -333,8 +355,8 @@ export function createGameStore(data: GameData) {
       unlockedAnimeIds: prestige().unlockedAnimeIds,
       arcKills: arcKills(),
       clearedArcIds: clearedArcIds(),
-      characterLevels: characterLevels(),
-      foundItemIds: foundItemIds(),
+      characterXp: characterXp(),
+      itemCounts: itemCounts(),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(file));
   }
@@ -348,8 +370,8 @@ export function createGameStore(data: GameData) {
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
     setPrestige(createInitialPrestigeState());
-    setCharacterLevels({});
-    setFoundItemIds([]);
+    setCharacterXp({});
+    setItemCounts({});
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
@@ -387,11 +409,12 @@ export function createGameStore(data: GameData) {
     narratorBase,
     teamDps,
     foundItems,
+    countOf,
+    xpOf,
     levelOf,
-    nextLevelCost,
+    progressOf,
     passiveLevelOf,
     passiveCapOf,
-    levelUp,
     unlockedAbilities,
     synergyOf,
     // combat

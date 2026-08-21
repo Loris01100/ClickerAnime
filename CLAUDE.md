@@ -34,7 +34,7 @@ An arc is a zone the player fights through. `combat.ts` is pure and decides who 
 cycle `arc.mobs` in order until `mobsToBoss` kills, then `arc.boss`; once the arc is cleared the boss
 stops appearing and the zone farms mobs forever. Mobs carrying a `characterId` are the anime's
 characters — beating one adds them to the team for free, and they drop out of the pool afterwards.
-Enemies carrying an `itemId` hand over that item, once.
+Enemies carrying an `itemId` may hand it over — see the narrator's click below.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
@@ -54,17 +54,27 @@ Two knobs, deliberately decoupled — this is the main/secondary distinction:
 - **Level is uncapped** and every level grants the *same* flat damage as the one before
   (`levelGrowth(level) = 1 + level` applied to `baseClickPower` and `baseDps`). Linear on purpose.
 - **The passive stops at a cap**: `PASSIVE_LEVEL_CAP` is 10 for `rarity: "main"`, 5 for
-  `"secondary"`. Levels past it still buy damage; they just stop deepening the passive.
+  `"secondary"`. Levels past it still add damage; they just stop deepening the passive.
 
-Levels are bought with currency (`levelUpCost`, geometric, dearer for the main cast) — that is the
-only currency sink in the game. Levels die with the team on `prestigeReset`.
+Levels come from **xp earned in combat**: every kill grants the whole team xp equal to the kill's
+currency reward (one number to balance, and it already scales with the world). Only the xp total is
+stored — `levelOf` derives the level from it via `levelFromXp`, so level and xp cannot drift apart.
+Xp dies with the team on `prestigeReset`.
 
 ### The narrator's click
 
-`narratorClickPower(allyCount, foundItems)` is the *base* fed into the `clickPower` pipeline, not a
+`narratorClickPower(allyCount, itemBonus)` is the *base* fed into the `clickPower` pipeline, not a
 constant: it rises with the number of allies in the team and with every item ever found. Items are
-granted by beating the enemy holding them (`Enemy.itemId`, one per boss, no RNG) and are never lost
-— not on prestige, not on travel — so this floor only ever rises.
+never lost — not on prestige, not on travel — so this floor only ever rises.
+
+Two kinds, both hung off `Enemy.itemId`, separated by `Item.kind`:
+
+- **unique** — carried by bosses, no `dropChance` so the drop is certain, and capped at one copy.
+- **common** — carried by ordinary mobs with a `dropChance`, and they **stack**: `itemClickBonus`
+  counts the bonus once per copy, so farming a cleared zone keeps paying into the click.
+
+`rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
+`gameState`, which keeps the odds testable.
 
 ### The modifier pipeline
 

@@ -31,3 +31,9 @@ export function pendingRecruits(arc: Arc, recruitedIds: string[]): string[] {
     .map((m) => m.characterId)
     .filter((id): id is string => !!id && !recruitedIds.includes(id));
 }
+
+/** `roll` is a 0..1 draw supplied by the caller, so drop odds stay testable without stubbing RNG. */
+export function rollsDrop(enemy: Enemy, roll: number): boolean {
+  if (!enemy.itemId) return false;
+  return roll < (enemy.dropChance ?? 1);
+}

@@ -472,3 +472,15 @@ small {
   color: var(--good);
   font-size: 0.8rem;
 }
+
+.xp-bar {
+  height: 14px;
+  border-radius: 7px;
+  margin-top: 0.25rem;
+}
+.xp-bar .bar-fill {
+  background: linear-gradient(90deg, #3aa0ff, var(--accent));
+}
+.xp-bar .bar-label {
+  font-size: 0.65rem;
+}

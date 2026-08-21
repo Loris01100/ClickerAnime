@@ -27,11 +27,15 @@ export interface Anime {
   unlockCost: number;
 }
 
+/** Commons drop from ordinary fights and stack; uniques come from bosses and are one copy only. */
+export type ItemKind = "common" | "unique";
+
 /** Found by beating the enemy that holds it; every item ever found feeds the narrator's click. */
 export interface Item {
   id: string;
   name: string;
-  /** flat damage added to every narrator click, forever, in every world */
+  kind: ItemKind;
+  /** flat damage added to every narrator click per copy held, forever, in every world */
   clickBonus: number;
 }
 
@@ -45,8 +49,10 @@ export interface Enemy {
   reward: number;
   /** defeating this enemy recruits that character into the team, for free */
   characterId?: string;
-  /** defeating this enemy adds that item to the collection, once */
+  /** the item this enemy can hand over */
   itemId?: string;
+  /** odds of that drop, 0..1; absent means guaranteed, which is how bosses hand out their unique */
+  dropChance?: number;
   /** must be defeated within this window or it comes back at full hp; bosses only, by default */
   timerMs?: number;
 }

@@ -4,9 +4,18 @@ import { characterContributions, synergyMultiplier, defaultSynergyConfig } from 
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeComplete, isArcUnlocked } from "./progression";
-import { encounterPool, enemyHp, nextEnemy, pendingRecruits } from "./combat";
-import { levelGrowth, levelUpCost, narratorClickPower, PASSIVE_LEVEL_CAP, passiveLevel } from "./growth";
-import type { ActiveModifier, Arc, Character, ComboDefinition, Enemy } from "./types";
+import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
+import {
+  itemClickBonus,
+  levelFromXp,
+  levelGrowth,
+  narratorClickPower,
+  PASSIVE_LEVEL_CAP,
+  passiveLevel,
+  xpProgress,
+  xpToReach,
+} from "./growth";
+import type { ActiveModifier, Arc, Character, ComboDefinition, Enemy, Item } from "./types";
 
 function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobsToBoss = 3): Arc {
   return {
@@ -230,23 +239,56 @@ describe("character growth", () => {
     expect(passiveAt(main, 5)).toBeLessThan(passiveAt(main, 10));
     expect(passiveAt(main, 10)).toBe(passiveAt(main, 50));
   });
+});
 
-  it("charges more for each level, and more for the main cast", () => {
-    expect(levelUpCost(main, 3)).toBeGreaterThan(levelUpCost(main, 0));
-    expect(levelUpCost(main, 0)).toBeGreaterThan(levelUpCost(side, 0));
+describe("xp and levels", () => {
+  it("needs more xp for each successive level", () => {
+    expect(xpToReach(0)).toBe(0);
+    expect(xpToReach(2) - xpToReach(1)).toBeGreaterThan(xpToReach(1) - xpToReach(0));
+  });
+
+  it("reads the level back off accumulated xp", () => {
+    expect(levelFromXp(0)).toBe(0);
+    expect(levelFromXp(xpToReach(5))).toBe(5);
+    expect(levelFromXp(xpToReach(5) - 1)).toBe(4);
+  });
+
+  it("reports how far into the current level the character is", () => {
+    const progress = xpProgress(xpToReach(3) + 10);
+    expect(progress.level).toBe(3);
+    expect(progress.into).toBe(10);
+    expect(progress.need).toBe(xpToReach(4) - xpToReach(3));
+  });
+});
+
+describe("items", () => {
+  const items: Item[] = [
+    { id: "u1", kind: "unique", name: "U1", clickBonus: 10 },
+    { id: "c1", kind: "common", name: "C1", clickBonus: 2 },
+  ];
+
+  it("counts a common once per copy held", () => {
+    expect(itemClickBonus(items, {})).toBe(0);
+    expect(itemClickBonus(items, { u1: 1 })).toBe(10);
+    expect(itemClickBonus(items, { u1: 1, c1: 4 })).toBe(18);
+  });
+
+  it("drops guaranteed without a dropChance, and by the odds with one", () => {
+    const boss: Enemy = { id: "b", name: "B", baseHp: 1, reward: 1, itemId: "u1" };
+    const mob: Enemy = { id: "m", name: "M", baseHp: 1, reward: 1, itemId: "c1", dropChance: 0.1 };
+    const barren: Enemy = { id: "x", name: "X", baseHp: 1, reward: 1 };
+    expect(rollsDrop(boss, 0.99)).toBe(true);
+    expect(rollsDrop(mob, 0.05)).toBe(true);
+    expect(rollsDrop(mob, 0.5)).toBe(false);
+    expect(rollsDrop(barren, 0)).toBe(false);
   });
 });
 
 describe("narrator click", () => {
-  const items = [
-    { id: "i1", name: "I1", clickBonus: 2 },
-    { id: "i2", name: "I2", clickBonus: 8 },
-  ];
-
   it("grows with the number of allies and with every item found", () => {
-    const alone = narratorClickPower(0, []);
-    expect(narratorClickPower(3, [])).toBeGreaterThan(alone);
-    expect(narratorClickPower(0, items)).toBe(alone + 10);
-    expect(narratorClickPower(3, items)).toBe(narratorClickPower(3, []) + 10);
+    const alone = narratorClickPower(0, 0);
+    expect(narratorClickPower(3, 0)).toBeGreaterThan(alone);
+    expect(narratorClickPower(0, 10)).toBe(alone + 10);
+    expect(narratorClickPower(3, 10)).toBe(narratorClickPower(3, 0) + 10);
   });
 });

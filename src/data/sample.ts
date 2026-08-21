@@ -18,8 +18,8 @@ export const sampleData: GameData = {
       order: 0,
       mobsToBoss: 8,
       mobs: [
-        { id: "a1-mob-1", name: "Sbire A", baseHp: 10, reward: 4 },
-        { id: "a1-mob-2", name: "Sbire A+", baseHp: 14, reward: 6 },
+        { id: "a1-mob-1", itemId: "item-page", dropChance: 0.12, name: "Sbire A", baseHp: 10, reward: 4 },
+        { id: "a1-mob-2", itemId: "item-page", dropChance: 0.12, name: "Sbire A+", baseHp: 14, reward: 6 },
         { id: "a1-rival", name: "Character A1", baseHp: 45, reward: 25, characterId: "char-a1" },
       ],
       boss: { id: "a1-boss", itemId: "item-a1", name: "Boss de l'Arc 1", baseHp: 140, reward: 90, timerMs: BOSS_TIMER_MS },
@@ -31,8 +31,8 @@ export const sampleData: GameData = {
       order: 1,
       mobsToBoss: 12,
       mobs: [
-        { id: "a2-mob-1", name: "Soldat A", baseHp: 70, reward: 25 },
-        { id: "a2-mob-2", name: "Soldat A+", baseHp: 90, reward: 32 },
+        { id: "a2-mob-1", itemId: "item-note", dropChance: 0.1, name: "Soldat A", baseHp: 70, reward: 25 },
+        { id: "a2-mob-2", itemId: "item-note", dropChance: 0.1, name: "Soldat A+", baseHp: 90, reward: 32 },
         { id: "a2-rival", name: "Character A2", baseHp: 300, reward: 150, characterId: "char-a2" },
       ],
       boss: { id: "a2-boss", itemId: "item-a2", name: "Boss de l'Arc 2", baseHp: 1_100, reward: 600, timerMs: BOSS_TIMER_MS },
@@ -44,8 +44,8 @@ export const sampleData: GameData = {
       order: 2,
       mobsToBoss: 15,
       mobs: [
-        { id: "a3-mob-1", name: "Élite A", baseHp: 500, reward: 180 },
-        { id: "a3-mob-2", name: "Élite A+", baseHp: 620, reward: 230 },
+        { id: "a3-mob-1", itemId: "item-croquis", dropChance: 0.08, name: "Élite A", baseHp: 500, reward: 180 },
+        { id: "a3-mob-2", itemId: "item-croquis", dropChance: 0.08, name: "Élite A+", baseHp: 620, reward: 230 },
       ],
       boss: { id: "a3-boss", itemId: "item-a3", name: "Boss final - Anime A", baseHp: 7_000, reward: 3_500, timerMs: 45_000 },
     },
@@ -57,8 +57,8 @@ export const sampleData: GameData = {
       order: 0,
       mobsToBoss: 8,
       mobs: [
-        { id: "b1-mob-1", name: "Sbire B", baseHp: 12, reward: 5 },
-        { id: "b1-mob-2", name: "Sbire B+", baseHp: 16, reward: 7 },
+        { id: "b1-mob-1", itemId: "item-page", dropChance: 0.12, name: "Sbire B", baseHp: 12, reward: 5 },
+        { id: "b1-mob-2", itemId: "item-page", dropChance: 0.12, name: "Sbire B+", baseHp: 16, reward: 7 },
         { id: "b1-rival", name: "Character B1", baseHp: 55, reward: 30, characterId: "char-b1" },
       ],
       boss: { id: "b1-boss", itemId: "item-b1", name: "Boss de l'Arc 1", baseHp: 170, reward: 110, timerMs: BOSS_TIMER_MS },
@@ -70,8 +70,8 @@ export const sampleData: GameData = {
       order: 1,
       mobsToBoss: 12,
       mobs: [
-        { id: "b2-mob-1", name: "Soldat B", baseHp: 85, reward: 30 },
-        { id: "b2-mob-2", name: "Soldat B+", baseHp: 105, reward: 38 },
+        { id: "b2-mob-1", itemId: "item-note", dropChance: 0.1, name: "Soldat B", baseHp: 85, reward: 30 },
+        { id: "b2-mob-2", itemId: "item-note", dropChance: 0.1, name: "Soldat B+", baseHp: 105, reward: 38 },
         { id: "b2-rival", name: "Character B2", baseHp: 360, reward: 180, characterId: "char-b2" },
       ],
       boss: { id: "b2-boss", itemId: "item-b2", name: "Boss de l'Arc 2", baseHp: 1_300, reward: 700, timerMs: BOSS_TIMER_MS },
@@ -83,8 +83,8 @@ export const sampleData: GameData = {
       order: 2,
       mobsToBoss: 15,
       mobs: [
-        { id: "b3-mob-1", name: "Élite B", baseHp: 600, reward: 220 },
-        { id: "b3-mob-2", name: "Élite B+", baseHp: 740, reward: 270 },
+        { id: "b3-mob-1", itemId: "item-croquis", dropChance: 0.08, name: "Élite B", baseHp: 600, reward: 220 },
+        { id: "b3-mob-2", itemId: "item-croquis", dropChance: 0.08, name: "Élite B+", baseHp: 740, reward: 270 },
       ],
       boss: { id: "b3-boss", itemId: "item-b3", name: "Boss final - Anime B", baseHp: 8_500, reward: 4_200, timerMs: 45_000 },
     },
@@ -139,12 +139,17 @@ export const sampleData: GameData = {
   ],
 
   items: [
-    { id: "item-a1", name: "Carnet du Narrateur", clickBonus: 2 },
-    { id: "item-a2", name: "Plume d'Encre", clickBonus: 8 },
-    { id: "item-a3", name: "Manuscrit Perdu", clickBonus: 30 },
-    { id: "item-b1", name: "Marque-page Scellé", clickBonus: 4 },
-    { id: "item-b2", name: "Encrier Sans Fond", clickBonus: 14 },
-    { id: "item-b3", name: "Dernier Chapitre", clickBonus: 50 },
+    // Uniques: one copy, dropped by a boss with certainty.
+    { id: "item-a1", kind: "unique", name: "Carnet du Narrateur", clickBonus: 2 },
+    { id: "item-a2", kind: "unique", name: "Plume d'Encre", clickBonus: 8 },
+    { id: "item-a3", kind: "unique", name: "Manuscrit Perdu", clickBonus: 30 },
+    { id: "item-b1", kind: "unique", name: "Marque-page Scellé", clickBonus: 4 },
+    { id: "item-b2", kind: "unique", name: "Encrier Sans Fond", clickBonus: 14 },
+    { id: "item-b3", kind: "unique", name: "Dernier Chapitre", clickBonus: 50 },
+    // Commons: stack, farmed off ordinary mobs.
+    { id: "item-page", kind: "common", name: "Page Déchirée", clickBonus: 1 },
+    { id: "item-note", kind: "common", name: "Note de Bas de Page", clickBonus: 3 },
+    { id: "item-croquis", kind: "common", name: "Croquis Oublié", clickBonus: 6 },
   ],
 
   combos: [

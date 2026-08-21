@@ -2,6 +2,8 @@ import { For, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { fmt, seconds } from "./format";
 
+const xpPercent = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
+
 /** Left column: activable abilities, the team, and the characters still to beat in this zone. */
 export default function RosterPanel(props: { game: GameStore }) {
   return (
@@ -36,8 +38,8 @@ export default function RosterPanel(props: { game: GameStore }) {
         <ul class="list">
           <For each={props.game.ownedCharacters()}>
             {(character) => {
-              const level = () => props.game.levelOf(character.id);
-              const cost = () => props.game.nextLevelCost(character);
+              const progress = () => props.game.progressOf(character.id);
+              const level = () => progress().level;
               const maxed = () => props.game.passiveLevelOf(character) >= props.game.passiveCapOf(character);
               return (
                 <li class="member">
@@ -65,9 +67,15 @@ export default function RosterPanel(props: { game: GameStore }) {
                       {maxed() ? " (max)" : ""}
                     </small>
                   </Show>
-                  <button disabled={props.game.currency() < cost()} onClick={() => props.game.levelUp(character.id)}>
-                    Niveau +1 — {fmt(cost())}
-                  </button>
+                  <div class="bar xp-bar">
+                    <div
+                      class="bar-fill"
+                      style={{ width: `${xpPercent(progress().into, progress().need)}%` }}
+                    />
+                    <span class="bar-label">
+                      {fmt(progress().into)} / {fmt(progress().need)} xp
+                    </span>
+                  </div>
                 </li>
               );
             }}
@@ -88,8 +96,11 @@ export default function RosterPanel(props: { game: GameStore }) {
             <For each={props.game.foundItems()}>
               {(item) => (
                 <li class="row">
-                  <strong>🔖 {item.name}</strong>
-                  <span class="muted">+{fmt(item.clickBonus)}</span>
+                  <strong>
+                    {item.kind === "unique" ? "🏆" : "🔖"} {item.name}
+                    {props.game.countOf(item.id) > 1 ? ` x${props.game.countOf(item.id)}` : ""}
+                  </strong>
+                  <span class="muted">+{fmt(item.clickBonus * props.game.countOf(item.id))}</span>
                 </li>
               )}
             </For>
