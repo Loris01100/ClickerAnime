@@ -9,7 +9,7 @@ interface Pop {
   y: number;
 }
 
-/** Center panel: the click target, its stats, and the floating gain numbers. */
+/** Center panel: the narrator's click, the active arc's progress, and the floating gain numbers. */
 export default function ClickStage(props: { game: GameStore }) {
   const [pops, setPops] = createSignal<Pop[]>([]);
   let popId = 0;
@@ -28,18 +28,33 @@ export default function ClickStage(props: { game: GameStore }) {
     setTimeout(() => setPops((list) => list.filter((p) => p.id !== pop.id)), 900);
   }
 
-  const animeName = () =>
-    props.game.data.animes.find((a) => a.id === props.game.activeArc()?.animeId)?.name ?? "Aucun anime";
+  const arc = () => props.game.activeArc();
+  const anime = () => props.game.data.animes.find((a) => a.id === arc()?.animeId);
+  const goal = () => {
+    const current = arc();
+    return current ? props.game.goalOf(current) : 0;
+  };
+  const progress = () => {
+    const current = arc();
+    return current ? props.game.progressOf(current) : 0;
+  };
+  const cleared = () => {
+    const current = arc();
+    return current ? props.game.arcCleared(current) : false;
+  };
 
   return (
     <section class="panel stage-panel">
       <header class="panel-head">
-        <span class="stage-title">{props.game.activeArc()?.name ?? "Aucun arc actif"}</span>
-        <span class="stage-sub">{animeName()}</span>
+        <span class="stage-title">{arc()?.name ?? "Aucun arc actif"}</span>
+        <span class="stage-sub">
+          {anime()?.name ?? "—"}
+          <Show when={anime()}>{(a) => <> · difficulté x{fmt(props.game.difficultyOf(a().id))}</>}</Show>
+        </span>
       </header>
 
       <div class="stage" onClick={handleClick}>
-        <div class="stage-hint">Cliquez pour gagner</div>
+        <div class="stage-hint">Clic du Narrateur</div>
         <div class="stage-team">
           <For each={props.game.ownedCharacters()}>
             {(character) => (
@@ -63,9 +78,18 @@ export default function ClickStage(props: { game: GameStore }) {
         </For>
       </div>
 
+      <div class="bar arc-bar" classList={{ cleared: cleared() }}>
+        <div class="bar-fill" style={{ width: `${goal() > 0 ? Math.min(100, (progress() / goal()) * 100) : 0}%` }} />
+        <span class="bar-label">
+          <Show when={!cleared()} fallback={"Arc terminé"}>
+            {fmt(Math.min(progress(), goal()))} / {fmt(goal())}
+          </Show>
+        </span>
+      </div>
+
       <footer class="stage-stats">
         <div>
-          <small>Par clic</small>
+          <small>Clic du Narrateur</small>
           <strong>{fmt(props.game.clickPower())}</strong>
         </div>
         <div>

@@ -4,6 +4,7 @@ import { synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { recruitCost } from "./economy";
+import { animeTier, arcGoal, canEnterNewAnime, isAnimeComplete, isArcUnlocked } from "./progression";
 import type { ActiveModifier, Arc, Character, ComboDefinition } from "./types";
 
 describe("computeEffectiveStat", () => {
@@ -34,7 +35,7 @@ describe("computeEffectiveStat", () => {
 });
 
 describe("synergyMultiplier", () => {
-  const arc: Arc = { id: "arc-1", animeId: "anime-1", name: "Arc 1", order: 0 };
+  const arc: Arc = { id: "arc-1", animeId: "anime-1", name: "Arc 1", order: 0, baseGoal: 100 };
 
   it("gives the bonus when the character's arc matches", () => {
     const char: Character = {
@@ -155,5 +156,41 @@ describe("recruitCost", () => {
 
   it("scales up with the size of the roster", () => {
     expect(recruitCost(cheap, 3)).toBeGreaterThan(recruitCost(cheap, 0));
+  });
+});
+
+describe("world progression", () => {
+  const arcs: Arc[] = [
+    { id: "a1", animeId: "a", name: "A1", order: 0, baseGoal: 100 },
+    { id: "a2", animeId: "a", name: "A2", order: 1, baseGoal: 200 },
+    { id: "b1", animeId: "b", name: "B1", order: 0, baseGoal: 100 },
+  ];
+
+  it("makes a later-entered anime harder", () => {
+    expect(arcGoal(arcs[0], 0)).toBe(100);
+    expect(arcGoal(arcs[0], 1)).toBeGreaterThan(100);
+  });
+
+  it("freezes an anime's difficulty at the tier it was entered", () => {
+    const unlocked = ["a", "b"];
+    expect(animeTier(unlocked, "a")).toBe(0);
+    expect(animeTier(unlocked, "b")).toBe(1);
+  });
+
+  it("opens an arc only once the previous one of the same anime is cleared", () => {
+    expect(isArcUnlocked(arcs, arcs[1], {}, 0)).toBe(false);
+    expect(isArcUnlocked(arcs, arcs[1], { a1: 100 }, 0)).toBe(true);
+    expect(isArcUnlocked(arcs, arcs[0], {}, 0)).toBe(true);
+  });
+
+  it("completes an anime only when every one of its arcs is cleared", () => {
+    expect(isAnimeComplete(arcs, "a", { a1: 100 }, 0)).toBe(false);
+    expect(isAnimeComplete(arcs, "a", { a1: 100, a2: 200 }, 0)).toBe(true);
+  });
+
+  it("lets the player pick a first world, then blocks travel until the current one is done", () => {
+    expect(canEnterNewAnime([], arcs, {})).toBe(true);
+    expect(canEnterNewAnime(["a"], arcs, { a1: 100 })).toBe(false);
+    expect(canEnterNewAnime(["a"], arcs, { a1: 100, a2: 200 })).toBe(true);
   });
 });

@@ -17,7 +17,10 @@ export interface ActiveModifier extends ModifierTemplate {
 export interface Anime {
   id: string;
   name: string;
-  /** prestige points required to unlock this anime's roster; 0 = available from the start */
+  /**
+   * prestige points to enter this anime early, without having finished the current one.
+   * The normal route (first pick, or travelling after clearing a world) is always free.
+   */
   unlockCost: number;
 }
 
@@ -25,7 +28,10 @@ export interface Arc {
   id: string;
   animeId: string;
   name: string;
+  /** position inside its anime; an arc opens only once the previous one is cleared */
   order: number;
+  /** currency that must be earned while this arc is active to clear it, before difficulty scaling */
+  baseGoal: number;
 }
 
 export interface Character {

@@ -10,6 +10,17 @@ import {
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
 import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { recruitCost } from "./economy";
+import {
+  animeTier,
+  arcGoal,
+  arcsOfAnime,
+  canEnterNewAnime,
+  difficultyMultiplier,
+  isAnimeComplete,
+  isArcComplete,
+  isArcUnlocked,
+  type ArcProgress,
+} from "./progression";
 import type { ActiveModifier, Anime, Arc, Character, ComboDefinition } from "./types";
 
 export interface GameData {
@@ -21,9 +32,9 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-const SAVE_KEY = "clicker-anime:save:v1";
-/** Guaranteed click income so the run is never stuck at zero before the first character is recruited. */
-const BASE_CLICK_POWER = 1;
+const SAVE_KEY = "clicker-anime:save:v2";
+/** The narrator's own click — guarantees income before the first character is recruited. */
+const NARRATOR_CLICK_POWER = 1;
 
 interface SaveFile {
   currency: number;
@@ -32,6 +43,7 @@ interface SaveFile {
   activeArcId: string | null;
   prestigePoints: number;
   unlockedAnimeIds: string[];
+  arcProgress: ArcProgress;
 }
 
 function readSave(): SaveFile | null {
@@ -47,22 +59,18 @@ function readSave(): SaveFile | null {
 }
 
 export function createGameStore(data: GameData) {
-  const starterAnimeIds = data.animes.filter((a) => a.unlockCost === 0).map((a) => a.id);
   const saved = readSave();
-  const defaultArcId = data.arcs.find((a) => starterAnimeIds.includes(a.animeId))?.id ?? data.arcs[0]?.id ?? null;
 
   const [now, setNow] = createSignal(Date.now());
   const [currency, setCurrency] = createSignal(saved?.currency ?? 0);
   const [lifetimeEarned, setLifetimeEarned] = createSignal(saved?.lifetimeEarned ?? 0);
   const [ownedCharacterIds, setOwnedCharacterIds] = createSignal<string[]>(saved?.ownedCharacterIds ?? []);
-  const [activeArcId, setActiveArcId] = createSignal<string | null>(saved?.activeArcId ?? defaultArcId);
+  const [activeArcId, setActiveArcId] = createSignal<string | null>(saved?.activeArcId ?? null);
+  const [arcProgress, setArcProgress] = createSignal<ArcProgress>(saved?.arcProgress ?? {});
   const [prestige, setPrestige] = createSignal(
     saved
-      ? {
-          prestigePoints: saved.prestigePoints ?? 0,
-          unlockedAnimeIds: saved.unlockedAnimeIds ?? [...starterAnimeIds],
-        }
-      : createInitialPrestigeState(starterAnimeIds)
+      ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
+      : createInitialPrestigeState()
   );
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
@@ -83,7 +91,7 @@ export function createGameStore(data: GameData) {
     return [...fromCharacters, ...pruneExpired(temporaryModifiers(), now())];
   });
 
-  const clickPower = createMemo(() => computeEffectiveStat(BASE_CLICK_POWER, "clickPower", allModifiers(), now()));
+  const clickPower = createMemo(() => computeEffectiveStat(NARRATOR_CLICK_POWER, "clickPower", allModifiers(), now()));
   const passiveIncomePerSecond = createMemo(() => computeEffectiveStat(0, "passiveIncome", allModifiers(), now()));
 
   const unlockedAbilities = createMemo(() =>
@@ -92,6 +100,60 @@ export function createGameStore(data: GameData) {
 
   /** Prestige points the player would bank by resetting right now. */
   const pendingPrestigeGain = createMemo(() => calculatePrestigeGain(lifetimeEarned()));
+
+  // --- world progression ---
+
+  const tierOf = (animeId: string) => animeTier(prestige().unlockedAnimeIds, animeId);
+
+  const arcsOf = (animeId: string) => arcsOfAnime(data.arcs, animeId);
+
+  const goalOf = (arc: Arc) => arcGoal(arc, tierOf(arc.animeId));
+
+  const progressOf = (arc: Arc) => arcProgress()[arc.id] ?? 0;
+
+  const arcCleared = (arc: Arc) => isArcComplete(arc, arcProgress(), tierOf(arc.animeId));
+
+  const arcOpen = (arc: Arc) => isArcUnlocked(data.arcs, arc, arcProgress(), tierOf(arc.animeId));
+
+  const animeCleared = (animeId: string) => isAnimeComplete(data.arcs, animeId, arcProgress(), tierOf(animeId));
+
+  /** How much harder this anime is than a first world, frozen at the time it was entered. */
+  const difficultyOf = (animeId: string) => difficultyMultiplier(tierOf(animeId));
+
+  const clearedAnimes = createMemo(() => data.animes.filter((a) => animeCleared(a.id)));
+
+  /** Difficulty the next anime entered will be played at. */
+  const nextDifficulty = createMemo(() => difficultyMultiplier(prestige().unlockedAnimeIds.length));
+
+  /** True when nothing is left in progress, so the player may head to a new anime. */
+  const canTravel = createMemo(() => canEnterNewAnime(prestige().unlockedAnimeIds, data.arcs, arcProgress()));
+
+  /** Free move into a new anime: the first pick of the run, or a new world after clearing the last. */
+  function travelTo(animeId: string) {
+    if (prestige().unlockedAnimeIds.includes(animeId)) return false;
+    if (!data.animes.some((a) => a.id === animeId)) return false;
+    if (!canTravel()) return false;
+    setPrestige((p) => ({ ...p, unlockedAnimeIds: [...p.unlockedAnimeIds, animeId] }));
+    setActiveArcId(arcsOf(animeId)[0]?.id ?? null);
+    return true;
+  }
+
+  /** Paid shortcut: enter an anime early, without having finished the current one. */
+  function unlockAnime(animeId: string) {
+    const anime = data.animes.find((a) => a.id === animeId);
+    if (!anime || !canUnlockAnime(prestige(), animeId, anime.unlockCost)) return false;
+    setPrestige((p) => unlockAnimeState(p, animeId, anime.unlockCost));
+    return true;
+  }
+
+  /** Credits earnings to the active arc, which is the only way arcs are cleared. */
+  function addArcProgress(amount: number) {
+    const arc = activeArc();
+    if (!arc || amount <= 0 || arcCleared(arc)) return;
+    setArcProgress((p) => ({ ...p, [arc.id]: (p[arc.id] ?? 0) + amount }));
+  }
+
+  // --- actions ---
 
   /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
   function synergyOf(character: Character): number {
@@ -103,10 +165,12 @@ export function createGameStore(data: GameData) {
     return recruitCost(character, ownedCharacterIds().length);
   }
 
+  /** The narrator's click. */
   function click() {
     const gain = clickPower();
     setCurrency((c) => c + gain);
     setLifetimeEarned((l) => l + gain);
+    addArcProgress(gain);
     return gain;
   }
 
@@ -124,14 +188,8 @@ export function createGameStore(data: GameData) {
   function setActiveArc(arcId: string) {
     const arc = data.arcs.find((a) => a.id === arcId);
     if (!arc || !prestige().unlockedAnimeIds.includes(arc.animeId)) return false;
+    if (!arcOpen(arc)) return false;
     setActiveArcId(arcId);
-    return true;
-  }
-
-  function unlockAnime(animeId: string) {
-    const anime = data.animes.find((a) => a.id === animeId);
-    if (!anime || !canUnlockAnime(prestige(), animeId, anime.unlockCost)) return false;
-    setPrestige((p) => unlockAnimeState(p, animeId, anime.unlockCost));
     return true;
   }
 
@@ -157,7 +215,10 @@ export function createGameStore(data: GameData) {
     return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
   }
 
-  /** Resets the run (currency, roster, temp buffs) but keeps prestige points and unlocked animes. */
+  /**
+   * Resets the run (currency, roster, temp buffs) but keeps prestige points, the animes entered and
+   * the arcs already cleared — world progression is not part of the run.
+   */
   function prestigeReset() {
     setPrestige((p) => applyPrestige(p, lifetimeEarned()));
     setCurrency(0);
@@ -176,11 +237,12 @@ export function createGameStore(data: GameData) {
       activeArcId: activeArcId(),
       prestigePoints: prestige().prestigePoints,
       unlockedAnimeIds: prestige().unlockedAnimeIds,
+      arcProgress: arcProgress(),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(file));
   }
 
-  /** Wipes the save and every bit of progress, prestige included. */
+  /** Wipes the save and every bit of progress, prestige and worlds included. */
   function hardReset() {
     if (typeof localStorage !== "undefined") localStorage.removeItem(SAVE_KEY);
     setCurrency(0);
@@ -188,8 +250,9 @@ export function createGameStore(data: GameData) {
     setOwnedCharacterIds([]);
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
-    setPrestige(createInitialPrestigeState(starterAnimeIds));
-    setActiveArcId(defaultArcId);
+    setPrestige(createInitialPrestigeState());
+    setArcProgress({});
+    setActiveArcId(null);
   }
 
   const interval = setInterval(() => {
@@ -200,6 +263,7 @@ export function createGameStore(data: GameData) {
     if (income > 0) {
       setCurrency((c) => c + income);
       setLifetimeEarned((l) => l + income);
+      addArcProgress(income);
     }
   }, TICK_MS);
   const autosave = setInterval(save, AUTOSAVE_MS);
@@ -226,6 +290,20 @@ export function createGameStore(data: GameData) {
     unlockedAbilities,
     synergyOf,
     costOf,
+    // world progression
+    arcsOf,
+    goalOf,
+    progressOf,
+    arcCleared,
+    arcOpen,
+    animeCleared,
+    clearedAnimes,
+    tierOf,
+    difficultyOf,
+    nextDifficulty,
+    canTravel,
+    travelTo,
+    // actions
     click,
     recruitCharacter,
     setActiveArc,

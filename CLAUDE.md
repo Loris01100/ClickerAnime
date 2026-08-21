@@ -41,9 +41,24 @@ rebalances the whole game. Modifiers come from two sources, merged in `allModifi
 Expiry is checked both in `pruneExpired` and again inside `computeEffectiveStat`, so a stale list
 can never inflate a stat.
 
+### World progression
+
+Animes are the worlds; arcs are the stages inside them. `progression.ts` holds it all, pure:
+
+- An arc clears when the currency earned **while it is the active arc** reaches its goal. Arcs open
+  in `order`, one after the previous clears; an anime clears when all of its arcs do.
+- `arcGoal = baseGoal * 2.5^tier`, where **tier = the anime's index in `unlockedAnimeIds`**. Entering
+  a new world is only allowed once everything already entered is cleared, so that index equals the
+  number of worlds already finished — the difficulty ramp the design calls for. Freezing the tier at
+  entry is what stops a cleared anime from un-clearing itself when global difficulty rises; do not
+  recompute a tier from the live completed-count or you reintroduce that circularity.
+- The player picks their first world freely and travels freely after each clear (`travelTo`, free).
+  `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige points to enter early.
+- Arc progress survives `prestigeReset` — worlds are meta-progression, not part of a run.
+
 ### Synergy
 
-`synergyMultiplier` is the core mechanic: a character is strong in their own arcs
+`synergyMultiplier` is the core mechanic and the "characters weaken outside their world" rule: a character is strong in their own arcs
 (`matchingArcMultiplier`), weaker in other arcs of their own anime (`sameAnimeMalus`), weakest in
 another anime's arc (`otherAnimeMalus`). Tuning `defaultSynergyConfig` is the main balance knob.
 
@@ -75,4 +90,4 @@ last-used timestamps in a record, not as counters.
 not real content. Real content replaces this file; the engine reads only from the `GameData` passed
 into `createGameStore`, so nothing else needs to change.
 
-UI strings in `App.tsx` are French.
+UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.
