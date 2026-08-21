@@ -78,8 +78,8 @@ Two knobs, deliberately decoupled — this is the main/secondary distinction:
 - **Level is uncapped** and every level grants the *same* flat damage as the one before
   (`levelGrowth(level) = 1 + level * LEVEL_DAMAGE_STEP` applied to `baseClickPower` and `baseDps`).
   Linear on purpose; `LEVEL_DAMAGE_STEP` is the pacing knob for how fast damage outruns enemy hp.
-- **The passive stops at a cap**: `PASSIVE_LEVEL_CAP` is 10 for `rarity: "main"`, 5 for
-  `"secondary"`. Levels past it still add damage; they just stop deepening the passive.
+- **The passive has nothing to do with levels**: it is ranked up with items, see below.
+  `PASSIVE_LEVEL_CAP` is the rank cap — 10 for `rarity: "main"`, 5 for `"secondary"`.
 
 Levels come from **xp earned in combat**: every kill grants the whole team xp equal to the kill's
 currency reward (one number to balance, and it already scales with the world). Only the xp total is
@@ -88,15 +88,28 @@ Xp dies with the team on `prestigeReset`.
 
 ### The narrator's click
 
-`narratorClickPower(allyCount, itemBonus)` is the *base* fed into the `clickPower` pipeline, not a
-constant: it rises with the number of allies in the team and with every item ever found. Items are
-never lost — not on prestige, not on travel — so this floor only ever rises.
+`narratorClickPower(allyCount)` is the *base* fed into the `clickPower` pipeline: it rises with the
+number of allies in the team and with nothing else. The click is a **trigger, not a damage source** —
+it is there to fire abilities; the team's `teamDps` is what kills things. Keep it that way when
+tuning: character stats lean on `baseDps`, and abilities buff `teamDps`.
 
-Two kinds, both hung off `Enemy.itemId`, separated by `Item.kind`:
+### Items and passives
 
-- **unique** — carried by bosses, no `dropChance` so the drop is certain, and capped at one copy.
-- **common** — carried by ordinary mobs with a `dropChance`, and they **stack**: `itemClickBonus`
-  counts the bonus once per copy, so farming a cleared zone keeps paying into the click.
+Items deal no damage at all. They are the passive currency, hung off `Enemy.itemId` and separated by
+`Item.kind`:
+
+- **common** — carried by ordinary mobs with a `dropChance`, and they **stack**. Each arc has exactly
+  one common, and it is the only thing that ranks up the passives of the characters *met in that arc*
+  (`passiveItemOf` finds it by walking back to the arc whose mobs recruit the character). This is the
+  whole point: deepening a passive means travelling back to that zone and farming it.
+- **unique** — carried by bosses, guaranteed, one copy only. **On hold**: they drop and are listed,
+  and do nothing until they get their own idea.
+
+`passiveRank(copies, rarity)` turns copies held into a rank against a geometric threshold
+(`passiveItemsToReach`); rank 0 means the passive is still **locked** and contributes nothing, rank 1
+is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
+Copies are never spent — holding them is what counts, so there is no upgrade button and no extra save
+state.
 
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.

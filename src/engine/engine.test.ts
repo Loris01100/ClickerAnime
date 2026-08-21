@@ -6,17 +6,19 @@ import { getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeComplete, isArcUnlocked } from "./progression";
 import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import {
-  itemClickBonus,
+  isPassiveMaxed,
   LEVEL_DAMAGE_STEP,
   levelFromXp,
   levelGrowth,
   narratorClickPower,
   PASSIVE_LEVEL_CAP,
-  passiveLevel,
+  passiveItemsToReach,
+  passiveProgress,
+  passiveRank,
   xpProgress,
   xpToReach,
 } from "./growth";
-import type { ActiveModifier, Arc, Character, ComboDefinition, Enemy, Item } from "./types";
+import type { ActiveModifier, Arc, Character, ComboDefinition, Enemy } from "./types";
 
 function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobsToBoss = 3): Arc {
   return {
@@ -219,9 +221,25 @@ describe("character growth", () => {
 
   it("caps the passive at 10 for the main cast and 5 for the supporting one", () => {
     expect(PASSIVE_LEVEL_CAP).toEqual({ main: 10, secondary: 5 });
-    expect(passiveLevel(30, "main")).toBe(10);
-    expect(passiveLevel(30, "secondary")).toBe(5);
-    expect(passiveLevel(3, "main")).toBe(3);
+    expect(passiveRank(1e9, "main")).toBe(10);
+    expect(passiveRank(1e9, "secondary")).toBe(5);
+    expect(isPassiveMaxed(10, "main")).toBe(true);
+    expect(isPassiveMaxed(5, "main")).toBe(false);
+  });
+
+  it("ranks the passive up with copies of the origin item, and needs more each time", () => {
+    expect(passiveItemsToReach(0)).toBe(0);
+    expect(passiveRank(0, "main")).toBe(0);
+    expect(passiveRank(passiveItemsToReach(1), "main")).toBe(1);
+    expect(passiveRank(passiveItemsToReach(1) - 1, "main")).toBe(0);
+    expect(passiveItemsToReach(3) - passiveItemsToReach(2)).toBeGreaterThan(
+      passiveItemsToReach(2) - passiveItemsToReach(1)
+    );
+    const progress = passiveProgress(passiveItemsToReach(2) + 1, "main");
+    expect(progress.rank).toBe(2);
+    expect(progress.into).toBe(1);
+    expect(progress.need).toBe(passiveItemsToReach(3) - passiveItemsToReach(2));
+    expect(passiveProgress(1e9, "secondary").maxed).toBe(true);
   });
 
   it("keeps adding the same damage every level, with no cap", () => {
@@ -234,12 +252,13 @@ describe("character growth", () => {
     expect(levelGrowth(4)).toBeCloseTo(1 + 4 * LEVEL_DAMAGE_STEP);
   });
 
-  it("stops growing the passive past the cap while damage keeps going", () => {
-    const passiveAt = (character: Character, level: number) =>
-      characterContributions(character, null, undefined, level).find((m) => m.kind === "percent")!.value;
-    expect(passiveAt(side, 5)).toBe(passiveAt(side, 50));
-    expect(passiveAt(main, 5)).toBeLessThan(passiveAt(main, 10));
-    expect(passiveAt(main, 10)).toBe(passiveAt(main, 50));
+  it("leaves the passive out while locked, and deepens it rank by rank", () => {
+    const passiveAt = (character: Character, rank: number) =>
+      characterContributions(character, null, undefined, 0, rank).find((m) => m.kind === "percent");
+    expect(passiveAt(main, 0)).toBeUndefined();
+    expect(passiveAt(main, 1)!.value).toBeCloseTo(main.passive!.value);
+    expect(passiveAt(main, 5)!.value).toBeGreaterThan(passiveAt(main, 1)!.value);
+    expect(passiveAt(side, 5)!.value).toBeCloseTo(passiveAt(main, 5)!.value);
   });
 });
 
@@ -264,17 +283,6 @@ describe("xp and levels", () => {
 });
 
 describe("items", () => {
-  const items: Item[] = [
-    { id: "u1", kind: "unique", name: "U1", clickBonus: 10 },
-    { id: "c1", kind: "common", name: "C1", clickBonus: 2 },
-  ];
-
-  it("counts a common once per copy held", () => {
-    expect(itemClickBonus(items, {})).toBe(0);
-    expect(itemClickBonus(items, { u1: 1 })).toBe(10);
-    expect(itemClickBonus(items, { u1: 1, c1: 4 })).toBe(18);
-  });
-
   it("drops guaranteed without a dropChance, and by the odds with one", () => {
     const boss: Enemy = { id: "b", name: "B", baseHp: 1, reward: 1, itemId: "u1" };
     const mob: Enemy = { id: "m", name: "M", baseHp: 1, reward: 1, itemId: "c1", dropChance: 0.1 };
@@ -287,10 +295,9 @@ describe("items", () => {
 });
 
 describe("narrator click", () => {
-  it("grows with the number of allies and with every item found", () => {
-    const alone = narratorClickPower(0, 0);
-    expect(narratorClickPower(3, 0)).toBeGreaterThan(alone);
-    expect(narratorClickPower(0, 10)).toBe(alone + 10);
-    expect(narratorClickPower(3, 10)).toBe(narratorClickPower(3, 0) + 10);
+  it("grows with the number of allies, and with nothing else", () => {
+    const alone = narratorClickPower(0);
+    expect(narratorClickPower(3)).toBeGreaterThan(alone);
+    expect(narratorClickPower(3) - narratorClickPower(2)).toBe(narratorClickPower(1) - alone);
   });
 });

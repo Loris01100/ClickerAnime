@@ -76,7 +76,8 @@ export default function RosterPanel(props: { game: GameStore }) {
             {(character) => {
               const progress = () => props.game.progressOf(character.id);
               const level = () => progress().level;
-              const maxed = () => props.game.passiveLevelOf(character) >= props.game.passiveCapOf(character);
+              const passive = () => props.game.passiveProgressOf(character);
+              const passiveItem = () => props.game.passiveItemOf(character);
               return (
                 <div class="member">
                   <div class="member-grid">
@@ -102,10 +103,17 @@ export default function RosterPanel(props: { game: GameStore }) {
                     <div class="bar-fill" style={{ width: `${pct(progress().into, progress().need)}%` }} />
                   </div>
                   <Show when={character.passive}>
-                    <small classList={{ muted: !maxed(), capped: maxed() }}>
-                      Passif {props.game.passiveLevelOf(character)}/{props.game.passiveCapOf(character)}
-                      {maxed() ? " · max" : ""}
+                    <small classList={{ muted: !passive().maxed, capped: passive().maxed }}>
+                      Passif {passive().rank}/{props.game.passiveCapOf(character)}
+                      {passive().maxed
+                        ? " · max"
+                        : ` · ${fmt(passive().into)}/${fmt(passive().need)} ${passiveItem()?.name ?? "—"}`}
                     </small>
+                    <Show when={!passive().maxed}>
+                      <div class="bar xp-bar" title={`${passiveItem()?.name ?? ""} — rang suivant`}>
+                        <div class="bar-fill" style={{ width: `${pct(passive().into, passive().need)}%` }} />
+                      </div>
+                    </Show>
                   </Show>
                 </div>
               );
@@ -143,13 +151,13 @@ export default function RosterPanel(props: { game: GameStore }) {
       <section class="panel">
         <header class="panel-head">
           <span>Objets</span>
-          <small class="muted">+{fmt(props.game.narratorBase())} au clic</small>
+          <small class="muted">{props.game.foundItems().length}</small>
         </header>
         <div class="table-head item-grid">
           <span>Nom</span>
           <span>Type</span>
           <span>Qté</span>
-          <span>Bonus</span>
+          <span>Usage</span>
         </div>
         <div class="scroll">
           <For each={props.game.foundItems()}>
@@ -162,12 +170,15 @@ export default function RosterPanel(props: { game: GameStore }) {
                   {item.kind === "unique" ? "unique" : "commun"}
                 </span>
                 <span>{props.game.countOf(item.id)}</span>
-                <span>+{fmt(item.clickBonus * props.game.countOf(item.id))}</span>
+                <span class="muted">{item.kind === "unique" ? "en réserve" : "passifs"}</span>
               </div>
             )}
           </For>
           <Show when={props.game.foundItems().length === 0}>
-            <p class="muted pad">Aucun objet trouvé. Les mobs lâchent des communs, les boss des uniques.</p>
+            <p class="muted pad">
+              Aucun objet trouvé. Les communs d'un arc font monter les passifs des personnages rencontrés là-bas ;
+              les uniques des boss n'ont pas encore d'usage.
+            </p>
           </Show>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import type { Item, Rarity } from "./types";
+import type { Rarity } from "./types";
 
 /**
  * How far a character's passive bonus can be levelled. Levels past the cap keep adding damage —
@@ -6,12 +6,40 @@ import type { Item, Rarity } from "./types";
  */
 export const PASSIVE_LEVEL_CAP: Record<Rarity, number> = { main: 10, secondary: 5 };
 
-export function passiveLevel(level: number, rarity: Rarity): number {
-  return Math.min(level, PASSIVE_LEVEL_CAP[rarity]);
+/**
+ * Passives are not levelled by xp: they are fed with the common item of the arc the character comes
+ * from, so deepening one means going back to farm that zone. Rank 0 means the passive is still
+ * locked — it does nothing until the first threshold is met.
+ */
+const PASSIVE_ITEM_BASE = 6;
+const PASSIVE_ITEM_GROWTH = 1.5;
+
+/** Total copies of the origin item needed to stand at `rank`. */
+export function passiveItemsToReach(rank: number): number {
+  if (rank <= 0) return 0;
+  return Math.ceil((PASSIVE_ITEM_BASE * (Math.pow(PASSIVE_ITEM_GROWTH, rank) - 1)) / (PASSIVE_ITEM_GROWTH - 1));
 }
 
-export function isPassiveMaxed(level: number, rarity: Rarity): boolean {
-  return level >= PASSIVE_LEVEL_CAP[rarity];
+export function passiveRank(copies: number, rarity: Rarity): number {
+  const cap = PASSIVE_LEVEL_CAP[rarity];
+  let rank = 0;
+  while (rank < cap && copies >= passiveItemsToReach(rank + 1)) rank++;
+  return rank;
+}
+
+export function isPassiveMaxed(rank: number, rarity: Rarity): boolean {
+  return rank >= PASSIVE_LEVEL_CAP[rarity];
+}
+
+/** Rank plus how far into the next one the copies go, for the passive bar. */
+export function passiveProgress(
+  copies: number,
+  rarity: Rarity
+): { rank: number; into: number; need: number; maxed: boolean } {
+  const rank = passiveRank(copies, rarity);
+  const floor = passiveItemsToReach(rank);
+  const maxed = isPassiveMaxed(rank, rarity);
+  return { rank, into: copies - floor, need: maxed ? 0 : passiveItemsToReach(rank + 1) - floor, maxed };
 }
 
 /**
@@ -52,15 +80,10 @@ export function xpProgress(xp: number): { level: number; into: number; need: num
 export const NARRATOR_BASE_CLICK = 1;
 export const NARRATOR_CLICK_PER_ALLY = 1;
 
-/** Commons stack, so their bonus counts once per copy found; uniques are capped at one copy. */
-export function itemClickBonus(items: Item[], counts: Record<string, number>): number {
-  return items.reduce((sum, item) => sum + item.clickBonus * (counts[item.id] ?? 0), 0);
-}
-
 /**
- * The narrator hits harder the more allies stand with them, and the more items they have found
- * across every world — items are never lost, so this floor only ever rises.
+ * The narrator hits harder the more allies stand with them. Items no longer feed the click at all —
+ * they feed passives, see `passiveRank`.
  */
-export function narratorClickPower(allyCount: number, itemBonus: number): number {
-  return NARRATOR_BASE_CLICK + allyCount * NARRATOR_CLICK_PER_ALLY + itemBonus;
+export function narratorClickPower(allyCount: number): number {
+  return NARRATOR_BASE_CLICK + allyCount * NARRATOR_CLICK_PER_ALLY;
 }

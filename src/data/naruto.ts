@@ -14,9 +14,9 @@ export const narutoData: GameData = {
       order: 0,
       mobsToBoss: 8,
       mobs: [
-        { id: "vagues-bandit", itemId: "item-shuriken", dropChance: 0.15, name: "Homme de main de Gatô", baseHp: 15, reward: 4 },
-        { id: "vagues-mizuki", itemId: "item-shuriken", dropChance: 0.15, name: "Mizuki", baseHp: 25, reward: 7 },
-        { id: "vagues-demon", itemId: "item-shuriken", dropChance: 0.12, name: "Déserteur du Village de la Brume", baseHp: 40, reward: 10 },
+        { id: "vagues-bandit", itemId: "item-shuriken", dropChance: 0.25, name: "Homme de main de Gatô", baseHp: 15, reward: 4 },
+        { id: "vagues-mizuki", itemId: "item-shuriken", dropChance: 0.25, name: "Mizuki", baseHp: 25, reward: 7 },
+        { id: "vagues-demon", itemId: "item-shuriken", dropChance: 0.25, name: "Déserteur du Village de la Brume", baseHp: 40, reward: 10 },
         { id: "vagues-naruto", name: "Naruto Uzumaki", baseHp: 60, reward: 25, characterId: "naruto-uzumaki" },
         { id: "vagues-sakura", name: "Sakura Haruno", baseHp: 55, reward: 22, characterId: "sakura-haruno" },
         { id: "vagues-kakashi", name: "Kakashi Hatake", baseHp: 100, reward: 40, characterId: "kakashi-hatake" },
@@ -31,9 +31,9 @@ export const narutoData: GameData = {
       order: 1,
       mobsToBoss: 12,
       mobs: [
-        { id: "chunin-son", itemId: "item-parchemin", dropChance: 0.12, name: "Genin du Village du Son", baseHp: 250, reward: 24 },
-        { id: "chunin-suna", itemId: "item-parchemin", dropChance: 0.12, name: "Genin du Village du Sable", baseHp: 350, reward: 30 },
-        { id: "chunin-kabuto", itemId: "item-parchemin", dropChance: 0.1, name: "Kabuto Yakushi", baseHp: 500, reward: 45 },
+        { id: "chunin-son", itemId: "item-parchemin", dropChance: 0.25, name: "Genin du Village du Son", baseHp: 250, reward: 24 },
+        { id: "chunin-suna", itemId: "item-parchemin", dropChance: 0.25, name: "Genin du Village du Sable", baseHp: 350, reward: 30 },
+        { id: "chunin-kabuto", itemId: "item-parchemin", dropChance: 0.25, name: "Kabuto Yakushi", baseHp: 500, reward: 45 },
         { id: "chunin-lee", name: "Rock Lee", baseHp: 900, reward: 120, characterId: "rock-lee" },
         { id: "chunin-shikamaru", name: "Shikamaru Nara", baseHp: 800, reward: 110, characterId: "shikamaru-nara" },
         { id: "chunin-hinata", name: "Hinata Hyûga", baseHp: 850, reward: 115, characterId: "hinata-hyuga" },
@@ -56,9 +56,9 @@ export const narutoData: GameData = {
       order: 2,
       mobsToBoss: 14,
       mobs: [
-        { id: "konoha-son", itemId: "item-ration", dropChance: 0.1, name: "Jônin du Village du Son", baseHp: 2_700, reward: 95 },
-        { id: "konoha-serpent", itemId: "item-ration", dropChance: 0.1, name: "Serpent d'invocation", baseHp: 3_600, reward: 120 },
-        { id: "konoha-anbu", itemId: "item-ration", dropChance: 0.08, name: "Anbu du Son", baseHp: 4_800, reward: 150 },
+        { id: "konoha-son", itemId: "item-ration", dropChance: 0.25, name: "Jônin du Village du Son", baseHp: 2_700, reward: 95 },
+        { id: "konoha-serpent", itemId: "item-ration", dropChance: 0.25, name: "Serpent d'invocation", baseHp: 3_600, reward: 120 },
+        { id: "konoha-anbu", itemId: "item-ration", dropChance: 0.25, name: "Anbu du Son", baseHp: 4_800, reward: 150 },
         { id: "konoha-temari", name: "Temari", baseHp: 8_400, reward: 400, characterId: "temari" },
         { id: "konoha-kankuro", name: "Kankurô", baseHp: 7_800, reward: 380, characterId: "kankuro" },
         { id: "konoha-gaara", name: "Gaara du Désert", baseHp: 15_000, reward: 800, characterId: "gaara" },
@@ -72,9 +72,9 @@ export const narutoData: GameData = {
       order: 3,
       mobsToBoss: 14,
       mobs: [
-        { id: "tsunade-chasseur", itemId: "item-pari", dropChance: 0.1, name: "Chasseur de primes", baseHp: 30_000, reward: 380 },
-        { id: "tsunade-clone", itemId: "item-pari", dropChance: 0.1, name: "Clone d'eau de Kisame", baseHp: 40_000, reward: 460 },
-        { id: "tsunade-corbeau", itemId: "item-pari", dropChance: 0.08, name: "Corbeau d'illusion d'Itachi", baseHp: 50_000, reward: 540 },
+        { id: "tsunade-chasseur", itemId: "item-pari", dropChance: 0.25, name: "Chasseur de primes", baseHp: 30_000, reward: 380 },
+        { id: "tsunade-clone", itemId: "item-pari", dropChance: 0.25, name: "Clone d'eau de Kisame", baseHp: 40_000, reward: 460 },
+        { id: "tsunade-corbeau", itemId: "item-pari", dropChance: 0.25, name: "Corbeau d'illusion d'Itachi", baseHp: 50_000, reward: 540 },
         { id: "tsunade-shizune", name: "Shizune", baseHp: 85_000, reward: 1_400, characterId: "shizune" },
         { id: "tsunade-jiraya", name: "Jiraya", baseHp: 145_000, reward: 2_400, characterId: "jiraya" },
         { id: "tsunade-tsunade", name: "Tsunade", baseHp: 190_000, reward: 3_000, characterId: "tsunade" },
@@ -88,10 +88,10 @@ export const narutoData: GameData = {
       order: 4,
       mobsToBoss: 16,
       mobs: [
-        { id: "sasuke-jirobo", itemId: "item-pilule", dropChance: 0.09, name: "Jirobô", baseHp: 350_000, reward: 1_500 },
-        { id: "sasuke-kidomaru", itemId: "item-pilule", dropChance: 0.09, name: "Kidômaru", baseHp: 425_000, reward: 1_700 },
-        { id: "sasuke-sakon", itemId: "item-pilule", dropChance: 0.09, name: "Sakon & Ukon", baseHp: 500_000, reward: 1_900 },
-        { id: "sasuke-tayuya", itemId: "item-pilule", dropChance: 0.08, name: "Tayuya", baseHp: 575_000, reward: 2_100 },
+        { id: "sasuke-jirobo", itemId: "item-pilule", dropChance: 0.25, name: "Jirobô", baseHp: 350_000, reward: 1_500 },
+        { id: "sasuke-kidomaru", itemId: "item-pilule", dropChance: 0.25, name: "Kidômaru", baseHp: 425_000, reward: 1_700 },
+        { id: "sasuke-sakon", itemId: "item-pilule", dropChance: 0.25, name: "Sakon & Ukon", baseHp: 500_000, reward: 1_900 },
+        { id: "sasuke-tayuya", itemId: "item-pilule", dropChance: 0.25, name: "Tayuya", baseHp: 575_000, reward: 2_100 },
         { id: "sasuke-choji", name: "Chôji Akimichi", baseHp: 950_000, reward: 6_000, characterId: "choji-akimichi" },
         { id: "sasuke-kiba", name: "Kiba Inuzuka", baseHp: 875_000, reward: 5_600, characterId: "kiba-inuzuka" },
         { id: "sasuke-kimimaro", name: "Kimimaro", baseHp: 1_750_000, reward: 12_000, characterId: "kimimaro" },
@@ -325,18 +325,18 @@ export const narutoData: GameData = {
   ],
 
   items: [
-    // Uniques : un seul exemplaire, lâché à coup sûr par un boss.
-    { id: "item-kubikiri", kind: "unique", name: "Kubikiribôchô, l'épée du décapiteur", clickBonus: 1 },
-    { id: "item-bandeau", kind: "unique", name: "Bandeau frontal fissuré", clickBonus: 3 },
-    { id: "item-kusanagi", kind: "unique", name: "Épée de Kusanagi", clickBonus: 11 },
-    { id: "item-lunettes", kind: "unique", name: "Lunettes de Kabuto", clickBonus: 40 },
-    { id: "item-collier", kind: "unique", name: "Collier du Premier Hokage", clickBonus: 150 },
-    // Communs : ils s'empilent, on les farme sur les mobs.
-    { id: "item-shuriken", kind: "common", name: "Shuriken émoussé", clickBonus: 1 },
-    { id: "item-parchemin", kind: "common", name: "Parchemin du Ciel", clickBonus: 1 },
-    { id: "item-ration", kind: "common", name: "Ration militaire", clickBonus: 4 },
-    { id: "item-pari", kind: "common", name: "Ticket de pari perdant", clickBonus: 14 },
-    { id: "item-pilule", kind: "common", name: "Pilule du Clan Akimichi", clickBonus: 50 },
+    // Uniques : un seul exemplaire, lâché à coup sûr par un boss. Sans effet pour l'instant.
+    { id: "item-kubikiri", kind: "unique", name: "Kubikiribôchô, l'épée du décapiteur" },
+    { id: "item-bandeau", kind: "unique", name: "Bandeau frontal fissuré" },
+    { id: "item-kusanagi", kind: "unique", name: "Épée de Kusanagi" },
+    { id: "item-lunettes", kind: "unique", name: "Lunettes de Kabuto" },
+    { id: "item-collier", kind: "unique", name: "Collier du Premier Hokage" },
+    // Communs : ils s'empilent et font monter les passifs des personnages rencontrés dans leur arc.
+    { id: "item-shuriken", kind: "common", name: "Shuriken émoussé" },
+    { id: "item-parchemin", kind: "common", name: "Parchemin du Ciel" },
+    { id: "item-ration", kind: "common", name: "Ration militaire" },
+    { id: "item-pari", kind: "common", name: "Ticket de pari perdant" },
+    { id: "item-pilule", kind: "common", name: "Pilule du Clan Akimichi" },
   ],
 
   combos: [

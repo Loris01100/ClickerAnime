@@ -11,10 +11,10 @@ import { characterContributions, defaultSynergyConfig, synergyMultiplier } from 
 import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import {
-  itemClickBonus,
   levelFromXp,
   narratorClickPower,
-  passiveLevel,
+  passiveProgress,
+  passiveRank,
   PASSIVE_LEVEL_CAP,
   xpProgress,
 } from "./growth";
@@ -113,15 +113,30 @@ export function createGameStore(data: GameData) {
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const arc = activeArc();
     const fromCharacters = ownedCharacters().flatMap((c) =>
-      characterContributions(c, arc, defaultSynergyConfig, levelOf(c.id))
+      characterContributions(c, arc, defaultSynergyConfig, levelOf(c.id), passiveRankOf(c))
     );
     return [...fromCharacters, ...pruneExpired(temporaryModifiers(), now())];
   });
 
-  /** What one narrator click is worth before any modifier: allies at their side, plus every item found. */
-  const narratorBase = createMemo(() =>
-    narratorClickPower(ownedCharacterIds().length, itemClickBonus(data.items, itemCounts()))
-  );
+  /** What one narrator click is worth before any modifier: just the allies standing at their side. */
+  const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length));
+
+  /** The arc a character is met in — the one whose common item feeds their passive. */
+  const originArcOf = (character: Character) =>
+    data.arcs.find((a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)) ??
+    null;
+
+  /** The common item that ranks up this character's passive, i.e. the one their home arc drops. */
+  const passiveItemOf = (character: Character): Item | null => {
+    const arc = originArcOf(character);
+    const itemId = arc?.mobs.find((m) => m.itemId)?.itemId;
+    return data.items.find((i) => i.id === itemId) ?? null;
+  };
+
+  const passiveCopiesOf = (character: Character) => {
+    const item = passiveItemOf(character);
+    return item ? countOf(item.id) : 0;
+  };
 
   /** Damage of one narrator click. */
   const clickPower = createMemo(() => computeEffectiveStat(narratorBase(), "clickPower", allModifiers(), now()));
@@ -284,8 +299,9 @@ export function createGameStore(data: GameData) {
     });
   }
 
-  /** Level the passive is actually running at, and the cap it stops growing at. */
-  const passiveLevelOf = (character: Character) => passiveLevel(levelOf(character.id), character.rarity);
+  /** Rank the passive runs at (0 = still locked), how far the copies go, and the cap. */
+  const passiveRankOf = (character: Character) => passiveRank(passiveCopiesOf(character), character.rarity);
+  const passiveProgressOf = (character: Character) => passiveProgress(passiveCopiesOf(character), character.rarity);
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
   // --- actions ---
@@ -430,7 +446,10 @@ export function createGameStore(data: GameData) {
     xpOf,
     levelOf,
     progressOf,
-    passiveLevelOf,
+    passiveItemOf,
+    passiveCopiesOf,
+    passiveRankOf,
+    passiveProgressOf,
     passiveCapOf,
     unlockedAbilities,
     synergyOf,

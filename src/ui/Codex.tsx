@@ -116,30 +116,32 @@ export default function Codex(props: { game: GameStore; onClose: () => void }) {
                   <Show when={character().passive} fallback={<p class="muted small">Aucun passif.</p>}>
                     {(passive) => {
                       const cap = () => PASSIVE_LEVEL_CAP[character().rarity];
-                      const atCap = () => ({ ...passive(), value: passive().value * levelGrowth(cap()) });
+                      const atCap = () => ({ ...passive(), value: passive().value * levelGrowth(cap() - 1) });
+                      const rank = () => props.game.passiveRankOf(character());
                       const current = () => ({
                         ...passive(),
-                        value: passive().value * levelGrowth(props.game.passiveLevelOf(character())),
+                        value: passive().value * levelGrowth(rank() - 1),
                       });
                       return (
                         <>
                           <div class="codex-row">
-                            <span class="muted">Niveau 0</span>
+                            <span class="muted">Rang 1</span>
                             <strong>{describeModifier(passive())}</strong>
                           </div>
                           <div class="codex-row">
-                            <span class="muted">Au maximum (niv. {cap()})</span>
+                            <span class="muted">Au maximum (rang {cap()})</span>
                             <strong>{describeModifier(atCap())}</strong>
                           </div>
                           <Show when={owned(character())}>
                             <div class="codex-row">
-                              <span class="muted">Actuel (niv. {props.game.passiveLevelOf(character())})</span>
-                              <strong>{describeModifier(current())}</strong>
+                              <span class="muted">Actuel (rang {rank()})</span>
+                              <strong>{rank() > 0 ? describeModifier(current()) : "verrouillé"}</strong>
                             </div>
                           </Show>
                           <p class="muted small">
-                            Le passif cesse de progresser au niveau {cap()}. Les niveaux suivants continuent
-                            d'ajouter des dégâts.
+                            Le passif monte avec « {props.game.passiveItemOf(character())?.name ?? "—"} », l'objet
+                            commun de son arc d'origine, et s'arrête au rang {cap()}. Les niveaux, eux, n'ajoutent
+                            que des dégâts.
                           </p>
                         </>
                       );

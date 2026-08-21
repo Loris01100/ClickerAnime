@@ -1,4 +1,4 @@
-import { levelGrowth, passiveLevel } from "./growth";
+import { levelGrowth } from "./growth";
 import type { ActiveModifier, Arc, Character, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
@@ -20,18 +20,20 @@ export function synergyMultiplier(character: Character, activeArc: Arc, config: 
 
 /**
  * Converts one owned character's stats + passive into modifiers, pre-scaled by their synergy with
- * the currently active arc and by their level. Damage grows with every level; the passive stops
- * growing at the cap for their rarity.
+ * the currently active arc. Damage grows with every level; the passive is driven by `passiveRank`
+ * instead — copies of the origin item, see `passiveRank` — and is absent while still locked.
  */
 export function characterContributions(
   character: Character,
   activeArc: Arc | null,
   config: SynergyConfig = defaultSynergyConfig,
-  level = 0
+  level = 0,
+  passiveRank = 0
 ): ActiveModifier[] {
   const synergy = activeArc ? synergyMultiplier(character, activeArc, config) : 1;
   const damageGrowth = levelGrowth(level);
-  const passiveGrowth = levelGrowth(passiveLevel(level, character.rarity));
+  // Rank 1 is the passive as printed; every rank past it deepens it by the usual step.
+  const passiveGrowth = levelGrowth(passiveRank - 1);
 
   const contributions: ActiveModifier[] = [
     {
@@ -50,7 +52,7 @@ export function characterContributions(
     },
   ];
 
-  if (character.passive) {
+  if (character.passive && passiveRank > 0) {
     contributions.push({
       ...character.passive,
       sourceId: character.id,

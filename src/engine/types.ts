@@ -30,13 +30,15 @@ export interface Anime {
 /** Commons drop from ordinary fights and stack; uniques come from bosses and are one copy only. */
 export type ItemKind = "common" | "unique";
 
-/** Found by beating the enemy that holds it; every item ever found feeds the narrator's click. */
+/**
+ * Found by beating the enemy that holds it, and never lost. Commons are the currency of passives:
+ * each arc has its own, and it is the only thing that ranks up the passives of the characters met
+ * there. Uniques drop from bosses and do nothing yet — on hold until they get their own idea.
+ */
 export interface Item {
   id: string;
   name: string;
   kind: ItemKind;
-  /** flat damage added to every narrator click per copy held, forever, in every world */
-  clickBonus: number;
 }
 
 /** Anything the player fights. Enemies never deal damage — they only have to fall. */
