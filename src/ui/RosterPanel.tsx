@@ -1,6 +1,7 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
+import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
@@ -80,7 +81,7 @@ export default function RosterPanel(props: { game: GameStore }) {
                 <div class="member">
                   <div class="member-grid">
                     <span class="name">
-                      <span class="avatar">{character.name.slice(0, 2).toUpperCase()}</span>
+                      <Sprite seed={character.id} px={3} />
                       {character.name}
                       <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
                     </span>
@@ -126,7 +127,7 @@ export default function RosterPanel(props: { game: GameStore }) {
             {(character) => (
               <div class="row">
                 <span class="name">
-                  <span class="avatar">{character.name.slice(0, 2).toUpperCase()}</span>
+                  <Sprite seed={character.id} px={3} />
                   {character.name}
                   <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
                 </span>

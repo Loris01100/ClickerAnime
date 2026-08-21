@@ -1,7 +1,9 @@
-import { For, Show } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 import { createGameStore } from "./engine/gameState";
 import { sampleData } from "./data/sample";
 import ClickStage from "./ui/ClickStage";
+import Codex from "./ui/Codex";
+import WorldMap from "./ui/WorldMap";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
@@ -9,6 +11,7 @@ import { NEXT_THEME, setTheme, theme, THEME_ICON, THEME_LABEL } from "./ui/theme
 
 export default function App() {
   const game = createGameStore(sampleData);
+  const [codexOpen, setCodexOpen] = createSignal(false);
 
   function hardReset() {
     if (confirm("Effacer toute la progression, prestige et mondes compris ?")) game.hardReset();
@@ -26,6 +29,7 @@ export default function App() {
           >
             {THEME_ICON[theme()]}
           </button>
+          <button onClick={() => setCodexOpen(true)}>Codex</button>
           <button onClick={() => game.save()}>Sauvegarder</button>
           <button onClick={hardReset}>Réinitialiser</button>
         </div>
@@ -57,9 +61,14 @@ export default function App() {
           <div class="column">
             <CurrencyBar game={game} />
             <ClickStage game={game} />
+            <WorldMap game={game} />
           </div>
           <ProgressPanel game={game} />
         </main>
+      </Show>
+
+      <Show when={codexOpen()}>
+        <Codex game={game} onClose={() => setCodexOpen(false)} />
       </Show>
     </>
   );

@@ -24,10 +24,22 @@ to `localStorage` every 5s. Components call its returned actions (`click`, `recr
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density: many small stacked panels, everything visible at once, no modals. Left is the
-roster (abilities, sortable team table, item table), middle is resources + the fight, right is the
-arc lists per world plus travel and prestige. Each component takes `game: GameStore` as its only
+roster (abilities, sortable team table, item table), middle is resources + the fight + the world
+map, right is the arc lists per world plus travel and prestige. `Codex.tsx` is the one overlay: the
+full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities
+and combos. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
+
+**Pixel art is generated, not authored.** `ui/pixel.ts` turns any id into a stable mirrored sprite
+(FNV-1a hash seeding an xorshift32 fill), rendered as SVG rects by `ui/Sprite.tsx`. Same id always
+gives the same sprite, which is what makes it usable as an identity — pass a character id, an enemy
+id or a boss id. When real artwork lands, swap the body of `Sprite.tsx`; nothing else changes.
+Note the filename casing: `pixel.ts` and `Sprite.tsx` must not collide on case-insensitive
+filesystems.
+
+**`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
+`ui/`, not the engine — the engine has no user-facing strings.
 
 **Theming.** Light and dark both ship, in the usual three states: bare `:root` holds the light
 palette, and the dark palette is repeated twice — once under `prefers-color-scheme: dark` guarded by

@@ -1,5 +1,6 @@
 import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 
 interface Pop {
@@ -76,7 +77,7 @@ export default function ClickStage(props: { game: GameStore }) {
             <div class="stage" onClick={handleClick}>
               <div class="stage-hint">Clic du Narrateur</div>
               <div class="enemy" classList={{ boss: isBoss(), rival: !!current().characterId }}>
-                {current().name.slice(0, 2).toUpperCase()}
+                <Sprite seed={current().characterId ?? current().id} px={isBoss() ? 12 : 9} />
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
                 <Show when={isBoss()}>👑 </Show>
