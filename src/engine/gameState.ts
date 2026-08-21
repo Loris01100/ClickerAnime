@@ -38,7 +38,7 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-const SAVE_KEY = "clicker-anime:save:v5";
+const SAVE_KEY = "clicker-anime:save:v6";
 
 interface SaveFile {
   currency: number;
