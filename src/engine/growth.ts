@@ -7,39 +7,32 @@ import type { Rarity } from "./types";
 export const PASSIVE_LEVEL_CAP: Record<Rarity, number> = { main: 10, secondary: 5 };
 
 /**
- * Passives are not levelled by xp: they are fed with the common item of the arc the character comes
- * from, so deepening one means going back to farm that zone. Rank 0 means the passive is still
- * locked — it does nothing until the first threshold is met.
+ * Passives are not levelled by xp: the player spends the common item of the arc the character comes
+ * from, so deepening one means going back to farm that zone — and choosing who gets the copies.
+ * Rank 0 means the passive is still locked: it does nothing until the first rank is bought.
  */
 const PASSIVE_ITEM_BASE = 6;
 const PASSIVE_ITEM_GROWTH = 1.5;
 
-/** Total copies of the origin item needed to stand at `rank`. */
-export function passiveItemsToReach(rank: number): number {
+/** Copies of the origin item spent to buy `rank`, coming from the rank below it. */
+export function passiveRankCost(rank: number): number {
   if (rank <= 0) return 0;
-  return Math.ceil((PASSIVE_ITEM_BASE * (Math.pow(PASSIVE_ITEM_GROWTH, rank) - 1)) / (PASSIVE_ITEM_GROWTH - 1));
-}
-
-export function passiveRank(copies: number, rarity: Rarity): number {
-  const cap = PASSIVE_LEVEL_CAP[rarity];
-  let rank = 0;
-  while (rank < cap && copies >= passiveItemsToReach(rank + 1)) rank++;
-  return rank;
+  return Math.ceil(PASSIVE_ITEM_BASE * Math.pow(PASSIVE_ITEM_GROWTH, rank - 1));
 }
 
 export function isPassiveMaxed(rank: number, rarity: Rarity): boolean {
   return rank >= PASSIVE_LEVEL_CAP[rarity];
 }
 
-/** Rank plus how far into the next one the copies go, for the passive bar. */
-export function passiveProgress(
-  copies: number,
-  rarity: Rarity
-): { rank: number; into: number; need: number; maxed: boolean } {
-  const rank = passiveRank(copies, rarity);
-  const floor = passiveItemsToReach(rank);
+/** What the next rank costs, and whether the copies held cover it. 0 cost means the cap is reached. */
+export function passiveUpgrade(
+  rank: number,
+  rarity: Rarity,
+  copies: number
+): { rank: number; cost: number; copies: number; maxed: boolean; affordable: boolean } {
   const maxed = isPassiveMaxed(rank, rarity);
-  return { rank, into: copies - floor, need: maxed ? 0 : passiveItemsToReach(rank + 1) - floor, maxed };
+  const cost = maxed ? 0 : passiveRankCost(rank + 1);
+  return { rank, cost, copies, maxed, affordable: !maxed && copies >= cost };
 }
 
 /**

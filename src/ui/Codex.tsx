@@ -139,9 +139,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void }) {
                             </div>
                           </Show>
                           <p class="muted small">
-                            Le passif monte avec « {props.game.passiveItemOf(character())?.name ?? "—"} », l'objet
-                            commun de son arc d'origine, et s'arrête au rang {cap()}. Les niveaux, eux, n'ajoutent
-                            que des dégâts.
+                            Le passif se monte en dépensant « {props.game.passiveItemOf(character())?.name ?? "—"} »,
+                            l'objet commun de son arc d'origine, et s'arrête au rang {cap()}. Les niveaux, eux,
+                            n'ajoutent que des dégâts.
                           </p>
                         </>
                       );

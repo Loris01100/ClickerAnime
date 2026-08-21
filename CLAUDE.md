@@ -105,11 +105,12 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
 - **unique** — carried by bosses, guaranteed, one copy only. **On hold**: they drop and are listed,
   and do nothing until they get their own idea.
 
-`passiveRank(copies, rarity)` turns copies held into a rank against a geometric threshold
-(`passiveItemsToReach`); rank 0 means the passive is still **locked** and contributes nothing, rank 1
+Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
+copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
+chooses which character of an arc gets the copies. `passiveUpgradeOf` is what the UI reads — rank,
+cost, copies held, affordable. Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
-Copies are never spent — holding them is what counts, so there is no upgrade button and no extra save
-state.
+Ranks survive `prestigeReset` like the items that paid for them, even though the roster does not.
 
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.

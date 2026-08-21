@@ -13,8 +13,7 @@ import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./c
 import {
   levelFromXp,
   narratorClickPower,
-  passiveProgress,
-  passiveRank,
+  passiveUpgrade,
   PASSIVE_LEVEL_CAP,
   xpProgress,
 } from "./growth";
@@ -51,6 +50,7 @@ interface SaveFile {
   clearedArcIds: string[];
   characterXp: Record<string, number>;
   itemCounts: Record<string, number>;
+  passiveRanks: Record<string, number>;
 }
 
 function readSave(): SaveFile | null {
@@ -77,6 +77,8 @@ export function createGameStore(data: GameData) {
   const [clearedArcIds, setClearedArcIds] = createSignal<string[]>(saved?.clearedArcIds ?? []);
   const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
+  // Bought with items, so they outlive a prestige just like the items that paid for them.
+  const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -299,10 +301,21 @@ export function createGameStore(data: GameData) {
     });
   }
 
-  /** Rank the passive runs at (0 = still locked), how far the copies go, and the cap. */
-  const passiveRankOf = (character: Character) => passiveRank(passiveCopiesOf(character), character.rarity);
-  const passiveProgressOf = (character: Character) => passiveProgress(passiveCopiesOf(character), character.rarity);
+  /** Rank the passive runs at (0 = still locked), what the next one costs, and the cap. */
+  const passiveRankOf = (character: Character) => passiveRanks()[character.id] ?? 0;
+  const passiveUpgradeOf = (character: Character) =>
+    passiveUpgrade(passiveRankOf(character), character.rarity, passiveCopiesOf(character));
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
+
+  /** Spends the origin item to buy the next rank of a character's passive. */
+  function rankUpPassive(character: Character): boolean {
+    const item = passiveItemOf(character);
+    const upgrade = passiveUpgradeOf(character);
+    if (!item || !upgrade.affordable) return false;
+    setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) - upgrade.cost }));
+    setPassiveRanks((ranks) => ({ ...ranks, [character.id]: upgrade.rank + 1 }));
+    return true;
+  }
 
   // --- actions ---
 
@@ -390,6 +403,7 @@ export function createGameStore(data: GameData) {
       clearedArcIds: clearedArcIds(),
       characterXp: characterXp(),
       itemCounts: itemCounts(),
+      passiveRanks: passiveRanks(),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(file));
   }
@@ -405,6 +419,7 @@ export function createGameStore(data: GameData) {
     setPrestige(createInitialPrestigeState());
     setCharacterXp({});
     setItemCounts({});
+    setPassiveRanks({});
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
@@ -449,8 +464,9 @@ export function createGameStore(data: GameData) {
     passiveItemOf,
     passiveCopiesOf,
     passiveRankOf,
-    passiveProgressOf,
+    passiveUpgradeOf,
     passiveCapOf,
+    rankUpPassive,
     unlockedAbilities,
     synergyOf,
     // combat

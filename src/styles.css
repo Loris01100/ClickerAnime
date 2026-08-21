@@ -497,6 +497,20 @@ small {
   font-size: 0.7rem;
 }
 
+/* --- passive rank-up, paid in the origin arc's common item --- */
+.passive-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.rank-up {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- combat stats --- */
 .stat-grid {
   display: grid;

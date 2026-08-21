@@ -76,7 +76,7 @@ export default function RosterPanel(props: { game: GameStore }) {
             {(character) => {
               const progress = () => props.game.progressOf(character.id);
               const level = () => progress().level;
-              const passive = () => props.game.passiveProgressOf(character);
+              const passive = () => props.game.passiveUpgradeOf(character);
               const passiveItem = () => props.game.passiveItemOf(character);
               return (
                 <div class="member">
@@ -103,15 +103,29 @@ export default function RosterPanel(props: { game: GameStore }) {
                     <div class="bar-fill" style={{ width: `${pct(progress().into, progress().need)}%` }} />
                   </div>
                   <Show when={character.passive}>
-                    <small classList={{ muted: !passive().maxed, capped: passive().maxed }}>
-                      Passif {passive().rank}/{props.game.passiveCapOf(character)}
-                      {passive().maxed
-                        ? " · max"
-                        : ` · ${fmt(passive().into)}/${fmt(passive().need)} ${passiveItem()?.name ?? "—"}`}
-                    </small>
+                    <div class="passive-row">
+                      <small classList={{ muted: !passive().maxed, capped: passive().maxed }}>
+                        Passif {passive().rank}/{props.game.passiveCapOf(character)}
+                      </small>
+                      <Show
+                        when={!passive().maxed}
+                        fallback={
+                          <small class="capped">max</small>
+                        }
+                      >
+                        <button
+                          class="rank-up"
+                          disabled={!passive().affordable}
+                          title={`${passiveItem()?.name ?? "—"} : ${fmt(passive().copies)} en poche`}
+                          onClick={() => props.game.rankUpPassive(character)}
+                        >
+                          +1 · {fmt(passive().copies)}/{fmt(passive().cost)} {passiveItem()?.name ?? "—"}
+                        </button>
+                      </Show>
+                    </div>
                     <Show when={!passive().maxed}>
                       <div class="bar xp-bar" title={`${passiveItem()?.name ?? ""} — rang suivant`}>
-                        <div class="bar-fill" style={{ width: `${pct(passive().into, passive().need)}%` }} />
+                        <div class="bar-fill" style={{ width: `${pct(passive().copies, passive().cost)}%` }} />
                       </div>
                     </Show>
                   </Show>

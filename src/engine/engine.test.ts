@@ -12,9 +12,8 @@ import {
   levelGrowth,
   narratorClickPower,
   PASSIVE_LEVEL_CAP,
-  passiveItemsToReach,
-  passiveProgress,
-  passiveRank,
+  passiveRankCost,
+  passiveUpgrade,
   xpProgress,
   xpToReach,
 } from "./growth";
@@ -221,25 +220,20 @@ describe("character growth", () => {
 
   it("caps the passive at 10 for the main cast and 5 for the supporting one", () => {
     expect(PASSIVE_LEVEL_CAP).toEqual({ main: 10, secondary: 5 });
-    expect(passiveRank(1e9, "main")).toBe(10);
-    expect(passiveRank(1e9, "secondary")).toBe(5);
     expect(isPassiveMaxed(10, "main")).toBe(true);
     expect(isPassiveMaxed(5, "main")).toBe(false);
+    expect(isPassiveMaxed(5, "secondary")).toBe(true);
+    expect(passiveUpgrade(10, "main", 1e9)).toMatchObject({ maxed: true, cost: 0, affordable: false });
   });
 
-  it("ranks the passive up with copies of the origin item, and needs more each time", () => {
-    expect(passiveItemsToReach(0)).toBe(0);
-    expect(passiveRank(0, "main")).toBe(0);
-    expect(passiveRank(passiveItemsToReach(1), "main")).toBe(1);
-    expect(passiveRank(passiveItemsToReach(1) - 1, "main")).toBe(0);
-    expect(passiveItemsToReach(3) - passiveItemsToReach(2)).toBeGreaterThan(
-      passiveItemsToReach(2) - passiveItemsToReach(1)
-    );
-    const progress = passiveProgress(passiveItemsToReach(2) + 1, "main");
-    expect(progress.rank).toBe(2);
-    expect(progress.into).toBe(1);
-    expect(progress.need).toBe(passiveItemsToReach(3) - passiveItemsToReach(2));
-    expect(passiveProgress(1e9, "secondary").maxed).toBe(true);
+  it("charges more copies of the origin item for each successive rank", () => {
+    expect(passiveRankCost(0)).toBe(0);
+    expect(passiveRankCost(2)).toBeGreaterThan(passiveRankCost(1));
+    expect(passiveRankCost(10)).toBeGreaterThan(passiveRankCost(9));
+
+    const cost = passiveRankCost(3);
+    expect(passiveUpgrade(2, "main", cost)).toMatchObject({ cost, affordable: true, maxed: false });
+    expect(passiveUpgrade(2, "main", cost - 1).affordable).toBe(false);
   });
 
   it("keeps adding the same damage every level, with no cap", () => {
