@@ -269,19 +269,26 @@ joueurs, indisponibilité qui casse le fallback (`Sprite.tsx` suppose que l'artw
 existe, est disponible immédiatement via `import.meta.glob`), et hotlinking direct vers le CDN de
 MyAnimeList sans garantie de stabilité.
 
-**Recommandation : un script dev-time, pas un appel runtime.** Un script (`scripts/fetch-art.ts`
-ou équivalent, exécuté à la main, jamais dans le build ni au chargement du jeu) qui :
+**Recommandation : un script dev-time, pas un appel runtime.** `scripts/fetch-art.mjs`, exécuté à la
+main (`node scripts/fetch-art.mjs`), jamais dans le build ni au chargement du jeu, qui :
 
-1. prend la liste des `id`/`name` depuis `src/data/*.ts` (personnages, animes) ;
-2. interroge Jikan (`/characters?q=<name>`, `/anime?q=<name>`) pour trouver l'image correspondante ;
+1. prend un `MANIFEST` — une liste `{ id, query }` tenue à la main dans le script, pas dérivée
+   automatiquement de `src/data/*.ts` : un script Node ESM brut n'exécute pas du TypeScript typé
+   sans outillage supplémentaire, et la requête Jikan a de toute façon besoin du nom *canonique*
+   du personnage, qui peut différer du nom localisé des données du jeu (Jikan connaît « Sasuke
+   Uchiha », les données du jeu disent « Sasuke Uchiwa ») — une dérivation automatique par id
+   aurait donc raté la recherche la moitié du temps ;
+2. interroge Jikan (`/characters?q=<query>`) pour trouver l'image correspondante ;
 3. télécharge le fichier et l'enregistre sous `src/assets/sprites/<id>.<ext>` — exactement la
    convention déjà documentée dans `src/assets/sprites/README.md`, aucun changement de
-   `Sprite.tsx` nécessaire.
+   `Sprite.tsx` nécessaire ; un id qui a déjà un fichier est sauté, jamais écrasé automatiquement.
 
 Ça garde le jeu 100% autonome au runtime (le principe « pas de dépendance externe » du §4 tient
 aussi ici), et ça garde le contrôle humain sur quelle image est retenue pour quel id — un match
 automatique par nom peut se tromper de personnage (homonymes), une revue manuelle avant commit
-reste nécessaire.
+reste nécessaire. Jikan proxifie MyAnimeList et hérite de ses pannes : le script échoue net (pas de
+retry silencieux) si Jikan répond 504, ce qui arrive — à relancer plus tard plutôt qu'à contourner
+en revenant vers une source moins fiable.
 
 ### 6.3 Point d'attention légal
 
