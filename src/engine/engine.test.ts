@@ -29,6 +29,7 @@ import {
   xpToReach,
 } from "./growth";
 import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy } from "./types";
+import { layoutArcs, MAP_COLS } from "./mapLayout";
 
 function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobsToBoss = 3): Arc {
   return {
@@ -693,6 +694,60 @@ describe("store boot", () => {
     } finally {
       disposeRoot();
     }
+  });
+});
+
+describe("layoutArcs", () => {
+  const arcs = (count: number) =>
+    Array.from({ length: count }, (_, i) => makeArc(`arc-${i}`, "anime-a", i, []));
+
+  const cellOffset = (value: number, index: number, span: number) => value * span - index;
+
+  it("returns an empty layout for no arcs, without dividing by zero", () => {
+    expect(layoutArcs([])).toEqual({ nodes: [], cols: 1, rows: 1 });
+  });
+
+  it("places a single arc within its cell", () => {
+    const layout = layoutArcs(arcs(1));
+    expect(layout.cols).toBe(1);
+    expect(layout.rows).toBe(1);
+    expect(layout.nodes).toHaveLength(1);
+    expect(cellOffset(layout.nodes[0].x, layout.nodes[0].col, layout.cols)).toBeGreaterThanOrEqual(0.32);
+    expect(cellOffset(layout.nodes[0].x, layout.nodes[0].col, layout.cols)).toBeLessThanOrEqual(0.68);
+  });
+
+  it("snakes a Naruto-shaped 5-arc world across two rows", () => {
+    const layout = layoutArcs(arcs(5));
+    expect(layout.cols).toBe(MAP_COLS);
+    expect(layout.rows).toBe(2);
+    // index 4 starts row 1 (the reversed row), landing directly under index 3's column.
+    expect(layout.nodes[4].row).toBe(1);
+    expect(layout.nodes[4].col).toBe(layout.nodes[3].col);
+  });
+
+  it("fits a Shippūden-shaped 15-arc world with no overlapping cells", () => {
+    const layout = layoutArcs(arcs(15));
+    expect(layout.cols).toBe(MAP_COLS);
+    expect(layout.rows).toBe(4);
+    expect(layout.nodes.filter((n) => n.row === 3)).toHaveLength(3);
+
+    const cells = new Set(layout.nodes.map((n) => `${n.col},${n.row}`));
+    expect(cells.size).toBe(layout.nodes.length);
+
+    for (const node of layout.nodes) {
+      expect(cellOffset(node.x, node.col, layout.cols)).toBeGreaterThanOrEqual(0.32);
+      expect(cellOffset(node.x, node.col, layout.cols)).toBeLessThanOrEqual(0.68);
+      expect(cellOffset(node.y, node.row, layout.rows)).toBeGreaterThanOrEqual(0.32);
+      expect(cellOffset(node.y, node.row, layout.rows)).toBeLessThanOrEqual(0.68);
+    }
+  });
+
+  it("is deterministic and preserves arc order", () => {
+    const input = arcs(7);
+    const a = layoutArcs(input);
+    const b = layoutArcs(input);
+    expect(a).toEqual(b);
+    expect(a.nodes.map((n) => n.arc.id)).toEqual(input.map((arc) => arc.id));
   });
 });
 

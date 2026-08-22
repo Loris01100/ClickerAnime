@@ -3,17 +3,7 @@
  * boss has a stable little avatar until real artwork exists. Same id always yields the same sprite.
  */
 
-const FNV_PRIME = 16777619;
-const FNV_OFFSET = 2166136261;
-
-export function hashSeed(seed: string): number {
-  let hash = FNV_OFFSET;
-  for (let i = 0; i < seed.length; i++) {
-    hash ^= seed.charCodeAt(i);
-    hash = Math.imul(hash, FNV_PRIME);
-  }
-  return hash >>> 0;
-}
+import { hashSeed } from "../engine/hash";
 
 /** xorshift32 — good enough to scatter pixels, and dependency-free. */
 function nextState(state: number): number {

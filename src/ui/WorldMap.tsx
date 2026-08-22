@@ -1,10 +1,12 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import { layoutArcs, type MapNode } from "../engine/mapLayout";
+import { spriteHue } from "./pixel";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
-import { IconLock } from "./icons";
+import { IconLock, IconPin } from "./icons";
 
-/** The route map of one world: its arcs as nodes on a path, in order. */
+/** The route map of one world: its arcs on a generated snake path, with a marker on the active one. */
 export default function WorldMap(props: { game: GameStore }) {
   const [pinned, setPinned] = createSignal<string | null>(null);
 
@@ -13,6 +15,14 @@ export default function WorldMap(props: { game: GameStore }) {
     const unlocked = props.game.unlockedAnimes();
     const wanted = pinned() ?? props.game.activeArc()?.animeId;
     return unlocked.find((a) => a.id === wanted) ?? unlocked[0];
+  });
+
+  const layout = createMemo(() => layoutArcs(props.game.arcsOf(shown()?.id ?? "")));
+
+  const markerNode = createMemo<MapNode | null>(() => {
+    const active = props.game.activeArc();
+    if (!active || active.animeId !== shown()?.id) return null;
+    return layout().nodes.find((n) => n.arc.id === active.id) ?? null;
   });
 
   return (
@@ -40,38 +50,71 @@ export default function WorldMap(props: { game: GameStore }) {
             </div>
           </Show>
 
-          <div class="map">
-            <For each={props.game.arcsOf(anime().id)}>
-              {(arc, index) => {
-                const open = () => props.game.arcOpen(arc);
-                const cleared = () => props.game.arcCleared(arc);
-                const kills = () => Math.min(props.game.killsIn(arc), arc.mobsToBoss);
-                return (
-                  <>
-                    <Show when={index() > 0}>
-                      <div class="map-link" classList={{ done: open() }} />
-                    </Show>
+          <div class="map-canvas-wrap">
+            <div
+              class="map-canvas"
+              style={{
+                "aspect-ratio": `${layout().cols} / ${layout().rows}`,
+                "max-width": `calc(${layout().cols} * 9rem)`,
+                background: `radial-gradient(circle at 30% 20%, hsl(${spriteHue(anime().id)} 70% 55% / 0.15), transparent 70%), var(--panel-2)`,
+              }}
+            >
+              <svg class="map-links" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <For each={layout().nodes}>
+                  {(node, index) => {
+                    const prev = () => layout().nodes[index() - 1];
+                    return (
+                      <Show when={index() > 0}>
+                        <line
+                          class="map-link-line"
+                          classList={{ done: props.game.arcOpen(node.arc) }}
+                          x1={prev().x * 100}
+                          y1={prev().y * 100}
+                          x2={node.x * 100}
+                          y2={node.y * 100}
+                        />
+                      </Show>
+                    );
+                  }}
+                </For>
+              </svg>
+
+              <For each={layout().nodes}>
+                {(node) => {
+                  const open = () => props.game.arcOpen(node.arc);
+                  const cleared = () => props.game.arcCleared(node.arc);
+                  const kills = () => Math.min(props.game.killsIn(node.arc), node.arc.mobsToBoss);
+                  return (
                     <button
                       class="map-node"
                       classList={{
-                        active: props.game.activeArc()?.id === arc.id,
+                        active: props.game.activeArc()?.id === node.arc.id,
                         cleared: cleared(),
                         locked: !open(),
                       }}
+                      style={{ left: `${node.x * 100}%`, top: `${node.y * 100}%` }}
                       disabled={!open()}
-                      title={arc.name}
-                      onClick={() => props.game.setActiveArc(arc.id)}
+                      title={node.arc.name}
+                      onClick={() => props.game.setActiveArc(node.arc.id)}
                     >
                       <Show when={open()} fallback={<span class="map-lock"><IconLock /></span>}>
-                        <Sprite seed={arc.boss.id} px={4} dim={!open()} />
+                        <Sprite seed={node.arc.boss.id} px={4} dim={!open()} />
                       </Show>
-                      <span class="map-name">{arc.name}</span>
-                      <small class="muted">{cleared() ? "terminé" : `${kills()}/${arc.mobsToBoss}`}</small>
+                      <span class="map-name">{node.arc.name}</span>
+                      <small class="muted">{cleared() ? "terminé" : `${kills()}/${node.arc.mobsToBoss}`}</small>
                     </button>
-                  </>
-                );
-              }}
-            </For>
+                  );
+                }}
+              </For>
+
+              <Show when={markerNode()}>
+                {(node) => (
+                  <div class="map-marker" style={{ left: `${node().x * 100}%`, top: `${node().y * 100}%` }}>
+                    <IconPin />
+                  </div>
+                )}
+              </Show>
+            </div>
           </div>
         </section>
       )}
