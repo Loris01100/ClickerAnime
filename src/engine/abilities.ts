@@ -1,4 +1,4 @@
-import type { AbilityDefinition, Character, ComboDefinition } from "./types";
+import type { AbilityDefinition, Character, ComboDefinition, ModifierTarget } from "./types";
 
 export interface UnlockedAbility {
   ability: AbilityDefinition;
@@ -31,6 +31,24 @@ export function getUnlockedAbilities(
   }
 
   return result;
+}
+
+/**
+ * An ability's "type" (DPS boost, click boost, ...) isn't a stored field — it's just the set of
+ * stats its effects touch, the same `ModifierTarget`s `replaceModifiersByTarget` already keys off.
+ */
+export function abilityTargets(ability: AbilityDefinition): ModifierTarget[] {
+  return [...new Set(ability.effects.map((effect) => effect.target))];
+}
+
+/**
+ * True when two abilities touch at least one common stat. Activating one would cut the other's
+ * buff short on that stat (`replaceModifiersByTarget`), so they must share a cooldown too — otherwise
+ * the player could fire the second one for an effect it won't actually get to keep.
+ */
+export function abilitiesShareType(a: AbilityDefinition, b: AbilityDefinition): boolean {
+  const targets = new Set(abilityTargets(a));
+  return abilityTargets(b).some((target) => targets.has(target));
 }
 
 export function isAbilityReady(lastActivatedAt: number | undefined, cooldownMs: number, now: number): boolean {

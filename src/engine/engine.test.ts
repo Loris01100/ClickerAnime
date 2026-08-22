@@ -5,7 +5,7 @@ import { gameData } from "../data";
 import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
-import { getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { abilitiesShareType, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import {
   animeTier,
   arcsOfAnime,
@@ -467,6 +467,140 @@ describe("store boot", () => {
       game.activateAbility("ability-b");
       // 10 * (1 + 2.0) — ability-a's buff was replaced, not stacked (would be 40 otherwise)
       expect(game.teamDps()).toBeCloseTo(30);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("abilitiesShareType: true when effects touch a common stat, false otherwise", () => {
+    const dps: import("./types").AbilityDefinition = {
+      id: "dps",
+      name: "dps",
+      cooldownMs: 0,
+      durationMs: 0,
+      effects: [{ id: "e", target: "teamDps", kind: "percent", value: 1 }],
+    };
+    const dpsToo: import("./types").AbilityDefinition = {
+      id: "dpsToo",
+      name: "dpsToo",
+      cooldownMs: 0,
+      durationMs: 0,
+      effects: [{ id: "e", target: "teamDps", kind: "multiplier", value: 2 }],
+    };
+    const click: import("./types").AbilityDefinition = {
+      id: "click",
+      name: "click",
+      cooldownMs: 0,
+      durationMs: 0,
+      effects: [{ id: "e", target: "clickPower", kind: "percent", value: 1 }],
+    };
+    const both: import("./types").AbilityDefinition = {
+      id: "both",
+      name: "both",
+      cooldownMs: 0,
+      durationMs: 0,
+      effects: [
+        { id: "e1", target: "teamDps", kind: "percent", value: 1 },
+        { id: "e2", target: "clickPower", kind: "percent", value: 1 },
+      ],
+    };
+    expect(abilitiesShareType(dps, dpsToo)).toBe(true);
+    expect(abilitiesShareType(dps, click)).toBe(false);
+    expect(abilitiesShareType(both, dps)).toBe(true);
+    expect(abilitiesShareType(both, click)).toBe(true);
+  });
+
+  it("activating an ability also starts the cooldown of other abilities touching the same stat", () => {
+    const testData = {
+      animes: [],
+      arcs: [],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 10,
+          ability: {
+            id: "ability-a",
+            name: "A",
+            cooldownMs: 30_000,
+            durationMs: 10_000,
+            effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
+          },
+        },
+        {
+          id: "cb",
+          name: "B",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 0,
+          ability: {
+            id: "ability-b",
+            name: "B",
+            cooldownMs: 30_000,
+            durationMs: 10_000,
+            // same stat as ability-a: must go on cooldown too, even though never activated
+            effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
+          },
+        },
+        {
+          id: "cc",
+          name: "C",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 5,
+          baseDps: 0,
+          ability: {
+            id: "ability-c",
+            name: "C",
+            cooldownMs: 30_000,
+            durationMs: 10_000,
+            // different stat: must stay ready
+            effects: [{ id: "c-eff", target: "clickPower" as const, kind: "percent" as const, value: 1 }],
+          },
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const save = {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["ca", "cb", "cc"],
+      activeArcId: null,
+      prestigePoints: 0,
+      unlockedAnimeIds: [],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+    };
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      game.activateAbility("ability-a");
+      expect(game.abilityCooldownRemaining("ability-b")).toBeGreaterThan(0);
+      expect(game.abilityCooldownRemaining("ability-c")).toBe(0);
+      expect(game.activateAbility("ability-b")).toBe(false);
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;

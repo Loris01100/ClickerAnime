@@ -8,7 +8,7 @@ import {
   unlockAnime as unlockAnimeState,
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
-import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import {
   levelFromXp,
@@ -420,7 +420,14 @@ export function createGameStore(data: GameData) {
       expiresAt: nowMs + unlocked.ability.durationMs,
     }));
     setTemporaryModifiers((existing) => replaceModifiersByTarget(existing, mods));
-    setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
+    // Abilities that touch the same stat also start cooling down together: activating one would cut
+    // a same-stat buff short anyway, so leaving it "ready" would just invite a wasted activation.
+    const sameType = unlockedAbilities().filter((u) => abilitiesShareType(u.ability, unlocked.ability));
+    setAbilityLastUsed((used) => {
+      const next = { ...used };
+      for (const u of sameType) next[u.ability.id] = nowMs;
+      return next;
+    });
     return true;
   }
 
