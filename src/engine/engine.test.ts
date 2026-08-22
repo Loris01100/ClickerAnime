@@ -269,6 +269,15 @@ describe("character growth", () => {
     expect(passiveAt(main, 5)!.value).toBeGreaterThan(passiveAt(main, 1)!.value);
     expect(passiveAt(side, 5)!.value).toBeCloseTo(passiveAt(main, 5)!.value);
   });
+
+  it("drops the passive entirely outside the character's own anime, even when ranked", () => {
+    const foreignArc = makeArc("foreign-arc", "other-anime", 0, []);
+    const contributions = characterContributions(main, foreignArc, undefined, 0, 5);
+    expect(contributions.find((m) => m.kind === "percent")).toBeUndefined();
+    expect(contributions.find((m) => m.target === "clickPower")!.value).toBeCloseTo(
+      main.baseClickPower * defaultSynergyConfig.otherAnimeMalus
+    );
+  });
 });
 
 describe("xp and levels", () => {

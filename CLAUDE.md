@@ -157,9 +157,11 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
 ### Synergy
 
 `synergyMultiplier` is the core mechanic and the "characters weaken outside their world" rule. It
-scales both `clickPower` and `teamDps` contributions: a character is strong in their own arcs
-(`matchingArcMultiplier`), weaker in other arcs of their own anime (`sameAnimeMalus`), weakest in
-another anime's arc (`otherAnimeMalus`). Tuning `defaultSynergyConfig` is the main balance knob.
+scales both `clickPower` and `teamDps` contributions: a character deals full damage in their own arcs
+(`matchingArcMultiplier`, 1.0), weaker in other arcs of their own anime (`sameAnimeMalus`, 0.75),
+weakest in another anime's arc (`otherAnimeMalus`, 0.4). Tuning `defaultSynergyConfig` is the main
+balance knob. Outside their own anime entirely, `characterContributions` also drops the passive
+altogether (not just malused) — it's a story ability, it doesn't travel to another anime's arc.
 
 ### Persistence
 
