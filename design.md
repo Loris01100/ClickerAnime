@@ -293,7 +293,30 @@ décision produit — à trancher par l'utilisateur, pas par ce document.
 
 ---
 
-## 7. Conventions UI/UX à respecter pour toute nouvelle vue
+## 7. Outils MCP externes pour accélérer le design
+
+Deux serveurs MCP sont disponibles côté Claude Code (`.mcp.json`, scope projet) pour accélérer la
+production visuelle. Aucun des deux n'est un appel runtime du jeu — même principe que §6.2 : tout
+ce qu'ils produisent est revu, éventuellement retravaillé, puis committé comme fichier statique ou
+code écrit à la main. Ce sont des outils de session de dev, pas des dépendances du jeu.
+
+- **Higgsfield MCP** (`higgsfield`, https://mcp.higgsfield.ai, OAuth) — génération d'images/vidéos
+  custom. Vient nourrir le mécanisme de sprite déjà en place (§6) : plutôt que de dépendre
+  uniquement de Jikan/AniList pour les portraits officiels, Higgsfield permet de générer un
+  artwork original pour un id qui n'a pas d'équivalent exploitable (boss inventé, monde sans
+  licence, item unique) et de le déposer sous `src/assets/sprites/<id>.<ext>` — même convention,
+  `Sprite.tsx` ne change pas.
+- **21st.dev** — catalogue de composants React avec, pour chacun, un prompt prêt à coller dans un
+  agent IA pour le reconstruire. Utile comme **point de départ visuel/structurel** pour un panel
+  qu'on peine à esquisser (disposition d'un tableau, d'un tooltip, d'un toast — voir §4 « Notification
+  de recrutement »), jamais comme source à copier telle quelle : le projet n'a pas de dépendance UI
+  (`CLAUDE.md` : « un `src/styles.css` écrit à la main, pas de framework UI ») et toute vue générée
+  via un prompt 21st.dev doit être retraduite en `.panel`/`.panel-head`/tokens CSS du thème (§3, §7)
+  avant d'entrer dans le repo — pas de classes Tailwind ni de palette propre au composant copié.
+
+---
+
+## 8. Conventions UI/UX à respecter pour toute nouvelle vue
 
 - **Un panel = `.panel` + `.panel-head`.** Titre à gauche, info secondaire (compteur, select,
   chip) à droite. Ne jamais empiler un titre au-dessus d'un tableau sans cet en-tête.
