@@ -20,6 +20,8 @@ export interface ActiveModifier extends ModifierTemplate {
 export interface Anime {
   id: string;
   name: string;
+  /** flavour text shown in the world portal; absent only in test fixtures */
+  description?: string;
   /**
    * The anime that must be **cleared** before this one can be entered, free travel or paid shortcut
    * alike. This is how a universe keeps its order: Shippuden after part 1, Boruto after Shippuden.

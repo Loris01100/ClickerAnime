@@ -4,7 +4,17 @@ import type { GameData } from "../engine/gameState";
 const BOSS_TIMER_MS = 60_000;
 
 export const narutoData: GameData = {
-  animes: [{ id: "naruto", name: "Naruto", unlockCost: 3 }],
+  animes: [
+    {
+      id: "naruto",
+      name: "Naruto",
+      unlockCost: 3,
+      description:
+        "Un jeune ninja rejeté de Konoha rêve de devenir Hokage. Des missions de rang C au Pays des " +
+        "Vagues jusqu'à la course-poursuite pour ramener Sasuke, la première partie forme l'Équipe 7 " +
+        "et pose les bases de tout ce qui suit.",
+    },
+  ],
 
   arcs: [
     {

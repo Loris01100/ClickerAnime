@@ -1,21 +1,23 @@
-import { For, Show, createSignal } from "solid-js";
+import { Show, createSignal } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { gameData } from "./data";
 import ClickStage from "./ui/ClickStage";
 import Codex from "./ui/Codex";
 import WorldMap from "./ui/WorldMap";
+import WorldPortal from "./ui/WorldPortal";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
-import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
+import { IconGlobe, IconMonitor, IconMoon, IconSun } from "./ui/icons";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
 export default function App() {
   const game = createGameStore(gameData);
   const [codexOpen, setCodexOpen] = createSignal(false);
+  const [portalOpen, setPortalOpen] = createSignal(false);
 
   function hardReset() {
     if (confirm("Effacer toute la progression, prestige et mondes compris ?")) game.hardReset();
@@ -33,6 +35,11 @@ export default function App() {
           >
             <Dynamic component={THEME_ICON[theme()]} />
           </button>
+          <Show when={game.unlockedAnimes().length > 0}>
+            <button onClick={() => setPortalOpen(true)}>
+              <IconGlobe /> Mondes
+            </button>
+          </Show>
           <button onClick={() => setCodexOpen(true)}>Codex</button>
           <button onClick={() => game.save()}>Sauvegarder</button>
           <button onClick={hardReset}>Réinitialiser</button>
@@ -41,24 +48,7 @@ export default function App() {
 
       <Show
         when={game.unlockedAnimes().length > 0}
-        fallback={
-          <div class="picker">
-            <h2>Par quel anime voulez-vous commencer ?</h2>
-            <p class="muted">
-              Le premier monde est gratuit. Chaque monde terminé rend le suivant plus difficile.
-            </p>
-            <div class="picker-grid">
-              <For each={game.data.animes}>
-                {(anime) => (
-                  <button class="picker-card" onClick={() => game.travelTo(anime.id)}>
-                    <strong>{anime.name}</strong>
-                    <small class="muted">{game.arcsOf(anime.id).length} arcs</small>
-                  </button>
-                )}
-              </For>
-            </div>
-          </div>
-        }
+        fallback={<WorldPortal game={game} />}
       >
         <main class="game">
           <RosterPanel game={game} />
@@ -73,6 +63,10 @@ export default function App() {
 
       <Show when={codexOpen()}>
         <Codex game={game} onClose={() => setCodexOpen(false)} />
+      </Show>
+
+      <Show when={portalOpen()}>
+        <WorldPortal game={game} onClose={() => setPortalOpen(false)} />
       </Show>
     </>
   );

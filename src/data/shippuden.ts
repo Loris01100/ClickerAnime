@@ -5,7 +5,18 @@
 import type { GameData } from "../engine/gameState";
 
 export const shippudenData: GameData = {
-  animes: [{ id: "shippuden", name: "Naruto Shippūden", requiresAnimeId: "naruto", unlockCost: 8 }],
+  animes: [
+    {
+      id: "shippuden",
+      name: "Naruto Shippūden",
+      requiresAnimeId: "naruto",
+      unlockCost: 8,
+      description:
+        "Deux ans et demi plus tard, Naruto revient de son entraînement pour affronter l'Akatsuki. " +
+        "Le climax de la saga : 15 arcs, aucun visage de la partie 1 à recruter, uniquement de " +
+        "nouvelles têtes — et une difficulté qui explose.",
+    },
+  ],
 
   arcs: [
     {
