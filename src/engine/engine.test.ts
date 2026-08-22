@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore } from "./gameState";
 import { gameData } from "../data";
@@ -224,6 +224,11 @@ describe("combat", () => {
     expect(nextEnemy(arc, 3, [], true).id).not.toBe("a1-boss");
     expect(nextEnemy(arc, 99, ["c1"], true).id).toBe("mob");
   });
+
+  it("farms mobs instead of the boss once the player retreated from it", () => {
+    expect(nextEnemy(arc, 3, [], false, true).id).not.toBe("a1-boss");
+    expect(nextEnemy(arc, 3, [], false, false).id).toBe("a1-boss");
+  });
 });
 
 describe("character growth", () => {
@@ -359,6 +364,53 @@ describe("store boot", () => {
       expect(game.passiveUpgradeOf(kakashi).cost).toBeGreaterThan(0);
     } finally {
       (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("never blocks on a boss: a timeout falls back to farming, until the player rematches it", () => {
+    const testData = {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 1,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1_000_000, reward: 100, timerMs: 1_000 },
+        },
+      ],
+      characters: [],
+      combos: [],
+      items: [],
+    };
+    const arc = testData.arcs[0];
+
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      game.travelTo("ta");
+      game.click(); // kills the one mob standing before the boss
+      expect(game.enemy()?.id).toBe("ta-boss");
+
+      // The boss vastly outlives the player's damage: let its timer run out.
+      vi.advanceTimersByTime(1_200);
+      expect(game.hasRetreatedFromBoss(arc)).toBe(true);
+      expect(game.enemy()?.id).toBe("ta-mob");
+      expect(game.bossChallengeable(arc)).toBe(true);
+
+      game.challengeBoss();
+      expect(game.hasRetreatedFromBoss(arc)).toBe(false);
+      expect(game.enemy()?.id).toBe("ta-boss");
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
     }
   });
 });

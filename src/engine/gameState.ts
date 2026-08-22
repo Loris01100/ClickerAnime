@@ -93,6 +93,9 @@ export function createGameStore(data: GameData) {
   const [enemyMaxHp, setEnemyMaxHp] = createSignal(0);
   const [timerDeadline, setTimerDeadline] = createSignal<number | null>(null);
   const [lastTimeout, setLastTimeout] = createSignal(0);
+  // Arcs whose boss timed out on the player: farming resumes instead of respawning the same boss,
+  // so the player is never stuck. Also transient — a reload forgets it, like the rest of combat.
+  const [bossRetreatArcIds, setBossRetreatArcIds] = createSignal<string[]>([]);
 
   const activeArc = createMemo<Arc | null>(() => data.arcs.find((a) => a.id === activeArcId()) ?? null);
 
@@ -218,6 +221,9 @@ export function createGameStore(data: GameData) {
     return arc ? difficultyOf(arc.animeId) : 1;
   };
 
+  /** True once the player has timed out against this arc's boss and not yet asked for a rematch. */
+  const hasRetreatedFromBoss = (arc: Arc) => bossRetreatArcIds().includes(arc.id);
+
   /** Puts the next enemy of the active arc in front of the player, at full hp. */
   function spawnNext() {
     const arc = activeArc();
@@ -225,7 +231,7 @@ export function createGameStore(data: GameData) {
       setEnemy(null);
       return;
     }
-    const next = nextEnemy(arc, killsIn(arc), ownedCharacterIds(), arcCleared(arc));
+    const next = nextEnemy(arc, killsIn(arc), ownedCharacterIds(), arcCleared(arc), hasRetreatedFromBoss(arc));
     const hp = enemyHp(next, currentDifficulty());
     setEnemy(next);
     setEnemyMaxHp(hp);
@@ -251,6 +257,7 @@ export function createGameStore(data: GameData) {
 
     if (target.id === arc.boss.id) {
       if (!clearedArcIds().includes(arc.id)) setClearedArcIds((ids) => [...ids, arc.id]);
+      setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
     } else {
       setArcKills((k) => ({ ...k, [arc.id]: (k[arc.id] ?? 0) + 1 }));
     }
@@ -284,10 +291,19 @@ export function createGameStore(data: GameData) {
     return dealDamage(clickPower());
   }
 
-  /** A boss that outlasts its timer comes back at full hp — no other penalty, enemies never hit back. */
+  /**
+   * A boss that outlasts its timer doesn't just respawn at full hp: the fight drops back to farming
+   * the arc's regular mobs, so a player who isn't strong enough yet is never stuck repeating a boss
+   * they can't beat. They can ask for a rematch whenever they want via `challengeBoss`.
+   */
   function checkTimer(nowMs: number) {
     const deadline = timerDeadline();
     if (deadline === null || nowMs < deadline) return;
+    const arc = activeArc();
+    const target = enemy();
+    if (arc && target && target.id === arc.boss.id) {
+      setBossRetreatArcIds((ids) => (ids.includes(arc.id) ? ids : [...ids, arc.id]));
+    }
     setLastTimeout(nowMs);
     spawnNext();
   }
@@ -342,6 +358,18 @@ export function createGameStore(data: GameData) {
     if (!arc || !prestige().unlockedAnimeIds.includes(arc.animeId)) return false;
     if (!arcOpen(arc)) return false;
     setActiveArcId(arcId);
+    spawnNext();
+    return true;
+  }
+
+  /** True once a rematch against this arc's boss is on offer: the player retreated from it before. */
+  const bossChallengeable = (arc: Arc) => !arcCleared(arc) && hasRetreatedFromBoss(arc);
+
+  /** Deliberate rematch against the active arc's boss, whenever the player feels ready for it. */
+  function challengeBoss(): boolean {
+    const arc = activeArc();
+    if (!arc || !bossChallengeable(arc)) return false;
+    setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
     spawnNext();
     return true;
   }
@@ -417,6 +445,7 @@ export function createGameStore(data: GameData) {
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
+    setBossRetreatArcIds([]);
     spawnNext();
   }
 
@@ -453,6 +482,7 @@ export function createGameStore(data: GameData) {
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
+    setBossRetreatArcIds([]);
     setEnemy(null);
   }
 
@@ -505,6 +535,9 @@ export function createGameStore(data: GameData) {
     enemyMaxHp,
     timerRemaining,
     lastTimeout,
+    hasRetreatedFromBoss,
+    bossChallengeable,
+    challengeBoss,
     // world progression
     animeAvailable,
     animeBlockedBy,

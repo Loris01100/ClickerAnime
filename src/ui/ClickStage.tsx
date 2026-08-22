@@ -52,6 +52,10 @@ export default function ClickStage(props: { game: GameStore }) {
     const current = arc();
     return current ? props.game.arcCleared(current) : false;
   };
+  const bossChallengeable = () => {
+    const current = arc();
+    return current ? props.game.bossChallengeable(current) : false;
+  };
 
   return (
     <section class="panel">
@@ -114,6 +118,12 @@ export default function ClickStage(props: { game: GameStore }) {
             </Show>
           </>
         )}
+      </Show>
+
+      <Show when={bossChallengeable()}>
+        <button class="primary boss-rematch" onClick={() => props.game.challengeBoss()}>
+          <IconCrown class="gold" /> Retenter le boss
+        </button>
       </Show>
 
       <div class="stat-grid">

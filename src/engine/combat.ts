@@ -17,10 +17,19 @@ export function encounterPool(arc: Arc, recruitedIds: string[]): Enemy[] {
 
 /**
  * The boss shows up once enough mobs are down, and only while the arc is unbeaten — a cleared arc
- * goes back to cycling mobs forever so it stays farmable.
+ * goes back to cycling mobs forever so it stays farmable. Timing out against the boss once sets
+ * `retreatedFromBoss`: the fight falls back to the regular mob pool instead of respawning the same
+ * boss forever, so a player who is not yet strong enough is never stuck. The boss only shows up
+ * again once the player deliberately re-challenges it, via `gameState.challengeBoss`.
  */
-export function nextEnemy(arc: Arc, kills: number, recruitedIds: string[], cleared: boolean): Enemy {
-  if (!cleared && kills >= arc.mobsToBoss) return arc.boss;
+export function nextEnemy(
+  arc: Arc,
+  kills: number,
+  recruitedIds: string[],
+  cleared: boolean,
+  retreatedFromBoss = false
+): Enemy {
+  if (!cleared && !retreatedFromBoss && kills >= arc.mobsToBoss) return arc.boss;
   const pool = encounterPool(arc, recruitedIds);
   return pool.length > 0 ? pool[kills % pool.length] : arc.boss;
 }
