@@ -15,6 +15,7 @@ import {
   narratorClickPower,
   passiveUpgrade,
   PASSIVE_LEVEL_CAP,
+  XP_PER_KILL_REWARD,
   xpProgress,
 } from "./growth";
 import {
@@ -251,8 +252,9 @@ export function createGameStore(data: GameData) {
       setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
     }
 
-    // xp equals the currency reward: one number to balance, and both scale with the world.
-    grantXp(reward);
+    // xp is a multiple of the currency reward — see XP_PER_KILL_REWARD — so it scales with the
+    // world just like currency does, only harder.
+    grantXp(reward * XP_PER_KILL_REWARD);
     maybeDropItem(target);
 
     if (target.id === arc.boss.id) {

@@ -24,6 +24,7 @@ import {
   PASSIVE_LEVEL_CAP,
   passiveRankCost,
   passiveUpgrade,
+  XP_PER_KILL_REWARD,
   xpProgress,
   xpToReach,
 } from "./growth";
@@ -319,6 +320,14 @@ describe("xp and levels", () => {
     expect(progress.level).toBe(3);
     expect(progress.into).toBe(10);
     expect(progress.need).toBe(xpToReach(4) - xpToReach(3));
+  });
+
+  it("grants xp well above the raw reward, so leveling never stalls under the uncapped curve", () => {
+    expect(XP_PER_KILL_REWARD).toBeGreaterThan(1);
+    // A modest run — 50 kills worth 100 reward each — should still land a good many levels in,
+    // not a handful: a level with no cap has to keep meaning something on its own.
+    const xpFromAModestRun = 50 * 100 * XP_PER_KILL_REWARD;
+    expect(levelFromXp(xpFromAModestRun)).toBeGreaterThanOrEqual(20);
   });
 });
 

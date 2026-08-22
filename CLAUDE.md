@@ -84,10 +84,13 @@ Two knobs, deliberately decoupled — this is the main/secondary distinction:
 - **The passive has nothing to do with levels**: it is ranked up with items, see below.
   `PASSIVE_LEVEL_CAP` is the rank cap — 10 for `rarity: "main"`, 5 for `"secondary"`.
 
-Levels come from **xp earned in combat**: every kill grants the whole team xp equal to the kill's
-currency reward (one number to balance, and it already scales with the world). Only the xp total is
-stored — `levelOf` derives the level from it via `levelFromXp`, so level and xp cannot drift apart.
-Xp dies with the team on `prestigeReset`.
+Levels come from **xp earned in combat**: every kill grants the whole team xp equal to `XP_PER_KILL_REWARD`
+times the kill's currency reward, so it scales with the world the same way currency does. The
+multiplier sits well above 1x on purpose — level has no cap, and a flat 1:1 income gets swallowed by
+the xp curve (`XP_BASE`/`XP_GROWTH` in `growth.ts`) after a few dozen levels, stalling leveling out
+and leaving a character's level worth nothing next to their ability. Only the xp total is stored —
+`levelOf` derives the level from it via `levelFromXp`, so level and xp cannot drift apart. Xp dies
+with the team on `prestigeReset`.
 
 ### The narrator's click
 

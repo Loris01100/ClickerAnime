@@ -47,8 +47,16 @@ export function levelGrowth(level: number): number {
 }
 
 /** ponytail: one global xp curve for every character, split per rarity if pacing needs it. */
-const XP_BASE = 50;
-const XP_GROWTH = 1.35;
+const XP_BASE = 25;
+const XP_GROWTH = 1.15;
+
+/**
+ * Kills grant this many times their currency reward as team xp. Pushed well above 1x because level
+ * has no cap: a flat 1:1 income gets swallowed by the curve above after a few dozen levels and
+ * leveling stalls out, leaving a character's level contributing nothing next to their ability. This
+ * keeps levels climbing meaningfully throughout a run instead.
+ */
+export const XP_PER_KILL_REWARD = 3;
 
 /** Total xp a character must have accumulated to stand at `level`. */
 export function xpToReach(level: number): number {
