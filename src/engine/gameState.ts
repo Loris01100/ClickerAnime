@@ -1,5 +1,5 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
-import { computeEffectiveStat, pruneExpired } from "./modifiers";
+import { computeEffectiveStat, pruneExpired, replaceModifiersByTarget } from "./modifiers";
 import {
   applyPrestige,
   calculatePrestigeGain,
@@ -417,7 +417,7 @@ export function createGameStore(data: GameData) {
       sourceId: unlocked.ability.id,
       expiresAt: nowMs + unlocked.ability.durationMs,
     }));
-    setTemporaryModifiers((existing) => [...existing, ...mods]);
+    setTemporaryModifiers((existing) => replaceModifiersByTarget(existing, mods));
     setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
     return true;
   }

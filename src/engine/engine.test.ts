@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore } from "./gameState";
 import { gameData } from "../data";
-import { computeEffectiveStat } from "./modifiers";
+import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { getUnlockedAbilities, isAbilityReady } from "./abilities";
@@ -65,6 +65,23 @@ describe("computeEffectiveStat", () => {
       { id: "m1", sourceId: "s1", target: "teamDps", kind: "flat", value: 5 },
     ];
     expect(computeEffectiveStat(0, "clickPower", modifiers, 0)).toBe(0);
+  });
+});
+
+describe("replaceModifiersByTarget", () => {
+  it("cuts short whatever else was boosting the same stat instead of stacking with it", () => {
+    const existing: ActiveModifier[] = [
+      { id: "a", sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 9_000 },
+      { id: "b", sourceId: "ability-a", target: "clickPower", kind: "percent", value: 0.5, expiresAt: 9_000 },
+    ];
+    const incoming: ActiveModifier[] = [
+      { id: "c", sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 20_000 },
+    ];
+    const result = replaceModifiersByTarget(existing, incoming);
+    // the old teamDps buff is gone, the unrelated clickPower one survives, the new one is in
+    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "teamDps")).toBeUndefined();
+    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "clickPower")).toBeDefined();
+    expect(result.find((m) => m.sourceId === "ability-b")).toBeDefined();
   });
 });
 
@@ -363,6 +380,86 @@ describe("store boot", () => {
       expect(game.passiveItemOf(kakashi)?.id).toBe("item-shuriken");
       expect(game.passiveUpgradeOf(kakashi).cost).toBeGreaterThan(0);
     } finally {
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("does not stack two abilities boosting the same stat: activating one replaces the other", () => {
+    const testData = {
+      animes: [],
+      arcs: [],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 10,
+          ability: {
+            id: "ability-a",
+            name: "A",
+            cooldownMs: 0,
+            durationMs: 10_000,
+            effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
+          },
+        },
+        {
+          id: "cb",
+          name: "B",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 0,
+          ability: {
+            id: "ability-b",
+            name: "B",
+            cooldownMs: 0,
+            durationMs: 10_000,
+            effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
+          },
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const save = {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["ca", "cb"],
+      activeArcId: null,
+      prestigePoints: 0,
+      unlockedAnimeIds: [],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+    };
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      expect(game.teamDps()).toBe(10); // base dps only, no ability active yet
+      game.activateAbility("ability-a");
+      expect(game.teamDps()).toBeCloseTo(20); // 10 * (1 + 1.0)
+      game.activateAbility("ability-b");
+      // 10 * (1 + 2.0) — ability-a's buff was replaced, not stacked (would be 40 otherwise)
+      expect(game.teamDps()).toBeCloseTo(30);
+    } finally {
+      disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
     }
   });

@@ -29,3 +29,16 @@ export function computeEffectiveStat(
 export function pruneExpired(modifiers: ActiveModifier[], now: number): ActiveModifier[] {
   return modifiers.filter((m) => m.expiresAt === undefined || m.expiresAt > now);
 }
+
+/**
+ * Abilities of the same type don't stack: activating one cuts short whatever else was already
+ * boosting the same stat, rather than adding on top of it. A temporary limit — the planned prestige
+ * skill tree is what is meant to lift it.
+ */
+export function replaceModifiersByTarget(
+  existing: ActiveModifier[],
+  incoming: ActiveModifier[]
+): ActiveModifier[] {
+  const targets = new Set(incoming.map((m) => m.target));
+  return [...existing.filter((m) => !targets.has(m.target)), ...incoming];
+}
