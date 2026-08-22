@@ -653,6 +653,47 @@ describe("store boot", () => {
       vi.useRealTimers();
     }
   });
+
+  it("clearing an arc for the first time grants a flat prestige point, but only once", () => {
+    const testData = {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 0,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1, reward: 100 },
+        },
+      ],
+      characters: [],
+      combos: [],
+      items: [],
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      game.travelTo("ta");
+      expect(game.enemy()?.id).toBe("ta-boss");
+      expect(game.prestige().prestigePoints).toBe(0);
+
+      game.click(); // kills the boss, clearing the arc
+      expect(game.prestige().prestigePoints).toBe(1);
+
+      // arc is cleared now, so it farms mobs forever — no repeat payout
+      game.click();
+      expect(game.prestige().prestigePoints).toBe(1);
+    } finally {
+      disposeRoot();
+    }
+  });
 });
 
 describe("game data", () => {

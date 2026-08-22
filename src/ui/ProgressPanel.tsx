@@ -1,12 +1,14 @@
-import { For, Show } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { fmt } from "./format";
 import { IconLock } from "./icons";
+import PrestigeTree from "./PrestigeTree";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
 /** Right column: the arc list per world, travel, and the prestige track. */
 export default function ProgressPanel(props: { game: GameStore }) {
+  const [treeOpen, setTreeOpen] = createSignal(false);
   // Un monde dont le préalable n'est pas rempli ne doit même pas apparaître dans le choix.
   const otherAnimes = () =>
     props.game.data.animes.filter(
@@ -111,12 +113,17 @@ export default function ProgressPanel(props: { game: GameStore }) {
           >
             Prestige (+{props.game.pendingPrestigeGain()})
           </button>
+          <button onClick={() => setTreeOpen(true)}>Arbre de prestige</button>
           <p class="muted small">
             Réinitialise tout : monnaie, équipe, niveaux, mondes, arcs terminés, objets et passifs.
             Seuls les points de prestige sont conservés.
           </p>
         </div>
       </section>
+
+      <Show when={treeOpen()}>
+        <PrestigeTree game={props.game} onClose={() => setTreeOpen(false)} />
+      </Show>
     </div>
   );
 }

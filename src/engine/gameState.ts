@@ -5,6 +5,7 @@ import {
   calculatePrestigeGain,
   canUnlockAnime,
   createInitialPrestigeState,
+  PRESTIGE_PER_ARC_CLEAR,
   unlockAnime as unlockAnimeState,
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
@@ -258,7 +259,10 @@ export function createGameStore(data: GameData) {
     maybeDropItem(target);
 
     if (target.id === arc.boss.id) {
-      if (!clearedArcIds().includes(arc.id)) setClearedArcIds((ids) => [...ids, arc.id]);
+      if (!clearedArcIds().includes(arc.id)) {
+        setClearedArcIds((ids) => [...ids, arc.id]);
+        setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + PRESTIGE_PER_ARC_CLEAR }));
+      }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
     } else {
       setArcKills((k) => ({ ...k, [arc.id]: (k[arc.id] ?? 0) + 1 }));

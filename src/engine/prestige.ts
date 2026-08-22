@@ -14,6 +14,13 @@ export function calculatePrestigeGain(lifetimeEarned: number, scale = 1_000_000)
   return Math.floor(Math.sqrt(lifetimeEarned / scale));
 }
 
+/**
+ * Flat reward for clearing an arc for the first time this run. Unlike `calculatePrestigeGain`
+ * (banked only on `prestigeReset`), this trickles in mid-run so the tree stays fed by progress
+ * itself, not just by resetting.
+ */
+export const PRESTIGE_PER_ARC_CLEAR = 1;
+
 export function canUnlockAnime(state: PrestigeState, animeId: string, cost: number): boolean {
   return !state.unlockedAnimeIds.includes(animeId) && state.prestigePoints >= cost;
 }
