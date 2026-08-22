@@ -336,3 +336,26 @@ code écrit à la main. Ce sont des outils de session de dev, pas des dépendanc
 - **Toute animation respecte `prefers-reduced-motion`.**
 - **Le texte visible est en français**, y compris les nouveaux tooltips/labels de l'arbre de
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
+
+---
+
+## 9. Écran Succès et export/import de save
+
+Deux ajouts récents, tous deux volontairement sans nouveau vocabulaire visuel — la preuve que la
+densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent même pour un système inédit.
+
+- **`AchievementsPanel.tsx` réutilise le patron de `Codex.tsx` à l'identique** : `.overlay` +
+  `.modal`, contenu dans `.codex-detail.scroll` (pas de nouvelle classe de conteneur scrollable),
+  chaque catégorie un `.codex-block` (titre + séparateur), chaque palier une `.codex-row` — le même
+  vocabulaire que les rangs de passif du Codex. La barre de progression vers le prochain palier est
+  `.bar.xp-bar`, la même barre fine déjà utilisée pour l'xp des personnages. Aucune couleur, classe
+  ou animation n'a été ajoutée pour cet écran ; c'est le test du §2 appliqué à un système au lieu
+  d'un monde : si l'écran a besoin d'inventer sa propre DA, c'est que la réutilisation a été
+  abandonnée trop tôt.
+- **Le bouton `Succès` de la topbar** utilise `IconTrophy` (déjà dans `icons.tsx`, jusque-là
+  inutilisé) — même gabarit que les boutons `Codex`/`Mondes` voisins, aucun style de bouton dédié.
+- **Exporter/Importer** s'ajoutent à côté de `Sauvegarder`/`Réinitialiser` dans la topbar, mêmes
+  boutons texte sans icône ni mise en avant particulière — l'export d'une sauvegarde n'est pas une
+  action plus "importante" visuellement qu'un simple clic sur Sauvegarder, seulement plus rare.
+  L'input de fichier caché derrière `Importer` n'a pas de style propre (`display: none`), le
+  `<button>` visible est ce qui capte le clic.

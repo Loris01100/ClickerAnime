@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore } from "./gameState";
 import { gameData } from "../data";
+import {
+  ACHIEVEMENT_CATEGORIES,
+  achievementContributions,
+  achievementNextThreshold,
+  achievementTierBonus,
+  achievementTiersCompleted,
+} from "./achievements";
 import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
@@ -378,6 +385,41 @@ describe("items", () => {
     expect(rollsDrop(mob, 0.05)).toBe(true);
     expect(rollsDrop(mob, 0.5)).toBe(false);
     expect(rollsDrop(barren, 0)).toBe(false);
+  });
+});
+
+describe("achievements", () => {
+  it("has strictly increasing tiers in every category", () => {
+    for (const category of ACHIEVEMENT_CATEGORIES) {
+      for (let i = 1; i < category.tiers.length; i++) {
+        expect(category.tiers[i]).toBeGreaterThan(category.tiers[i - 1]);
+      }
+    }
+  });
+
+  it("counts completed tiers at, but not before, their threshold", () => {
+    const category = ACHIEVEMENT_CATEGORIES[0];
+    const [first, second] = category.tiers;
+    expect(achievementTiersCompleted(category, first - 1)).toBe(0);
+    expect(achievementTiersCompleted(category, first)).toBe(1);
+    expect(achievementTiersCompleted(category, second)).toBe(2);
+  });
+
+  it("reports the next threshold, and null once every tier is done", () => {
+    const category = ACHIEVEMENT_CATEGORIES[0];
+    expect(achievementNextThreshold(category, 0)).toBe(category.tiers[0]);
+    const maxed = category.tiers[category.tiers.length - 1];
+    expect(achievementNextThreshold(category, maxed)).toBe(null);
+  });
+
+  it("grows the bonus with the tier, and only emits modifiers for completed tiers", () => {
+    expect(achievementTierBonus(1)).toBeGreaterThan(achievementTierBonus(0));
+
+    const oneTierIn = achievementContributions({ [ACHIEVEMENT_CATEGORIES[0].id]: ACHIEVEMENT_CATEGORIES[0].tiers[0] });
+    expect(oneTierIn).toHaveLength(1);
+    expect(oneTierIn[0]).toMatchObject({ target: "clickPower", kind: "percent" });
+
+    expect(achievementContributions({})).toHaveLength(0);
   });
 });
 

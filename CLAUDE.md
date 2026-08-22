@@ -198,22 +198,48 @@ bonus and (once owned) whether it has fired yet, independent of whether the char
 
 ### Persistence
 
-The save is a flat `SaveFile` in `localStorage` under a versioned key. `readSave` shape-checks it and
-falls back to a fresh run rather than throwing, so an old save can never brick the boot. Bump the key
-version when the shape changes. There is no offline-progress catch-up.
+The save is a flat `SaveFile` in `localStorage` under a versioned key. `readSave` shape-checks it
+(via `isValidSave`) and falls back to a fresh run rather than throwing, so an old save can never
+brick the boot. Bump the key version when the shape *breaks* — an old field renamed or retyped, not a
+new optional field, which `?? {}`/`?? []` defaults already absorb without a bump; bumping wipes every
+existing player's save (a new key means the old one is never read again), so treat it as a last
+resort. `gameState`'s `buildSaveFile` is the one place the on-disk shape is assembled, shared by
+`save`, `exportSave` and `importSave` so they can never drift apart. `exportSave` base64-encodes the
+same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.txt` download);
+`importSave` decodes and shape-checks it exactly like `readSave`, then writes straight to
+`localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
+a setter per field. There is no offline-progress catch-up.
 
 ### Prestige
 
-`prestigeReset()` wipes everything but the prestige points: currency, roster, xp, items, passive
-ranks, kills, cleared arcs and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale))`,
-zero below `scale`. Points are only spent on `unlockAnime`, the paid early entry, which now has to be
-re-bought each run — the planned global skill tree is what they are meant to feed.
+`prestigeReset()` wipes everything but the prestige points and the achievement counts (see below):
+currency, roster, xp, items, passive ranks, kills, cleared arcs and the worlds entered. Gain is
+`floor(sqrt(lifetimeEarned / scale))`, zero below `scale`. Points are only spent on `unlockAnime`, the
+paid early entry, which now has to be re-bought each run — the planned global skill tree is what they
+are meant to feed.
 
 ### Abilities
 
 Unlocked two ways, both computed from the owned set in `getUnlockedAbilities`: a single character
 that grants one, or owning *every* character a `ComboDefinition` requires. Cooldowns are tracked as
 last-used timestamps in a record, not as counters.
+
+### Achievements (`achievements.ts`)
+
+Five countable actions — mobs killed, bosses killed, characters recruited, common items collected,
+abilities activated — each with its own ladder of tiers (`ACHIEVEMENT_CATEGORIES`). `gameState` keeps
+one lifetime counter per category (`achievementCounts`, bumped by `bumpAchievement` at the point of
+the event: `defeat` for kills and recruits, `maybeDropItem` for commons only — uniques don't count,
+`activateAbility` for activations). Counts only ever go up, even when the thing counted can later be
+spent (a common item collected still counts once it's spent ranking up a passive), because the
+achievement is about the action having happened, not a stock still held.
+
+Each completed tier folds into `allModifiers` as a permanent `clickPower` percent bonus
+(`achievementTierBonus`, geometric growth — early tiers are a taste, late ones matter), through
+`achievementContributions` exactly like any other modifier source. Unlike almost everything else,
+achievement counts are **not** wiped by `prestigeReset` — they are meta-progression in the same spirit
+as prestige points, meant to keep paying off across runs. Only `hardReset`, the full-wipe button,
+clears them.
 
 ## Content
 

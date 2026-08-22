@@ -1,4 +1,5 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
+import { achievementContributions } from "./achievements";
 import { computeEffectiveStat, pruneExpired, replaceModifiersByTarget } from "./modifiers";
 import {
   applyPrestige,
@@ -55,15 +56,22 @@ interface SaveFile {
   itemCounts: Record<string, number>;
   passiveRanks: Record<string, number>;
   evolvedCharacterIds: string[];
+  /** absent on a save from before achievements existed; every reader defaults it to {} */
+  achievementCounts?: Record<string, number>;
+}
+
+// A save from another build must never break the boot — fall back to a fresh run instead.
+function isValidSave(value: unknown): value is SaveFile {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<SaveFile>;
+  return typeof candidate.currency === "number" && Array.isArray(candidate.ownedCharacterIds);
 }
 
 function readSave(): SaveFile | null {
   if (typeof localStorage === "undefined") return null;
   try {
     const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null");
-    // A save from another build must never break the boot — fall back to a fresh run instead.
-    if (!parsed || typeof parsed.currency !== "number" || !Array.isArray(parsed.ownedCharacterIds)) return null;
-    return parsed as SaveFile;
+    return isValidSave(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -83,6 +91,11 @@ export function createGameStore(data: GameData) {
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
   const [evolvedCharacterIds, setEvolvedCharacterIds] = createSignal<string[]>(saved?.evolvedCharacterIds ?? []);
+  // Lifetime totals for the achievement ladders (see achievements.ts) — never decrease and, unlike
+  // the rest of a run, survive prestigeReset; only hardReset wipes them.
+  const [achievementCounts, setAchievementCounts] = createSignal<Record<string, number>>(
+    saved?.achievementCounts ?? {}
+  );
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -122,12 +135,21 @@ export function createGameStore(data: GameData) {
 
   const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
 
+  /** Bumps one achievement ladder; the tier(s) it crosses start contributing on the next `allModifiers` read. */
+  function bumpAchievement(categoryId: string, amount = 1) {
+    setAchievementCounts((counts) => ({ ...counts, [categoryId]: (counts[categoryId] ?? 0) + amount }));
+  }
+
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const arc = activeArc();
     const fromCharacters = ownedCharacters().flatMap((c) =>
       characterContributions(c, arc, defaultSynergyConfig, levelOf(c.id), passiveRankOf(c), isEvolved(c))
     );
-    return [...fromCharacters, ...pruneExpired(temporaryModifiers(), now())];
+    return [
+      ...fromCharacters,
+      ...achievementContributions(achievementCounts()),
+      ...pruneExpired(temporaryModifiers(), now()),
+    ];
   });
 
   /** What one narrator click is worth before any modifier: just the allies standing at their side. */
@@ -272,6 +294,7 @@ export function createGameStore(data: GameData) {
 
     if (target.characterId && !ownedCharacterIds().includes(target.characterId)) {
       setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
+      bumpAchievement("charactersRecruited");
     }
 
     // xp is a multiple of the currency reward — see XP_PER_KILL_REWARD — so it scales with the
@@ -285,8 +308,10 @@ export function createGameStore(data: GameData) {
         setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + PRESTIGE_PER_ARC_CLEAR }));
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
+      bumpAchievement("bossesKilled");
     } else {
       setArcKills((k) => ({ ...k, [arc.id]: (k[arc.id] ?? 0) + 1 }));
+      bumpAchievement("mobsKilled");
     }
 
     spawnNext();
@@ -299,6 +324,9 @@ export function createGameStore(data: GameData) {
     if (!item) return;
     if (item.kind === "unique" && countOf(item.id) > 0) return;
     setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) + 1 }));
+    // Counted on pickup, not derived from the stack still held — rankUpPassive spends commons back
+    // down, but the achievement is about how many were ever found.
+    if (item.kind === "common") bumpAchievement("commonItemsCollected");
   }
 
   function dealDamage(amount: number) {
@@ -453,6 +481,7 @@ export function createGameStore(data: GameData) {
       for (const u of sameType) next[u.ability.id] = nowMs;
       return next;
     });
+    bumpAchievement("abilitiesUsed");
     return true;
   }
 
@@ -484,9 +513,8 @@ export function createGameStore(data: GameData) {
     spawnNext();
   }
 
-  function save() {
-    if (typeof localStorage === "undefined") return;
-    const file: SaveFile = {
+  function buildSaveFile(): SaveFile {
+    return {
       currency: currency(),
       lifetimeEarned: lifetimeEarned(),
       ownedCharacterIds: ownedCharacterIds(),
@@ -499,8 +527,34 @@ export function createGameStore(data: GameData) {
       itemCounts: itemCounts(),
       passiveRanks: passiveRanks(),
       evolvedCharacterIds: evolvedCharacterIds(),
+      achievementCounts: achievementCounts(),
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(file));
+  }
+
+  function save() {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveFile()));
+  }
+
+  /** A portable blob the player can download and hand back later — same shape `readSave` already trusts. */
+  function exportSave(): string {
+    return btoa(JSON.stringify(buildSaveFile()));
+  }
+
+  /**
+   * Loads a blob produced by `exportSave`. Writing straight to localStorage and reloading is the
+   * simplest way to get every signal back in sync, rather than exposing a setter per field here.
+   */
+  function importSave(text: string): boolean {
+    try {
+      const parsed: unknown = JSON.parse(atob(text.trim()));
+      if (!isValidSave(parsed)) return false;
+      if (typeof localStorage !== "undefined") localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
+      if (typeof location !== "undefined") location.reload();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Wipes the save and every bit of progress, prestige and worlds included. */
@@ -520,6 +574,7 @@ export function createGameStore(data: GameData) {
     setActiveArcId(null);
     setBossRetreatArcIds([]);
     setEvolvedCharacterIds([]);
+    setAchievementCounts({});
     setEnemy(null);
   }
 
@@ -567,6 +622,7 @@ export function createGameStore(data: GameData) {
     rankUpPassive,
     unlockedAbilities,
     synergyOf,
+    achievementCounts,
     // combat
     enemy,
     enemyHpLeft,
@@ -601,6 +657,8 @@ export function createGameStore(data: GameData) {
     abilityCooldownRemaining,
     prestigeReset,
     save,
+    exportSave,
+    importSave,
     hardReset,
   };
 }
