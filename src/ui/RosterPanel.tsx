@@ -83,7 +83,7 @@ export default function RosterPanel(props: { game: GameStore }) {
                 <div class="member">
                   <div class="member-grid">
                     <span class="name">
-                      <Sprite seed={character.id} px={3} />
+                      <Sprite seed={character.id} px={5} />
                       {character.name}
                       <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
                     </span>
@@ -150,7 +150,7 @@ export default function RosterPanel(props: { game: GameStore }) {
             {(character) => (
               <div class="row">
                 <span class="name">
-                  <Sprite seed={character.id} px={3} />
+                  <Sprite seed={character.id} px={5} />
                   {character.name}
                   <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
                 </span>
