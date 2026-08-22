@@ -9,6 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm test` — `vitest run` (node environment, only `src/**/*.test.ts`)
 - Single test: `npx vitest run src/engine/engine.test.ts -t "applies flat, then percent"`
 
+## Design
+
+`design.md` is the reference for visual/UX design intent (art direction per anime, the prestige
+tree, animation conventions, character-art sourcing). **Whenever a change touches design — new
+panel, palette, interaction pattern, the prestige tree, sprite sourcing — re-check `design.md`
+and update it**, the same way this file is kept in sync with architecture changes.
+
 ## Architecture
 
 SolidJS + Vite + TypeScript idle/clicker prototype. Two layers, deliberately separated:
