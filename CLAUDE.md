@@ -33,8 +33,8 @@ to `localStorage` every 5s. Components call its returned actions (`click`, `recr
 PokéClicker's density: many small stacked panels, everything visible at once, no modals. Left is the
 roster (abilities, sortable team table, item table), middle is resources + the fight + the world
 map, right is the arc lists per world plus travel and prestige. `Codex.tsx` is the one overlay: the
-full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities
-and combos. Each component takes `game: GameStore` as its only
+full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities,
+evolution and combos. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
 
@@ -171,7 +171,30 @@ scales both `clickPower` and `teamDps` contributions: a character deals full dam
 (`matchingArcMultiplier`, 1.0), weaker in other arcs of their own anime (`sameAnimeMalus`, 0.75),
 weakest in another anime's arc (`otherAnimeMalus`, 0.4). Tuning `defaultSynergyConfig` is the main
 balance knob. Outside their own anime entirely, `characterContributions` also drops the passive
-altogether (not just malused) — it's a story ability, it doesn't travel to another anime's arc.
+altogether (not just malused) — it's a story ability, it doesn't travel to another anime's arc. An
+evolved character is the one exception — see below.
+
+### Evolutions
+
+A character can grow into a stronger self later in their own story without becoming a second Codex
+entry — `Character.evolution` (`animeId`, `label`, `bonus` modifiers, an optional `ability`).
+`evolution.animeId` must be a sequel anime (`requiresAnimeId` pointing back at the character's own
+`animeId`, enforced in `engine.test.ts`) — evolutions only ever look forward in a universe's reading
+order, never sideways or back.
+
+Unlocking is permanent, not location-gated: the first time an owned character fights in
+`evolution.animeId`, `gameState`'s `maybeEvolve` (called from `spawnNext`, so on every recruit and
+arc switch) adds their id to `evolvedCharacterIds` for the rest of the run, and it never re-locks —
+not even back in their original world. `prestigeReset`/`hardReset` wipe it like the rest of the
+run-scoped state.
+
+Once evolved, `synergyMultiplier` treats `evolution.animeId` as home too (the `sameAnimeMalus` tier,
+same as any other arc of their own anime), so the passive stops shutting off there and
+`evolution.bonus` — extra modifiers, scaled by that same synergy value — stacks in on top of it via
+`characterContributions`. If `evolution.ability` is set, it replaces `character.ability` outright in
+`getUnlockedAbilities` once evolved — a character never has both at once. `Codex.tsx` shows the
+live ability (base or evolved) plus a dedicated "Évolution" block previewing the trigger world, the
+bonus and (once owned) whether it has fired yet, independent of whether the character is met.
 
 ### Persistence
 
@@ -208,6 +231,8 @@ A character belongs to exactly one world and is recruitable in exactly one arc: 
 one from part 1, it introduces new faces only (`engine.test.ts` enforces both rules, along with every
 id being unique and every reference resolvable). Combos may still span worlds — the team only wipes
 on prestige, not on travel — which is what makes "Le Sommet des Cinq Kage" (Gaara and Tsunade from
-part 1, plus the Shippūden Kage) worth keeping a mixed team for.
+part 1, plus the Shippūden Kage) worth keeping a mixed team for. A handful of part-1 faces (Naruto,
+Sakura, Gaara) do get stronger once fought alongside in Shippūden — see [Evolutions](#evolutions) —
+but that's the same Codex entry growing, never a new recruit.
 
 UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.

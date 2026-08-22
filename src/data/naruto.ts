@@ -126,6 +126,18 @@ export const narutoData: GameData = {
         durationMs: 6_000,
         effects: [{ id: "multiclonage-dps", target: "teamDps", kind: "multiplier", value: 2.5 }],
       },
+      evolution: {
+        animeId: "shippuden",
+        label: "Mode Ermite",
+        bonus: [{ id: "naruto-mode-ermite-dps", target: "teamDps", kind: "percent", value: 0.4 }],
+        ability: {
+          id: "ability-mode-ermite",
+          name: "Mode Ermite — Rasengan Géant",
+          cooldownMs: 30_000,
+          durationMs: 6_000,
+          effects: [{ id: "mode-ermite-dps", target: "teamDps", kind: "multiplier", value: 4 }],
+        },
+      },
     },
     {
       id: "sakura-haruno",
@@ -136,6 +148,18 @@ export const narutoData: GameData = {
       baseClickPower: 1,
       baseDps: 2,
       passive: { id: "sakura-passive", target: "clickPower", kind: "percent", value: 0.08 },
+      evolution: {
+        animeId: "shippuden",
+        label: "Force Herculéenne",
+        bonus: [{ id: "sakura-force-click", target: "clickPower", kind: "percent", value: 0.5 }],
+        ability: {
+          id: "ability-byakugo",
+          name: "Poing du Sceau de Force Céleste",
+          cooldownMs: 45_000,
+          durationMs: 5_000,
+          effects: [{ id: "byakugo-click", target: "clickPower", kind: "multiplier", value: 5 }],
+        },
+      },
     },
     {
       id: "kakashi-hatake",
@@ -261,6 +285,18 @@ export const narutoData: GameData = {
         cooldownMs: 50_000,
         durationMs: 7_000,
         effects: [{ id: "sable-dps", target: "teamDps", kind: "multiplier", value: 2.5 }],
+      },
+      evolution: {
+        animeId: "shippuden",
+        label: "Kazekage du Désert",
+        bonus: [{ id: "gaara-kazekage-dps", target: "teamDps", kind: "percent", value: 0.3 }],
+        ability: {
+          id: "ability-cercueil-absolu",
+          name: "Cercueil de Sable Absolu",
+          cooldownMs: 50_000,
+          durationMs: 7_000,
+          effects: [{ id: "cercueil-absolu-dps", target: "teamDps", kind: "multiplier", value: 3.5 }],
+        },
       },
     },
     {

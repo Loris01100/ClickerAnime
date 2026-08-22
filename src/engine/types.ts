@@ -96,6 +96,8 @@ export interface Character {
   passive?: ModifierTemplate;
   /** active ability unlocked by having this character alone */
   ability?: AbilityDefinition;
+  /** a later, stronger self this same character grows into — not a second character */
+  evolution?: CharacterEvolution;
 }
 
 export interface AbilityDefinition {
@@ -104,6 +106,21 @@ export interface AbilityDefinition {
   cooldownMs: number;
   durationMs: number;
   effects: ModifierTemplate[];
+}
+
+/**
+ * A part-1 character re-encountered further into their own story: unlocked once, by fighting in
+ * `animeId` while owned, and permanent from then on — it never re-locks even back in the original
+ * world. `bonus` stacks on top of the base stats (scaled by the usual synergy tiers, same as a
+ * passive); `ability`, if set, replaces the character's base `ability` outright once evolved.
+ */
+export interface CharacterEvolution {
+  /** the anime whose active arc unlocks this evolution; must require the character's own anime */
+  animeId: string;
+  /** shown in the Codex as the name of this stronger self, e.g. "Mode Ermite" */
+  label: string;
+  bonus: ModifierTemplate[];
+  ability?: AbilityDefinition;
 }
 
 export interface ComboDefinition {

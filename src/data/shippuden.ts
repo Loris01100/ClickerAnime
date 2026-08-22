@@ -1,7 +1,9 @@
 // Naruto Shippūden — deuxième monde, le climax de la saga Naruto. Aucun personnage de la partie 1
-// n'y est recrutable : uniquement des nouvelles têtes. Long à finir, c'est voulu (15 arcs).
-// Les hp, récompenses et stats des recrues montent d'un facteur ~1,85 par arc, donc le rythme
-// reste tenable alors que les nombres explosent.
+// n'y est recrutable : uniquement des nouvelles têtes. Quelques visages de la partie 1 (Naruto,
+// Sakura, Gaara) y évoluent en une version plus forte d'eux-mêmes — voir `Character.evolution` — mais
+// ça ne les rend pas recrutables ici : ce sont toujours les mêmes fiches Codex, pas de nouvelles.
+// Long à finir, c'est voulu (15 arcs). Les hp, récompenses et stats des recrues montent d'un facteur
+// ~1,85 par arc, donc le rythme reste tenable alors que les nombres explosent.
 import type { GameData } from "../engine/gameState";
 
 export const shippudenData: GameData = {

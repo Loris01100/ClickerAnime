@@ -8,20 +8,23 @@ export interface UnlockedAbility {
 
 /**
  * An ability can be unlocked two ways: owning a single character that grants one,
- * or owning every character required by a combo.
+ * or owning every character required by a combo. An evolved character's ability, if their
+ * evolution defines one, replaces their base ability outright — never both at once.
  */
 export function getUnlockedAbilities(
   ownedCharacterIds: string[],
   characters: Character[],
-  combos: ComboDefinition[]
+  combos: ComboDefinition[],
+  evolvedCharacterIds: string[] = []
 ): UnlockedAbility[] {
   const owned = new Set(ownedCharacterIds);
+  const evolved = new Set(evolvedCharacterIds);
   const result: UnlockedAbility[] = [];
 
   for (const character of characters) {
-    if (character.ability && owned.has(character.id)) {
-      result.push({ ability: character.ability, sourceId: character.id });
-    }
+    if (!owned.has(character.id)) continue;
+    const ability = (evolved.has(character.id) && character.evolution?.ability) || character.ability;
+    if (ability) result.push({ ability, sourceId: character.id });
   }
 
   for (const combo of combos) {

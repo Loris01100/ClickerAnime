@@ -105,6 +105,18 @@ describe("synergyMultiplier", () => {
     const character: Character = { ...base, id: "c3", animeId: "anime-2", arcIds: ["arc-x"] };
     expect(synergyMultiplier(character, arc, defaultSynergyConfig)).toBe(defaultSynergyConfig.otherAnimeMalus);
   });
+
+  it("treats the evolution's anime as home once evolved, but not before", () => {
+    const character: Character = {
+      ...base,
+      id: "c4",
+      animeId: "anime-2",
+      arcIds: ["arc-x"],
+      evolution: { animeId: "anime-1", label: "Evolved", bonus: [] },
+    };
+    expect(synergyMultiplier(character, arc, defaultSynergyConfig, false)).toBe(defaultSynergyConfig.otherAnimeMalus);
+    expect(synergyMultiplier(character, arc, defaultSynergyConfig, true)).toBe(defaultSynergyConfig.sameAnimeMalus);
+  });
 });
 
 describe("prestige", () => {
@@ -173,6 +185,31 @@ describe("abilities", () => {
     expect(getUnlockedAbilities(["c1", "c2"], [withAbility, plain], [combo]).map((u) => u.ability.id)).toContain(
       "ability-combo"
     );
+  });
+
+  it("swaps a character's ability for their evolution's once evolved", () => {
+    const evolvable: Character = {
+      ...base,
+      id: "c3",
+      name: "C3",
+      ability: withAbility.ability,
+      evolution: {
+        animeId: "anime-2",
+        label: "Evolved",
+        bonus: [],
+        ability: {
+          id: "ability-evolved",
+          name: "Evolved ability",
+          cooldownMs: 1000,
+          durationMs: 500,
+          effects: [{ id: "e3", target: "teamDps", kind: "multiplier", value: 3 }],
+        },
+      },
+    };
+    expect(getUnlockedAbilities(["c3"], [evolvable], []).map((u) => u.ability.id)).toEqual(["ability-1"]);
+    expect(getUnlockedAbilities(["c3"], [evolvable], [], ["c3"]).map((u) => u.ability.id)).toEqual([
+      "ability-evolved",
+    ]);
   });
 
   it("tracks cooldown readiness", () => {
@@ -787,6 +824,17 @@ describe("game data", () => {
       for (const arcId of character.arcIds) {
         expect(gameData.arcs.find((a) => a.id === arcId)?.animeId).toBe(character.animeId);
       }
+    }
+  });
+
+  it("only evolves characters into a later anime of their own universe", () => {
+    for (const character of gameData.characters) {
+      if (!character.evolution) continue;
+      const evolvesInto = gameData.animes.find((a) => a.id === character.evolution!.animeId);
+      expect(evolvesInto, `${character.id} evolves into an unknown anime`).toBeDefined();
+      expect(evolvesInto!.requiresAnimeId, `${character.id}'s evolution must be its own anime's sequel`).toBe(
+        character.animeId
+      );
     }
   });
 });

@@ -40,7 +40,7 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-const SAVE_KEY = "clicker-anime:save:v6";
+const SAVE_KEY = "clicker-anime:save:v7";
 
 interface SaveFile {
   currency: number;
@@ -54,6 +54,7 @@ interface SaveFile {
   characterXp: Record<string, number>;
   itemCounts: Record<string, number>;
   passiveRanks: Record<string, number>;
+  evolvedCharacterIds: string[];
 }
 
 function readSave(): SaveFile | null {
@@ -81,6 +82,7 @@ export function createGameStore(data: GameData) {
   const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
+  const [evolvedCharacterIds, setEvolvedCharacterIds] = createSignal<string[]>(saved?.evolvedCharacterIds ?? []);
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -105,6 +107,9 @@ export function createGameStore(data: GameData) {
 
   const ownedCharacters = createMemo(() => data.characters.filter((c) => ownedCharacterIds().includes(c.id)));
 
+  /** True once this character has grown into their evolution — permanent for the rest of the run. */
+  const isEvolved = (character: Character) => evolvedCharacterIds().includes(character.id);
+
   const xpOf = (characterId: string) => characterXp()[characterId] ?? 0;
 
   /** Levels are read off accumulated xp rather than stored, so the two can never drift apart. */
@@ -120,7 +125,7 @@ export function createGameStore(data: GameData) {
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const arc = activeArc();
     const fromCharacters = ownedCharacters().flatMap((c) =>
-      characterContributions(c, arc, defaultSynergyConfig, levelOf(c.id), passiveRankOf(c))
+      characterContributions(c, arc, defaultSynergyConfig, levelOf(c.id), passiveRankOf(c), isEvolved(c))
     );
     return [...fromCharacters, ...pruneExpired(temporaryModifiers(), now())];
   });
@@ -159,7 +164,7 @@ export function createGameStore(data: GameData) {
   const teamDps = createMemo(() => computeEffectiveStat(0, "teamDps", allModifiers(), now()));
 
   const unlockedAbilities = createMemo(() =>
-    getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos)
+    getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos, evolvedCharacterIds())
   );
 
   /** Prestige points the player would bank by resetting right now. */
@@ -226,8 +231,24 @@ export function createGameStore(data: GameData) {
   /** True once the player has timed out against this arc's boss and not yet asked for a rematch. */
   const hasRetreatedFromBoss = (arc: Arc) => bossRetreatArcIds().includes(arc.id);
 
+  /**
+   * Grows any owned character whose evolution's world is the one now active, permanently — called
+   * on every recruit and every arc switch, the only two ways this condition can newly become true.
+   */
+  function maybeEvolve() {
+    const arc = activeArc();
+    if (!arc) return;
+    const newlyEvolved = ownedCharacters()
+      .filter((c) => c.evolution?.animeId === arc.animeId && !isEvolved(c))
+      .map((c) => c.id);
+    if (newlyEvolved.length > 0) {
+      setEvolvedCharacterIds((ids) => [...ids, ...newlyEvolved]);
+    }
+  }
+
   /** Puts the next enemy of the active arc in front of the player, at full hp. */
   function spawnNext() {
+    maybeEvolve();
     const arc = activeArc();
     if (!arc) {
       setEnemy(null);
@@ -356,7 +377,7 @@ export function createGameStore(data: GameData) {
   /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
   function synergyOf(character: Character): number {
     const arc = activeArc();
-    return arc ? synergyMultiplier(character, arc, defaultSynergyConfig) : 1;
+    return arc ? synergyMultiplier(character, arc, defaultSynergyConfig, isEvolved(character)) : 1;
   }
 
   function setActiveArc(arcId: string) {
@@ -459,6 +480,7 @@ export function createGameStore(data: GameData) {
     setClearedArcIds([]);
     setActiveArcId(null);
     setBossRetreatArcIds([]);
+    setEvolvedCharacterIds([]);
     spawnNext();
   }
 
@@ -476,6 +498,7 @@ export function createGameStore(data: GameData) {
       characterXp: characterXp(),
       itemCounts: itemCounts(),
       passiveRanks: passiveRanks(),
+      evolvedCharacterIds: evolvedCharacterIds(),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(file));
   }
@@ -496,6 +519,7 @@ export function createGameStore(data: GameData) {
     setClearedArcIds([]);
     setActiveArcId(null);
     setBossRetreatArcIds([]);
+    setEvolvedCharacterIds([]);
     setEnemy(null);
   }
 
@@ -526,6 +550,7 @@ export function createGameStore(data: GameData) {
     unlockedAnimes,
     ownedCharacters,
     ownedCharacterIds,
+    isEvolved,
     clickPower,
     narratorBase,
     teamDps,

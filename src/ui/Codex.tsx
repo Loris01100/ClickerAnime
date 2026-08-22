@@ -24,6 +24,10 @@ export default function Codex(props: { game: GameStore; onClose: () => void }) {
   const combosOf = (character: Character) =>
     props.game.data.combos.filter((combo) => combo.requiredCharacterIds.includes(character.id));
 
+  /** The ability currently in effect: the evolved one once grown into, the base one otherwise. */
+  const abilityOf = (character: Character) =>
+    (props.game.isEvolved(character) && character.evolution?.ability) || character.ability;
+
   function onKeyDown(event: KeyboardEvent) {
     if (event.key === "Escape") props.onClose();
   }
@@ -149,11 +153,39 @@ export default function Codex(props: { game: GameStore; onClose: () => void }) {
                   </Show>
                 </div>
 
-                <Show when={character().ability}>
+                <Show when={abilityOf(character())}>
                   {(ability) => (
                     <div class="codex-block">
                       <h4>Capacité — {ability().name}</h4>
                       <p class="small">{describeAbility(ability())}</p>
+                      <Show when={props.game.isEvolved(character()) && character().evolution?.ability}>
+                        <p class="muted small">Version évoluée ({character().evolution?.label}).</p>
+                      </Show>
+                    </div>
+                  )}
+                </Show>
+
+                <Show when={character().evolution}>
+                  {(evolution) => (
+                    <div class="codex-block">
+                      <h4>Évolution — {evolution().label}</h4>
+                      <p class="muted small">
+                        Se déclenche en combattant dans {animeName(evolution().animeId)} une fois ce
+                        personnage recruté, et reste acquise pour le reste de la partie.
+                      </p>
+                      <For each={evolution().bonus}>
+                        {(bonus) => (
+                          <div class="codex-row">
+                            <span class="muted">Bonus</span>
+                            <strong>{describeModifier(bonus)}</strong>
+                          </div>
+                        )}
+                      </For>
+                      <Show when={owned(character())}>
+                        <p class="small" classList={{ muted: !props.game.isEvolved(character()) }}>
+                          {props.game.isEvolved(character()) ? "Évolution acquise." : "Pas encore déclenchée."}
+                        </p>
+                      </Show>
                     </div>
                   )}
                 </Show>
