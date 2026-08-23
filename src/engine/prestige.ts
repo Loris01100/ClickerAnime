@@ -34,10 +34,19 @@ export function unlockAnime(state: PrestigeState, animeId: string, cost: number)
   };
 }
 
-/** Banks the gain and sends the player back to square one: the worlds entered are wiped too. */
-export function applyPrestige(state: PrestigeState, lifetimeEarned: number): PrestigeState {
+/**
+ * Banks the gain and sends the player back to square one: the worlds entered are wiped too.
+ * `scale` is the prestige tree's "Ressource" tier 2 perk; `gainMultiplier` is its tier 5 perk
+ * (a random 2x rolled by the caller — this function itself stays free of randomness).
+ */
+export function applyPrestige(
+  state: PrestigeState,
+  lifetimeEarned: number,
+  scale?: number,
+  gainMultiplier = 1
+): PrestigeState {
   return {
-    prestigePoints: state.prestigePoints + calculatePrestigeGain(lifetimeEarned),
+    prestigePoints: state.prestigePoints + calculatePrestigeGain(lifetimeEarned, scale) * gainMultiplier,
     unlockedAnimeIds: [],
   };
 }

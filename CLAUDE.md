@@ -223,11 +223,54 @@ a setter per field. There is no offline-progress catch-up.
 
 ### Prestige
 
-`prestigeReset()` wipes everything but the prestige points and the achievement counts (see below):
-currency, roster, xp, items, passive ranks, kills, cleared arcs and the worlds entered. Gain is
-`floor(sqrt(lifetimeEarned / scale))`, zero below `scale`. Points are only spent on `unlockAnime`, the
-paid early entry, which now has to be re-bought each run — the planned global skill tree is what they
-are meant to feed.
+`prestigeReset()` wipes everything but the prestige points, the achievement counts and the prestige
+tree ranks (see below): currency, roster, xp, items, passive ranks, kills, cleared arcs and the
+worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale))`, zero below `scale`; both `scale` and a
+double-gain chance are perks of the tree's "Ressource" branch, see below. Points are spent two ways:
+`unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
+is permanent.
+
+### The prestige tree (`prestigeTree.ts`)
+
+Five independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Ressource — each a straight
+chain of 5 tiers bought in order (`purchaseNextTier` refuses to skip ahead), costing `2, 3, 5, 8, 13`
+prestige points regardless of branch (~×1.6 growth, the same ratio as `passiveRankCost` but a base
+suited to how rare prestige points are). `gameState` keeps the tiers bought per branch in
+`prestigeTreeRanks` (`Record<categoryId, number>`) — a signal of its own, not a field on
+`PrestigeState`: `prestige.ts` stays a pure `{ prestigePoints, unlockedAnimeIds }` testable without
+knowing the tree exists, and `prestigeTreeRanks` survives `prestigeReset` exactly like
+`achievementCounts` does, wiped only by `hardReset`.
+
+Only two of the 25 effects are `ActiveModifier`s: each branch's tier 1 is a flat `clickPower`/
+`teamDps` percent, folded into `allModifiers` via `prestigeTreeContributions` next to
+`achievementContributions`. Every other effect is read directly at its point of use, gated by
+`treeTierOf(categoryId) >= tier` — `ModifierTarget` was deliberately **not** widened to cover them,
+since things like an autoclick interval, a crit chance or a pity-timer threshold have no `base` for
+`computeEffectiveStat` to operate on:
+
+- **Clic du Narrateur** — click percent (t1); an autoclick every 2s at a fraction of click power
+  (t2, driven by the main tick's `autoClickAccumMs`); crit chance (t3); shaves time off every
+  unlocked ability's cooldown on each click (t4); a chance to fire a random unlocked ability for
+  free, via `triggerAbilityEffects` (t5, shared with abilities' normal activation path).
+- **DPS Équipe** — teamDps percent (t1); boosts an activated ability's percent/multiplier effects,
+  via `buildAbilityModifiers` (t2); softens the active arc's synergy malus, via
+  `softenedSynergyConfig` wrapping `defaultSynergyConfig` (t3); stretches an ability's buff duration
+  (t4); extends a boss's `timerMs` (t5).
+- **XP** — xp-per-grant percent, applied inside `grantXp` so every source benefits (t1); a passive
+  xp trickle each tick regardless of combat (t2); flattens the level curve by handing a reduced
+  growth constant into `levelFromXp`/`xpProgress` (t3, see `growth.ts`'s optional `growth` param);
+  a newly recruited character gets a flat xp head start, via `grantXpTo` (t4); boss kills grant
+  extra xp on top of the usual multiple of their reward (t5).
+- **Objets** — boosts the effective `dropChance` passed into `rollsDrop` (t1); discounts
+  `passiveRankCost` (t2, see its optional `discount` param); a chance at a bonus copy on top of a
+  successful common drop (t3); a pity timer — `killsSinceDrop` per arc forces a common after a dry
+  streak (t4); a small chance an item-less enemy hands over the arc's common anyway (t5).
+- **Ressource** — currency-per-kill percent (t1); lowers the `scale` `calculatePrestigeGain` uses
+  (t2); adds to `PRESTIGE_PER_ARC_CLEAR` (t3); discounts an anime's `unlockCost` (t4); a chance to
+  double the points a `prestigeReset` banks, rolled in `gameState` and passed as `applyPrestige`'s
+  `gainMultiplier` so `prestige.ts` itself stays free of randomness (t5).
+
+See `design.md` §5 for the intended `PrestigeTree.tsx` UI — not built yet.
 
 ### Abilities
 

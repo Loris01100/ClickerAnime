@@ -153,87 +153,97 @@ tout en CSS/`@keyframes` ou signaux Solid, comme l'existant.
 
 ## 5. L'arbre de prestige
 
-C'est la pièce manquante que ce document doit le plus détailler : `PrestigeTree.tsx` est
-aujourd'hui un écran « bientôt disponible » assumé comme tel (voir son commentaire de tête). Le
-schéma de référence donné (arbre à colonnes, nœuds ronds reliés par des lignes, rang `x/y` sous
-chaque nœud, nœud final plus gros) se transpose directement sur les quatre familles de stats du
-jeu.
+`prestigeTree.ts` porte la logique (types, coûts, effets, wiring dans `gameState.ts`) ; côté vue,
+`PrestigeTree.tsx` reste à faire — cette section décrit ce qu'il doit afficher. Le schéma de
+référence donné (arbre à colonnes, nœuds ronds reliés par des lignes, rang `x/y` sous chaque
+nœud, nœud final plus gros) inspire l'anatomie d'un nœud (§5.2) ; la disposition réelle a été
+simplifiée par rapport au schéma — voir §5.3.
 
-### 5.1 Quatre branches, pas une par personnage
+### 5.1 Cinq branches, pas une par personnage
 
 Une branche par cible de progression, chacune avec sa teinte propre (dérivée de la palette
 fonctionnelle, pas de la DA par anime — l'arbre de prestige est un système méta, hors monde) :
 
 | Branche | Icône | Teinte | Ce qu'elle améliore |
 |---|---|---|---|
-| **Clic du Narrateur** | curseur/étincelle | violet (`--accent`) | `clickPower` : dégâts au clic |
-| **DPS Équipe** | épée/éclair | rouge (`--accent-2`) | `teamDps` : dégâts passifs de l'équipe |
-| **Objets** | coffre/marque-page | bleu (`--blue`) | drop d'objets, coût des rangs de passif |
-| **Bonus XP** | étoile/livre | or/vert (`--gold`/`--good`) | gain d'xp, donc vitesse de niveau |
+| **Clic du Narrateur** | curseur/étincelle | violet (`--accent`) | `clickPower`, autoclicker, critiques, cooldown des actifs |
+| **DPS Équipe** | épée/éclair | rouge (`--accent-2`) | `teamDps`, dégâts et durée des actifs, malus de synergie, timer boss |
+| **XP** | étoile/livre | or (`--gold`) | gain d'xp, courbe de niveau, bonus de recrutement |
+| **Objets** | coffre/marque-page | bleu (`--blue`) | drop d'objets, coût des rangs de passif, pity timer |
+| **Ressource** | pièce/balance | vert (`--good`) | monnaie gagnée, palier de prestige, coût de déblocage d'anime |
 
-Chaque branche a son propre en-tête façon `.panel-head` : nom, icône, et le total de points de
-prestige investis dans *cette* branche (affichage seulement — voir §5.3, la monnaie reste
-unique).
+Chaque branche a son propre en-tête façon `.panel-head` : nom, icône, et le tier actuel sur 5
+(`treeTierOf`, affichage seulement). La liste exacte des 5 effets par branche vit dans
+`prestigeTree.ts` (`PRESTIGE_TREE_CATEGORIES`) — ne pas la dupliquer ici, ce tableau ne donne que
+l'intention de chaque branche.
 
 ### 5.2 Anatomie d'un nœud
 
 Reprend le vocabulaire déjà utilisé pour les rangs de passif (`RosterPanel`'s `.rank-up`,
 `passiveUpgradeOf`) plutôt que d'inventer un second système d'amélioration :
 
-- **Cercle** avec icône, taille standard pour un nœud normal, plus grand (~1.6×) pour le nœud
-  final de chaque branche (le « keystone », comme le grand cercle vert/jaune/rouge en bas de
-  chaque colonne du schéma de référence).
-- **Rang affiché sous le nœud** : `rang / rang max` (ex. `2/5`), identique au patron
-  `${rank}/${cap}` déjà utilisé dans `RosterPanel.tsx:109`.
+- **Cercle** avec icône, taille standard pour un nœud normal, plus grand (~1.6×) pour le 5ᵉ nœud
+  de chaque branche (le « keystone » — le tier le plus fort et le plus cher de la chaîne, comme le
+  grand cercle en bas de chaque colonne du schéma de référence).
+- **Rang affiché sous le nœud** : `tier / 5`, identique au patron `${rank}/${cap}` déjà utilisé
+  dans `RosterPanel.tsx:109`.
 - **Trois états visuels**, par bordure + remplissage (pas par une couleur totalement différente —
   la teinte de la branche reste identifiable dans les trois états) :
-  - *verrouillé* (parent pas encore au rang 1) : contour gris `--line`, icône à `opacity: 0.35`
-    (même traitement que `Sprite`'s `.dim` / `IconLock` déjà utilisé partout ailleurs) ;
-  - *disponible / partiellement rangé* (0 < rang < max) : contour coloré de la branche, non
-    rempli ;
-  - *au maximum* : contour + fond pleins, plus un léger halo (`box-shadow`), comme `.enemy.boss`
+  - *verrouillé* (le tier précédent de la branche n'est pas encore acheté — les tiers s'achètent
+    dans l'ordre, voir §5.3) : contour gris `--line`, icône à `opacity: 0.35` (même traitement que
+    `Sprite`'s `.dim` / `IconLock` déjà utilisé partout ailleurs) ;
+  - *achetable* (le tier précédent est acheté, celui-ci ne l'est pas encore) : contour coloré de
+    la branche, non rempli ;
+  - *acheté* : contour + fond pleins, plus un léger halo (`box-shadow`), comme `.enemy.boss`
     aujourd'hui.
-- **Interaction** : clic sur un nœud disponible = achat d'un rang, bouton identique dans l'esprit
-  à `.rank-up` (`+1 · coût`), désactivé si le solde de prestige est insuffisant. Survol/tap
-  affiche un tooltip avec l'effet au rang actuel et au rang suivant, généré par le même utilitaire
-  que `describeModifier` (`ui/describe.ts`) — l'arbre ne doit pas inventer une deuxième façon de
-  décrire un modificateur.
+- **Interaction** : clic sur un nœud achetable = achat, bouton identique dans l'esprit à
+  `.rank-up` (`+1 · coût`), désactivé si le solde de prestige est insuffisant
+  (`purchaseTreeTier`/`nextTreeTierCost`). Survol/tap affiche un tooltip avec la description déjà
+  écrite dans `PrestigeTreeNode.description` (`prestigeTree.ts`) — l'arbre ne doit pas inventer une
+  deuxième façon de décrire un effet.
 
 ### 5.3 Disposition et monnaie
 
 - **Une seule monnaie** : `PrestigeState.prestigePoints` reste le seul solde (✦), déjà affiché
-  dans `CurrencyBar`. Pas de sous-monnaie par branche — le total « points investis » affiché en
-  en-tête de branche est dérivé (`sum(rank * costs)`), jamais stocké séparément, pour ne pas
-  dupliquer une source de vérité (même logique que `levelFromXp` dérivant le niveau de l'xp
-  totale).
-- **Positions générées, pas dessinées à la main.** Même patron que `mapLayout.ts` : un graphe
-  authored en donnée (liste de nœuds avec un ou deux parents, une colonne = une branche, une
-  ligne = un palier) transformé par une fonction pure `layoutPrestigeTree()` en coordonnées 0..1,
-  et des lignes SVG entre nœuds parent/enfant exactement comme `WorldMap`'s `.map-links` (ligne
-  `done`/pas encore, ici `unlocked`/`locked`). Réutiliser ce patron plutôt qu'un CSS Grid à la
-  main garde l'arbre maintenable si des nœuds sont ajoutés plus tard.
-- **Ramification, pas une simple chaîne.** Comme le schéma de référence : un tronc commun bon
-  marché (1 point), qui se divise en deux sous-chemins vers le milieu, qui reconvergent sur le
-  nœud final. Ça donne des choix (« je monte plutôt la branche gauche ou droite d'abord ? ») sans
-  complexifier le calcul de coût (géométrique par nœud, même formule que
-  `passiveRankCost` — `6, 9, 14, 21, 31...` — réutilisable telle quelle ou adaptée).
+  dans `CurrencyBar`. Pas de sous-monnaie par branche.
+- **Chaîne, pas un arbre ramifié.** Contrairement au schéma de référence (tronc commun, fourche,
+  reconvergence), chaque branche est une chaîne simple de 5 tiers achetés dans l'ordre
+  (`purchaseNextTier` refuse de sauter un tier) : pas de choix de chemin à l'intérieur d'une
+  branche, le choix du joueur se fait *entre* les 5 branches, pas dedans. Plus simple à calculer
+  et à afficher — une colonne par branche, un nœud par tier, reliés par une ligne verticale unique
+  (`WorldMap`'s `.map-links`, ligne `unlocked`/`locked` selon `treeTierOf`), sans fonction de
+  layout dédiée : la position d'un nœud est directement `(colonne = index de branche, ligne =
+  tier - 1)`.
+- **Coût géométrique par tier, propre à l'arbre** (pas la formule de `passiveRankCost`, dont la
+  base 6/×1.5 est pensée pour une monnaie de run — objets — pas la monnaie de prestige, beaucoup
+  plus rare) : `2, 3, 5, 8, 13` — même ratio de croissance (~×1.6) que `passiveRankCost`, mais une
+  base adaptée au rythme d'obtention du prestige. Identique pour les 5 branches. Total pour maxer
+  une branche : 31 points ; les 5 : 155 — un objectif de plusieurs cycles de prestige, pas d'un
+  seul run.
 
-### 5.4 Ce que ça implique côté moteur (à faire au moment de l'implémentation, pas maintenant)
+### 5.4 Ce que ça implique côté moteur (fait)
 
-- `ModifierTarget` (`types.ts:4`) n'a que `"clickPower" | "teamDps"` — les branches Objets et
-  Bonus XP touchent des systèmes hors du pipeline de modificateurs actuel (`rollsDrop`,
-  `passiveRankCost`, `XP_PER_KILL_REWARD`/`growth.ts`). Deux options à trancher au moment du
-  code : élargir `ModifierTarget` (`"dropChance" | "xpGain"`) et les faire transiter par
-  `computeEffectiveStat` comme le reste, ou les traiter comme des multiplicateurs simples lus
-  directement par `rollsDrop`/`grantXp`. La première option est plus cohérente avec « tout
-  modificateur devient un `ActiveModifier` » (`CLAUDE.md`), à privilégier sauf si ça force
-  `computeEffectiveStat` à gérer des cibles qui n'ont pas de notion de `base`.
+- `ModifierTarget` (`types.ts:4`) est resté `"clickPower" | "teamDps"` — **non élargi**. Sur les
+  25 effets de l'arbre, seuls deux (le tier 1 de Clic du Narrateur et de DPS Équipe, un simple
+  pourcentage permanent) passent par `computeEffectiveStat` via `prestigeTreeContributions`,
+  exactement comme `achievementContributions`. Le reste (autoclicker, critique, réduction de
+  cooldown au clic, actif gratuit, adoucissement de synergie, durée/dégâts d'actif, timer boss,
+  xp passive, courbe d'xp, bonus de recrutement, xp de boss, taux de drop, double drop, pity
+  timer, butin fantôme, coût de rang de passif, gain de monnaie, palier de prestige, bonus d'arc
+  nettoyé, remise de déblocage, doublement de prestige) est un événement ou un multiplicateur lu
+  directement au point d'usage (`gameState.ts`, `growth.ts`, `prestige.ts`) plutôt que forcé dans
+  le pipeline de modificateurs — ces effets n'ont pas de notion de `base` sur laquelle
+  `computeEffectiveStat` pourrait s'appuyer (un intervalle d'autoclicker ou une chance de critique
+  n'est pas un flat/percent/multiplier).
+- **`prestigeTreeRanks` est un signal séparé dans `gameState.ts`** (`Record<string, number>`,
+  clé = id de branche, valeur = tier acheté), pas un champ sur `PrestigeState`
+  (`prestige.ts` reste une structure pure `{ prestigePoints, unlockedAnimeIds }`, testable sans
+  connaître l'arbre). Même patron que `achievementCounts` : une progression méta de plus, à côté
+  de `PrestigeState` plutôt que dedans.
 - **Persistance : l'arbre survit à `prestigeReset`.** Contrairement à la monnaie dépensée sur
   `unlockAnime` (qui rouvre au monde de départ à chaque run), les rangs achetés dans l'arbre sont
-  la progression permanente que le prestige est censé nourrir (« le futur arbre de compétences
-  global que ces points sont censés alimenter », `prestige.ts:37`). Nouveau champ
-  `prestigeTreeRanks: Record<string, number>` sur `PrestigeState`, absent de la liste de ce que
-  `prestigeReset` efface.
+  la progression permanente que le prestige est censé nourrir. Seul `hardReset` l'efface, comme
+  `achievementCounts`.
 
 ---
 

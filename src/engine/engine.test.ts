@@ -37,6 +37,22 @@ import {
 } from "./growth";
 import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy } from "./types";
 import { layoutArcs, MAP_COLS } from "./mapLayout";
+import {
+  AUTOCLICK_INTERVAL_MS,
+  AUTOCLICK_POWER_FRACTION,
+  canPurchaseNextTier,
+  CURRENCY_GAIN_PERCENT,
+  isTierUnlocked,
+  NARRATOR_CLICK_PERCENT,
+  prestigeTreeContributions,
+  PRESTIGE_TREE_CATEGORIES,
+  purchaseNextTier,
+  purchasedTier,
+  softenedSynergyConfig,
+  TEAM_DPS_PERCENT,
+  UNLOCK_COST_DISCOUNT,
+  XP_GAIN_PERCENT,
+} from "./prestigeTree";
 
 function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobsToBoss = 3): Arc {
   return {
@@ -918,5 +934,361 @@ describe("universe order", () => {
     expect(game.unlockAnime("shippuden")).toBe(false);
     expect(game.animeBlockedBy("shippuden")?.id).toBe("naruto");
     expect(game.travelTo("naruto")).toBe(true);
+  });
+});
+
+describe("prestige tree — pure functions", () => {
+  const categoryOf = (id: string) => PRESTIGE_TREE_CATEGORIES.find((c) => c.id === id)!;
+
+  it("starts fully locked", () => {
+    expect(purchasedTier({}, "xp")).toBe(0);
+    expect(isTierUnlocked({}, "xp", 1)).toBe(false);
+  });
+
+  it("buys tiers of a branch in order, deducting their cost", () => {
+    const narratorClick = categoryOf("narratorClick");
+    const first = purchaseNextTier(10, {}, narratorClick)!;
+    expect(first.ranks.narratorClick).toBe(1);
+    expect(first.prestigePoints).toBe(10 - narratorClick.nodes[0].cost);
+
+    const second = purchaseNextTier(first.prestigePoints, first.ranks, narratorClick)!;
+    expect(second.ranks.narratorClick).toBe(2);
+    expect(second.prestigePoints).toBe(first.prestigePoints - narratorClick.nodes[1].cost);
+  });
+
+  it("refuses to buy without enough points, but leaves other branches untouched", () => {
+    const narratorClick = categoryOf("narratorClick");
+    expect(canPurchaseNextTier(1, {}, narratorClick)).toBe(false);
+    expect(purchaseNextTier(1, {}, narratorClick)).toBeNull();
+
+    const result = purchaseNextTier(100, { teamDps: 2 }, narratorClick)!;
+    expect(result.ranks).toEqual({ teamDps: 2, narratorClick: 1 });
+  });
+
+  it("refuses once a branch is fully bought", () => {
+    const narratorClick = categoryOf("narratorClick");
+    const maxed = { narratorClick: narratorClick.nodes.length };
+    expect(canPurchaseNextTier(999, maxed, narratorClick)).toBe(false);
+    expect(purchaseNextTier(999, maxed, narratorClick)).toBeNull();
+  });
+
+  it("softenedSynergyConfig narrows a malus toward 1.0, and leaves it untouched when locked", () => {
+    const config = { matchingArcMultiplier: 1, sameAnimeMalus: 0.75, otherAnimeMalus: 0.4 };
+    expect(softenedSynergyConfig(config, false)).toEqual(config);
+    const softened = softenedSynergyConfig(config, true);
+    expect(softened.sameAnimeMalus).toBeGreaterThan(config.sameAnimeMalus);
+    expect(softened.otherAnimeMalus).toBeGreaterThan(config.otherAnimeMalus);
+    expect(softened.matchingArcMultiplier).toBe(config.matchingArcMultiplier);
+  });
+
+  it("only contributes a branch's flat percent once its tier 1 is bought", () => {
+    expect(prestigeTreeContributions({})).toEqual([]);
+    const mods = prestigeTreeContributions({ narratorClick: 1, teamDps: 1 });
+    expect(mods.find((m) => m.target === "clickPower")?.value).toBeCloseTo(NARRATOR_CLICK_PERCENT);
+    expect(mods.find((m) => m.target === "teamDps")?.value).toBeCloseTo(TEAM_DPS_PERCENT);
+  });
+});
+
+describe("prestige tree — wired into gameState", () => {
+  function makeTestData(opts: { mobBaseHp?: number; mobItemId?: string; mobDropChance?: number } = {}) {
+    const mob: Enemy = {
+      id: "ta-mob",
+      name: "Mob",
+      baseHp: opts.mobBaseHp ?? 1,
+      reward: 10,
+      ...(opts.mobItemId ? { itemId: opts.mobItemId, dropChance: opts.mobDropChance ?? 1 } : {}),
+    };
+    return {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 1_000,
+          mobs: [mob],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1_000_000, reward: 1_000 },
+        },
+      ],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["ta-arc"],
+          baseClickPower: 10,
+          baseDps: 0,
+        },
+      ],
+      combos: [],
+      items: opts.mobItemId ? [{ id: opts.mobItemId, name: "Item", kind: "common" as const }] : [],
+    };
+  }
+
+  function baseSave(overrides: Record<string, unknown> = {}) {
+    return {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["ca"],
+      activeArcId: "ta-arc",
+      prestigePoints: 0,
+      unlockedAnimeIds: ["ta"],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+      evolvedCharacterIds: [],
+      achievementCounts: {},
+      prestigeTreeRanks: {},
+      ...overrides,
+    };
+  }
+
+  function installSave(save: unknown): () => void {
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+    return () => {
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    };
+  }
+
+  it("Clic du Narrateur tier 2 fires an automatic click every AUTOCLICK_INTERVAL_MS", () => {
+    const testData = makeTestData({ mobBaseHp: 1_000_000 });
+    const restore = installSave(baseSave({ prestigeTreeRanks: { narratorClick: 2 } }));
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const hpBefore = game.enemyHpLeft();
+      const expectedHit = game.clickPower() * AUTOCLICK_POWER_FRACTION;
+      vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS);
+      expect(hpBefore - game.enemyHpLeft()).toBeCloseTo(expectedHit, 5);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+
+  it("DPS Équipe tier 3 softens the synergy malus outside the active arc's anime", () => {
+    const testData = {
+      animes: [
+        { id: "ta", name: "TA", unlockCost: 0 },
+        { id: "tb", name: "TB", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "A",
+          order: 0,
+          mobsToBoss: 1_000,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1_000_000, reward: 100 },
+        },
+        {
+          id: "tb-arc",
+          animeId: "tb",
+          name: "B",
+          order: 0,
+          mobsToBoss: 1_000,
+          mobs: [{ id: "tb-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "tb-boss", name: "Boss", baseHp: 1_000_000, reward: 100 },
+        },
+      ],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["ta-arc"],
+          baseClickPower: 1,
+          baseDps: 1,
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const character = testData.characters[0];
+    const commonSave = { unlockedAnimeIds: ["ta", "tb"], activeArcId: "tb-arc", ownedCharacterIds: ["ca"] };
+
+    let disposeRoot!: () => void;
+    let baseline!: number;
+    const restoreBase = installSave(baseSave(commonSave));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      baseline = game.synergyOf(character);
+    } finally {
+      disposeRoot();
+      restoreBase();
+    }
+
+    const restoreBoosted = installSave(baseSave({ ...commonSave, prestigeTreeRanks: { teamDps: 3 } }));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.synergyOf(character)).toBeGreaterThan(baseline);
+    } finally {
+      disposeRoot();
+      restoreBoosted();
+    }
+  });
+
+  it("XP tier 1 boosts the xp granted per kill", () => {
+    const testData = makeTestData();
+    const restore = installSave(baseSave({ prestigeTreeRanks: { xp: 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.click(); // kills the 1-hp mob
+      expect(game.xpOf("ca")).toBeCloseTo(10 * XP_PER_KILL_REWARD * (1 + XP_GAIN_PERCENT));
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("Objets tier 1 boosts the effective drop chance", () => {
+    const testData = makeTestData({ mobItemId: "ta-item", mobDropChance: 0.5 });
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.55); // between the base and boosted chance
+
+    const restoreLocked = installSave(baseSave());
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.click();
+      expect(game.countOf("ta-item")).toBe(0); // 0.55 misses the base 0.5 chance
+    } finally {
+      disposeRoot();
+      restoreLocked();
+    }
+
+    const restoreBoosted = installSave(baseSave({ prestigeTreeRanks: { items: 1 } }));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.click();
+      // 0.5 * (1 + DROP_CHANCE_BOOST) = 0.6, so the same 0.55 roll now hits
+      expect(game.countOf("ta-item")).toBe(1);
+    } finally {
+      disposeRoot();
+      restoreBoosted();
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("Objets tier 2 discounts the cost of the next passive rank", () => {
+    const testData = makeTestData();
+    const character = testData.characters[0];
+
+    let disposeRoot!: () => void;
+    let baseCost!: number;
+    // Rank 1 (cost 6) survives the 15% discount's rounding unchanged (ceil(6*0.85)=6 too), so seed
+    // the character at rank 1 already: rank 2 costs 9 base vs 8 discounted, where it actually shows.
+    const restoreBase = installSave(baseSave({ passiveRanks: { ca: 1 } }));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      baseCost = game.passiveUpgradeOf(character).cost;
+    } finally {
+      disposeRoot();
+      restoreBase();
+    }
+
+    const restoreDiscount = installSave(baseSave({ passiveRanks: { ca: 1 }, prestigeTreeRanks: { items: 2 } }));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.passiveUpgradeOf(character).cost).toBeLessThan(baseCost);
+    } finally {
+      disposeRoot();
+      restoreDiscount();
+    }
+  });
+
+  it("Ressource tier 1 boosts the currency reward from a kill", () => {
+    const testData = makeTestData();
+    const restore = installSave(baseSave({ prestigeTreeRanks: { resource: 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.click();
+      expect(game.currency()).toBeCloseTo(10 * (1 + CURRENCY_GAIN_PERCENT));
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("Ressource tier 4 discounts the paid shortcut into a new anime", () => {
+    const testData = makeTestData();
+    testData.animes.push({ id: "tb", name: "TB", unlockCost: 8 });
+    const discountedCost = Math.ceil(8 * (1 - UNLOCK_COST_DISCOUNT));
+    const restore = installSave(baseSave({ prestigePoints: discountedCost, prestigeTreeRanks: { resource: 4 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.unlockAnime("tb")).toBe(true);
+      expect(game.prestige().prestigePoints).toBe(0);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("purchaseTreeTier spends prestige points and advances one tier at a time", () => {
+    const testData = makeTestData();
+    const tier1Cost = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === "narratorClick")!.nodes[0].cost;
+    const restore = installSave(baseSave({ prestigePoints: tier1Cost }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.treeTierOf("narratorClick")).toBe(0);
+      expect(game.nextTreeTierCost("narratorClick")).toBe(tier1Cost);
+      expect(game.purchaseTreeTier("narratorClick")).toBe(true);
+      expect(game.treeTierOf("narratorClick")).toBe(1);
+      expect(game.prestige().prestigePoints).toBe(0);
+      expect(game.purchaseTreeTier("narratorClick")).toBe(false); // no points left
+    } finally {
+      disposeRoot();
+      restore();
+    }
   });
 });

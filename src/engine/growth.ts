@@ -14,10 +14,13 @@ export const PASSIVE_LEVEL_CAP: Record<Rarity, number> = { main: 10, secondary: 
 const PASSIVE_ITEM_BASE = 6;
 const PASSIVE_ITEM_GROWTH = 1.5;
 
-/** Copies of the origin item spent to buy `rank`, coming from the rank below it. */
-export function passiveRankCost(rank: number): number {
+/**
+ * Copies of the origin item spent to buy `rank`, coming from the rank below it. `discount` (0..1)
+ * is the prestige tree's "Objets" tier 2 perk.
+ */
+export function passiveRankCost(rank: number, discount = 0): number {
   if (rank <= 0) return 0;
-  return Math.ceil(PASSIVE_ITEM_BASE * Math.pow(PASSIVE_ITEM_GROWTH, rank - 1));
+  return Math.ceil(PASSIVE_ITEM_BASE * Math.pow(PASSIVE_ITEM_GROWTH, rank - 1) * (1 - discount));
 }
 
 export function isPassiveMaxed(rank: number, rarity: Rarity): boolean {
@@ -28,10 +31,11 @@ export function isPassiveMaxed(rank: number, rarity: Rarity): boolean {
 export function passiveUpgrade(
   rank: number,
   rarity: Rarity,
-  copies: number
+  copies: number,
+  discount = 0
 ): { rank: number; cost: number; copies: number; maxed: boolean; affordable: boolean } {
   const maxed = isPassiveMaxed(rank, rarity);
-  const cost = maxed ? 0 : passiveRankCost(rank + 1);
+  const cost = maxed ? 0 : passiveRankCost(rank + 1, discount);
   return { rank, cost, copies, maxed, affordable: !maxed && copies >= cost };
 }
 
@@ -48,7 +52,8 @@ export function levelGrowth(level: number): number {
 
 /** ponytail: one global xp curve for every character, split per rarity if pacing needs it. */
 const XP_BASE = 25;
-const XP_GROWTH = 1.15;
+/** Default steepness; the prestige tree's "XP" tier 3 perk hands callers a slightly smaller value. */
+export const XP_GROWTH = 1.15;
 
 /**
  * Kills grant this many times their currency reward as team xp. Pushed well above 1x because level
@@ -59,23 +64,23 @@ const XP_GROWTH = 1.15;
 export const XP_PER_KILL_REWARD = 3;
 
 /** Total xp a character must have accumulated to stand at `level`. */
-export function xpToReach(level: number): number {
+export function xpToReach(level: number, growth: number = XP_GROWTH): number {
   if (level <= 0) return 0;
-  return Math.ceil((XP_BASE * (Math.pow(XP_GROWTH, level) - 1)) / (XP_GROWTH - 1));
+  return Math.ceil((XP_BASE * (Math.pow(growth, level) - 1)) / (growth - 1));
 }
 
-export function levelFromXp(xp: number): number {
+export function levelFromXp(xp: number, growth: number = XP_GROWTH): number {
   let level = 0;
   // The curve is geometric, so this converges in a few dozen steps even for absurd xp totals.
-  while (xp >= xpToReach(level + 1)) level++;
+  while (xp >= xpToReach(level + 1, growth)) level++;
   return level;
 }
 
 /** Level plus how far into it the character is, for the xp bar. */
-export function xpProgress(xp: number): { level: number; into: number; need: number } {
-  const level = levelFromXp(xp);
-  const floor = xpToReach(level);
-  return { level, into: xp - floor, need: xpToReach(level + 1) - floor };
+export function xpProgress(xp: number, growth: number = XP_GROWTH): { level: number; into: number; need: number } {
+  const level = levelFromXp(xp, growth);
+  const floor = xpToReach(level, growth);
+  return { level, into: xp - floor, need: xpToReach(level + 1, growth) - floor };
 }
 
 export const NARRATOR_BASE_CLICK = 1;
