@@ -123,6 +123,23 @@ describe("portraitUrl", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1 + CAST_PAGES);
   });
 
+  it("matches a French circumflexed name against AniList's doubled-vowel romanization", async () => {
+    // "Hyûga" (in-game) vs "Hyuuga" (AniList) and "Chôji" vs "Chouji" — long vowels romanized
+    // differently on each side, neither of which a plain diacritic strip alone resolves.
+    const fetchMock = mockCastEndpoint(11, [
+      { name: { full: "Hinata Hyuuga" }, image: { large: "https://example.com/hinata.jpg" } },
+      { name: { full: "Chouji Akimichi" }, image: { large: "https://example.com/chouji.jpg" } },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await portraitUrl("Hinata Hyûga", "character", "Vowel Romanization Context")).toBe(
+      "https://example.com/hinata.jpg"
+    );
+    expect(await portraitUrl("Chôji Akimichi", "character", "Vowel Romanization Context")).toBe(
+      "https://example.com/chouji.jpg"
+    );
+  });
+
   it("with a context, never falls back to a different show's character even on a name miss", async () => {
     const fetchMock = mockCastEndpoint(5, [
       { name: { full: "Unrelated Name" }, image: { large: "https://example.com/nope.jpg" } },

@@ -21,6 +21,7 @@ const CACHE_KEY = "clicker-anime:portraits:v2";
 const NAME_OVERRIDES: Record<string, string> = {
   "Sasuke Uchiwa": "Sasuke Uchiha",
   "Itachi Uchiwa": "Itachi Uchiha",
+  Jiraya: "Jiraiya",
 };
 
 // A franchise's exact TV-series entry isn't always what `Media(search:)` resolves to — verified live
@@ -79,11 +80,19 @@ async function runQuery(graphql: string, variables: Record<string, unknown>): Pr
   }
 }
 
+// The game's French romanization writes a long vowel as a single circumflexed letter (Hyûga,
+// Chôji) — diacritic-stripping alone turns that into the plain letter (hyuga, choji). AniList's
+// romanization instead doubles the letter, or uses "ou" for a long o specifically (Hyuuga, Chouji)
+// — so after stripping accents, both sides are also run through the same "ou" → "o" and doubled
+// -vowel → single collapse, which is enough to line the two conventions up without a NAME_OVERRIDES
+// entry for every affected name (there are dozens across the cast).
 function normalize(s: string): string {
   return s
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
+    .replace(/ou/g, "o")
+    .replace(/([aeiou])\1+/g, "$1")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
