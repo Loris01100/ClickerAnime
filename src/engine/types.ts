@@ -130,6 +130,22 @@ export interface ComboDefinition {
   ability: AbilityDefinition;
 }
 
+/**
+ * A currency purchase offered in the shop panel: either copies of an item or a character not
+ * otherwise recruitable in a fight. `requiresAnimeId`, if set, gates the offer behind that anime
+ * being cleared — otherwise a high `cost` is the only barrier.
+ */
+export interface ShopOffer {
+  id: string;
+  kind: "item" | "character";
+  /** Item.id or Character.id, matching `kind` */
+  targetId: string;
+  cost: number;
+  /** items only: copies granted per purchase; defaults to 1 */
+  amount?: number;
+  requiresAnimeId?: string;
+}
+
 export interface SynergyConfig {
   /** multiplier applied when a character's arcIds include the active arc */
   matchingArcMultiplier: number;

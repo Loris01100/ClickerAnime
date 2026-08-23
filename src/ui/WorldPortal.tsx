@@ -5,7 +5,7 @@ import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
 import Sprite from "./Sprite";
 import { describeModifier } from "./describe";
 import { fmt } from "./format";
-import { IconLock } from "./icons";
+import { IconLock, IconSparkle } from "./icons";
 
 type Status = "cleared" | "current" | "available" | "locked";
 
@@ -106,7 +106,16 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
           disabled={!props.game.canTravel() && props.game.prestige().prestigePoints < props.anime.unlockCost}
           onClick={travel}
         >
-          {props.game.canTravel() ? "Partir" : `Débloquer (${props.anime.unlockCost} ✦)`}
+          <Show
+            when={props.game.canTravel()}
+            fallback={
+              <>
+                Débloquer ({props.anime.unlockCost} <IconSparkle class="coin violet" />)
+              </>
+            }
+          >
+            Partir
+          </Show>
         </button>
       </Show>
 

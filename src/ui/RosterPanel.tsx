@@ -4,7 +4,7 @@ import type { Character } from "../engine/types";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
-import { IconBookmark, IconTrophy } from "./icons";
+import { IconBookmark, IconStar, IconStarOutline, IconTrophy } from "./icons";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
 
@@ -103,7 +103,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                     >
                       <Sprite name={character.name} kind="character" anime={animeNameOf(character.animeId)} px={5} />
                       {character.name}
-                      <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                      <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
                     </button>
                     <span>{level()}</span>
                     <span>{fmt(character.baseClickPower * (1 + level()))}</span>
@@ -142,11 +142,6 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                         </button>
                       </Show>
                     </div>
-                    <Show when={!passive().maxed}>
-                      <div class="bar xp-bar" title={`${passiveItem()?.name ?? ""} — rang suivant`}>
-                        <div class="bar-fill" style={{ width: `${pct(passive().copies, passive().cost)}%` }} />
-                      </div>
-                    </Show>
                   </Show>
                 </div>
               );
@@ -174,7 +169,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                 <span class="name">
                   <Sprite name={character.name} kind="character" anime={animeNameOf(character.animeId)} px={5} />
                   {character.name}
-                  <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                  <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
                 </span>
                 <small class="muted">
                   {fmt(character.baseClickPower)} / {fmt(character.baseDps)}

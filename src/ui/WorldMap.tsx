@@ -5,7 +5,7 @@ import { spriteHue } from "./hue";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
-import { IconLock, IconPin } from "./icons";
+import { IconCheck, IconLock, IconPin } from "./icons";
 
 /** The route map of one world: its arcs on a generated snake path, with a marker on the active one. */
 export default function WorldMap(props: { game: GameStore }) {
@@ -48,7 +48,7 @@ export default function WorldMap(props: { game: GameStore }) {
                     onClick={() => setPinned(candidate.id)}
                   >
                     {candidate.name}
-                    <Show when={props.game.animeCleared(candidate.id)}> ✓</Show>
+                    <Show when={props.game.animeCleared(candidate.id)}> <IconCheck class="good" /></Show>
                   </button>
                 )}
               </For>

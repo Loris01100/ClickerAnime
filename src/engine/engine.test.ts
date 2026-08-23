@@ -22,6 +22,7 @@ import {
   isArcUnlocked,
 } from "./progression";
 import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
+import { canBuyShopOffer, shopOfferUnlocked } from "./shop";
 import {
   isPassiveMaxed,
   LEVEL_DAMAGE_STEP,
@@ -35,7 +36,7 @@ import {
   xpProgress,
   xpToReach,
 } from "./growth";
-import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy } from "./types";
+import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy, ShopOffer } from "./types";
 import { layoutArcs, MAP_COLS } from "./mapLayout";
 import {
   AUTOCLICK_INTERVAL_MS,
@@ -407,6 +408,28 @@ describe("items", () => {
     expect(rollsDrop(mob, 0.05)).toBe(true);
     expect(rollsDrop(mob, 0.5)).toBe(false);
     expect(rollsDrop(barren, 0)).toBe(false);
+  });
+});
+
+describe("shop", () => {
+  it("shopOfferUnlocked: true without a condition, or once the required anime is cleared", () => {
+    const free: ShopOffer = { id: "o1", kind: "item", targetId: "i1", cost: 10 };
+    const gated: ShopOffer = { id: "o2", kind: "item", targetId: "i1", cost: 10, requiresAnimeId: "a1" };
+    expect(shopOfferUnlocked(free, [])).toBe(true);
+    expect(shopOfferUnlocked(gated, [])).toBe(false);
+    expect(shopOfferUnlocked(gated, ["a1"])).toBe(true);
+  });
+
+  it("canBuyShopOffer: locked, unaffordable, and already-owned character all block the purchase", () => {
+    const item: ShopOffer = { id: "o1", kind: "item", targetId: "i1", cost: 10 };
+    const gatedChar: ShopOffer = { id: "o2", kind: "character", targetId: "c1", cost: 10, requiresAnimeId: "a1" };
+    expect(canBuyShopOffer(item, 10, [], [])).toBe(true);
+    expect(canBuyShopOffer(item, 9, [], [])).toBe(false);
+    expect(canBuyShopOffer(gatedChar, 10, [], [])).toBe(false);
+    expect(canBuyShopOffer(gatedChar, 10, ["a1"], [])).toBe(true);
+    expect(canBuyShopOffer(gatedChar, 10, ["a1"], ["c1"])).toBe(false);
+    // item offers stay buyable even if targetId happens to match an "owned" id — ownership only gates characters
+    expect(canBuyShopOffer(item, 10, [], ["i1"])).toBe(true);
   });
 });
 
@@ -899,6 +922,64 @@ describe("store boot", () => {
       disposeRoot();
     }
   });
+
+  it("buyShopOffer spends currency for item copies or a character, gated by cost and condition", () => {
+    const testData = {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 0,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1, reward: 100 },
+        },
+      ],
+      characters: [
+        { id: "special-char", name: "Special", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 0, baseDps: 0 },
+      ],
+      combos: [],
+      items: [{ id: "item-x", name: "X", kind: "common" as const }],
+      shop: [
+        { id: "offer-item", kind: "item" as const, targetId: "item-x", cost: 10, amount: 2 },
+        { id: "offer-char", kind: "character" as const, targetId: "special-char", cost: 20, requiresAnimeId: "ta" },
+      ],
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      // Not enough currency yet, and the character offer's anime isn't cleared yet.
+      expect(game.buyShopOffer("offer-item")).toBe(false);
+      expect(game.buyShopOffer("offer-char")).toBe(false);
+      expect(game.shopOffers().find((o) => o.offer.id === "offer-char")?.locked).toBe(true);
+
+      game.travelTo("ta");
+      game.click(); // kills the boss directly (mobsToBoss: 0), clearing the arc and its anime
+      expect(game.currency()).toBe(100);
+      expect(game.shopOffers().find((o) => o.offer.id === "offer-char")?.locked).toBe(false);
+
+      expect(game.buyShopOffer("offer-item")).toBe(true);
+      expect(game.currency()).toBe(90);
+      expect(game.countOf("item-x")).toBe(2);
+
+      expect(game.buyShopOffer("offer-char")).toBe(true);
+      expect(game.currency()).toBe(70);
+      expect(game.ownedCharacterIds()).toContain("special-char");
+      // bought once: the offer is now flagged owned (ShopPanel hides it), and can't be bought again
+      expect(game.shopOffers().find((o) => o.offer.id === "offer-char")?.owned).toBe(true);
+      expect(game.buyShopOffer("offer-char")).toBe(false);
+      expect(game.currency()).toBe(70);
+    } finally {
+      disposeRoot();
+    }
+  });
 });
 
 describe("layoutArcs", () => {
@@ -976,6 +1057,11 @@ describe("game data", () => {
     }
     for (const combo of gameData.combos) {
       for (const id of combo.requiredCharacterIds) expect(characterIds).toContain(id);
+    }
+    const animeIds = gameData.animes.map((a) => a.id);
+    for (const offer of gameData.shop ?? []) {
+      expect(offer.kind === "item" ? itemIds : characterIds).toContain(offer.targetId);
+      if (offer.requiresAnimeId) expect(animeIds).toContain(offer.requiresAnimeId);
     }
   });
 

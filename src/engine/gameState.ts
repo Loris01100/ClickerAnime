@@ -12,6 +12,7 @@ import {
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
 import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
+import { canBuyShopOffer, shopOfferUnlocked } from "./shop";
 import {
   levelFromXp,
   narratorClickPower,
@@ -79,6 +80,7 @@ import type {
   Enemy,
   Item,
   ModifierTemplate,
+  ShopOffer,
   SynergyConfig,
 } from "./types";
 
@@ -88,6 +90,8 @@ export interface GameData {
   characters: Character[];
   combos: ComboDefinition[];
   items: Item[];
+  /** absent in older/test fixtures; every reader defaults it to an empty shop */
+  shop?: ShopOffer[];
 }
 
 const TICK_MS = 200;
@@ -613,6 +617,34 @@ export function createGameStore(data: GameData) {
     return true;
   }
 
+  /** Every shop offer with the display state (locked/owned/affordable) the panel needs. */
+  function shopOffers() {
+    const clearedIds = clearedAnimes().map((a) => a.id);
+    return (data.shop ?? []).map((offer) => ({
+      offer,
+      item: offer.kind === "item" ? data.items.find((i) => i.id === offer.targetId) : undefined,
+      character: offer.kind === "character" ? data.characters.find((c) => c.id === offer.targetId) : undefined,
+      owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
+      locked: !shopOfferUnlocked(offer, clearedIds),
+      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds()),
+    }));
+  }
+
+  /** Spends the main currency on a shop offer: copies of an item, or a character not owned yet. */
+  function buyShopOffer(offerId: string): boolean {
+    const offer = (data.shop ?? []).find((o) => o.id === offerId);
+    if (!offer) return false;
+    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds())) return false;
+
+    setCurrency((c) => c - offer.cost);
+    if (offer.kind === "item") {
+      setItemCounts((counts) => ({ ...counts, [offer.targetId]: (counts[offer.targetId] ?? 0) + (offer.amount ?? 1) }));
+    } else {
+      setOwnedCharacterIds((ids) => [...ids, offer.targetId]);
+    }
+    return true;
+  }
+
   // --- actions ---
 
   /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
@@ -756,6 +788,7 @@ export function createGameStore(data: GameData) {
     setCharacterXp({});
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
+    setAbilityBlockedUntil({});
     setItemCounts({});
     setPassiveRanks({});
     setArcKills({});
@@ -821,6 +854,7 @@ export function createGameStore(data: GameData) {
     setOwnedCharacterIds([]);
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
+    setAbilityBlockedUntil({});
     setPrestige(createInitialPrestigeState());
     setCharacterXp({});
     setItemCounts({});
@@ -907,6 +941,8 @@ export function createGameStore(data: GameData) {
     passiveUpgradeOf,
     passiveCapOf,
     rankUpPassive,
+    shopOffers,
+    buyShopOffer,
     unlockedAbilities,
     synergyOf,
     achievementCounts,

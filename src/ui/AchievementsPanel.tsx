@@ -8,6 +8,7 @@ import {
 } from "../engine/achievements";
 import { describeModifier } from "./describe";
 import { fmt } from "./format";
+import { IconCheck } from "./icons";
 
 /**
  * Five lifetime ladders (kills, boss kills, recruits, common items, abilities used), each tier a
@@ -73,7 +74,7 @@ export default function AchievementsPanel(props: { game: GameStore; onClose: () 
                             kind: "percent",
                             value: achievementTierBonus(i()),
                           })}
-                          {i() < completed() ? " ✓" : ""}
+                          {i() < completed() ? <> <IconCheck class="good" /></> : null}
                         </strong>
                       </div>
                     )}

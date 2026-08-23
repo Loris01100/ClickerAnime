@@ -3,7 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
-import { IconCrown, IconStar } from "./icons";
+import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar } from "./icons";
 
 interface Pop {
   id: number;
@@ -73,11 +73,11 @@ export default function ClickStage(props: { game: GameStore }) {
       <Show when={open()}>
       <div class="arc-stepper">
         <button disabled={!neighbour(-1)} onClick={() => props.game.stepArc(-1)}>
-          ‹ {neighbour(-1)?.name ?? "—"}
+          <IconChevronLeft /> {neighbour(-1)?.name ?? "—"}
         </button>
         <span class="arc-current">{arc()?.name ?? "Aucun arc"}</span>
         <button disabled={!neighbour(1)} onClick={() => props.game.stepArc(1)}>
-          {neighbour(1)?.name ?? "—"} ›
+          {neighbour(1)?.name ?? "—"} <IconChevronRight />
         </button>
       </div>
 
@@ -118,7 +118,7 @@ export default function ClickStage(props: { game: GameStore }) {
             <Show when={timer() !== null}>
               <div class="bar timer-bar" classList={{ urgent: (timer() ?? 0) < 10_000 }}>
                 <div class="bar-fill" style={{ width: `${((timer() ?? 0) / (current().timerMs ?? 1)) * 100}%` }} />
-                <span class="bar-label">⏱ {seconds(timer() ?? 0)}</span>
+                <span class="bar-label"><IconClock /> {seconds(timer() ?? 0)}</span>
               </div>
             </Show>
           </>

@@ -333,6 +333,9 @@ small {
 .icon.blue {
   color: var(--blue);
 }
+.icon.good {
+  color: var(--good);
+}
 
 /* --- team & item tables --- */
 .member-grid {

@@ -5,6 +5,7 @@ import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
 import Sprite from "./Sprite";
 import { describeAbility, describeModifier } from "./describe";
 import { fmt } from "./format";
+import { IconStar, IconStarOutline } from "./icons";
 
 const RARITY_LABEL: Record<Character["rarity"], string> = {
   main: "Personnage principal",
@@ -67,7 +68,7 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                           dim={!owned(character)}
                         />
                         <span class="name">{character.name}</span>
-                        <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
+                        <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
                       </button>
                     )}
                   </For>

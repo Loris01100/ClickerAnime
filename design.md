@@ -422,3 +422,47 @@ densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent mêm
   bouton `Sauvegarder`/`Réinitialiser` : l'autosave (`gameState`, toutes les 5s) rend le premier
   redondant, et le hard reset reste une action du moteur (`game.hardReset`) sans point d'entrée UI
   pour l'instant plutôt qu'un bouton risquant un clic accidentel.
+
+---
+
+## 10. Aucun glyphe unicode nu — tout passe par icons.tsx
+
+Ancienne dette réglée en une passe : `◆`, `✦`, `★`/`☆`, `⏱`, `‹`/`›` et `✓` vivaient encore en
+texte brut dans plusieurs vues alors que `icons.tsx` existe précisément pour éviter ça (§0 de ce
+fichier, et le commentaire en tête d'`icons.tsx` : « remplaçant l'emoji de plateforme, pour que
+chaque glyphe s'affiche identiquement »). Tous remplacés par des SVG du même style (`viewBox`
+24×24, `currentColor`, un seul `<path>` ou `<g>` simple) : `IconDiamond` (monnaie principale),
+`IconSparkle` (points de prestige — quatre branches, volontairement distinct de la rareté à cinq
+branches), `IconStarOutline` (rareté secondaire, à côté de l'`IconStar` déjà plein pour les
+personnages principaux), `IconClock` (minuteur de boss), `IconChevronLeft`/`IconChevronRight`
+(stepper d'arc), `IconCheck` (monde/arc terminé). Coloration par classe utilitaire sur l'icône
+elle-même (`.icon.gold`, `.icon.blue`, `.icon.good` — même patron que `.coin.gold`/`.coin.violet`
+déjà en place pour la ligne de ressources), jamais de couleur câblée dans le SVG. Toute nouvelle
+vue qui a besoin d'un symbole (monnaie, statut, direction, coche) doit chercher d'abord dans
+`icons.tsx` avant d'écrire un caractère unicode — c'est la règle que ce ménage vient de faire
+respecter partout.
+
+## 11. Panneau Boutique
+
+Sous le panneau Prestige (colonne de droite), `ShopPanel.tsx` liste les achats en monnaie
+principale — copies d'objet ou personnage — avec le même vocabulaire que le reste de l'app plutôt
+qu'un système dédié :
+
+- **Une ligne = `.row` + `.name`**, le patron déjà utilisé par « À battre ici » et « Voyager » :
+  sprite ou `IconBookmark` à gauche, coût à droite dans un `<button>` (`{cout} <IconDiamond
+  class="coin gold" />`), ou un `<IconLock />` + le nom du monde requis quand l'offre est encore
+  verrouillée — même widget que les nœuds d'arc verrouillés de `ProgressPanel`/`WorldMap`.
+- **Le panneau entier se cache** (`<Show when={offers().length > 0}>`) plutôt que d'afficher une
+  section vide : tant qu'aucune offre n'existe (ou que tout est déjà possédé), il n'y a rien à
+  montrer — cohérent avec `RosterPanel`'s « À battre ici » qui fait pareil.
+- **Une offre personnage achetée disparaît** de la liste affichée (filtrée sur `owned` côté UI) ;
+  une offre objet reste affichée indéfiniment puisque les objets s'empilent. `game.shopOffers()`
+  lui-même ne filtre rien — il renvoie l'état complet (`locked`/`owned`/`affordable`) pour que le
+  composant décide de l'affichage, même patron que `passiveUpgradeOf`.
+- **Contenu actuel = placeholder.** `data/index.ts` ne définit que deux offres d'exemple pour
+  prouver le mécanisme (une copie d'objet sans condition, un personnage de Shippûden débloqué une
+  fois Naruto terminé) — le vrai contenu (quels personnages, quels objets, quels coûts) reste à
+  concevoir. Un personnage acheté doit malgré tout rester recrutable au combat quelque part :
+  `engine.test.ts` impose qu'aucun personnage ne soit "recrutable nulle part", donc une offre
+  boutique est un raccourci payant vers quelqu'un qu'on peut aussi obtenir en jouant, jamais un
+  recrutement exclusif à la boutique.

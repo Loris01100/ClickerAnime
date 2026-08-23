@@ -2,8 +2,9 @@ import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
-import { IconLock } from "./icons";
+import { IconCheck, IconLock, IconSparkle } from "./icons";
 import PrestigeTree from "./PrestigeTree";
+import ShopPanel from "./ShopPanel";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -29,7 +30,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
             <header class="panel-head">
               <PanelTitle open={isAnimeOpen(anime.id)} onToggle={() => toggleAnime(anime.id)}>
                 {anime.name}
-                <Show when={props.game.animeCleared(anime.id)}> ✓</Show>
+                <Show when={props.game.animeCleared(anime.id)}> <IconCheck class="good" /></Show>
               </PanelTitle>
               <small class="muted">x{fmt(props.game.difficultyOf(anime.id))}</small>
             </header>
@@ -99,7 +100,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
                       title="Raccourci payant : entrer sans avoir fini le monde en cours"
                       onClick={() => props.game.unlockAnime(anime.id)}
                     >
-                      {anime.unlockCost} ✦
+                      {anime.unlockCost} <IconSparkle class="coin violet" />
                     </button>
                   }
                 >
@@ -117,7 +118,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
           <PanelTitle open={prestigeOpen()} onToggle={() => setPrestigeOpen(!prestigeOpen())}>
             Prestige
           </PanelTitle>
-          <small class="muted">{props.game.prestige().prestigePoints} ✦</small>
+          <small class="muted">{props.game.prestige().prestigePoints} <IconSparkle class="coin violet" /></small>
         </header>
         <Show when={prestigeOpen()}>
         <div class="pad">
@@ -136,6 +137,8 @@ export default function ProgressPanel(props: { game: GameStore }) {
         </div>
         </Show>
       </section>
+
+      <ShopPanel game={props.game} />
 
       <Show when={treeOpen()}>
         <PrestigeTree game={props.game} onClose={() => setTreeOpen(false)} />

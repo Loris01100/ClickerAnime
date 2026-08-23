@@ -319,6 +319,21 @@ achievement counts are **not** wiped by `prestigeReset` — they are meta-progre
 as prestige points, meant to keep paying off across runs. Only `hardReset`, the full-wipe button,
 clears them.
 
+### Shop (`shop.ts`)
+
+`ShopOffer`s spend the main currency (never prestige points) on either copies of an item or a
+character not yet owned — `data.shop`, an optional `GameData` field so older test fixtures don't
+need one. `shopOfferUnlocked`/`canBuyShopOffer` are pure; `gameState`'s `shopOffers()` folds in the
+live item/character lookup plus `locked`/`owned`/`affordable` for the panel to read, and
+`buyShopOffer` is the only place currency actually changes hands. An offer's `requiresAnimeId` is
+the only gate (an anime already **cleared** — `animeCleared`, same as everywhere else); with none
+set, a high `cost` is the only barrier. Buying a character just calls the same `setOwnedCharacterIds`
+path `defeat` uses, so it is run-scoped exactly like a combat recruit: wiped by `prestigeReset` along
+with the currency that paid for it, same as the rest of a run. A character bought here must still be
+recruitable in a fight somewhere — `engine.test.ts`'s "recrutable nulle part" check covers
+`gameData.characters` regardless of a shop offer existing, so a shop character is always a paid
+shortcut to someone reachable in combat too, never an exclusive recruit.
+
 ## Content
 
 `src/data/` holds the real content, one file per world plus `index.ts`, which is the only thing the

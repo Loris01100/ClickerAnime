@@ -121,3 +121,51 @@ export const IconCoin = icon("0 0 24 24", () => (
     <path d="M12 7.2v9.6M9.3 9.4c0-1.1 1.2-1.9 2.7-1.9s2.7.7 2.7 1.7c0 2.4-5.4 1-5.4 3.4 0 1 1.2 1.8 2.7 1.8s2.7-.8 2.7-1.9" />
   </g>
 ));
+
+/** Main currency (the "argent" gagné en combat) — a cut gem, distinct from prestige's sparkle. */
+export const IconDiamond = icon("0 0 24 24", () => <path d="M12 2 22 12 12 22 2 12z" fill="currentColor" />);
+
+/** Prestige points — a four-point sparkle, distinct from the five-point rarity star. */
+export const IconSparkle = icon("0 0 24 24", () => (
+  <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" fill="currentColor" />
+));
+
+/** Rarity — filled for "main" (pairs with the existing filled IconStar), outline for "secondary". */
+export const IconStarOutline = icon("0 0 24 24", () => (
+  <path
+    d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6L12 2z"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linejoin="round"
+  />
+));
+
+export const IconClock = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3.5 2" />
+  </g>
+));
+
+export const IconChevronLeft = icon("0 0 24 24", () => (
+  <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+));
+
+export const IconChevronRight = icon("0 0 24 24", () => (
+  <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+));
+
+export const IconCheck = icon("0 0 24 24", () => (
+  <path d="M5 13l4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+));
+
+/** Boutique panel header. */
+export const IconShop = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9l1-5h14l1 5" />
+    <path d="M4 9a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0" />
+    <path d="M5 9v10h14V9" />
+    <path d="M10 19v-5h4v5" />
+  </g>
+));
