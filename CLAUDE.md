@@ -232,45 +232,69 @@ is permanent.
 
 ### The prestige tree (`prestigeTree.ts`)
 
-Five independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Ressource — each a straight
-chain of 5 tiers bought in order (`purchaseNextTier` refuses to skip ahead), costing `2, 3, 5, 8, 13`
-prestige points regardless of branch (~×1.6 growth, the same ratio as `passiveRankCost` but a base
-suited to how rare prestige points are). `gameState` keeps the tiers bought per branch in
-`prestigeTreeRanks` (`Record<categoryId, number>`) — a signal of its own, not a field on
+Five independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Ressource — each a column of
+5 nodes, and **each node is rebuyable up to 5 levels**, every level repeating the exact same effect
+(e.g. node 1's "+8% click damage" stacks to +40% at level 5). A node unlocks as soon as its
+predecessor has **just one level** bought (`isNodeUnlocked`), not once it's maxed — so several
+nodes of a branch are often purchasable, and levelling, at the same time; only a node's own 5
+levels are strictly sequential (`purchaseNodeLevel` refuses to skip one). Every level, of every
+node, costs `2, 3, 5, 8, 13` prestige points depending only on its position *within its node*
+(~×1.6 growth, the same ratio as `passiveRankCost` but reset at the start of each node rather than
+escalating across the whole branch) — a maxed node costs 31 points, a maxed branch 155, all five
+775.
+
+`gameState` keeps one 5-entry level array per branch in `prestigeTreeRanks`
+(`Record<categoryId, number[]>`, index = position - 1) — a signal of its own, not a field on
 `PrestigeState`: `prestige.ts` stays a pure `{ prestigePoints, unlockedAnimeIds }` testable without
-knowing the tree exists, and `prestigeTreeRanks` survives `prestigeReset` exactly like
-`achievementCounts` does, wiped only by `hardReset`.
+knowing the tree exists. A flat single number per branch can't represent "node 1 at 2/5, node 3 at
+1/5, the rest at 0" once a node unlocks the next at just 1 level, hence the array. `nodeLevel(levels,
+position)` reads one node's level (0..5); `nodeLevelOf(categoryId, position)` is `gameState`'s
+wrapper over it, `isNodeUnlockedFor`/`nodeCostOf` the equivalents for a node's unlock state and
+next-level price. `prestigeTreeRanks` survives `prestigeReset` exactly like `achievementCounts`
+does, wiped only by `hardReset`.
 
-Only two of the 25 effects are `ActiveModifier`s: each branch's tier 1 is a flat `clickPower`/
-`teamDps` percent, folded into `allModifiers` via `prestigeTreeContributions` next to
-`achievementContributions`. Every other effect is read directly at its point of use, gated by
-`treeTierOf(categoryId) >= tier` — `ModifierTarget` was deliberately **not** widened to cover them,
-since things like an autoclick interval, a crit chance or a pity-timer threshold have no `base` for
-`computeEffectiveStat` to operate on:
+Only two of the 25 nodes are `ActiveModifier`s: node 1 of Clic du Narrateur and of DPS Équipe, a
+flat `clickPower`/`teamDps` percent multiplied by the node's level, folded into `allModifiers` via
+`prestigeTreeContributions` next to `achievementContributions`. Every other node is read directly
+at its point of use, its magnitude scaled by `nodeLevelOf(...)` — `ModifierTarget` was deliberately
+**not** widened to cover them, since things like an autoclick interval, a crit chance or a
+pity-timer threshold have no `base` for `computeEffectiveStat` to operate on. Chance- and
+discount-style effects are clamped (`scaledChance`, `scaledDiscount`) so a high level can never
+push a chance past 100% or a cost to zero; the xp curve has its own floor (`MIN_XP_GROWTH`) so it
+can never stop being geometric:
 
-- **Clic du Narrateur** — click percent (t1); an autoclick every 2s at a fraction of click power
-  (t2, driven by the main tick's `autoClickAccumMs`); crit chance (t3); shaves time off every
-  unlocked ability's cooldown on each click (t4); a chance to fire a random unlocked ability for
-  free, via `triggerAbilityEffects` (t5, shared with abilities' normal activation path).
-- **DPS Équipe** — teamDps percent (t1); boosts an activated ability's percent/multiplier effects,
-  via `buildAbilityModifiers` (t2); softens the active arc's synergy malus, via
-  `softenedSynergyConfig` wrapping `defaultSynergyConfig` (t3); stretches an ability's buff duration
-  (t4); extends a boss's `timerMs` (t5).
-- **XP** — xp-per-grant percent, applied inside `grantXp` so every source benefits (t1); a passive
-  xp trickle each tick regardless of combat (t2); flattens the level curve by handing a reduced
-  growth constant into `levelFromXp`/`xpProgress` (t3, see `growth.ts`'s optional `growth` param);
-  a newly recruited character gets a flat xp head start, via `grantXpTo` (t4); boss kills grant
-  extra xp on top of the usual multiple of their reward (t5).
-- **Objets** — boosts the effective `dropChance` passed into `rollsDrop` (t1); discounts
-  `passiveRankCost` (t2, see its optional `discount` param); a chance at a bonus copy on top of a
-  successful common drop (t3); a pity timer — `killsSinceDrop` per arc forces a common after a dry
-  streak (t4); a small chance an item-less enemy hands over the arc's common anyway (t5).
-- **Ressource** — currency-per-kill percent (t1); lowers the `scale` `calculatePrestigeGain` uses
-  (t2); adds to `PRESTIGE_PER_ARC_CLEAR` (t3); discounts an anime's `unlockCost` (t4); a chance to
-  double the points a `prestigeReset` banks, rolled in `gameState` and passed as `applyPrestige`'s
-  `gainMultiplier` so `prestige.ts` itself stays free of randomness (t5).
+- **Clic du Narrateur** — click percent (node 1); an autoclick every 2s, at a level-scaled fraction
+  of click power (node 2, driven by the main tick's `autoClickAccumMs`); crit chance (node 3);
+  shaves time off every unlocked ability's cooldown on each click, scaled by level (node 4); a
+  chance to fire a random unlocked ability for free, via `triggerAbilityEffects` (node 5, shared
+  with abilities' normal activation path).
+- **DPS Équipe** — teamDps percent (node 1); boosts an activated ability's percent/multiplier
+  effects, via `buildAbilityModifiers` (node 2); softens the active arc's synergy malus further per
+  level, via `softenedSynergyConfig` wrapping `defaultSynergyConfig` (node 3); stretches an
+  ability's buff duration (node 4); extends a boss's `timerMs` (node 5).
+- **XP** — xp-per-grant percent, applied inside `grantXp` so every source benefits (node 1); a
+  passive xp trickle each tick regardless of combat (node 2); flattens the level curve further per
+  level by handing a reduced growth constant into `levelFromXp`/`xpProgress` (node 3, see
+  `growth.ts`'s optional `growth` param); a newly recruited character gets a flat xp head start,
+  via `grantXpTo` (node 4); boss kills grant extra xp on top of the usual multiple of their reward
+  (node 5).
+- **Objets** — boosts the effective `dropChance` passed into `rollsDrop` (node 1); discounts
+  `passiveRankCost` (node 2, see its optional `discount` param); a chance at a bonus copy on top of
+  a successful common drop (node 3); a pity timer — `killsSinceDrop` per arc forces a common after
+  a streak that shortens by a fixed amount per level (node 4); a small chance an item-less enemy
+  hands over the arc's common anyway (node 5).
+- **Ressource** — currency-per-kill percent (node 1); lowers the `scale` `calculatePrestigeGain`
+  uses, further per level (node 2); adds to `PRESTIGE_PER_ARC_CLEAR` per level (node 3); discounts
+  an anime's `unlockCost` (node 4); a chance to double the points a `prestigeReset` banks, rolled
+  in `gameState` and passed as `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays
+  free of randomness (node 5).
 
-See `design.md` §5 for the intended `PrestigeTree.tsx` UI — not built yet.
+`PrestigeTree.tsx` is the built UI — see `design.md` §5 for its node anatomy and layout. Its
+`icon()` helper in `ui/icons.tsx` needed a fix while building it: `body` must be a factory
+(`() => JSX.Element`), not a materialized JSX value — Solid's JSX makes real DOM nodes, so a value
+evaluated once at module load is one shared node that only the last simultaneous on-screen instance
+keeps (25 nodes reusing 5 icons made this obvious, but any icon rendered more than once at a time,
+e.g. `IconLock` on several locked map nodes, was equally affected).
 
 ### Abilities
 

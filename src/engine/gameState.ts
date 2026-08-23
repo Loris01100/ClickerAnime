@@ -47,16 +47,23 @@ import {
   DROP_CHANCE_BOOST,
   FREE_ABILITY_TRIGGER_CHANCE,
   GHOST_LOOT_CHANCE,
-  isTierUnlocked,
+  isNodeUnlocked,
+  MIN_XP_GROWTH,
+  nodeCost,
+  nodeLevel,
+  nodeLevels,
   PASSIVE_RANK_DISCOUNT,
   PITY_KILLS_THRESHOLD,
+  PITY_REDUCTION_PER_LEVEL,
   prestigeTreeContributions,
   PRESTIGE_SCALE_REDUCTION,
   PRESTIGE_TREE_CATEGORIES,
-  purchaseNextTier,
-  purchasedTier,
+  purchaseNodeLevel,
   RECRUIT_XP_BONUS,
+  scaledChance,
+  scaledDiscount,
   softenedSynergyConfig,
+  totalLevels,
   UNLOCK_COST_DISCOUNT,
   XP_GAIN_PERCENT,
   XP_GROWTH_REDUCTION,
@@ -85,7 +92,9 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-const SAVE_KEY = "clicker-anime:save:v7";
+// v9: prestigeTreeRanks changed shape from one flat number per branch (0..25) to a 5-entry level
+// array (one per node) — an old save's numbers would silently misrepresent very different progress.
+const SAVE_KEY = "clicker-anime:save:v9";
 
 interface SaveFile {
   currency: number;
@@ -103,7 +112,7 @@ interface SaveFile {
   /** absent on a save from before achievements existed; every reader defaults it to {} */
   achievementCounts?: Record<string, number>;
   /** absent on a save from before the prestige tree existed; every reader defaults it to {} */
-  prestigeTreeRanks?: Record<string, number>;
+  prestigeTreeRanks?: Record<string, number[]>;
 }
 
 // A save from another build must never break the boot — fall back to a fresh run instead.
@@ -142,9 +151,9 @@ export function createGameStore(data: GameData) {
   const [achievementCounts, setAchievementCounts] = createSignal<Record<string, number>>(
     saved?.achievementCounts ?? {}
   );
-  // Tiers bought in the prestige skill tree (see prestigeTree.ts) — meta-progression like prestige
-  // points themselves: survives prestigeReset, only hardReset wipes it.
-  const [prestigeTreeRanks, setPrestigeTreeRanks] = createSignal<Record<string, number>>(
+  // Levels bought per node of the prestige skill tree (see prestigeTree.ts) — meta-progression like
+  // prestige points themselves: survives prestigeReset, only hardReset wipes it.
+  const [prestigeTreeRanks, setPrestigeTreeRanks] = createSignal<Record<string, number[]>>(
     saved?.prestigeTreeRanks ?? {}
   );
   // Kills since the last item drop, per arc — feeds the "Objets" tier 4 pity timer. Transient like
@@ -170,16 +179,29 @@ export function createGameStore(data: GameData) {
   // so the player is never stuck. Also transient — a reload forgets it, like the rest of combat.
   const [bossRetreatArcIds, setBossRetreatArcIds] = createSignal<string[]>([]);
 
-  /** How many tiers of one prestige-tree branch are bought — see prestigeTree.ts for what each unlocks. */
-  const treeTierOf = (categoryId: string) => purchasedTier(prestigeTreeRanks(), categoryId);
+  /** Total levels bought in one prestige-tree branch (0..25) — see prestigeTree.ts for the model. */
+  const branchLevelsOf = (categoryId: string) => totalLevels(nodeLevels(prestigeTreeRanks(), categoryId));
 
-  const effectiveXpGrowth = createMemo(() =>
-    isTierUnlocked(prestigeTreeRanks(), "xp", 3) ? XP_GROWTH - XP_GROWTH_REDUCTION : XP_GROWTH
-  );
+  /** How many of a specific node's 5 levels are bought (0..5) — see prestigeTree.ts's `nodeLevel`. */
+  const nodeLevelOf = (categoryId: string, position: number) =>
+    nodeLevel(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
-  /** Synergy malus softened once "DPS Équipe" tier 3 is bought — see softenedSynergyConfig. */
+  /** A node unlocks once its predecessor has ≥1 level; node 1 is always unlocked. */
+  const isNodeUnlockedFor = (categoryId: string, position: number) =>
+    isNodeUnlocked(nodeLevels(prestigeTreeRanks(), categoryId), position);
+
+  /** What the next level of a specific node costs, or null if it's locked or already maxed. */
+  const nodeCostOf = (categoryId: string, position: number) =>
+    nodeCost(nodeLevels(prestigeTreeRanks(), categoryId), position);
+
+  const effectiveXpGrowth = createMemo(() => {
+    const level = nodeLevelOf("xp", 3);
+    return level > 0 ? Math.max(MIN_XP_GROWTH, XP_GROWTH - XP_GROWTH_REDUCTION * level) : XP_GROWTH;
+  });
+
+  /** Synergy malus softened by "DPS Équipe" node 3's level — see softenedSynergyConfig. */
   const activeSynergyConfig = createMemo<SynergyConfig>(() =>
-    softenedSynergyConfig(defaultSynergyConfig, treeTierOf("teamDps") >= 3)
+    softenedSynergyConfig(defaultSynergyConfig, nodeLevelOf("teamDps", 3))
   );
 
   const activeArc = createMemo<Arc | null>(() => data.arcs.find((a) => a.id === activeArcId()) ?? null);
@@ -265,10 +287,11 @@ export function createGameStore(data: GameData) {
     getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos, evolvedCharacterIds())
   );
 
-  /** Currency threshold worth one prestige point — lowered by the "Ressource" tree tier 2 perk. */
-  const prestigeScale = createMemo(() =>
-    treeTierOf("resource") >= 2 ? 1_000_000 * (1 - PRESTIGE_SCALE_REDUCTION) : 1_000_000
-  );
+  /** Currency threshold worth one prestige point — lowered by "Ressource" node 2's level. */
+  const prestigeScale = createMemo(() => {
+    const level = nodeLevelOf("resource", 2);
+    return level > 0 ? 1_000_000 * (1 - scaledDiscount(PRESTIGE_SCALE_REDUCTION, level)) : 1_000_000;
+  });
 
   /** Prestige points the player would bank by resetting right now. */
   const pendingPrestigeGain = createMemo(() => calculatePrestigeGain(lifetimeEarned(), prestigeScale()));
@@ -363,8 +386,9 @@ export function createGameStore(data: GameData) {
     setEnemyMaxHp(hp);
     setEnemyHpLeft(hp);
     const isBoss = next.id === arc.boss.id;
+    const timerLevel = nodeLevelOf("teamDps", 5);
     const timerMs =
-      isBoss && next.timerMs && treeTierOf("teamDps") >= 5 ? next.timerMs * (1 + BOSS_TIMER_BOOST) : next.timerMs;
+      isBoss && next.timerMs && timerLevel > 0 ? next.timerMs * (1 + BOSS_TIMER_BOOST * timerLevel) : next.timerMs;
     setTimerDeadline(timerMs ? Date.now() + timerMs : null);
   }
 
@@ -372,8 +396,9 @@ export function createGameStore(data: GameData) {
     const arc = activeArc();
     if (!arc) return;
 
+    const currencyLevel = nodeLevelOf("resource", 1);
     const baseReward = enemyReward(target, currentDifficulty());
-    const reward = treeTierOf("resource") >= 1 ? baseReward * (1 + CURRENCY_GAIN_PERCENT) : baseReward;
+    const reward = currencyLevel > 0 ? baseReward * (1 + CURRENCY_GAIN_PERCENT * currencyLevel) : baseReward;
     setCurrency((c) => c + reward);
     setLifetimeEarned((l) => l + reward);
 
@@ -384,19 +409,23 @@ export function createGameStore(data: GameData) {
     }
 
     const isBoss = target.id === arc.boss.id;
+    const bossXpLevel = nodeLevelOf("xp", 5);
     // xp is a multiple of the currency reward — see XP_PER_KILL_REWARD — so it scales with the
     // world just like currency does, only harder.
-    const xpAmount = reward * XP_PER_KILL_REWARD * (isBoss && treeTierOf("xp") >= 5 ? 1 + BOSS_XP_BOOST : 1);
+    const xpAmount = reward * XP_PER_KILL_REWARD * (isBoss && bossXpLevel > 0 ? 1 + BOSS_XP_BOOST * bossXpLevel : 1);
     grantXp(xpAmount);
-    if (isNewRecruit && treeTierOf("xp") >= 4) grantXpTo(target.characterId!, RECRUIT_XP_BONUS);
+    const recruitBonusLevel = nodeLevelOf("xp", 4);
+    if (isNewRecruit && recruitBonusLevel > 0) {
+      grantXpTo(target.characterId!, RECRUIT_XP_BONUS * recruitBonusLevel);
+    }
 
     maybeDropItem(target, arc);
 
     if (isBoss) {
       if (!clearedArcIds().includes(arc.id)) {
         setClearedArcIds((ids) => [...ids, arc.id]);
-        const arcClearGain =
-          treeTierOf("resource") >= 3 ? PRESTIGE_PER_ARC_CLEAR + ARC_CLEAR_BONUS : PRESTIGE_PER_ARC_CLEAR;
+        const arcClearLevel = nodeLevelOf("resource", 3);
+        const arcClearGain = PRESTIGE_PER_ARC_CLEAR + ARC_CLEAR_BONUS * arcClearLevel;
         setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + arcClearGain }));
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
@@ -417,23 +446,29 @@ export function createGameStore(data: GameData) {
 
   /**
    * Uniques are one copy only; commons stack, so farming a zone keeps paying into the click. Beyond
-   * the base roll, the "Objets" tree can boost the drop chance (tier 1), roll a bonus copy (tier 3),
-   * force a drop after a dry streak (tier 4, tracked in `killsSinceDrop`) and let an item-less enemy
-   * still hand over the arc's common at low odds (tier 5).
+   * the base roll, the "Objets" tree can boost the drop chance (node 1), roll a bonus copy (node 3),
+   * force a drop after a dry streak (node 4, tracked in `killsSinceDrop`) and let an item-less enemy
+   * still hand over the arc's common at low odds (node 5).
    */
   function maybeDropItem(target: Enemy, arc: Arc) {
-    const tier = treeTierOf("items");
+    const dropChanceLevel = nodeLevelOf("items", 1);
+    const doubleDropLevel = nodeLevelOf("items", 3);
+    const pityLevel = nodeLevelOf("items", 4);
+    const ghostLootLevel = nodeLevelOf("items", 5);
     let dropped = false;
 
     if (target.itemId) {
       const baseChance = target.dropChance ?? 1;
-      const boostedChance = tier >= 1 ? Math.min(1, baseChance * (1 + DROP_CHANCE_BOOST)) : baseChance;
+      const boostedChance =
+        dropChanceLevel > 0 ? Math.min(1, baseChance * (1 + DROP_CHANCE_BOOST * dropChanceLevel)) : baseChance;
       if (rollsDrop({ ...target, dropChance: boostedChance }, Math.random())) {
         const item = data.items.find((i) => i.id === target.itemId);
         if (item && !(item.kind === "unique" && countOf(item.id) > 0)) {
           grantItem(item);
           dropped = true;
-          if (tier >= 3 && item.kind === "common" && Math.random() < DOUBLE_DROP_CHANCE) grantItem(item);
+          if (doubleDropLevel > 0 && item.kind === "common" && Math.random() < scaledChance(DOUBLE_DROP_CHANCE, doubleDropLevel)) {
+            grantItem(item);
+          }
         }
       }
     }
@@ -446,16 +481,19 @@ export function createGameStore(data: GameData) {
     const streak = (killsSinceDrop()[arc.id] ?? 0) + 1;
     setKillsSinceDrop((k) => ({ ...k, [arc.id]: streak }));
 
-    if (tier >= 4 && streak >= PITY_KILLS_THRESHOLD) {
-      const common = arcCommonItem(arc);
-      if (common) {
-        grantItem(common);
-        setKillsSinceDrop((k) => ({ ...k, [arc.id]: 0 }));
-        return;
+    if (pityLevel > 0) {
+      const threshold = PITY_KILLS_THRESHOLD - PITY_REDUCTION_PER_LEVEL * (pityLevel - 1);
+      if (streak >= threshold) {
+        const common = arcCommonItem(arc);
+        if (common) {
+          grantItem(common);
+          setKillsSinceDrop((k) => ({ ...k, [arc.id]: 0 }));
+          return;
+        }
       }
     }
 
-    if (tier >= 5 && !target.itemId && Math.random() < GHOST_LOOT_CHANCE) {
+    if (ghostLootLevel > 0 && !target.itemId && Math.random() < scaledChance(GHOST_LOOT_CHANCE, ghostLootLevel)) {
       const common = arcCommonItem(arc);
       if (common) grantItem(common);
     }
@@ -474,24 +512,28 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * The narrator's click. Beyond raw damage, the "Clic du Narrateur" tree can crit (tier 3), shave
-   * time off every unlocked ability's cooldown (tier 4), and has a small chance to fire one of them
-   * for free (tier 5).
+   * The narrator's click. Beyond raw damage, the "Clic du Narrateur" tree can crit (node 3), shave
+   * time off every unlocked ability's cooldown (node 4), and has a small chance to fire one of them
+   * for free (node 5).
    */
   function click() {
-    const tier = treeTierOf("narratorClick");
-    const power = tier >= 3 && Math.random() < CRIT_CHANCE ? clickPower() * CRIT_MULTIPLIER : clickPower();
+    const critLevel = nodeLevelOf("narratorClick", 3);
+    const power =
+      critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel) ? clickPower() * CRIT_MULTIPLIER : clickPower();
     const dealt = dealDamage(power);
 
-    if (tier >= 4) {
+    const cooldownLevel = nodeLevelOf("narratorClick", 4);
+    if (cooldownLevel > 0) {
+      const reduction = CLICK_COOLDOWN_REDUCTION_MS * cooldownLevel;
       setAbilityLastUsed((used) => {
         const next: Record<string, number> = {};
-        for (const [id, at] of Object.entries(used)) next[id] = at - CLICK_COOLDOWN_REDUCTION_MS;
+        for (const [id, at] of Object.entries(used)) next[id] = at - reduction;
         return next;
       });
     }
 
-    if (tier >= 5 && Math.random() < FREE_ABILITY_TRIGGER_CHANCE) {
+    const freeTriggerLevel = nodeLevelOf("narratorClick", 5);
+    if (freeTriggerLevel > 0 && Math.random() < scaledChance(FREE_ABILITY_TRIGGER_CHANCE, freeTriggerLevel)) {
       const candidates = unlockedAbilities();
       if (candidates.length > 0) {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
@@ -528,11 +570,12 @@ export function createGameStore(data: GameData) {
 
   /**
    * Every kill trains the whole team equally; levels are uncapped so this never stops paying.
-   * Boosted by the "XP" tree tier 1 — a flat percent on every grant, whatever its source.
+   * Boosted by "XP" node 1's level — a flat percent on every grant, whatever its source.
    */
   function grantXp(amount: number) {
     if (amount <= 0) return;
-    const boosted = treeTierOf("xp") >= 1 ? amount * (1 + XP_GAIN_PERCENT) : amount;
+    const xpGainLevel = nodeLevelOf("xp", 1);
+    const boosted = xpGainLevel > 0 ? amount * (1 + XP_GAIN_PERCENT * xpGainLevel) : amount;
     setCharacterXp((xp) => {
       const next = { ...xp };
       for (const id of ownedCharacterIds()) next[id] = (next[id] ?? 0) + boosted;
@@ -552,7 +595,8 @@ export function createGameStore(data: GameData) {
   }
 
   function passiveUpgradeOf(character: Character) {
-    const discount = treeTierOf("items") >= 2 ? PASSIVE_RANK_DISCOUNT : 0;
+    const level = nodeLevelOf("items", 2);
+    const discount = level > 0 ? scaledDiscount(PASSIVE_RANK_DISCOUNT, level) : 0;
     return passiveUpgrade(passiveRankOf(character), character.rarity, passiveCopiesOf(character), discount);
   }
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
@@ -622,7 +666,8 @@ export function createGameStore(data: GameData) {
   function unlockAnime(animeId: string) {
     const anime = data.animes.find((a) => a.id === animeId);
     if (!anime || !animeAvailable(animeId)) return false;
-    const discount = treeTierOf("resource") >= 4 ? UNLOCK_COST_DISCOUNT : 0;
+    const unlockLevel = nodeLevelOf("resource", 4);
+    const discount = unlockLevel > 0 ? scaledDiscount(UNLOCK_COST_DISCOUNT, unlockLevel) : 0;
     const cost = Math.max(0, Math.ceil(anime.unlockCost * (1 - discount)));
     if (!canUnlockAnime(prestige(), animeId, cost)) return false;
     setPrestige((p) => unlockAnimeState(p, animeId, cost));
@@ -631,24 +676,27 @@ export function createGameStore(data: GameData) {
 
   /**
    * An ability's effects, ready to drop into `temporaryModifiers`. The "DPS Équipe" tree can boost
-   * a percent/multiplier effect's magnitude (tier 2) and stretch its duration (tier 4) — flat effects
-   * are left alone since "damage boost" is meant to read as a percent, not a flat bump.
+   * a percent/multiplier effect's magnitude (node 2) and stretch its duration (node 4) — flat
+   * effects are left alone since "damage boost" is meant to read as a percent, not a flat bump.
    */
   function buildAbilityModifiers(ability: AbilityDefinition): ActiveModifier[] {
     const nowMs = Date.now();
-    const damageBoosted = treeTierOf("teamDps") >= 2;
-    const duration = treeTierOf("teamDps") >= 4 ? ability.durationMs * (1 + ABILITY_DURATION_BOOST) : ability.durationMs;
+    const damageBoostLevel = nodeLevelOf("teamDps", 2);
+    const durationLevel = nodeLevelOf("teamDps", 4);
+    const duration =
+      durationLevel > 0 ? ability.durationMs * (1 + ABILITY_DURATION_BOOST * durationLevel) : ability.durationMs;
     return ability.effects.map((effect) => ({
       ...effect,
-      value: damageBoosted ? boostedAbilityValue(effect) : effect.value,
+      value: damageBoostLevel > 0 ? boostedAbilityValue(effect, damageBoostLevel) : effect.value,
       sourceId: ability.id,
       expiresAt: nowMs + duration,
     }));
   }
 
-  function boostedAbilityValue(effect: ModifierTemplate): number {
-    if (effect.kind === "percent") return effect.value * (1 + ABILITY_DAMAGE_BOOST);
-    if (effect.kind === "multiplier") return 1 + (effect.value - 1) * (1 + ABILITY_DAMAGE_BOOST);
+  function boostedAbilityValue(effect: ModifierTemplate, level: number): number {
+    const boost = ABILITY_DAMAGE_BOOST * level;
+    if (effect.kind === "percent") return effect.value * (1 + boost);
+    if (effect.kind === "multiplier") return 1 + (effect.value - 1) * (1 + boost);
     return effect.value;
   }
 
@@ -688,8 +736,9 @@ export function createGameStore(data: GameData) {
    * faster.
    */
   function prestigeReset() {
-    // "Ressource" tier 5: a flat chance to double the points this reset banks.
-    const gainMultiplier = treeTierOf("resource") >= 5 && Math.random() < DOUBLE_PRESTIGE_CHANCE ? 2 : 1;
+    // "Ressource" node 5: a chance to double the points this reset banks, scaling with its level.
+    const doubleLevel = nodeLevelOf("resource", 5);
+    const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
     setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), gainMultiplier));
     setCurrency(0);
     setLifetimeEarned(0);
@@ -778,21 +827,15 @@ export function createGameStore(data: GameData) {
     setEnemy(null);
   }
 
-  /** Buys the next tier of one prestige-tree branch, if a point is owned and it's affordable. */
-  function purchaseTreeTier(categoryId: string): boolean {
+  /** Buys the next level of one specific node, if it's unlocked, not maxed, and affordable. */
+  function purchaseTreeLevel(categoryId: string, position: number): boolean {
     const category = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === categoryId);
     if (!category) return false;
-    const result = purchaseNextTier(prestige().prestigePoints, prestigeTreeRanks(), category);
+    const result = purchaseNodeLevel(prestige().prestigePoints, prestigeTreeRanks(), category, position);
     if (!result) return false;
     setPrestige((p) => ({ ...p, prestigePoints: result.prestigePoints }));
     setPrestigeTreeRanks(result.ranks);
     return true;
-  }
-
-  /** What the next tier of a branch costs, or null once it's fully bought. */
-  function nextTreeTierCost(categoryId: string): number | null {
-    const category = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === categoryId);
-    return category?.nodes[treeTierOf(categoryId)]?.cost ?? null;
   }
 
   spawnNext();
@@ -805,18 +848,20 @@ export function createGameStore(data: GameData) {
     dealDamage(teamDps() * deltaSeconds);
     checkTimer(nowMs);
 
-    if (treeTierOf("narratorClick") >= 2) {
+    const autoClickLevel = nodeLevelOf("narratorClick", 2);
+    if (autoClickLevel > 0) {
       const accumMs = autoClickAccumMs() + deltaMs;
       if (accumMs >= AUTOCLICK_INTERVAL_MS) {
-        dealDamage(clickPower() * AUTOCLICK_POWER_FRACTION);
+        dealDamage(clickPower() * Math.min(1, AUTOCLICK_POWER_FRACTION * autoClickLevel));
         setAutoClickAccumMs(accumMs % AUTOCLICK_INTERVAL_MS);
       } else {
         setAutoClickAccumMs(accumMs);
       }
     }
 
-    if (treeTierOf("xp") >= 2 && ownedCharacterIds().length > 0) {
-      grantXp(XP_PASSIVE_PER_SECOND * deltaSeconds);
+    const xpTrickleLevel = nodeLevelOf("xp", 2);
+    if (xpTrickleLevel > 0 && ownedCharacterIds().length > 0) {
+      grantXp(XP_PASSIVE_PER_SECOND * xpTrickleLevel * deltaSeconds);
     }
   }, TICK_MS);
   const autosave = setInterval(save, AUTOSAVE_MS);
@@ -856,9 +901,11 @@ export function createGameStore(data: GameData) {
     synergyOf,
     achievementCounts,
     // prestige tree
-    treeTierOf,
-    purchaseTreeTier,
-    nextTreeTierCost,
+    branchLevelsOf,
+    nodeLevelOf,
+    isNodeUnlockedFor,
+    nodeCostOf,
+    purchaseTreeLevel,
     // combat
     enemy,
     enemyHpLeft,

@@ -7,7 +7,13 @@ import type { JSX } from "solid-js";
  */
 type IconProps = { size?: number | string; class?: string };
 
-function icon(viewBox: string, body: JSX.Element) {
+/**
+ * `body` is a factory, not a materialized JSX value: Solid's JSX produces real DOM nodes, so a
+ * value evaluated once at module load would be one shared node — the last simultaneous instance
+ * on screen would steal it from every earlier one (e.g. several locked nodes rendering the same
+ * `IconLock` at once). Calling `body()` fresh per instance gives each render its own nodes.
+ */
+function icon(viewBox: string, body: () => JSX.Element) {
   return (props: IconProps) => (
     <svg
       class={`icon ${props.class ?? ""}`}
@@ -16,34 +22,27 @@ function icon(viewBox: string, body: JSX.Element) {
       height={props.size ?? "1em"}
       aria-hidden="true"
     >
-      {body}
+      {body()}
     </svg>
   );
 }
 
-export const IconLock = icon(
-  "0 0 24 24",
+export const IconLock = icon("0 0 24 24", () => (
   <>
     <path d="M7 10V8a5 5 0 0 1 10 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     <rect x="5" y="10" width="14" height="10" rx="2" fill="currentColor" />
   </>
-);
+));
 
-export const IconCrown = icon(
-  "0 0 24 24",
+export const IconCrown = icon("0 0 24 24", () => (
   <path d="M4 18h16l1-9-5 4-4-7-4 7-5-4 1 9z M4 19h16v2H4z" fill="currentColor" />
-);
+));
 
-export const IconStar = icon(
-  "0 0 24 24",
-  <path
-    d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6L12 2z"
-    fill="currentColor"
-  />
-);
+export const IconStar = icon("0 0 24 24", () => (
+  <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6L12 2z" fill="currentColor" />
+));
 
-export const IconTrophy = icon(
-  "0 0 24 24",
+export const IconTrophy = icon("0 0 24 24", () => (
   <>
     <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" fill="currentColor" />
     <path d="M7 5H4a3 3 0 0 0 3 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
@@ -52,44 +51,61 @@ export const IconTrophy = icon(
     <path d="M9 17h6l1 2H8l1-2z" fill="currentColor" />
     <rect x="7" y="19" width="10" height="2" rx="1" fill="currentColor" />
   </>
-);
+));
 
-export const IconBookmark = icon("0 0 24 24", <path d="M6 3h12v18l-6-4-6 4V3z" fill="currentColor" />);
+export const IconBookmark = icon("0 0 24 24", () => <path d="M6 3h12v18l-6-4-6 4V3z" fill="currentColor" />);
 
-export const IconGlobe = icon(
-  "0 0 24 24",
+export const IconGlobe = icon("0 0 24 24", () => (
   <g fill="none" stroke="currentColor" stroke-width="1.7">
     <circle cx="12" cy="12" r="9" />
     <ellipse cx="12" cy="12" rx="4" ry="9" />
     <path d="M3.3 9h17.4M3.3 15h17.4" />
   </g>
-);
+));
 
-export const IconMonitor = icon(
-  "0 0 24 24",
+export const IconMonitor = icon("0 0 24 24", () => (
   <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
     <rect x="3" y="4" width="18" height="12" rx="2" />
     <path d="M8 20h8M12 16v4" />
   </g>
-);
+));
 
-export const IconSun = icon(
-  "0 0 24 24",
+export const IconSun = icon("0 0 24 24", () => (
   <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
     <circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none" />
     <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
   </g>
-);
+));
 
-export const IconPin = icon(
-  "0 0 24 24",
+export const IconPin = icon("0 0 24 24", () => (
   <>
     <path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8z" fill="currentColor" />
     <circle cx="12" cy="10" r="2.6" fill="var(--panel)" />
   </>
-);
+));
 
-export const IconMoon = icon(
-  "0 0 24 24",
+export const IconMoon = icon("0 0 24 24", () => (
   <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="currentColor" />
-);
+));
+
+/** Prestige tree — "Clic du Narrateur" branch. */
+export const IconCursor = icon("0 0 24 24", () => <path d="M4 4l6.5 16 2-6.5L19 11.5 4 4z" fill="currentColor" />);
+
+/** Prestige tree — "DPS Équipe" branch. */
+export const IconBolt = icon("0 0 24 24", () => <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor" />);
+
+/** Prestige tree — "XP" branch. */
+export const IconBook = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 5.5c2.2-1 5-1 8 .3V19c-3-1.3-5.8-1.3-8-.3V5.5z" />
+    <path d="M20 5.5c-2.2-1-5-1-8 .3V19c3-1.3 5.8-1.3 8-.3V5.5z" />
+  </g>
+));
+
+/** Prestige tree — "Ressource" branch. */
+export const IconCoin = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.2v9.6M9.3 9.4c0-1.1 1.2-1.9 2.7-1.9s2.7.7 2.7 1.7c0 2.4-5.4 1-5.4 3.4 0 1 1.2 1.8 2.7 1.8s2.7-.8 2.7-1.9" />
+  </g>
+));

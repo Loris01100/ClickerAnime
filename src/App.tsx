@@ -5,13 +5,14 @@ import { gameData } from "./data";
 import AchievementsPanel from "./ui/AchievementsPanel";
 import ClickStage from "./ui/ClickStage";
 import Codex from "./ui/Codex";
+import PrestigeTree from "./ui/PrestigeTree";
 import WorldMap from "./ui/WorldMap";
 import WorldPortal from "./ui/WorldPortal";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
-import { IconGlobe, IconMonitor, IconMoon, IconSun, IconTrophy } from "./ui/icons";
+import { IconCrown, IconGlobe, IconMonitor, IconMoon, IconSun, IconTrophy } from "./ui/icons";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
@@ -21,6 +22,7 @@ export default function App() {
   const [codexFocusId, setCodexFocusId] = createSignal<string | undefined>();
   const [portalOpen, setPortalOpen] = createSignal(false);
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
+  const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
 
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
@@ -81,6 +83,9 @@ export default function App() {
           <button onClick={() => setAchievementsOpen(true)}>
             <IconTrophy /> Succès
           </button>
+          <button onClick={() => setPrestigeTreeOpen(true)}>
+            <IconCrown /> Prestige
+          </button>
           <button onClick={() => game.save()}>Sauvegarder</button>
           <button onClick={exportSave}>Exporter</button>
           <button onClick={() => importInput?.click()}>Importer</button>
@@ -120,6 +125,10 @@ export default function App() {
 
       <Show when={achievementsOpen()}>
         <AchievementsPanel game={game} onClose={() => setAchievementsOpen(false)} />
+      </Show>
+
+      <Show when={prestigeTreeOpen()}>
+        <PrestigeTree game={game} onClose={() => setPrestigeTreeOpen(false)} />
       </Show>
     </>
   );

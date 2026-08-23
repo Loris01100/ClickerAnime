@@ -40,16 +40,22 @@ import { layoutArcs, MAP_COLS } from "./mapLayout";
 import {
   AUTOCLICK_INTERVAL_MS,
   AUTOCLICK_POWER_FRACTION,
-  canPurchaseNextTier,
+  canPurchaseNodeLevel,
   CURRENCY_GAIN_PERCENT,
-  isTierUnlocked,
+  isNodeUnlocked,
+  LEVEL_COSTS,
+  LEVELS_PER_BRANCH,
+  LEVELS_PER_NODE,
+  nodeCost,
+  nodeLevel,
+  nodeLevels,
   NARRATOR_CLICK_PERCENT,
   prestigeTreeContributions,
   PRESTIGE_TREE_CATEGORIES,
-  purchaseNextTier,
-  purchasedTier,
+  purchaseNodeLevel,
   softenedSynergyConfig,
   TEAM_DPS_PERCENT,
+  totalLevels,
   UNLOCK_COST_DISCOUNT,
   XP_GAIN_PERCENT,
 } from "./prestigeTree";
@@ -940,52 +946,97 @@ describe("universe order", () => {
 describe("prestige tree — pure functions", () => {
   const categoryOf = (id: string) => PRESTIGE_TREE_CATEGORIES.find((c) => c.id === id)!;
 
-  it("starts fully locked", () => {
-    expect(purchasedTier({}, "xp")).toBe(0);
-    expect(isTierUnlocked({}, "xp", 1)).toBe(false);
+  it("starts fully locked except node 1", () => {
+    expect(nodeLevels({}, "xp")).toEqual([0, 0, 0, 0, 0]);
+    expect(isNodeUnlocked([0, 0, 0, 0, 0], 1)).toBe(true);
+    expect(isNodeUnlocked([0, 0, 0, 0, 0], 2)).toBe(false);
   });
 
-  it("buys tiers of a branch in order, deducting their cost", () => {
+  it("unlocks a node as soon as its predecessor has just one level, not once it's maxed", () => {
+    expect(isNodeUnlocked([1, 0, 0, 0, 0], 2)).toBe(true);
+    expect(isNodeUnlocked([1, 0, 0, 0, 0], 3)).toBe(false); // node 2 itself still has 0 levels
+    expect(isNodeUnlocked([1, 1, 0, 0, 0], 3)).toBe(true);
+  });
+
+  it("reads one node's level out of the branch's level array", () => {
+    expect(nodeLevel([3, 1, 0, 0, 0], 1)).toBe(3);
+    expect(nodeLevel([3, 1, 0, 0, 0], 2)).toBe(1);
+    expect(nodeLevel([3, 1, 0, 0, 0], 3)).toBe(0);
+  });
+
+  it("sums a branch's node levels for the header readout", () => {
+    expect(totalLevels([2, 1, 0, 0, 0])).toBe(3);
+    expect(totalLevels([5, 5, 5, 5, 5])).toBe(LEVELS_PER_BRANCH);
+  });
+
+  it("buys levels of one specific node in order, deducting their cost", () => {
     const narratorClick = categoryOf("narratorClick");
-    const first = purchaseNextTier(10, {}, narratorClick)!;
-    expect(first.ranks.narratorClick).toBe(1);
-    expect(first.prestigePoints).toBe(10 - narratorClick.nodes[0].cost);
+    const first = purchaseNodeLevel(10, {}, narratorClick, 1)!;
+    expect(first.ranks.narratorClick).toEqual([1, 0, 0, 0, 0]);
+    expect(first.prestigePoints).toBe(10 - 2); // LEVEL_COSTS[0]
 
-    const second = purchaseNextTier(first.prestigePoints, first.ranks, narratorClick)!;
-    expect(second.ranks.narratorClick).toBe(2);
-    expect(second.prestigePoints).toBe(first.prestigePoints - narratorClick.nodes[1].cost);
+    const second = purchaseNodeLevel(first.prestigePoints, first.ranks, narratorClick, 1)!;
+    expect(second.ranks.narratorClick).toEqual([2, 0, 0, 0, 0]);
+    expect(second.prestigePoints).toBe(first.prestigePoints - 3); // LEVEL_COSTS[1]
   });
 
-  it("refuses to buy without enough points, but leaves other branches untouched", () => {
+  it("resets the cost curve at the start of every node", () => {
     const narratorClick = categoryOf("narratorClick");
-    expect(canPurchaseNextTier(1, {}, narratorClick)).toBe(false);
-    expect(purchaseNextTier(1, {}, narratorClick)).toBeNull();
-
-    const result = purchaseNextTier(100, { teamDps: 2 }, narratorClick)!;
-    expect(result.ranks).toEqual({ teamDps: 2, narratorClick: 1 });
+    const oneLevelIn = { narratorClick: [1, 0, 0, 0, 0] };
+    const next = purchaseNodeLevel(2, oneLevelIn, narratorClick, 2)!;
+    expect(next.ranks.narratorClick).toEqual([1, 1, 0, 0, 0]); // node 2's first level costs 2, not 31-derived
+    expect(next.prestigePoints).toBe(0);
   });
 
-  it("refuses once a branch is fully bought", () => {
+  it("lets any unlocked node be bought, not just the lowest-position one", () => {
     const narratorClick = categoryOf("narratorClick");
-    const maxed = { narratorClick: narratorClick.nodes.length };
-    expect(canPurchaseNextTier(999, maxed, narratorClick)).toBe(false);
-    expect(purchaseNextTier(999, maxed, narratorClick)).toBeNull();
+    // node 1 has a level (unlocking node 2), but the player buys node 2 while node 1 sits at 1/5.
+    const ranks = { narratorClick: [1, 0, 0, 0, 0] };
+    const result = purchaseNodeLevel(2, ranks, narratorClick, 2)!;
+    expect(result.ranks.narratorClick).toEqual([1, 1, 0, 0, 0]);
   });
 
-  it("softenedSynergyConfig narrows a malus toward 1.0, and leaves it untouched when locked", () => {
+  it("refuses to buy a locked node, or without enough points, leaving other branches untouched", () => {
+    const narratorClick = categoryOf("narratorClick");
+    expect(canPurchaseNodeLevel(999, {}, narratorClick, 2)).toBe(false); // node 2 still locked
+    expect(purchaseNodeLevel(999, {}, narratorClick, 2)).toBeNull();
+    expect(canPurchaseNodeLevel(1, {}, narratorClick, 1)).toBe(false); // not enough points
+    expect(purchaseNodeLevel(1, {}, narratorClick, 1)).toBeNull();
+
+    const result = purchaseNodeLevel(100, { teamDps: [2, 0, 0, 0, 0] }, narratorClick, 1)!;
+    expect(result.ranks).toEqual({ teamDps: [2, 0, 0, 0, 0], narratorClick: [1, 0, 0, 0, 0] });
+  });
+
+  it("refuses once a node is fully bought", () => {
+    const narratorClick = categoryOf("narratorClick");
+    const maxed = { narratorClick: [LEVELS_PER_NODE, 0, 0, 0, 0] };
+    expect(canPurchaseNodeLevel(999, maxed, narratorClick, 1)).toBe(false);
+    expect(purchaseNodeLevel(999, maxed, narratorClick, 1)).toBeNull();
+  });
+
+  it("nodeCost is null when locked or maxed, and follows LEVEL_COSTS otherwise", () => {
+    expect(nodeCost([0, 0, 0, 0, 0], 2)).toBeNull(); // locked
+    expect(nodeCost([LEVELS_PER_NODE, 0, 0, 0, 0], 1)).toBeNull(); // maxed
+    expect(nodeCost([0, 0, 0, 0, 0], 1)).toBe(LEVEL_COSTS[0]);
+    expect(nodeCost([2, 0, 0, 0, 0], 1)).toBe(LEVEL_COSTS[2]);
+  });
+
+  it("softenedSynergyConfig narrows a malus toward 1.0 more with each level, never past it", () => {
     const config = { matchingArcMultiplier: 1, sameAnimeMalus: 0.75, otherAnimeMalus: 0.4 };
-    expect(softenedSynergyConfig(config, false)).toEqual(config);
-    const softened = softenedSynergyConfig(config, true);
-    expect(softened.sameAnimeMalus).toBeGreaterThan(config.sameAnimeMalus);
-    expect(softened.otherAnimeMalus).toBeGreaterThan(config.otherAnimeMalus);
-    expect(softened.matchingArcMultiplier).toBe(config.matchingArcMultiplier);
+    expect(softenedSynergyConfig(config, 0)).toEqual(config);
+    const level1 = softenedSynergyConfig(config, 1);
+    const level2 = softenedSynergyConfig(config, 2);
+    expect(level1.sameAnimeMalus).toBeGreaterThan(config.sameAnimeMalus);
+    expect(level2.sameAnimeMalus).toBeGreaterThan(level1.sameAnimeMalus);
+    expect(level2.sameAnimeMalus).toBeLessThanOrEqual(1);
+    expect(level1.matchingArcMultiplier).toBe(config.matchingArcMultiplier);
   });
 
-  it("only contributes a branch's flat percent once its tier 1 is bought", () => {
+  it("scales a branch's flat percent by its node 1 level", () => {
     expect(prestigeTreeContributions({})).toEqual([]);
-    const mods = prestigeTreeContributions({ narratorClick: 1, teamDps: 1 });
-    expect(mods.find((m) => m.target === "clickPower")?.value).toBeCloseTo(NARRATOR_CLICK_PERCENT);
-    expect(mods.find((m) => m.target === "teamDps")?.value).toBeCloseTo(TEAM_DPS_PERCENT);
+    const mods = prestigeTreeContributions({ narratorClick: [3, 0, 0, 0, 0], teamDps: [1, 0, 0, 0, 0] });
+    expect(mods.find((m) => m.target === "clickPower")?.value).toBeCloseTo(NARRATOR_CLICK_PERCENT * 3);
+    expect(mods.find((m) => m.target === "teamDps")?.value).toBeCloseTo(TEAM_DPS_PERCENT * 1);
   });
 });
 
@@ -1059,9 +1110,10 @@ describe("prestige tree — wired into gameState", () => {
     };
   }
 
-  it("Clic du Narrateur tier 2 fires an automatic click every AUTOCLICK_INTERVAL_MS", () => {
+  it("Clic du Narrateur node 2 fires an automatic click every AUTOCLICK_INTERVAL_MS", () => {
     const testData = makeTestData({ mobBaseHp: 1_000_000 });
-    const restore = installSave(baseSave({ prestigeTreeRanks: { narratorClick: 2 } }));
+    // node 1 has just 1 level (enough to unlock node 2) + 1 level into node 2, the autoclicker.
+    const restore = installSave(baseSave({ prestigeTreeRanks: { narratorClick: [1, 1, 0, 0, 0] } }));
     vi.useFakeTimers();
     let disposeRoot!: () => void;
     try {
@@ -1080,7 +1132,7 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("DPS Équipe tier 3 softens the synergy malus outside the active arc's anime", () => {
+  it("DPS Équipe node 3 softens the synergy malus outside the active arc's anime", () => {
     const testData = {
       animes: [
         { id: "ta", name: "TA", unlockCost: 0 },
@@ -1137,7 +1189,8 @@ describe("prestige tree — wired into gameState", () => {
       restoreBase();
     }
 
-    const restoreBoosted = installSave(baseSave({ ...commonSave, prestigeTreeRanks: { teamDps: 3 } }));
+    // 1 level in nodes 1 and 2 (each unlocking the next) + 1 level into node 3, the synergy softener.
+    const restoreBoosted = installSave(baseSave({ ...commonSave, prestigeTreeRanks: { teamDps: [1, 1, 1, 0, 0] } }));
     try {
       const game = createRoot((dispose) => {
         disposeRoot = dispose;
@@ -1150,9 +1203,9 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("XP tier 1 boosts the xp granted per kill", () => {
+  it("XP node 1 level 1 boosts the xp granted per kill", () => {
     const testData = makeTestData();
-    const restore = installSave(baseSave({ prestigeTreeRanks: { xp: 1 } }));
+    const restore = installSave(baseSave({ prestigeTreeRanks: { xp: [1, 0, 0, 0, 0] } }));
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
@@ -1167,7 +1220,7 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("Objets tier 1 boosts the effective drop chance", () => {
+  it("Objets node 1 level 1 boosts the effective drop chance", () => {
     const testData = makeTestData({ mobItemId: "ta-item", mobDropChance: 0.5 });
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.55); // between the base and boosted chance
 
@@ -1185,7 +1238,7 @@ describe("prestige tree — wired into gameState", () => {
       restoreLocked();
     }
 
-    const restoreBoosted = installSave(baseSave({ prestigeTreeRanks: { items: 1 } }));
+    const restoreBoosted = installSave(baseSave({ prestigeTreeRanks: { items: [1, 0, 0, 0, 0] } }));
     try {
       const game = createRoot((dispose) => {
         disposeRoot = dispose;
@@ -1201,7 +1254,7 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("Objets tier 2 discounts the cost of the next passive rank", () => {
+  it("Objets node 2 level 1 discounts the cost of the next passive rank", () => {
     const testData = makeTestData();
     const character = testData.characters[0];
 
@@ -1221,7 +1274,10 @@ describe("prestige tree — wired into gameState", () => {
       restoreBase();
     }
 
-    const restoreDiscount = installSave(baseSave({ passiveRanks: { ca: 1 }, prestigeTreeRanks: { items: 2 } }));
+    // node 1 has 1 level (unlocking node 2) + 1 level into node 2, the passive-rank discount.
+    const restoreDiscount = installSave(
+      baseSave({ passiveRanks: { ca: 1 }, prestigeTreeRanks: { items: [1, 1, 0, 0, 0] } })
+    );
     try {
       const game = createRoot((dispose) => {
         disposeRoot = dispose;
@@ -1234,9 +1290,9 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("Ressource tier 1 boosts the currency reward from a kill", () => {
+  it("Ressource node 1 level 1 boosts the currency reward from a kill", () => {
     const testData = makeTestData();
-    const restore = installSave(baseSave({ prestigeTreeRanks: { resource: 1 } }));
+    const restore = installSave(baseSave({ prestigeTreeRanks: { resource: [1, 0, 0, 0, 0] } }));
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
@@ -1251,11 +1307,14 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("Ressource tier 4 discounts the paid shortcut into a new anime", () => {
+  it("Ressource node 4 level 1 discounts the paid shortcut into a new anime", () => {
     const testData = makeTestData();
     testData.animes.push({ id: "tb", name: "TB", unlockCost: 8 });
     const discountedCost = Math.ceil(8 * (1 - UNLOCK_COST_DISCOUNT));
-    const restore = installSave(baseSave({ prestigePoints: discountedCost, prestigeTreeRanks: { resource: 4 } }));
+    // 1 level in nodes 1-3 (each unlocking the next) + 1 level into node 4, the unlock-cost discount.
+    const restore = installSave(
+      baseSave({ prestigePoints: discountedCost, prestigeTreeRanks: { resource: [1, 1, 1, 1, 0] } })
+    );
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
@@ -1270,22 +1329,30 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("purchaseTreeTier spends prestige points and advances one tier at a time", () => {
+  it("purchaseTreeLevel unlocks the next node after just one level, and lets both be bought", () => {
     const testData = makeTestData();
-    const tier1Cost = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === "narratorClick")!.nodes[0].cost;
-    const restore = installSave(baseSave({ prestigePoints: tier1Cost }));
+    const restore = installSave(baseSave({ prestigePoints: 2 * LEVEL_COSTS[0] }));
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
         disposeRoot = dispose;
         return createGameStore(testData);
       });
-      expect(game.treeTierOf("narratorClick")).toBe(0);
-      expect(game.nextTreeTierCost("narratorClick")).toBe(tier1Cost);
-      expect(game.purchaseTreeTier("narratorClick")).toBe(true);
-      expect(game.treeTierOf("narratorClick")).toBe(1);
+      expect(game.nodeLevelOf("narratorClick", 1)).toBe(0);
+      expect(game.isNodeUnlockedFor("narratorClick", 2)).toBe(false);
+      expect(game.nodeCostOf("narratorClick", 1)).toBe(LEVEL_COSTS[0]);
+
+      expect(game.purchaseTreeLevel("narratorClick", 1)).toBe(true);
+      expect(game.nodeLevelOf("narratorClick", 1)).toBe(1);
+      expect(game.isNodeUnlockedFor("narratorClick", 2)).toBe(true); // unlocked by just 1 level
+      expect(game.branchLevelsOf("narratorClick")).toBe(1);
+
+      // Node 2 is now purchasable while node 1 still has 4 levels left — order is the player's choice.
+      expect(game.purchaseTreeLevel("narratorClick", 2)).toBe(true);
+      expect(game.nodeLevelOf("narratorClick", 2)).toBe(1);
+      expect(game.branchLevelsOf("narratorClick")).toBe(2);
       expect(game.prestige().prestigePoints).toBe(0);
-      expect(game.purchaseTreeTier("narratorClick")).toBe(false); // no points left
+      expect(game.purchaseTreeLevel("narratorClick", 1)).toBe(false); // no points left
     } finally {
       disposeRoot();
       restore();
