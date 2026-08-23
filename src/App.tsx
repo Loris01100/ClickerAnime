@@ -31,10 +31,6 @@ export default function App() {
     setCodexOpen(true);
   }
 
-  function hardReset() {
-    if (confirm("Effacer toute la progression, prestige et mondes compris ?")) game.hardReset();
-  }
-
   /** Downloads the current save as a portable .txt blob — see gameState's exportSave. */
   function exportSave() {
     const blob = new Blob([game.exportSave()], { type: "text/plain" });
@@ -86,7 +82,6 @@ export default function App() {
           <button onClick={() => setPrestigeTreeOpen(true)}>
             <IconCrown /> Prestige
           </button>
-          <button onClick={() => game.save()}>Sauvegarder</button>
           <button onClick={exportSave}>Exporter</button>
           <button onClick={() => importInput?.click()}>Importer</button>
           <input
@@ -96,7 +91,6 @@ export default function App() {
             style={{ display: "none" }}
             onChange={onImportFile}
           />
-          <button onClick={hardReset}>Réinitialiser</button>
         </div>
       </header>
 

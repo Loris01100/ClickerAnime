@@ -370,6 +370,13 @@ code écrit à la main.
 
 - **Un panel = `.panel` + `.panel-head`.** Titre à gauche, info secondaire (compteur, select,
   chip) à droite. Ne jamais empiler un titre au-dessus d'un tableau sans cet en-tête.
+- **Un panel repliable remplace le `<span>` du titre par `<PanelTitle>`** (`ui/PanelTitle.tsx`) :
+  même position à gauche du `.panel-head`, un `IconChevron` qui pivote à -90° replié
+  (`.panel-title .icon.collapsed`) devant le libellé, et le corps du panel dans un
+  `<Show when={open()}>` local au composant (pas d'état partagé entre panels, pas de persistance —
+  replier est une commodité d'affichage, pas un réglage à sauvegarder). Utilisé par Capacités,
+  Équipe, Objets (`RosterPanel.tsx`) et Carte (`WorldMap.tsx`) ; l'info secondaire à droite du
+  header (compteur, select) reste toujours visible, seul le corps se replie.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.
   Pas de tableau HTML natif, pas de pagination — le scroll interne au panel est le seul mécanisme
   de dépassement.
@@ -404,8 +411,10 @@ densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent mêm
   abandonnée trop tôt.
 - **Le bouton `Succès` de la topbar** utilise `IconTrophy` (déjà dans `icons.tsx`, jusque-là
   inutilisé) — même gabarit que les boutons `Codex`/`Mondes` voisins, aucun style de bouton dédié.
-- **Exporter/Importer** s'ajoutent à côté de `Sauvegarder`/`Réinitialiser` dans la topbar, mêmes
-  boutons texte sans icône ni mise en avant particulière — l'export d'une sauvegarde n'est pas une
-  action plus "importante" visuellement qu'un simple clic sur Sauvegarder, seulement plus rare.
-  L'input de fichier caché derrière `Importer` n'a pas de style propre (`display: none`), le
-  `<button>` visible est ce qui capte le clic.
+- **Exporter/Importer** sont des boutons texte sans icône ni mise en avant particulière dans la
+  topbar, comme leurs voisins — l'export d'une sauvegarde n'est pas une action plus "importante"
+  visuellement, seulement plus rare. L'input de fichier caché derrière `Importer` n'a pas de style
+  propre (`display: none`), le `<button>` visible est ce qui capte le clic. La topbar n'a plus de
+  bouton `Sauvegarder`/`Réinitialiser` : l'autosave (`gameState`, toutes les 5s) rend le premier
+  redondant, et le hard reset reste une action du moteur (`game.hardReset`) sans point d'entrée UI
+  pour l'instant plutôt qu'un bouton risquant un clic accidentel.

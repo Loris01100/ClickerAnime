@@ -2,6 +2,7 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { layoutArcs, type MapNode } from "../engine/mapLayout";
 import { spriteHue } from "./hue";
+import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
 import { IconLock, IconPin } from "./icons";
@@ -9,6 +10,7 @@ import { IconLock, IconPin } from "./icons";
 /** The route map of one world: its arcs on a generated snake path, with a marker on the active one. */
 export default function WorldMap(props: { game: GameStore }) {
   const [pinned, setPinned] = createSignal<string | null>(null);
+  const [open, setOpen] = createSignal(true);
 
   // Follows the arc being fought unless the player has explicitly picked another world's map.
   const shown = createMemo(() => {
@@ -30,10 +32,13 @@ export default function WorldMap(props: { game: GameStore }) {
       {(anime) => (
         <section class="panel">
           <header class="panel-head">
-            <span>Carte — {anime().name}</span>
+            <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
+              Carte — {anime().name}
+            </PanelTitle>
             <small class="muted">difficulté x{fmt(props.game.difficultyOf(anime().id))}</small>
           </header>
 
+          <Show when={open()}>
           <Show when={props.game.unlockedAnimes().length > 1}>
             <div class="map-tabs">
               <For each={props.game.unlockedAnimes()}>
@@ -116,6 +121,7 @@ export default function WorldMap(props: { game: GameStore }) {
               </Show>
             </div>
           </div>
+          </Show>
         </section>
       )}
     </Show>

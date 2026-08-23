@@ -1,6 +1,7 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
+import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 import { IconBookmark, IconTrophy } from "./icons";
@@ -19,6 +20,9 @@ const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / ne
 /** Left column: abilities, the sortable team list, and the item collection. */
 export default function RosterPanel(props: { game: GameStore; onSelectCharacter?: (id: string) => void }) {
   const [sortKey, setSortKey] = createSignal<SortKey>("level");
+  const [abilitiesOpen, setAbilitiesOpen] = createSignal(true);
+  const [teamOpen, setTeamOpen] = createSignal(true);
+  const [itemsOpen, setItemsOpen] = createSignal(true);
 
   const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
 
@@ -32,40 +36,47 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
     <div class="column">
       <section class="panel">
         <header class="panel-head">
-          <span>Capacités</span>
+          <PanelTitle open={abilitiesOpen()} onToggle={() => setAbilitiesOpen(!abilitiesOpen())}>
+            Capacités
+          </PanelTitle>
           <small class="muted">{props.game.unlockedAbilities().length}</small>
         </header>
-        <div class="ability-bar">
-          <For each={props.game.unlockedAbilities()}>
-            {(unlocked) => {
-              const remaining = () => props.game.abilityCooldownRemaining(unlocked.ability.id);
-              return (
-                <button
-                  class="ability"
-                  disabled={remaining() > 0}
-                  title={`${unlocked.ability.name} — ${seconds(unlocked.ability.durationMs)} d'effet`}
-                  onClick={() => props.game.activateAbility(unlocked.ability.id)}
-                >
-                  <span class="ability-name">{unlocked.ability.name}</span>
-                  <span class="ability-cd">{remaining() > 0 ? seconds(remaining()) : "Prêt"}</span>
-                </button>
-              );
-            }}
-          </For>
-          <Show when={props.game.unlockedAbilities().length === 0}>
-            <p class="muted pad">Battez des personnages pour débloquer des capacités et des combos.</p>
-          </Show>
-        </div>
+        <Show when={abilitiesOpen()}>
+          <div class="ability-bar">
+            <For each={props.game.unlockedAbilities()}>
+              {(unlocked) => {
+                const remaining = () => props.game.abilityCooldownRemaining(unlocked.ability.id);
+                return (
+                  <button
+                    class="ability"
+                    disabled={remaining() > 0}
+                    title={`${unlocked.ability.name} — ${seconds(unlocked.ability.durationMs)} d'effet`}
+                    onClick={() => props.game.activateAbility(unlocked.ability.id)}
+                  >
+                    <span class="ability-name">{unlocked.ability.name}</span>
+                    <span class="ability-cd">{remaining() > 0 ? seconds(remaining()) : "Prêt"}</span>
+                  </button>
+                );
+              }}
+            </For>
+            <Show when={props.game.unlockedAbilities().length === 0}>
+              <p class="muted pad">Battez des personnages pour débloquer des capacités et des combos.</p>
+            </Show>
+          </div>
+        </Show>
       </section>
 
       <section class="panel">
         <header class="panel-head">
-          <span>Équipe ({props.game.ownedCharacters().length})</span>
+          <PanelTitle open={teamOpen()} onToggle={() => setTeamOpen(!teamOpen())}>
+            Équipe ({props.game.ownedCharacters().length})
+          </PanelTitle>
           <select value={sortKey()} onChange={(e) => setSortKey(e.currentTarget.value as SortKey)}>
             <For each={Object.entries(SORTS)}>{([key, sort]) => <option value={key}>{sort.label}</option>}</For>
           </select>
         </header>
 
+        <Show when={teamOpen()}>
         <div class="table-head member-grid">
           <span>Nom</span>
           <span>Niv.</span>
@@ -144,6 +155,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
             <p class="muted pad">Les personnages rejoignent l'équipe quand vous les battez.</p>
           </Show>
         </div>
+        </Show>
       </section>
 
       <Show when={props.game.arcRecruits().length > 0}>
@@ -171,9 +183,12 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
 
       <section class="panel">
         <header class="panel-head">
-          <span>Objets</span>
+          <PanelTitle open={itemsOpen()} onToggle={() => setItemsOpen(!itemsOpen())}>
+            Objets
+          </PanelTitle>
           <small class="muted">{props.game.foundItems().length}</small>
         </header>
+        <Show when={itemsOpen()}>
         <div class="table-head item-grid">
           <span>Nom</span>
           <span>Type</span>
@@ -202,6 +217,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
             </p>
           </Show>
         </div>
+        </Show>
       </section>
     </div>
   );

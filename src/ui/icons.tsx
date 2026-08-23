@@ -88,6 +88,18 @@ export const IconMoon = icon("0 0 24 24", () => (
   <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="currentColor" />
 ));
 
+/** Collapse/expand toggle for panel headers — points down when open, rotated closed via CSS. */
+export const IconChevron = icon("0 0 24 24", () => (
+  <path
+    d="M6 9l6 6 6-6"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+));
+
 /** Prestige tree — "Clic du Narrateur" branch. */
 export const IconCursor = icon("0 0 24 24", () => <path d="M4 4l6.5 16 2-6.5L19 11.5 4 4z" fill="currentColor" />);
 

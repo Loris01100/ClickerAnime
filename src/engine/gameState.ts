@@ -714,11 +714,18 @@ export function createGameStore(data: GameData) {
 
     triggerAbilityEffects(unlocked.ability);
     // Abilities that touch the same stat also start cooling down together: activating one would cut
-    // a same-stat buff short anyway, so leaving it "ready" would just invite a wasted activation.
+    // a same-stat buff short anyway, so leaving it "ready" would just invite a wasted activation. They
+    // adopt the just-used ability's cooldown instead of their own — a long-cooldown ability fired
+    // alongside a short one comes back sooner — unless their own cooldown is already shorter, in which
+    // case they're left untouched and keep running their own, faster cycle.
+    const usedCooldown = unlocked.ability.cooldownMs;
     const sameType = unlockedAbilities().filter((u) => abilitiesShareType(u.ability, unlocked.ability));
     setAbilityLastUsed((used) => {
       const next = { ...used };
-      for (const u of sameType) next[u.ability.id] = nowMs;
+      for (const u of sameType) {
+        if (u.ability.id === abilityId) next[u.ability.id] = nowMs;
+        else if (u.ability.cooldownMs >= usedCooldown) next[u.ability.id] = nowMs - (u.ability.cooldownMs - usedCooldown);
+      }
       return next;
     });
     bumpAchievement("abilitiesUsed");

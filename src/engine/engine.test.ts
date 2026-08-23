@@ -709,6 +709,105 @@ describe("store boot", () => {
     }
   });
 
+  it("same-stat abilities adopt the just-activated ability's cooldown, unless their own is already shorter", () => {
+    const testData = {
+      animes: [],
+      arcs: [],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 10,
+          ability: {
+            id: "ability-a",
+            name: "A",
+            cooldownMs: 30_000,
+            durationMs: 10_000,
+            effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
+          },
+        },
+        {
+          id: "cb",
+          name: "B",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 0,
+          ability: {
+            id: "ability-b",
+            name: "B",
+            cooldownMs: 90_000,
+            durationMs: 10_000,
+            // longer cooldown than A: must adopt A's (shorter) cooldown instead of its own
+            effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
+          },
+        },
+        {
+          id: "cc",
+          name: "C",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 0,
+          ability: {
+            id: "ability-c",
+            name: "C",
+            cooldownMs: 15_000,
+            durationMs: 10_000,
+            // shorter cooldown than A: must be left untouched, not extended to A's cooldown
+            effects: [{ id: "c-eff", target: "teamDps" as const, kind: "percent" as const, value: 3 }],
+          },
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const save = {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["ca", "cb", "cc"],
+      activeArcId: null,
+      prestigePoints: 0,
+      unlockedAnimeIds: [],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+    };
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      game.activateAbility("ability-a");
+      const bRemaining = game.abilityCooldownRemaining("ability-b");
+      // adopts A's 30s cooldown, not its own 90s
+      expect(bRemaining).toBeGreaterThan(0);
+      expect(bRemaining).toBeLessThanOrEqual(30_000);
+      // C's own 15s cooldown is already shorter than A's: left untouched, still ready
+      expect(game.abilityCooldownRemaining("ability-c")).toBe(0);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
   it("never blocks on a boss: a timeout falls back to farming, until the player rematches it", () => {
     const testData = {
       animes: [{ id: "ta", name: "TA", unlockCost: 0 }],

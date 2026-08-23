@@ -192,6 +192,24 @@ button.primary {
   padding: 0.1rem 0.3rem;
   font-size: 0.75rem;
 }
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+}
+.panel-title .icon {
+  transition: transform 0.15s ease;
+}
+.panel-title .icon.collapsed {
+  transform: rotate(-90deg);
+}
 .pad {
   padding: 0.5rem 0.6rem;
 }
