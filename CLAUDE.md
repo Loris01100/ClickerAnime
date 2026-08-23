@@ -126,8 +126,11 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
   one common, and it is the only thing that ranks up the passives of the characters *met in that arc*
   (`passiveItemOf` finds it by walking back to the arc whose mobs recruit the character). This is the
   whole point: deepening a passive means travelling back to that zone and farming it.
-- **unique** — carried by bosses, guaranteed, one copy only. **On hold**: they drop and are listed,
-  and do nothing until they get their own idea.
+- **unique** — carried by bosses, guaranteed, one copy only. Each owned unique can be equipped on
+  one character at a time (`characterEquipment` in the save). Equipped uniques grant permanent
+  `ModifierTemplate` effects (`Item.effects`) that are merged into `characterContributions` and scaled
+  by synergy just like base stats and passives. An item may restrict who can wear it via
+  `Item.equippableBy` (character ids, anime ids, or character tags).
 
 Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
 copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
@@ -143,11 +146,14 @@ Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes bot
 
 Everything that affects a stat becomes an `ActiveModifier`, and `computeEffectiveStat` folds them:
 `(base + flats) * (1 + Σpercents) * Πmultipliers`. That order is a balance decision — changing it
-rebalances the whole game. Modifiers come from two sources, merged in `allModifiers`:
+rebalances the whole game. Modifiers come from three sources, merged in `allModifiers`:
 
-1. **Owned characters** → `characterContributions` converts base stats + innate passive into
-   modifiers, each pre-scaled by the character's synergy with the active arc.
+1. **Owned characters** → `characterContributions` converts base stats + innate passive + any
+   equipped unique item (`Item.effects`) into modifiers, each pre-scaled by the character's synergy
+   with the active arc.
 2. **Activated abilities** → temporary modifiers stamped with `expiresAt`, pruned on every tick.
+3. **Equipped unique items** → permanent modifiers contributed by `characterContributions`; the
+   equipment mapping lives in `gameState` (`equipItem`, `unequipItem`, `equippedItemOf`).
 
 Expiry is checked both in `pruneExpired` and again inside `computeEffectiveStat`, so a stale list
 can never inflate a stat.
@@ -209,7 +215,8 @@ bonus and (once owned) whether it has fired yet, independent of whether the char
 
 ### Persistence
 
-The save is a flat `SaveFile` in `localStorage` under a versioned key. `readSave` shape-checks it
+The save is a flat `SaveFile` in `localStorage` under the key `clicker-anime:save:v10`.
+`readSave` shape-checks it
 (via `isValidSave`) and falls back to a fresh run rather than throwing, so an old save can never
 brick the boot. Bump the key version when the shape *breaks* — an old field renamed or retyped, not a
 new optional field, which `?? {}`/`?? []` defaults already absorb without a bump; bumping wipes every
@@ -224,8 +231,8 @@ a setter per field. There is no offline-progress catch-up.
 ### Prestige
 
 `prestigeReset()` wipes everything but the prestige points, the achievement counts and the prestige
-tree ranks (see below): currency, roster, xp, items, passive ranks, kills, cleared arcs and the
-worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale))`, zero below `scale`; both `scale` and a
+tree ranks (see below): currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
+and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale))`, zero below `scale`; both `scale` and a
 double-gain chance are perks of the tree's "Ressource" branch, see below. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.

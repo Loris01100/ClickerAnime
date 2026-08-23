@@ -575,6 +575,26 @@ small {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- unique equipment slot on each character row --- */
+.equip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.equip-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.equip-select {
+  max-width: 130px;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.3rem;
+}
+
 /* --- combat stats --- */
 .stat-grid {
   display: grid;

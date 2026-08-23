@@ -1,8 +1,9 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
-import type { Character } from "../engine/types";
+import type { Character, Item } from "../engine/types";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
+import { describeItem } from "./describe";
 import { fmt, seconds } from "./format";
 import { IconBookmark, IconStar, IconStarOutline, IconTrophy } from "./icons";
 
@@ -32,6 +33,11 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
       (a, b) => SORTS[sortKey()].value(props.game, b) - SORTS[sortKey()].value(props.game, a)
     )
   );
+
+  const equippableUniques = (character: Character): Item[] =>
+    props.game
+      .foundItems()
+      .filter((item): item is Item => item.kind === "unique" && props.game.canEquipItem(character, item.id));
 
   return (
     <div class="column">
@@ -143,6 +149,23 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                       </Show>
                     </div>
                   </Show>
+                  <div class="equip-row">
+                    <small class="muted">{props.game.equippedItemOf(character)?.name ?? "Pas d'objet"}</small>
+                    <select
+                      class="equip-select"
+                      value={props.game.characterEquipment()[character.id] ?? ""}
+                      onChange={(e) => {
+                        const value = e.currentTarget.value;
+                        if (value) props.game.equipItem(character.id, value);
+                        else props.game.unequipItem(character.id);
+                      }}
+                    >
+                      <option value="">— Équiper —</option>
+                      <For each={equippableUniques(character)}>
+                        {(item) => <option value={item.id}>{item.name}</option>}
+                      </For>
+                    </select>
+                  </div>
                 </div>
               );
             }}
@@ -193,12 +216,12 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
           <span>Nom</span>
           <span>Type</span>
           <span>Qté</span>
-          <span>Usage</span>
+          <span>Effet</span>
         </div>
         <div class="scroll">
           <For each={props.game.foundItems()}>
             {(item) => (
-              <div class="item-grid item-row">
+              <div class="item-grid item-row" title={describeItem(item)}>
                 <span class="name">
                   {item.kind === "unique" ? <IconTrophy class="gold" /> : <IconBookmark class="blue" />} {item.name}
                 </span>
@@ -206,14 +229,14 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                   {item.kind === "unique" ? "unique" : "commun"}
                 </span>
                 <span>{props.game.countOf(item.id)}</span>
-                <span class="muted">{item.kind === "unique" ? "en réserve" : "passifs"}</span>
+                <span class="muted">{item.kind === "unique" ? "équipable" : "passifs"}</span>
               </div>
             )}
           </For>
           <Show when={props.game.foundItems().length === 0}>
             <p class="muted pad">
               Aucun objet trouvé. Les communs d'un arc font monter les passifs des personnages rencontrés là-bas ;
-              les uniques des boss n'ont pas encore d'usage.
+              les uniques des boss s'équipent sur les personnages de l'équipe.
             </p>
           </Show>
         </div>

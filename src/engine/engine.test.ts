@@ -1586,4 +1586,126 @@ describe("prestige tree — wired into gameState", () => {
       restore();
     }
   });
+
+  it("equipping a unique item boosts the matching stat", () => {
+    const testData = {
+      ...makeTestData(),
+      items: [
+        {
+          id: "unique-click",
+          name: "Click Multiplier",
+          kind: "unique" as const,
+          effects: [{ id: "u-click", target: "clickPower" as const, kind: "multiplier" as const, value: 2 }],
+        },
+      ],
+    };
+    const restore = installSave(baseSave({ itemCounts: { "unique-click": 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const character = testData.characters[0];
+      const baseClick = game.clickPower();
+      expect(game.equipItem(character.id, "unique-click")).toBe(true);
+      expect(game.clickPower()).toBeCloseTo(baseClick * 2);
+      expect(game.equippedItemOf(character)?.id).toBe("unique-click");
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("equipment restrictions are enforced by canEquipItem and equipItem", () => {
+    const testData = {
+      ...makeTestData(),
+      items: [
+        {
+          id: "uchiwa-only",
+          name: "Uchiwa Eye",
+          kind: "unique" as const,
+          equippableBy: { tags: ["uchiwa"] },
+          effects: [{ id: "u-dps", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
+        },
+      ],
+    };
+    const restore = installSave(baseSave({ itemCounts: { "uchiwa-only": 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const character = testData.characters[0];
+      expect(game.canEquipItem(character, "uchiwa-only")).toBe(false);
+      expect(game.equipItem(character.id, "uchiwa-only")).toBe(false);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("unequipItem removes the equipment and the bonus", () => {
+    const testData = {
+      ...makeTestData(),
+      items: [
+        {
+          id: "unique-click",
+          name: "Click Boost",
+          kind: "unique" as const,
+          effects: [{ id: "u-click", target: "clickPower" as const, kind: "multiplier" as const, value: 2 }],
+        },
+      ],
+    };
+    const restore = installSave(baseSave({ itemCounts: { "unique-click": 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const character = testData.characters[0];
+      game.equipItem(character.id, "unique-click");
+      const boosted = game.clickPower();
+      expect(game.unequipItem(character.id)).toBe(true);
+      expect(game.clickPower()).toBeLessThan(boosted);
+      expect(game.equippedItemOf(character)).toBeNull();
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("prestigeReset clears all character equipment", () => {
+    const testData = {
+      ...makeTestData(),
+      items: [
+        {
+          id: "unique-dps",
+          name: "DPS Boost",
+          kind: "unique" as const,
+          effects: [{ id: "u-dps", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
+        },
+      ],
+    };
+    const restore = installSave(
+      baseSave({ itemCounts: { "unique-dps": 1 }, lifetimeEarned: 10_000_000 })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const character = testData.characters[0];
+      game.equipItem(character.id, "unique-dps");
+      expect(game.equippedItemOf(character)).not.toBeNull();
+      game.prestigeReset();
+      expect(game.equippedItemOf(character)).toBeNull();
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
 });

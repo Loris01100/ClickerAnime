@@ -1,5 +1,5 @@
 import { levelGrowth } from "./growth";
-import type { ActiveModifier, Arc, Character, SynergyConfig } from "./types";
+import type { ActiveModifier, Arc, Character, Item, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
   matchingArcMultiplier: 1.0,
@@ -39,7 +39,8 @@ export function characterContributions(
   config: SynergyConfig = defaultSynergyConfig,
   level = 0,
   passiveRank = 0,
-  evolved = false
+  evolved = false,
+  equipmentItems: Item[] = []
 ): ActiveModifier[] {
   const synergy = activeArc ? synergyMultiplier(character, activeArc, config, evolved) : 1;
   const isHome = (arc: Arc) =>
@@ -79,6 +80,17 @@ export function characterContributions(
   if (evolved && character.evolution) {
     for (const bonus of character.evolution.bonus) {
       contributions.push({ ...bonus, sourceId: character.id, value: bonus.value * synergy });
+    }
+  }
+
+  // Equipped unique items are scaled by synergy like the character's own stats.
+  for (const item of equipmentItems) {
+    for (const effect of item.effects ?? []) {
+      contributions.push({
+        ...effect,
+        sourceId: `${character.id}:equip:${item.id}`,
+        value: effect.value * synergy,
+      });
     }
   }
 

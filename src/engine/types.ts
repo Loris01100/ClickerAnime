@@ -47,7 +47,19 @@ export interface Item {
   id: string;
   name: string;
   kind: ItemKind;
+  /** For uniques: permanent modifiers granted while the item is equipped on a character. */
+  effects?: ModifierTemplate[];
+  /** For uniques: optional restriction on who can equip it. If absent, anyone can wear it. */
+  equippableBy?: EquippableBy;
 }
+
+export interface EquippableBy {
+  characterIds?: string[];
+  animeIds?: string[];
+  tags?: string[];
+}
+
+export type CharacterTag = string;
 
 /** Anything the player fights. Enemies never deal damage — they only have to fall. */
 export interface Enemy {
@@ -92,6 +104,8 @@ export interface Character {
   baseClickPower: number;
   /** dps at level 0; every level adds this much again */
   baseDps: number;
+  /** flavor tags used for equipment restrictions (clan, affiliation, role, etc.) */
+  tags?: CharacterTag[];
   /** innate bonus granted to the whole run while this character is in the team */
   passive?: ModifierTemplate;
   /** active ability unlocked by having this character alone */

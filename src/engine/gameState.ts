@@ -96,9 +96,8 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
-// v9: prestigeTreeRanks changed shape from one flat number per branch (0..25) to a 5-entry level
-// array (one per node) — an old save's numbers would silently misrepresent very different progress.
-const SAVE_KEY = "clicker-anime:save:v9";
+// v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
+const SAVE_KEY = "clicker-anime:save:v10";
 
 interface SaveFile {
   currency: number;
@@ -117,6 +116,8 @@ interface SaveFile {
   achievementCounts?: Record<string, number>;
   /** absent on a save from before the prestige tree existed; every reader defaults it to {} */
   prestigeTreeRanks?: Record<string, number[]>;
+  /** absent on a save from before equipment existed; every reader defaults it to {} */
+  characterEquipment?: Record<string, string>;
 }
 
 // A save from another build must never break the boot — fall back to a fresh run instead.
@@ -172,6 +173,10 @@ export function createGameStore(data: GameData) {
   const [killsSinceDrop, setKillsSinceDrop] = createSignal<Record<string, number>>({});
   // Sub-tick accumulator driving the "Clic du Narrateur" tier 2 autoclicker. Also transient.
   const [autoClickAccumMs, setAutoClickAccumMs] = createSignal(0);
+  // characterId -> itemId for equipped unique items.
+  const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
+    saved?.characterEquipment ?? {}
+  );
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -238,6 +243,56 @@ export function createGameStore(data: GameData) {
 
   const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
 
+  /** The unique item currently equipped by a character, if any. */
+  function equippedItemOf(character: Character): Item | null {
+    const itemId = characterEquipment()[character.id];
+    if (!itemId) return null;
+    const item = data.items.find((i) => i.id === itemId);
+    return item && item.kind === "unique" ? item : null;
+  }
+
+  /** Whether this item can be equipped on this character (ownership and restriction checks). */
+  function canEquipItem(character: Character, itemId: string): boolean {
+    const item = data.items.find((i) => i.id === itemId);
+    if (!item || item.kind !== "unique") return false;
+    if ((itemCounts()[itemId] ?? 0) <= 0) return false;
+    const restriction = item.equippableBy;
+    if (!restriction) return true;
+    if (restriction.characterIds && !restriction.characterIds.includes(character.id)) return false;
+    if (restriction.animeIds && !restriction.animeIds.includes(character.animeId)) return false;
+    if (restriction.tags && !restriction.tags.every((tag) => (character.tags ?? []).includes(tag))) return false;
+    return true;
+  }
+
+  /** Equip a unique item on a character, returning true on success. */
+  function equipItem(characterId: string, itemId: string): boolean {
+    const character = data.characters.find((c) => c.id === characterId);
+    const item = data.items.find((i) => i.id === itemId);
+    if (!character || !item || item.kind !== "unique") return false;
+    if (!canEquipItem(character, itemId)) return false;
+    // Unequip the item from any other character first (uniques are single-copy).
+    setCharacterEquipment((map) => {
+      const next: Record<string, string> = {};
+      for (const [cid, iid] of Object.entries(map)) {
+        if (iid !== itemId) next[cid] = iid;
+      }
+      next[characterId] = itemId;
+      return next;
+    });
+    return true;
+  }
+
+  /** Remove any equipped item from a character. */
+  function unequipItem(characterId: string): boolean {
+    if (!characterEquipment()[characterId]) return false;
+    setCharacterEquipment((map) => {
+      const next = { ...map };
+      delete next[characterId];
+      return next;
+    });
+    return true;
+  }
+
   /** Bumps one achievement ladder; the tier(s) it crosses start contributing on the next `allModifiers` read. */
   function bumpAchievement(categoryId: string, amount = 1) {
     setAchievementCounts((counts) => ({ ...counts, [categoryId]: (counts[categoryId] ?? 0) + amount }));
@@ -246,8 +301,14 @@ export function createGameStore(data: GameData) {
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const arc = activeArc();
     const config = activeSynergyConfig();
+    const equipment = characterEquipment();
+    const equipmentOf = (c: Character) => {
+      const itemId = equipment[c.id];
+      const item = itemId ? data.items.find((i) => i.id === itemId) : undefined;
+      return item && item.kind === "unique" ? [item] : [];
+    };
     const fromCharacters = ownedCharacters().flatMap((c) =>
-      characterContributions(c, arc, config, levelOf(c.id), passiveRankOf(c), isEvolved(c))
+      characterContributions(c, arc, config, levelOf(c.id), passiveRankOf(c), isEvolved(c), equipmentOf(c))
     );
     return [
       ...fromCharacters,
@@ -810,6 +871,7 @@ export function createGameStore(data: GameData) {
     setActiveArcId(null);
     setBossRetreatArcIds([]);
     setEvolvedCharacterIds([]);
+    setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
     spawnNext();
@@ -831,6 +893,7 @@ export function createGameStore(data: GameData) {
       evolvedCharacterIds: evolvedCharacterIds(),
       achievementCounts: achievementCounts(),
       prestigeTreeRanks: prestigeTreeRanks(),
+      characterEquipment: characterEquipment(),
     };
   }
 
@@ -880,6 +943,7 @@ export function createGameStore(data: GameData) {
     setEvolvedCharacterIds([]);
     setAchievementCounts({});
     setPrestigeTreeRanks({});
+    setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
     setEnemy(null);
@@ -955,6 +1019,11 @@ export function createGameStore(data: GameData) {
     passiveUpgradeOf,
     passiveCapOf,
     rankUpPassive,
+    characterEquipment,
+    equippedItemOf,
+    canEquipItem,
+    equipItem,
+    unequipItem,
     shopOffers,
     buyShopOffer,
     unlockedAbilities,
