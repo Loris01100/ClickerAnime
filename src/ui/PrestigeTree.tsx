@@ -1,14 +1,14 @@
 import { For, Show, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { LEVELS_PER_BRANCH, LEVELS_PER_NODE, PRESTIGE_TREE_CATEGORIES, type PrestigeTreeCategoryId } from "../engine/prestigeTree";
-import { IconBolt, IconBook, IconBookmark, IconCoin, IconCursor, IconLock, IconStar } from "./icons";
+import { IconBolt, IconBook, IconBookmark, IconCursor, IconDestiny, IconLock, IconStar } from "./icons";
 
 const BRANCH_ICON: Record<PrestigeTreeCategoryId, typeof IconStar> = {
   narratorClick: IconCursor,
   teamDps: IconBolt,
   xp: IconBook,
   items: IconBookmark,
-  resource: IconCoin,
+  destin: IconDestiny,
 };
 
 /** Existing theme tokens only — the tree is a meta system, its tints borrow from the functional palette. */
@@ -17,7 +17,7 @@ const BRANCH_TINT: Record<PrestigeTreeCategoryId, string> = {
   teamDps: "var(--accent-2)",
   xp: "var(--gold)",
   items: "var(--blue)",
-  resource: "var(--good)",
+  destin: "var(--good)",
 };
 
 const nodeY = (index: number) => ((index + 0.5) / LEVELS_PER_NODE) * 100;

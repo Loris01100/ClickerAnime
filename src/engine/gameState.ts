@@ -12,7 +12,7 @@ import {
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
 import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
-import { canBuyShopOffer, shopOfferUnlocked } from "./shop";
+import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import {
   levelFromXp,
   narratorClickPower,
@@ -34,7 +34,7 @@ import {
 import {
   ABILITY_DAMAGE_BOOST,
   ABILITY_DURATION_BOOST,
-  ARC_CLEAR_BONUS,
+  AUSPICE_DOUBLE_DROP_CHANCE,
   AUTOCLICK_INTERVAL_MS,
   AUTOCLICK_POWER_FRACTION,
   BOSS_TIMER_BOOST,
@@ -56,16 +56,16 @@ import {
   PASSIVE_RANK_DISCOUNT,
   PITY_KILLS_THRESHOLD,
   PITY_REDUCTION_PER_LEVEL,
+  PRESTIGE_PER_KILL_CHANCE,
   prestigeTreeContributions,
-  PRESTIGE_SCALE_REDUCTION,
   PRESTIGE_TREE_CATEGORIES,
   purchaseNodeLevel,
   RECRUIT_XP_BONUS,
   scaledChance,
   scaledDiscount,
+  SHOP_COST_DISCOUNT,
   softenedSynergyConfig,
   totalLevels,
-  UNLOCK_COST_DISCOUNT,
   XP_GAIN_PERCENT,
   XP_GROWTH_REDUCTION,
   XP_PASSIVE_PER_SECOND,
@@ -130,7 +130,14 @@ function readSave(): SaveFile | null {
   if (typeof localStorage === "undefined") return null;
   try {
     const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null");
-    return isValidSave(parsed) ? parsed : null;
+    if (!isValidSave(parsed)) return null;
+    // Migration v9: the "resource" prestige branch was renamed to "destin". Copy old progress over
+    // so players don't lose their bought levels when the branch identity changed.
+    if (parsed.prestigeTreeRanks && "resource" in parsed.prestigeTreeRanks && !("destin" in parsed.prestigeTreeRanks)) {
+      parsed.prestigeTreeRanks = { ...parsed.prestigeTreeRanks, destin: parsed.prestigeTreeRanks.resource };
+      delete parsed.prestigeTreeRanks.resource;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -293,11 +300,8 @@ export function createGameStore(data: GameData) {
     getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos, evolvedCharacterIds())
   );
 
-  /** Currency threshold worth one prestige point — lowered by "Ressource" node 2's level. */
-  const prestigeScale = createMemo(() => {
-    const level = nodeLevelOf("resource", 2);
-    return level > 0 ? 1_000_000 * (1 - scaledDiscount(PRESTIGE_SCALE_REDUCTION, level)) : 1_000_000;
-  });
+  /** Currency threshold worth one prestige point on reset — kept at the default scale. */
+  const prestigeScale = createMemo(() => 1_000_000);
 
   /** Prestige points the player would bank by resetting right now. */
   const pendingPrestigeGain = createMemo(() => calculatePrestigeGain(lifetimeEarned(), prestigeScale()));
@@ -402,7 +406,7 @@ export function createGameStore(data: GameData) {
     const arc = activeArc();
     if (!arc) return;
 
-    const currencyLevel = nodeLevelOf("resource", 1);
+    const currencyLevel = nodeLevelOf("destin", 1);
     const baseReward = enemyReward(target, currentDifficulty());
     const reward = currencyLevel > 0 ? baseReward * (1 + CURRENCY_GAIN_PERCENT * currencyLevel) : baseReward;
     setCurrency((c) => c + reward);
@@ -425,14 +429,19 @@ export function createGameStore(data: GameData) {
       grantXpTo(target.characterId!, RECRUIT_XP_BONUS * recruitBonusLevel);
     }
 
+    // "Destin" node 2: a small chance per kill to gain 1 prestige point outright.
+    const luckyLevel = nodeLevelOf("destin", 2);
+    if (luckyLevel > 0 && Math.random() < scaledChance(PRESTIGE_PER_KILL_CHANCE, luckyLevel)) {
+      setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + 1 }));
+    }
+
     maybeDropItem(target, arc);
 
     if (isBoss) {
       if (!clearedArcIds().includes(arc.id)) {
         setClearedArcIds((ids) => [...ids, arc.id]);
-        const arcClearLevel = nodeLevelOf("resource", 3);
-        const arcClearGain = PRESTIGE_PER_ARC_CLEAR + ARC_CLEAR_BONUS * arcClearLevel;
-        setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + arcClearGain }));
+        // Clearing an arc always grants 1 prestige point; the "Destin" branch no longer adds extra here.
+        setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + PRESTIGE_PER_ARC_CLEAR }));
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
       bumpAchievement("bossesKilled");
@@ -459,6 +468,7 @@ export function createGameStore(data: GameData) {
   function maybeDropItem(target: Enemy, arc: Arc) {
     const dropChanceLevel = nodeLevelOf("items", 1);
     const doubleDropLevel = nodeLevelOf("items", 3);
+    const auspiceLevel = nodeLevelOf("destin", 3);
     const pityLevel = nodeLevelOf("items", 4);
     const ghostLootLevel = nodeLevelOf("items", 5);
     let dropped = false;
@@ -473,6 +483,9 @@ export function createGameStore(data: GameData) {
           grantItem(item);
           dropped = true;
           if (doubleDropLevel > 0 && item.kind === "common" && Math.random() < scaledChance(DOUBLE_DROP_CHANCE, doubleDropLevel)) {
+            grantItem(item);
+          }
+          if (auspiceLevel > 0 && item.kind === "common" && Math.random() < scaledChance(AUSPICE_DOUBLE_DROP_CHANCE, auspiceLevel)) {
             grantItem(item);
           }
         }
@@ -620,13 +633,14 @@ export function createGameStore(data: GameData) {
   /** Every shop offer with the display state (locked/owned/affordable) the panel needs. */
   function shopOffers() {
     const clearedIds = clearedAnimes().map((a) => a.id);
+    const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
     return (data.shop ?? []).map((offer) => ({
       offer,
       item: offer.kind === "item" ? data.items.find((i) => i.id === offer.targetId) : undefined,
       character: offer.kind === "character" ? data.characters.find((c) => c.id === offer.targetId) : undefined,
       owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
       locked: !shopOfferUnlocked(offer, clearedIds),
-      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds()),
+      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), shopDiscount),
     }));
   }
 
@@ -634,9 +648,11 @@ export function createGameStore(data: GameData) {
   function buyShopOffer(offerId: string): boolean {
     const offer = (data.shop ?? []).find((o) => o.id === offerId);
     if (!offer) return false;
-    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds())) return false;
+    const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
+    const cost = discountedShopCost(offer, shopDiscount);
+    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds(), shopDiscount)) return false;
 
-    setCurrency((c) => c - offer.cost);
+    setCurrency((c) => c - cost);
     if (offer.kind === "item") {
       setItemCounts((counts) => ({ ...counts, [offer.targetId]: (counts[offer.targetId] ?? 0) + (offer.amount ?? 1) }));
     } else {
@@ -700,9 +716,7 @@ export function createGameStore(data: GameData) {
   function unlockAnime(animeId: string) {
     const anime = data.animes.find((a) => a.id === animeId);
     if (!anime || !animeAvailable(animeId)) return false;
-    const unlockLevel = nodeLevelOf("resource", 4);
-    const discount = unlockLevel > 0 ? scaledDiscount(UNLOCK_COST_DISCOUNT, unlockLevel) : 0;
-    const cost = Math.max(0, Math.ceil(anime.unlockCost * (1 - discount)));
+    const cost = anime.unlockCost;
     if (!canUnlockAnime(prestige(), animeId, cost)) return false;
     setPrestige((p) => unlockAnimeState(p, animeId, cost));
     return true;
@@ -778,8 +792,8 @@ export function createGameStore(data: GameData) {
    * faster.
    */
   function prestigeReset() {
-    // "Ressource" node 5: a chance to double the points this reset banks, scaling with its level.
-    const doubleLevel = nodeLevelOf("resource", 5);
+    // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
+    const doubleLevel = nodeLevelOf("destin", 5);
     const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
     setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), gainMultiplier));
     setCurrency(0);

@@ -114,11 +114,13 @@ export const IconBook = icon("0 0 24 24", () => (
   </g>
 ));
 
-/** Prestige tree — "Ressource" branch. */
-export const IconCoin = icon("0 0 24 24", () => (
-  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M12 7.2v9.6M9.3 9.4c0-1.1 1.2-1.9 2.7-1.9s2.7.7 2.7 1.7c0 2.4-5.4 1-5.4 3.4 0 1 1.2 1.8 2.7 1.8s2.7-.8 2.7-1.9" />
+/** Prestige tree — "Destin" branch. */
+export const IconDestiny = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4.5" y="4.5" width="15" height="15" rx="3" />
+    <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+    <circle cx="7.5" cy="7.5" r="1.3" fill="currentColor" stroke="none" />
+    <circle cx="16.5" cy="16.5" r="1.3" fill="currentColor" stroke="none" />
   </g>
 ));
 

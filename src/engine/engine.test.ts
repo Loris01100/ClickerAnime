@@ -54,10 +54,10 @@ import {
   prestigeTreeContributions,
   PRESTIGE_TREE_CATEGORIES,
   purchaseNodeLevel,
+  SHOP_COST_DISCOUNT,
   softenedSynergyConfig,
   TEAM_DPS_PERCENT,
   totalLevels,
-  UNLOCK_COST_DISCOUNT,
   XP_GAIN_PERCENT,
 } from "./prestigeTree";
 
@@ -1230,7 +1230,7 @@ describe("prestige tree — pure functions", () => {
 });
 
 describe("prestige tree — wired into gameState", () => {
-  function makeTestData(opts: { mobBaseHp?: number; mobItemId?: string; mobDropChance?: number } = {}) {
+  function makeTestData(opts: { mobBaseHp?: number; mobItemId?: string; mobDropChance?: number; shop?: ShopOffer[] } = {}) {
     const mob: Enemy = {
       id: "ta-mob",
       name: "Mob",
@@ -1264,6 +1264,7 @@ describe("prestige tree — wired into gameState", () => {
       ],
       combos: [],
       items: opts.mobItemId ? [{ id: opts.mobItemId, name: "Item", kind: "common" as const }] : [],
+      shop: opts.shop,
     };
   }
 
@@ -1479,9 +1480,9 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("Ressource node 1 level 1 boosts the currency reward from a kill", () => {
+  it("Destin node 1 level 1 boosts the currency reward from a kill", () => {
     const testData = makeTestData();
-    const restore = installSave(baseSave({ prestigeTreeRanks: { resource: [1, 0, 0, 0, 0] } }));
+    const restore = installSave(baseSave({ prestigeTreeRanks: { destin: [1, 0, 0, 0, 0] } }));
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
@@ -1496,13 +1497,49 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("Ressource node 4 level 1 discounts the paid shortcut into a new anime", () => {
+  it("Destin node 2 level 1 has a small chance to grant 1 prestige point per kill", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
     const testData = makeTestData();
-    testData.animes.push({ id: "tb", name: "TB", unlockCost: 8 });
-    const discountedCost = Math.ceil(8 * (1 - UNLOCK_COST_DISCOUNT));
-    // 1 level in nodes 1-3 (each unlocking the next) + 1 level into node 4, the unlock-cost discount.
+    const restore = installSave(baseSave({ prestigeTreeRanks: { destin: [1, 1, 0, 0, 0] } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.click();
+      expect(game.prestige().prestigePoints).toBe(1);
+    } finally {
+      disposeRoot();
+      restore();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("Destin node 3 level 1 can grant a second common copy on the same drop", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const testData = makeTestData({ mobItemId: "common-item", mobDropChance: 1, shop: [] });
+    const restore = installSave(baseSave({ prestigeTreeRanks: { destin: [1, 1, 1, 0, 0] } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.click();
+      expect(game.countOf("common-item")).toBe(2);
+    } finally {
+      disposeRoot();
+      restore();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("Destin node 4 level 1 discounts shop offer prices", () => {
+    const testData = makeTestData({ shop: [{ id: "shop-item", kind: "item", targetId: "common-item", cost: 100, amount: 1 }] });
+    const discountedCost = Math.ceil(100 * (1 - SHOP_COST_DISCOUNT));
     const restore = installSave(
-      baseSave({ prestigePoints: discountedCost, prestigeTreeRanks: { resource: [1, 1, 1, 1, 0] } })
+      baseSave({ currency: discountedCost, prestigeTreeRanks: { destin: [1, 1, 1, 1, 0] } })
     );
     let disposeRoot!: () => void;
     try {
@@ -1510,8 +1547,10 @@ describe("prestige tree — wired into gameState", () => {
         disposeRoot = dispose;
         return createGameStore(testData);
       });
-      expect(game.unlockAnime("tb")).toBe(true);
-      expect(game.prestige().prestigePoints).toBe(0);
+      const offers = game.shopOffers();
+      expect(offers[0].affordable).toBe(true);
+      expect(game.buyShopOffer("shop-item")).toBe(true);
+      expect(game.currency()).toBeCloseTo(0);
     } finally {
       disposeRoot();
       restore();

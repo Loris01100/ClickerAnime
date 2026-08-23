@@ -3,8 +3,8 @@ import type { ActiveModifier, Arc, Character, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
   matchingArcMultiplier: 1.0,
-  sameAnimeMalus: 0.75,
-  otherAnimeMalus: 0.4,
+  sameAnimeMalus: 0.85,
+  otherAnimeMalus: 0.5,
 };
 
 /**

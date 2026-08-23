@@ -4,7 +4,7 @@ import type { ActiveModifier, SynergyConfig } from "./types";
  * Five independent chains the prestige points feed — the limit `replaceModifiersByTarget` mentions
  * is a separate, still-open idea; this sticks to the five branches as designed.
  */
-export type PrestigeTreeCategoryId = "narratorClick" | "teamDps" | "xp" | "items" | "resource";
+export type PrestigeTreeCategoryId = "narratorClick" | "teamDps" | "xp" | "items" | "destin";
 
 export interface PrestigeTreeNode {
   /** 1-indexed position of this node within its branch's chain */
@@ -66,9 +66,9 @@ export const PITY_REDUCTION_PER_LEVEL = 3;
 export const GHOST_LOOT_CHANCE = 0.05;
 
 export const CURRENCY_GAIN_PERCENT = 0.15;
-export const PRESTIGE_SCALE_REDUCTION = 0.2;
-export const ARC_CLEAR_BONUS = 1;
-export const UNLOCK_COST_DISCOUNT = 0.25;
+export const PRESTIGE_PER_KILL_CHANCE = 0.001;
+export const AUSPICE_DOUBLE_DROP_CHANCE = 0.05;
+export const SHOP_COST_DISCOUNT = 0.06;
 export const DOUBLE_PRESTIGE_CHANCE = 0.2;
 
 /** Shared by every chance-based effect so `base * level` can never exceed certainty. */
@@ -81,7 +81,10 @@ export function scaledDiscount(base: number, level: number): number {
   return Math.min(MAX_DISCOUNT, base * level);
 }
 
-const pct = (value: number) => `${Math.round(value * 100)}%`;
+const pct = (value: number) => {
+  const percent = value * 100;
+  return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(1).replace(/\.0$/, "")}%`;
+};
 
 export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
   {
@@ -209,8 +212,8 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
     ],
   },
   {
-    id: "resource",
-    label: "Ressource",
+    id: "destin",
+    label: "Destin",
     nodes: [
       {
         position: 1,
@@ -219,18 +222,18 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
       },
       {
         position: 2,
-        label: "Ambition",
-        description: "Réduit un peu plus le palier de monnaie nécessaire pour gagner un point de prestige",
+        label: "Porte-bonheur",
+        description: `+${pct(PRESTIGE_PER_KILL_CHANCE)} de chance de gagner 1 point de prestige par kill`,
       },
       {
         position: 3,
-        label: "Butin de victoire",
-        description: `+${ARC_CLEAR_BONUS} point de prestige à chaque premier arc nettoyé`,
+        label: "Auspice",
+        description: `+${pct(AUSPICE_DOUBLE_DROP_CHANCE)} de chance de récupérer deux exemplaires d'un objet commun au lieu d'un`,
       },
       {
         position: 4,
-        label: "Négociation",
-        description: `-${pct(UNLOCK_COST_DISCOUNT)} sur le coût de déblocage anticipé d'un anime`,
+        label: "Relations",
+        description: `-${pct(SHOP_COST_DISCOUNT)} sur les prix de la boutique`,
       },
       {
         position: 5,

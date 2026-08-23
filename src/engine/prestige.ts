@@ -36,8 +36,8 @@ export function unlockAnime(state: PrestigeState, animeId: string, cost: number)
 
 /**
  * Banks the gain and sends the player back to square one: the worlds entered are wiped too.
- * `scale` is the prestige tree's "Ressource" tier 2 perk; `gainMultiplier` is its tier 5 perk
- * (a random 2x rolled by the caller — this function itself stays free of randomness).
+ * `scale` is the default currency threshold worth one prestige point; `gainMultiplier` is the
+ * "Destin" tier 5 perk (a random 2x rolled by the caller — this function itself stays free of randomness).
  */
 export function applyPrestige(
   state: PrestigeState,
