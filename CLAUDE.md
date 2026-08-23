@@ -53,14 +53,32 @@ to catch a rejected `createResource`. A handful of in-game French names don't ma
 canonical spelling (the old dub's "Uchiwa" vs AniList's "Uchiha") — corrected via `NAME_OVERRIDES`
 in `anilist.ts`, not by changing the name shown in the UI.
 
-`ui/Sprite.tsx` wraps this in a `createResource` keyed on `kind:name`; `<Show>` renders the resolved
-`<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or once
-resolved to nothing, an empty `.sprite-empty` placeholder of the same size — never a layout shift,
-never a broken image. `ui/hue.ts` holds the unrelated `spriteHue(seed)` used to tint `WorldMap.tsx`'s
-background per world — it has nothing to do with portraits, kept separate on purpose.
+`bannerUrl(animeName)` is the same client's second lookup: a show's wide key art
+(`Media.bannerImage`), used as the fight scene's backdrop. It reuses `resolveMediaId` (hence
+`ANIME_ID_OVERRIDES` — a text search on this franchise lands on a similarly-titled movie often
+enough to matter), `runQuery`, the `inFlight` dedupe and the same `localStorage` store under a
+`banner:<name>` key, so adding it needed no second cache and no `CACHE_KEY` bump. Same contract as
+`portraitUrl` — never rejects, `null` on any miss — and a show may legitimately have no banner at
+all, so `ClickStage` renders the element only when the URL exists and otherwise falls through to the
+plain `--stage-bg` gradient.
+
+`ui/Sprite.tsx` wraps portraits in a `createResource` keyed on `kind:name`; `<Show>` renders the
+resolved `<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or
+once resolved to nothing, an empty `.sprite-empty` placeholder of the same size — never a layout
+shift, never a broken image.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.
+
+**Per-world art direction.** `ui/hue.ts` owns it: `spriteHue(seed)` is a deterministic hash, and
+`themeOf(anime)` — `anime.themeHue ?? spriteHue(anime.id)` — is the single entry point, so a world
+with a hand-picked `Anime.themeHue` gets it and any other world stays automatically distinct. A
+component never builds a colour string: it sets the **`--world-hue`** custom property on a container
+and `styles.css` does the rest with `hsl(var(--world-hue) … / var(--world-strength))`. It is set in
+three places because the world being *shown* is not always the one being *fought*: `App.tsx` on
+`.game`, `WorldMap.tsx` on `.map-canvas` (its tab can be pinned to another world),
+`WorldPortal.tsx` on `.portal-hero`/`.portal-card`. A default in the bare `:root` keeps any rule
+reading it safe outside those containers. See `design.md` §2.
 
 **Theming.** Light and dark both ship, in the usual three states: bare `:root` holds the light
 palette, and the dark palette is repeated twice — once under `prefers-color-scheme: dark` guarded by

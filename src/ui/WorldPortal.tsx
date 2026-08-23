@@ -3,6 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import type { Anime, Arc, Character } from "../engine/types";
 import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
 import Sprite from "./Sprite";
+import { themeOf } from "./hue";
 import { describeModifier } from "./describe";
 import { fmt } from "./format";
 import { IconLock, IconSparkle } from "./icons";
@@ -61,7 +62,7 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
 
   return (
     <div class="portal-detail scroll">
-      <div class="portal-hero">
+      <div class="portal-hero" style={{ "--world-hue": themeOf(props.anime) }}>
         <Sprite name={props.anime.name} kind="anime" px={8} dim={status() === "locked"} />
         <div>
           <h3>{props.anime.name}</h3>
@@ -202,6 +203,7 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
               <button
                 class="portal-card"
                 classList={{ active: anime.id === selectedId(), locked: status() === "locked" }}
+                style={{ "--world-hue": themeOf(anime) }}
                 onClick={() => setSelectedId(anime.id)}
               >
                 <Sprite name={anime.name} kind="anime" px={4} dim={status() === "locked"} />

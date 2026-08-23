@@ -11,6 +11,7 @@ import WorldPortal from "./ui/WorldPortal";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
+import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconCrown, IconGlobe, IconMonitor, IconMoon, IconSun, IconTrophy } from "./ui/icons";
 
@@ -24,6 +25,9 @@ export default function App() {
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
   const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
+
+  /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
+  const activeAnime = () => game.data.animes.find((a) => a.id === game.activeArc()?.animeId);
 
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
   function openCodexOn(characterId: string) {
@@ -98,7 +102,7 @@ export default function App() {
         when={game.unlockedAnimes().length > 0}
         fallback={<WorldPortal game={game} />}
       >
-        <main class="game">
+        <main class="game" style={{ "--world-hue": themeOf(activeAnime()) }}>
           <RosterPanel game={game} onSelectCharacter={openCodexOn} />
           <div class="column">
             <CurrencyBar game={game} />

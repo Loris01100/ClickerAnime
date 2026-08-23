@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { layoutArcs, type MapNode } from "../engine/mapLayout";
-import { spriteHue } from "./hue";
+import { themeOf } from "./hue";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
@@ -61,7 +61,9 @@ export default function WorldMap(props: { game: GameStore }) {
               style={{
                 "aspect-ratio": `${layout().cols} / ${layout().rows}`,
                 "max-width": `calc(${layout().cols} * 9rem)`,
-                background: `radial-gradient(circle at 30% 20%, hsl(${spriteHue(anime().id)} 70% 55% / 0.15), transparent 70%), var(--panel-2)`,
+                // The pinned tab can show a different world than the one being fought, so the map
+                // carries its own hue rather than inheriting the shell's.
+                "--world-hue": themeOf(anime()),
               }}
             >
               <svg class="map-links" viewBox="0 0 100 100" preserveAspectRatio="none">

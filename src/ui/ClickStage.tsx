@@ -1,5 +1,6 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createEffect, createResource, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import { bannerUrl } from "./anilist";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
@@ -16,11 +17,16 @@ interface Pop {
 export default function ClickStage(props: { game: GameStore }) {
   const [pops, setPops] = createSignal<Pop[]>([]);
   const [open, setOpen] = createSignal(true);
+  // Purely cosmetic combat feedback (`design.md` §4), cleared by the animations' own `animationend`
+  // rather than a timer, so a rapid click never leaves the class stuck on.
+  const [hit, setHit] = createSignal(false);
+  const [spawning, setSpawning] = createSignal(false);
   let popId = 0;
 
   function handleClick(event: MouseEvent) {
     const damage = props.game.click();
     if (damage <= 0) return;
+    setHit(true);
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const pop: Pop = {
       id: popId++,
@@ -38,6 +44,21 @@ export default function ClickStage(props: { game: GameStore }) {
   const isBoss = () => !!enemy() && enemy()!.id === arc()?.boss.id;
   const hpRatio = () => (props.game.enemyMaxHp() > 0 ? props.game.enemyHpLeft() / props.game.enemyMaxHp() : 0);
   const timer = () => props.game.timerRemaining();
+
+  // The show's key art, staged behind the fight. Best effort like every AniList lookup: pending or
+  // missing simply leaves the plain `--stage-bg` gradient showing (see `anilist.ts`).
+  const [banner] = createResource(
+    () => anime()?.name,
+    (name) => bannerUrl(name)
+  );
+
+  // `combat.ts` swaps the defeated enemy for the next one in place, so there is no outgoing enemy
+  // left to animate — the replacement itself is what gets the entrance.
+  createEffect((previous: string | undefined) => {
+    const id = enemy()?.id;
+    if (id && previous && id !== previous) setSpawning(true);
+    return id;
+  });
 
   const neighbour = (offset: number) => {
     const arcs = props.game.playableArcs();
@@ -85,9 +106,21 @@ export default function ClickStage(props: { game: GameStore }) {
         {(current) => (
           <>
             <div class="stage" onClick={handleClick}>
+              <Show when={banner()}>
+                {(src) => (
+                  <div class="stage-backdrop" style={{ "background-image": `url(${src()})` }} aria-hidden="true" />
+                )}
+              </Show>
               <div class="stage-hint">Clic du Narrateur</div>
-              <div class="enemy" classList={{ boss: isBoss(), rival: !!current().characterId }}>
-                <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 12 : 9} />
+              <div
+                class="enemy"
+                classList={{ boss: isBoss(), rival: !!current().characterId, hit: hit(), spawning: spawning() }}
+                onAnimationEnd={(event) => {
+                  if (event.animationName === "enemy-hit") setHit(false);
+                  if (event.animationName === "enemy-spawn") setSpawning(false);
+                }}
+              >
+                <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 14 : 11} />
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
                 <Show when={isBoss()}>

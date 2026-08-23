@@ -1080,6 +1080,14 @@ describe("game data", () => {
     }
   });
 
+  it("keeps every hand-picked world hue inside the HSL wheel", () => {
+    for (const anime of gameData.animes) {
+      if (anime.themeHue === undefined) continue;
+      expect(anime.themeHue, `${anime.id}'s themeHue must be a 0..360 hue`).toBeGreaterThanOrEqual(0);
+      expect(anime.themeHue).toBeLessThan(360);
+    }
+  });
+
   it("only evolves characters into a later anime of their own universe", () => {
     for (const character of gameData.characters) {
       if (!character.evolution) continue;

@@ -9,6 +9,8 @@ export const narutoData: GameData = {
       id: "naruto",
       name: "Naruto",
       unlockCost: 3,
+      themeHue: 28, // l'orange de Konoha
+
       description:
         "Un jeune ninja rejeté de Konoha rêve de devenir Hokage. Des missions de rang C au Pays des " +
         "Vagues jusqu'à la course-poursuite pour ramener Sasuke, la première partie forme l'Équipe 7 " +

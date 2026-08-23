@@ -33,6 +33,11 @@ export interface Anime {
    * The normal route (first pick, or travelling after clearing a world) is always free.
    */
   unlockCost: number;
+  /**
+   * HSL hue 0..360 driving this world's art direction (see `ui/hue.ts`'s `themeOf`). Absent falls
+   * back to `spriteHue(id)`, so an unstyled world stays visually distinct from its neighbours.
+   */
+  themeHue?: number;
 }
 
 /** Commons drop from ordinary fights and stack; uniques come from bosses and are one copy only. */

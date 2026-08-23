@@ -13,6 +13,8 @@ export const shippudenData: GameData = {
       name: "Naruto Shippūden",
       requiresAnimeId: "naruto",
       unlockCost: 8,
+      themeHue: 350, // le rouge sombre de la guerre ninja
+
       description:
         "Deux ans et demi plus tard, Naruto revient de son entraînement pour affronter l'Akatsuki. " +
         "Le climax de la saga : 15 arcs, aucun visage de la partie 1 à recruter, uniquement de " +

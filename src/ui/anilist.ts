@@ -74,6 +74,11 @@ interface CastMember {
 const CHARACTER_QUERY = `query($s:String){Character(search:$s){image{large}}}`;
 const MEDIA_QUERY = `query($s:String){Media(search:$s,type:ANIME){coverImage{large}}}`;
 const MEDIA_ID_QUERY = `query($s:String){Media(search:$s,type:ANIME){id}}`;
+// The wide key-art strip AniList shows at the top of a show's page — the backdrop the fight scene is
+// staged against (`design.md` §2). Queried by numeric id, not by search, for the same reason the cast
+// pages are: a franchise's movies share the series' title prefix, and a text search can land on one.
+// A show can legitimately have no banner at all, which resolves to null like any other miss.
+const MEDIA_BANNER_QUERY = `query($id:Int){Media(id:$id){bannerImage}}`;
 // AniList caps `characters` at 25 per page regardless of the requested perPage, and a show's cast is
 // sorted main-role-first but still runs hundreds deep — some minor named characters only turn up
 // around page 4-8 (verified against the live API — e.g. Rôshi/Han only appear on page 8 of
@@ -245,19 +250,44 @@ function persist(key: string, url: string) {
 // Dedupes concurrent lookups of the same key within the tab's lifetime, hit or miss alike.
 const inFlight = new Map<string, Promise<string | null>>();
 
-/** Best-effort AniList portrait URL for a character or anime name; `null` on any miss or failure. */
-export function portraitUrl(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
-  const key = cacheKey(name, kind, context);
+/**
+ * Shared tail of every lookup: serve a persisted hit, dedupe a concurrent miss, persist a new hit.
+ * `portraitUrl` and `bannerUrl` differ only in the key they use and the fetch they run.
+ */
+function lookup(key: string, fetcher: () => Promise<string | null>): Promise<string | null> {
   if (key in persisted) return Promise.resolve(persisted[key]);
 
   const existing = inFlight.get(key);
   if (existing) return existing;
 
-  const promise = fetchPortrait(name, kind, context).then((url) => {
+  const promise = fetcher().then((url) => {
     inFlight.delete(key);
     if (url) persist(key, url);
     return url;
   });
   inFlight.set(key, promise);
   return promise;
+}
+
+/** Best-effort AniList portrait URL for a character or anime name; `null` on any miss or failure. */
+export function portraitUrl(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
+  return lookup(cacheKey(name, kind, context), () => fetchPortrait(name, kind, context));
+}
+
+async function fetchBanner(animeName: string): Promise<string | null> {
+  const mediaId = await resolveMediaId(animeName);
+  if (mediaId === null) return null;
+  const data = (await runQuery(MEDIA_BANNER_QUERY, { id: mediaId })) as {
+    data?: { Media?: { bannerImage?: string | null } };
+  } | null;
+  return data?.data?.Media?.bannerImage ?? null;
+}
+
+/**
+ * Best-effort AniList banner (wide key art) for a show, used as the fight scene's backdrop. Same
+ * contract as `portraitUrl`: never rejects, `null` on any miss, and the caller must render fine
+ * without it — `ClickStage` falls back to the plain `--stage-bg` gradient.
+ */
+export function bannerUrl(animeName: string): Promise<string | null> {
+  return lookup(`banner:${animeName.toLowerCase()}`, () => fetchBanner(animeName));
 }

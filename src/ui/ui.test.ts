@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { spriteHue } from "./hue";
+import { spriteHue, themeOf } from "./hue";
 import { describeAbility, describeModifier } from "./describe";
 
 describe("spriteHue", () => {
@@ -9,6 +9,18 @@ describe("spriteHue", () => {
 
   it("gives different hues to different ids", () => {
     expect(spriteHue("char-a1")).not.toBe(spriteHue("char-a2"));
+  });
+});
+
+describe("themeOf", () => {
+  it("falls back to the hash when a world has no hand-picked hue", () => {
+    const anime = { id: "w1", name: "W1", unlockCost: 1 };
+    expect(themeOf(anime)).toBe(spriteHue("w1"));
+  });
+
+  it("prefers a hand-picked hue over the hash", () => {
+    const anime = { id: "w1", name: "W1", unlockCost: 1, themeHue: 28 };
+    expect(themeOf(anime)).toBe(28);
   });
 });
 

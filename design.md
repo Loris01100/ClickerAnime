@@ -56,23 +56,24 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   - la bordure/lueur de `.enemy` quand `isBoss()` est vrai (actuellement une seule couleur fixe,
     `--accent-2`, pour tous les boss de tous les mondes),
   - la teinte de la carte du monde dans `.portal-card`.
-- **Hash pour la variété automatique, override pour les mondes qui comptent.** Un hash donne une
-  teinte plausible mais peut tomber à côté de l'identité réelle de l'anime (Naruto = orange/roux,
-  Shippūden = rouge plus sombre/violet). Proposition : ajouter un champ optionnel sur `Anime`
-  dans `types.ts` :
-
-  ```ts
-  export interface Anime {
-    // ...
-    /** teinte HSL 0..360 pour la DA de ce monde ; absent = spriteHue(id) (auto, déterministe) */
-    themeHue?: number;
-  }
-  ```
-
-  `themeOf(anime) = anime.themeHue ?? spriteHue(anime.id)` devient le point d'entrée unique côté
-  UI. Les mondes sans art dédié (prototypage, mondes générés) restent automatiquement distincts
-  les uns des autres ; les mondes soignés (Naruto, Shippūden) reçoivent une teinte choisie à la
-  main sans toucher à un seul composant.
+- **Hash pour la variété automatique, override pour les mondes qui comptent — fait.**
+  `Anime.themeHue?: number` (`types.ts`) porte la teinte choisie à la main, et
+  `themeOf(anime) = anime.themeHue ?? spriteHue(anime.id)` (`ui/hue.ts`) est le **point d'entrée
+  unique** côté UI. Les mondes sans art dédié restent automatiquement distincts par le hash ; les
+  mondes soignés reçoivent leur teinte sans toucher à un composant. Teintes retenues :
+  **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja).
+  `engine.test.ts` vérifie que tout `themeHue` des données reste dans 0..360.
+- **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
+  fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.
+  Il pose **`--world-hue`** sur son conteneur (`themeOf(...)`), et `styles.css` fait le reste avec
+  `hsl(var(--world-hue) ... / var(--world-strength))`. Posée à trois endroits parce que le monde
+  *affiché* n'est pas toujours le monde *actif* : `App.tsx` sur `.game` (monde de l'arc en cours),
+  `WorldMap.tsx` sur `.map-canvas` (l'onglet de carte peut être épinglé ailleurs),
+  `WorldPortal.tsx` sur `.portal-hero`/`.portal-card`. `--world-hue` a une valeur par défaut dans
+  le `:root` clair, donc aucune règle ne casse hors de ces conteneurs.
+  Consommée aujourd'hui par : le fond de `.stage`, le voile de `.stage-backdrop`, le halo de
+  `.enemy`, l'aura de `.enemy.boss` (qui était un `--accent-2` fixe, identique pour tous les boss
+  de tous les mondes), le fond de `.map-canvas` et celui de `.portal-hero`.
 - **Le motif, pas seulement la couleur.** À terme, un second champ optionnel léger
   (`motif?: "leaf" | "cloud" | ...`, une icône SVG discrète répétée en filigrane sur le fond du
   `.map-canvas`) peut renforcer l'identité sans jamais devenir un jeu d'assets à maintenir par
@@ -105,6 +106,16 @@ Palette fonctionnelle actuelle (rappel, ne pas dupliquer ailleurs) :
 | Or | `--gold` | dégâts, monnaie, objets uniques |
 | Bleu | `--blue` | objets communs |
 
+Tokens ajoutés pour l'habillage (tous définis dans les **trois** blocs, §8) :
+
+| Token | Rôle |
+|---|---|
+| `--stage-veil` / `--stage-veil-soft` | voile posé sur la bannière AniList pour garder le combat lisible |
+| `--enemy-ground` | ombre au sol sous l'ennemi |
+| `--world-strength` | à quel point `--world-hue` transparaît (0.2 en clair, 0.32 en sombre) |
+| `--world-hue` | teinte du monde courant, posée par les composants — voir §2 |
+| `--font-display` | police d'affichage des titres — voir §12 |
+
 ---
 
 ## 4. Mouvement et interactivité
@@ -116,19 +127,28 @@ toute nouvelle animation : **respecter `prefers-reduced-motion`**, exactement co
 fait déjà (bascule vers un simple fade, `styles.css:463-472`) — c'est le patron à copier, pas à
 réinventer.
 
-Pistes concrètes, classées par impact / effort :
+**Fait** (tout dans `styles.css`, déclenché par des signaux locaux à `ClickStage.tsx` — aucun
+changement moteur, rien dans le tick 200ms) :
 
-- **Impact de clic sur l'ennemi.** `.enemy` tremble et flashe brièvement (`animation: hit 0.15s`)
-  à chaque `click()` réussi — feedback synchronisé avec le `.pop` existant, pas un nouveau
-  système. Version réduite : juste le flash, pas le tremblement, sous `prefers-reduced-motion`.
-- **Mort d'ennemi / de boss.** Un `.enemy` qui tombe à 0 PV doit disparaître par une courte
-  animation (scale-down + fade, ~200ms) avant que le suivant apparaisse, plutôt qu'un
-  remplacement instantané — surtout notable sur un boss (`isBoss()`), qui mérite un effet plus
-  marqué (flash `--gold`, léger écran qui pulse) puisque c'est la récompense visible d'un arc
-  entier.
-- **Respiration des sprites.** Un `translateY` oscillant très léger (±1-2px, 2-3s ease-in-out
-  infinite) sur `.sprite` en combat donne de la vie sans coût de lisibilité — désactivé sous
-  `prefers-reduced-motion` (statique).
+| Effet | Où | Déclencheur |
+|---|---|---|
+| Impact de clic (secousse + flash `--gold`) | `.enemy.hit` | signal posé dans `handleClick`, levé sur `animationend` |
+| Entrée de l'ennemi suivant (scale-in) | `.enemy.spawning` | `createEffect` sur l'id de `enemy()` |
+| Respiration du sprite (±3px, 3.4s) | `.enemy .sprite` | permanent |
+| Aura de boss qui pulse, teintée `--world-hue` | `.enemy.boss::before` | permanent |
+| Fade d'overlay + scale-in de modale | `.overlay` / `.modal` | à l'ouverture |
+
+Les classes sont levées sur `animationend` plutôt que par un `setTimeout`, pour qu'un clic rapide
+ne laisse jamais une classe collée.
+
+**Nuance assumée sur la mort d'ennemi** : `combat.ts` remplace l'ennemi vaincu par le suivant sur
+place, donc il n'y a plus d'ennemi sortant à animer au moment où le composant l'apprend. C'est
+l'**arrivée** du remplaçant qui est animée, pas la disparition du précédent. Un vrai fondu de mort
+demanderait que `ClickStage` retienne l'ennemi vaincu le temps de l'animation — un état d'affichage
+en plus, non fait.
+
+Restent des pistes, non faites :
+
 - **Compteurs qui roulent.** `fmt(props.game.currency())` change par à-coups aujourd'hui. Un
   utilitaire d'incrémentation animée (`ui/animatedNumber.ts`, un memo qui interpole vers la
   valeur cible sur ~300ms) au lieu de rendre la valeur brute, réutilisable partout où `fmt()`
@@ -317,6 +337,17 @@ de portraits réels sans travail de contenu par personnage, et rendu supportable
 `Sprite.tsx` dégrade toujours proprement (`.sprite-empty`, jamais un layout cassé ni une exception)
 si AniList est indisponible ou ne trouve rien.
 
+**La bannière d'un monde, en plus des portraits.** `bannerUrl(nomDeLAnime)` récupère la clé d'art
+large d'un show (`Media.bannerImage`) et sert de décor à la scène de combat — l'équivalent de la vue
+de ville de PokéClicker (§1, §2). Elle **réutilise toute la mécanique existante** plutôt que d'en
+ouvrir une seconde : `resolveMediaId()` (donc `ANIME_ID_OVERRIDES`, indispensable — une recherche
+texte sur cette franchise tombe régulièrement sur un film au titre voisin), `runQuery`, la map
+`inFlight` et le même store `localStorage`, sous la clé `banner:<nom>`. Pas de bump de `CACHE_KEY` :
+une clé nouvelle rate simplement au premier accès. Même contrat que `portraitUrl` — ne rejette
+jamais, `null` sur tout échec, **et un show peut légitimement n'avoir aucune bannière**. `ClickStage`
+ne rend l'élément que quand l'URL existe, donc l'absence retombe silencieusement sur le dégradé
+`--stage-bg` teinté par le monde.
+
 **Piège d'orthographe à surveiller** : le nom canonique AniList d'un personnage peut différer du nom
 localisé en français des données du jeu (AniList connaît « Sasuke Uchiha », les données du jeu
 disent « Sasuke Uchiwa » — ancien doublage FR). Corrigé au cas par cas via `NAME_OVERRIDES` dans
@@ -466,3 +497,28 @@ qu'un système dédié :
   `engine.test.ts` impose qu'aucun personnage ne soit "recrutable nulle part", donc une offre
   boutique est un raccourci payant vers quelqu'un qu'on peut aussi obtenir en jouant, jamais un
   recrutement exclusif à la boutique.
+
+## 12. Typographie
+
+`system-ui` partout donnait au jeu un air de tableau de bord plutôt que d'anime. Une **seule** police
+d'affichage a été ajoutée, `Zen Kaku Gothic New` (token `--font-display`), et **uniquement sur les
+titres** : `.topbar h1`, `.panel-head`, `.arc-current`, `.enemy-name`, `.stage-hint`, `.map-name`,
+`.modal h3`. Le corps de texte, les tableaux compacts et tous les chiffres restent en `system-ui` —
+la lisibilité des colonnes alignées du §1 prime sur la couleur locale.
+
+Choix d'une famille japonaise plutôt qu'une display latine à fort caractère (type Bebas Neue) parce
+que les `.panel-head` tournent à 0.85rem : une display condensée en capitales y détruirait la
+densité, là où Zen Kaku Gothic New reste lisible en petit tout en changeant le ton.
+
+**Piège trouvé en l'intégrant, à ne pas refaire** : les entrées CSS par sous-ensemble de
+`@fontsource` (`latin-700.css`, `latin-ext-700.css`, …) **n'ont pas de `unicode-range`**. Importer
+`latin-700` puis `latin-ext-700` produit donc deux `@font-face` aux descripteurs identiques, et le
+dernier gagne pour *tous* les caractères — le poids 700 se retrouvait servi par le sous-ensemble
+latin-ext, qui ne contient aucun caractère ASCII. Les quatre `@font-face` sont donc écrits à la main
+en tête de `styles.css`, avec leur `unicode-range` explicite, ce qui laisse le navigateur combiner
+les deux sous-ensembles et ne télécharger que ce dont la page a besoin. Vite résout les `url()` qui
+pointent vers le paquet (`@fontsource/.../files/*.woff2`) et inline les plus petits fichiers.
+
+Sous-ensembles latins seulement : les sous-ensembles japonais de cette famille pèsent des Mo pour des
+glyphes que le jeu ne rend jamais. **latin-ext n'est pas optionnel** — « Naruto Shippūden » a besoin
+de U+016B, que le sous-ensemble latin de base ne couvre pas.
