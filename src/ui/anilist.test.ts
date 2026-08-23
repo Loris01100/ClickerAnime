@@ -140,6 +140,19 @@ describe("portraitUrl", () => {
     );
   });
 
+  it("applies a name override even when it's only part of a longer display name (a boss's subtitle)", async () => {
+    // A boss can carry a fight-specific subtitle ("Sasuke Uchiwa — Vallée de la Fin") that an exact
+    // dictionary lookup on the full string would miss — the override has to apply as a substring.
+    const fetchMock = mockCastEndpoint(13, [
+      { name: { full: "Sasuke Uchiha" }, image: { large: "https://example.com/sasuke.jpg" } },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const url = await portraitUrl("Sasuke Uchiwa — Vallée de la Fin", "character", "Suffix Override Context");
+
+    expect(url).toBe("https://example.com/sasuke.jpg");
+  });
+
   it("with a context, never falls back to a different show's character even on a name miss", async () => {
     const fetchMock = mockCastEndpoint(5, [
       { name: { full: "Unrelated Name" }, image: { large: "https://example.com/nope.jpg" } },

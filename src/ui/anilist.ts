@@ -16,13 +16,36 @@ const TIMEOUT_MS = 5_000;
 const CACHE_KEY = "clicker-anime:portraits:v2";
 
 // The name shown in-game (French localization) can differ from AniList's canonical spelling — the
-// old French dub's "Uchiwa" vs AniList's "Uchiha". Extend this as more mismatches turn up; a name
-// that isn't listed here is just searched as-is.
-const NAME_OVERRIDES: Record<string, string> = {
-  "Sasuke Uchiwa": "Sasuke Uchiha",
-  "Itachi Uchiwa": "Itachi Uchiha",
-  Jiraya: "Jiraiya",
-};
+// old French dub's "Uchiwa" vs AniList's "Uchiha", a character AniList only lists under an alias
+// ("Obito Uchiwa" → "Tobi", his in-story identity for most of the series), a dropped letter
+// ("Jiraya" → "Jiraiya"), a name too short to survive the token-length filter in `matchScore`
+// ("Ay, le Quatrième Raikage" → "A"), or a character AniList has no standalone card for at all
+// ("Nagato" → "Pain", the same person). Extend as more mismatches turn up; a name with no match here
+// is just searched as-is.
+//
+// Applied as a substring replace, not an exact-name lookup: several of these also appear inside a
+// boss's longer display name ("Sasuke Uchiwa — Vallée de la Fin"), which a dictionary keyed on the
+// full string would miss entirely.
+const NAME_OVERRIDES: [from: string, to: string][] = [
+  ["Sasuke Uchiwa", "Sasuke Uchiha"],
+  ["Itachi Uchiwa", "Itachi Uchiha"],
+  ["Obito Uchiwa", "Tobi"],
+  ["Shisui Uchiwa", "Shisui Uchiha"],
+  ["Izumi Uchiwa", "Izumi Uchiha"],
+  ["Fugaku Uchiwa", "Fugaku Uchiha"],
+  ["Madara Uchiwa", "Madara Uchiha"],
+  ["Jiraya", "Jiraiya"],
+  ["Ay, le Quatrième Raikage", "A"],
+  ["Nagato", "Pain"],
+];
+
+function applyNameOverrides(name: string): string {
+  let result = name;
+  for (const [from, to] of NAME_OVERRIDES) {
+    if (result.includes(from)) result = result.replace(from, to);
+  }
+  return result;
+}
 
 // A franchise's exact TV-series entry isn't always what `Media(search:)` resolves to — verified live
 // that searching "Naruto Shippūden" doesn't reliably land on the series (id 1735); it sometimes
@@ -32,6 +55,15 @@ const NAME_OVERRIDES: Record<string, string> = {
 const ANIME_ID_OVERRIDES: Record<string, number> = {
   Naruto: 20,
   "Naruto Shippūden": 1735,
+  "The Last: Naruto the Movie": 16870,
+};
+
+// A character's own story can span a spin-off movie the game's data doesn't model as a separate
+// anime — Toneri only exists on AniList under "The Last: Naruto the Movie", not the TV series, even
+// though this game's arc for him still carries `animeId: "shippuden"`. Points that one character's
+// cast lookup at the right title instead of the `anime` prop passed by the caller.
+const CHARACTER_ANIME_OVERRIDES: Record<string, string> = {
+  "Toneri Ôtsutsuki": "The Last: Naruto the Movie",
 };
 
 interface CastMember {
@@ -44,11 +76,12 @@ const MEDIA_QUERY = `query($s:String){Media(search:$s,type:ANIME){coverImage{lar
 const MEDIA_ID_QUERY = `query($s:String){Media(search:$s,type:ANIME){id}}`;
 // AniList caps `characters` at 25 per page regardless of the requested perPage, and a show's cast is
 // sorted main-role-first but still runs hundreds deep — some minor named characters only turn up
-// around page 4-7 (verified against the live API). `CAST_PAGES` pages are fetched in parallel and
-// merged into one list, once per anime, then cached forever — worth the up-front cost since every
-// character from that show resolves against the cached list afterward. Kept modest (not pushed to
-// page 7+) because AniList's own rate limit is tight (30 req/min, observed live) and this fires
-// before the player has done anything else with their budget.
+// around page 4-8 (verified against the live API — e.g. Rôshi/Han only appear on page 8 of
+// Shippuden's cast). `CAST_PAGES` pages are fetched in parallel and merged into one list, once per
+// anime, then cached forever — worth the up-front cost since every character from that show resolves
+// against the cached list afterward. `ANIME_ID_OVERRIDES` pinning the id (below) means this no
+// longer costs an extra id-resolution call, which is what makes 8 pages affordable against AniList's
+// tight rate limit (30 req/min, observed live): 8 requests per anime, once, ever.
 //
 // Pages are fetched by numeric media id, resolved once via MEDIA_ID_QUERY — not by re-running
 // `Media(search:)` per page. A franchise like Naruto has several similarly-named entries (the TV
@@ -56,7 +89,7 @@ const MEDIA_ID_QUERY = `query($s:String){Media(search:$s,type:ANIME){id}}`;
 // text search several times in parallel isn't guaranteed to resolve to the same one every time
 // (observed live: some page requests silently returned a movie's cast instead of the series').
 const CAST_QUERY = `query($id:Int,$p:Int){Media(id:$id){characters(page:$p,perPage:25,sort:[ROLE,FAVOURITES_DESC]){nodes{name{full}image{large}}}}}`;
-export const CAST_PAGES = 5;
+export const CAST_PAGES = 8;
 
 async function runQuery(graphql: string, variables: Record<string, unknown>): Promise<unknown> {
   if (typeof fetch === "undefined") return null;
@@ -170,10 +203,11 @@ function cacheKey(name: string, kind: PortraitKind, context?: string): string {
  * back to the old global search only as a last resort, not as the normal path.
  */
 async function fetchPortrait(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
-  const resolvedName = NAME_OVERRIDES[name] ?? name;
+  const resolvedName = applyNameOverrides(name);
+  const resolvedContext = CHARACTER_ANIME_OVERRIDES[name] ?? context;
 
-  if (kind === "character" && context) {
-    return bestCastMatch(resolvedName, await castOf(context));
+  if (kind === "character" && resolvedContext) {
+    return bestCastMatch(resolvedName, await castOf(resolvedContext));
   }
 
   const data = (await runQuery(kind === "character" ? CHARACTER_QUERY : MEDIA_QUERY, { s: resolvedName })) as {
