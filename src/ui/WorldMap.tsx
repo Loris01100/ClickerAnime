@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { layoutArcs, type MapNode } from "../engine/mapLayout";
-import { spriteHue } from "./pixel";
+import { spriteHue } from "./hue";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
 import { IconLock, IconPin } from "./icons";
@@ -98,7 +98,7 @@ export default function WorldMap(props: { game: GameStore }) {
                       onClick={() => props.game.setActiveArc(node.arc.id)}
                     >
                       <Show when={open()} fallback={<span class="map-lock"><IconLock /></span>}>
-                        <Sprite seed={node.arc.boss.id} px={4} dim={!open()} />
+                        <Sprite name={node.arc.boss.name} kind="character" anime={anime().name} px={4} dim={!open()} />
                       </Show>
                       <span class="map-name">{node.arc.name}</span>
                       <small class="muted">{cleared() ? "terminé" : `${kills()}/${node.arc.mobsToBoss}`}</small>

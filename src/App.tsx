@@ -18,9 +18,16 @@ const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 export default function App() {
   const game = createGameStore(gameData);
   const [codexOpen, setCodexOpen] = createSignal(false);
+  const [codexFocusId, setCodexFocusId] = createSignal<string | undefined>();
   const [portalOpen, setPortalOpen] = createSignal(false);
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
+
+  /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
+  function openCodexOn(characterId: string) {
+    setCodexFocusId(characterId);
+    setCodexOpen(true);
+  }
 
   function hardReset() {
     if (confirm("Effacer toute la progression, prestige et mondes compris ?")) game.hardReset();
@@ -63,7 +70,14 @@ export default function App() {
               <IconGlobe /> Mondes
             </button>
           </Show>
-          <button onClick={() => setCodexOpen(true)}>Codex</button>
+          <button
+            onClick={() => {
+              setCodexFocusId(undefined);
+              setCodexOpen(true);
+            }}
+          >
+            Codex
+          </button>
           <button onClick={() => setAchievementsOpen(true)}>
             <IconTrophy /> Succès
           </button>
@@ -86,7 +100,7 @@ export default function App() {
         fallback={<WorldPortal game={game} />}
       >
         <main class="game">
-          <RosterPanel game={game} />
+          <RosterPanel game={game} onSelectCharacter={openCodexOn} />
           <div class="column">
             <CurrencyBar game={game} />
             <ClickStage game={game} />
@@ -97,7 +111,7 @@ export default function App() {
       </Show>
 
       <Show when={codexOpen()}>
-        <Codex game={game} onClose={() => setCodexOpen(false)} />
+        <Codex game={game} onClose={() => setCodexOpen(false)} initialSelectedId={codexFocusId()} />
       </Show>
 
       <Show when={portalOpen()}>

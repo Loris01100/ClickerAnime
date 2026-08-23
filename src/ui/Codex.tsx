@@ -12,8 +12,8 @@ const RARITY_LABEL: Record<Character["rarity"], string> = {
 };
 
 /** Every character in the game, met or not, with their stats and what their passive actually does. */
-export default function Codex(props: { game: GameStore; onClose: () => void }) {
-  const [selectedId, setSelectedId] = createSignal(props.game.data.characters[0]?.id ?? "");
+export default function Codex(props: { game: GameStore; onClose: () => void; initialSelectedId?: string }) {
+  const [selectedId, setSelectedId] = createSignal(props.initialSelectedId ?? props.game.data.characters[0]?.id ?? "");
 
   const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
@@ -59,7 +59,13 @@ export default function Codex(props: { game: GameStore; onClose: () => void }) {
                         classList={{ active: character.id === selectedId(), unmet: !owned(character) }}
                         onClick={() => setSelectedId(character.id)}
                       >
-                        <Sprite seed={character.id} px={3} dim={!owned(character)} />
+                        <Sprite
+                          name={character.name}
+                          kind="character"
+                          anime={animeName(character.animeId)}
+                          px={3}
+                          dim={!owned(character)}
+                        />
                         <span class="name">{character.name}</span>
                         <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
                       </button>
@@ -74,7 +80,13 @@ export default function Codex(props: { game: GameStore; onClose: () => void }) {
             {(character) => (
               <div class="codex-detail scroll">
                 <div class="codex-hero">
-                  <Sprite seed={character().id} px={10} dim={!owned(character())} />
+                  <Sprite
+                    name={character().name}
+                    kind="character"
+                    anime={animeName(character().animeId)}
+                    px={10}
+                    dim={!owned(character())}
+                  />
                   <div>
                     <h3>{character().name}</h3>
                     <p class="muted small">

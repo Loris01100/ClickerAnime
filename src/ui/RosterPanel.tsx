@@ -17,8 +17,10 @@ const SORTS: Record<SortKey, { label: string; value: (game: GameStore, c: Charac
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
 /** Left column: abilities, the sortable team list, and the item collection. */
-export default function RosterPanel(props: { game: GameStore }) {
+export default function RosterPanel(props: { game: GameStore; onSelectCharacter?: (id: string) => void }) {
   const [sortKey, setSortKey] = createSignal<SortKey>("level");
+
+  const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
 
   const sortedTeam = createMemo(() =>
     [...props.game.ownedCharacters()].sort(
@@ -82,11 +84,15 @@ export default function RosterPanel(props: { game: GameStore }) {
               return (
                 <div class="member">
                   <div class="member-grid">
-                    <span class="name">
-                      <Sprite seed={character.id} px={5} />
+                    <button
+                      class="name name-link"
+                      title="Voir dans le Codex"
+                      onClick={() => props.onSelectCharacter?.(character.id)}
+                    >
+                      <Sprite name={character.name} kind="character" anime={animeNameOf(character.animeId)} px={5} />
                       {character.name}
                       <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
-                    </span>
+                    </button>
                     <span>{level()}</span>
                     <span>{fmt(character.baseClickPower * (1 + level()))}</span>
                     <span>{fmt(character.baseDps * (1 + level()))}</span>
@@ -150,7 +156,7 @@ export default function RosterPanel(props: { game: GameStore }) {
             {(character) => (
               <div class="row">
                 <span class="name">
-                  <Sprite seed={character.id} px={5} />
+                  <Sprite name={character.name} kind="character" anime={animeNameOf(character.animeId)} px={5} />
                   {character.name}
                   <span class="rarity">{character.rarity === "main" ? "★" : "☆"}</span>
                 </span>

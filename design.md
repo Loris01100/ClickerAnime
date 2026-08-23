@@ -239,56 +239,56 @@ Reprend le vocabulaire déjà utilisé pour les rangs de passif (`RosterPanel`'s
 
 ## 6. Sourcing d'images (personnages, mondes)
 
-Aujourd'hui : sprites générés (`ui/pixel.ts`, hash → grille de pixels colorée) avec un mécanisme
-de surcharge déjà prévu et non contraignant (`Sprite.tsx` : dépose un fichier
-`src/assets/sprites/<id>.png` et il remplace le sprite généré partout, sans toucher au code —
-voir `src/assets/sprites/README.md`). Le sourcing d'API vient *nourrir ce mécanisme existant*, il
-ne le remplace pas.
+Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
+`ui/Sprite.tsx`, voir `CLAUDE.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
+ni pixel-art généré, ni fichier custom déposé dans le repo — chaque `Character`/`Enemy`/`Anime` a
+déjà un `.name` lisible, une recherche AniList par nom suffit, pas besoin de gérer des fichiers
+d'assets du tout.
 
 ### 6.1 APIs disponibles
 
 | API | Couverture | Clé requise | CORS navigateur | Limite |
 |---|---|---|---|---|
-| **Jikan v4** (proxy non officiel de MyAnimeList) | anime (jaquette/bannière) + personnages (portrait) | non | **oui**, appelable directement en `fetch()` | ~60 req/min, 3 req/s |
-| **AniList GraphQL** | anime + personnages, données très riches | non | **non** — nécessite un proxy/backend | ~90 req/min |
+| **AniList GraphQL** | anime + personnages, données très riches | non | **oui, depuis le navigateur d'un joueur** — voir note ci-dessous | ~90 req/min |
+| **Jikan v4** (proxy non officiel de MyAnimeList) | anime (jaquette/bannière) + personnages (portrait) | non | oui, appelable directement en `fetch()` | ~60 req/min, 3 req/s |
 | **Kitsu** | anime + personnages | non | partiel, à revérifier au cas par cas | non documentée précisément |
 
 [Jikan v4 Docs](https://docs.api.jikan.moe/), [AniList API Docs](https://docs.anilist.co/) —
 sources consultées pour ce tableau.
 
-Le projet est une SPA statique sans backend (`Vite` + `localStorage`, pas de serveur — voir
-« Persistence » dans `CLAUDE.md`). Ça élimine AniList comme option d'appel direct : il faudrait
-soit un serveur relais (hors scope d'un prototype sans backend), soit un proxy CORS tiers (fragile,
-pas fiable pour un usage durable). **Jikan est donc la seule option directement exploitable en
-l'état de l'architecture.**
+**Correction par rapport à une version précédente de ce document** : AniList avait été écarté ici
+comme "nécessite un proxy/backend, pas de CORS navigateur". C'était faux, ou du moins incomplet —
+confirmé par le projet sœur [Rasengames](https://github.com/Loris01100/Rasengames), qui appelait
+AniList *depuis son Cloudflare Worker* et se faisait bannir (`403 "You have been manually
+blocked"`) : les quelques IP de sortie partagées par les Workers sont blacklistées par AniList, peu
+importe le débit. Un appel direct **depuis le navigateur de chaque joueur** fonctionne, chaque
+joueur utilisant sa propre IP — c'est exactement l'usage que le CORS d'AniList autorise. Puisque
+ClickerAnime est déjà une SPA statique sans serveur (`Vite` + `localStorage`, voir « Persistence »
+dans `CLAUDE.md`), cet appel se fait naturellement depuis le navigateur : pas de proxy à ajouter.
 
-### 6.2 Comment l'intégrer sans dépendre du réseau au runtime
+### 6.2 Comment c'est intégré
 
-Appeler Jikan à chaque affichage de sprite serait fragile : rate limit partagé par tous les
-joueurs, indisponibilité qui casse le fallback (`Sprite.tsx` suppose que l'artwork custom, s'il
-existe, est disponible immédiatement via `import.meta.glob`), et hotlinking direct vers le CDN de
-MyAnimeList sans garantie de stabilité.
+`ui/anilist.ts` (voir le détail dans `CLAUDE.md`) fait l'appel au moment de l'affichage, pas en
+amont : `portraitUrl(name, kind)` interroge `Character(search:)`/`Media(search:type:ANIME)`,
+déduplique les requêtes concurrentes en mémoire, et garde les portraits trouvés dans `localStorage`
+pour ne jamais re-télécharger la même soixantaine de portraits à chaque rechargement (l'art d'un
+personnage ne change pas, donc pas d'expiration). C'est délibérément un renversement du principe
+« pas de dépendance réseau au runtime » tenu ailleurs dans ce document (§4) — accepté ici en échange
+de portraits réels sans travail de contenu par personnage, et rendu supportable par le fait que
+`Sprite.tsx` dégrade toujours proprement (`.sprite-empty`, jamais un layout cassé ni une exception)
+si AniList est indisponible ou ne trouve rien.
 
-**Recommandation : un script dev-time, pas un appel runtime.** `scripts/fetch-art.mjs`, exécuté à la
-main (`node scripts/fetch-art.mjs`), jamais dans le build ni au chargement du jeu, qui :
+**Piège d'orthographe à surveiller** : le nom canonique AniList d'un personnage peut différer du nom
+localisé en français des données du jeu (AniList connaît « Sasuke Uchiha », les données du jeu
+disent « Sasuke Uchiwa » — ancien doublage FR). Corrigé au cas par cas via `NAME_OVERRIDES` dans
+`anilist.ts`, à étendre quand un nouveau personnage ne matche pas.
 
-1. prend un `MANIFEST` — une liste `{ id, query }` tenue à la main dans le script, pas dérivée
-   automatiquement de `src/data/*.ts` : un script Node ESM brut n'exécute pas du TypeScript typé
-   sans outillage supplémentaire, et la requête Jikan a de toute façon besoin du nom *canonique*
-   du personnage, qui peut différer du nom localisé des données du jeu (Jikan connaît « Sasuke
-   Uchiha », les données du jeu disent « Sasuke Uchiwa ») — une dérivation automatique par id
-   aurait donc raté la recherche la moitié du temps ;
-2. interroge Jikan (`/characters?q=<query>`) pour trouver l'image correspondante ;
-3. télécharge le fichier et l'enregistre sous `src/assets/sprites/<id>.<ext>` — exactement la
-   convention déjà documentée dans `src/assets/sprites/README.md`, aucun changement de
-   `Sprite.tsx` nécessaire ; un id qui a déjà un fichier est sauté, jamais écrasé automatiquement.
-
-Ça garde le jeu 100% autonome au runtime (le principe « pas de dépendance externe » du §4 tient
-aussi ici), et ça garde le contrôle humain sur quelle image est retenue pour quel id — un match
-automatique par nom peut se tromper de personnage (homonymes), une revue manuelle avant commit
-reste nécessaire. Jikan proxifie MyAnimeList et hérite de ses pannes : le script échoue net (pas de
-retry silencieux) si Jikan répond 504, ce qui arrive — à relancer plus tard plutôt qu'à contourner
-en revenant vers une source moins fiable.
+**Amélioration future documentée, pas un blocage actuel** : la recherche par nom peut se tromper
+sur un homonyme (Rasengames a eu le cas avec « King » qui renvoyait Lelouch, alias « Black King »).
+Rasengames corrige ça en résolvant une fois l'id numérique AniList de chaque entrée et en
+interrogeant `Character(id:)` ensuite. Le casting de ce jeu est assez connu pour que ce risque soit
+faible en pratique ; si un mauvais match apparaît, la même solution (stocker un `anilistId` optionnel
+sur `Character`/`Enemy`/`Anime`, résolu une fois à la main) s'applique directement.
 
 ### 6.3 Point d'attention légal
 
@@ -303,16 +303,20 @@ décision produit — à trancher par l'utilisateur, pas par ce document.
 ## 7. Outils MCP externes pour accélérer le design
 
 Deux serveurs MCP sont disponibles côté Claude Code (`.mcp.json`, scope projet) pour accélérer la
-production visuelle. Aucun des deux n'est un appel runtime du jeu — même principe que §6.2 : tout
-ce qu'ils produisent est revu, éventuellement retravaillé, puis committé comme fichier statique ou
-code écrit à la main. Ce sont des outils de session de dev, pas des dépendances du jeu.
+production visuelle. Ce sont des outils de session de dev, pas des dépendances du jeu — tout ce
+qu'ils produisent est revu, éventuellement retravaillé, puis committé comme fichier statique ou
+code écrit à la main.
 
 - **Higgsfield MCP** (`higgsfield`, https://mcp.higgsfield.ai, OAuth) — génération d'images/vidéos
-  custom. Vient nourrir le mécanisme de sprite déjà en place (§6) : plutôt que de dépendre
-  uniquement de Jikan/AniList pour les portraits officiels, Higgsfield permet de générer un
-  artwork original pour un id qui n'a pas d'équivalent exploitable (boss inventé, monde sans
-  licence, item unique) et de le déposer sous `src/assets/sprites/<id>.<ext>` — même convention,
-  `Sprite.tsx` ne change pas.
+  custom. **Sans point d'intégration actuel** : son usage prévu ici (générer un artwork original
+  pour un id sans équivalent exploitable — boss inventé, monde sans licence — et le déposer sous
+  `src/assets/sprites/<id>.<ext>`) dépendait du mécanisme de surcharge locale que §6 vient de
+  retirer entièrement au profit du fetch AniList direct. Pour `naruto.ts`, le besoin a été couvert
+  autrement (les ennemis inventés ont été renommés en vrais personnages mineurs de l'anime, pour
+  qu'AniList ait quelque chose à renvoyer). S'il faut un jour de l'art pour quelque chose qui n'a
+  vraiment aucun équivalent réel (un monde sans licence, par exemple), Higgsfield reste l'outil
+  approprié, mais ça demandera de redonner à `Sprite.tsx` un point d'entrée pour de l'art déposé à
+  la main — à concevoir à ce moment-là plutôt que maintenu ici en l'air.
 - **21st.dev** — catalogue de composants React avec, pour chacun, un prompt prêt à coller dans un
   agent IA pour le reconstruire. Utile comme **point de départ visuel/structurel** pour un panel
   qu'on peine à esquisser (disposition d'un tableau, d'un tooltip, d'un toast — voir §4 « Notification

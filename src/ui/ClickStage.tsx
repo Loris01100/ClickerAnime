@@ -82,7 +82,7 @@ export default function ClickStage(props: { game: GameStore }) {
             <div class="stage" onClick={handleClick}>
               <div class="stage-hint">Clic du Narrateur</div>
               <div class="enemy" classList={{ boss: isBoss(), rival: !!current().characterId }}>
-                <Sprite seed={current().characterId ?? current().id} px={isBoss() ? 12 : 9} />
+                <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 12 : 9} />
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
                 <Show when={isBoss()}>

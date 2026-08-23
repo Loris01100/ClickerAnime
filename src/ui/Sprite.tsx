@@ -1,61 +1,37 @@
-import { For, Show, createMemo } from "solid-js";
-import { SPRITE_HEIGHT, SPRITE_WIDTH, spriteCells, spriteHue } from "./pixel";
+import { Show, createResource } from "solid-js";
+import { portraitUrl, type PortraitKind } from "./anilist";
+
+const BOX_COLS = 7;
+const BOX_ROWS = 8;
 
 /**
- * Real artwork, keyed by id: drop a file named `<id>.png` (or .webp/.jpg/.gif/.svg) into
- * src/assets/sprites/ — e.g. `naruto-uzumaki.png` for that character id — and it replaces the
- * generated sprite for that id everywhere, with no code change. See src/assets/sprites/README.md.
+ * Renders a portrait fetched live from AniList by name (see `anilist.ts`), scaled with
+ * `object-fit: contain` into a box sized by `px`. While the lookup is pending, or once it resolves
+ * to nothing, an empty `.sprite-empty` placeholder fills the same box — no layout shift either way.
+ * For `kind="character"`, pass `anime` (the show's name) so the lookup searches that show's cast
+ * instead of AniList's whole character database — without it, a common name (e.g. "Chiyo") can
+ * resolve to an unrelated character from a different anime entirely.
  */
-const artworkFiles = import.meta.glob<string>("../assets/sprites/*.{png,jpg,jpeg,webp,gif,svg}", {
-  eager: true,
-  import: "default",
-});
-const artworkById = new Map(
-  Object.entries(artworkFiles).map(([path, url]) => [path.replace(/^.*\//, "").replace(/\.[^.]+$/, ""), url])
-);
-
-/** Renders the sprite for an id: real artwork if one was dropped in, else the generated pixel
- * placeholder. `px` is the size of one placeholder pixel, in CSS pixels — real artwork is scaled
- * to fit the same box so swapping one in never shifts layout. */
-export default function Sprite(props: { seed: string; px?: number; dim?: boolean }) {
+export default function Sprite(props: { name: string; kind: PortraitKind; anime?: string; px?: number; dim?: boolean }) {
   const px = () => props.px ?? 4;
-  const width = () => SPRITE_WIDTH * px();
-  const height = () => SPRITE_HEIGHT * px();
-  const custom = createMemo(() => artworkById.get(props.seed));
-  const cells = createMemo(() => spriteCells(props.seed));
-  const hue = createMemo(() => spriteHue(props.seed));
+  const width = () => BOX_COLS * px();
+  const height = () => BOX_ROWS * px();
+
+  const [portrait] = createResource(
+    () => `${props.kind}:${props.anime ?? ""}:${props.name}`,
+    () => portraitUrl(props.name, props.kind, props.anime)
+  );
 
   return (
     <Show
-      when={custom()}
+      when={portrait()}
       fallback={
-        <svg
-          class="sprite pixel"
+        <div
+          class="sprite sprite-empty"
           classList={{ dim: props.dim }}
-          width={width()}
-          height={height()}
-          viewBox={`0 0 ${SPRITE_WIDTH} ${SPRITE_HEIGHT}`}
-          shape-rendering="crispEdges"
+          style={{ width: `${width()}px`, height: `${height()}px` }}
           aria-hidden="true"
-        >
-          <For each={cells()}>
-            {(row, y) => (
-              <For each={row}>
-                {(cell, x) => (
-                  <Show when={cell > 0}>
-                    <rect
-                      x={x()}
-                      y={y()}
-                      width="1"
-                      height="1"
-                      fill={`hsl(${hue()} 62% ${cell === 2 ? 72 : 50}%)`}
-                    />
-                  </Show>
-                )}
-              </For>
-            )}
-          </For>
-        </svg>
+        />
       }
     >
       {(src) => (

@@ -38,15 +38,26 @@ evolution and combos. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
 
-**Pixel art is generated, not authored — until a file says otherwise.** `ui/pixel.ts` turns any id
-into a stable mirrored sprite (FNV-1a hash seeding an xorshift32 fill), rendered as SVG rects by
-`ui/Sprite.tsx`. Same id always gives the same sprite, which is what makes it usable as an identity
-— pass a character id, an enemy id or a boss id. `Sprite.tsx` checks `src/assets/sprites/<id>.*`
-first (via `import.meta.glob`, eager) and only falls back to the generated grid when no file matches;
-real art is scaled with `object-fit: contain` into the exact box the placeholder would have used, so
-dropping a file in never shifts layout. Adding real art for an id is therefore just adding the file —
-see `src/assets/sprites/README.md` for the naming rule. Note the filename casing: `pixel.ts` and
-`Sprite.tsx` must not collide on case-insensitive filesystems.
+**Portraits are fetched live from AniList, in the player's own browser.** `ui/anilist.ts` is a
+small best-effort client: `portraitUrl(name, kind)` queries `graphql.anilist.co` by character or
+anime *name* (not id — every `Character`/`Enemy`/`Anime` already carries a human-readable `.name`,
+which is what an AniList search needs), deduping concurrent lookups in memory and persisting hits to
+`localStorage` (`clicker-anime:portraits:v1`) so a returning player isn't re-fetching the same
+portraits every reload — character art never changes, so entries never expire. Calling AniList from
+a server/Worker gets a `403` (shared cloud egress IPs are blacklisted); calling from each player's
+own browser is exactly what AniList's CORS is for, confirmed against the sibling project
+[Rasengames](https://github.com/Loris01100/Rasengames)'s `public/js/anilist.js`, which hit that wall
+first. `portraitUrl` never rejects — network error, timeout, AniList's 404-on-no-match, malformed
+JSON and a full `localStorage` all resolve to `null`, since there is no `<ErrorBoundary>` anywhere
+to catch a rejected `createResource`. A handful of in-game French names don't match AniList's
+canonical spelling (the old dub's "Uchiwa" vs AniList's "Uchiha") — corrected via `NAME_OVERRIDES`
+in `anilist.ts`, not by changing the name shown in the UI.
+
+`ui/Sprite.tsx` wraps this in a `createResource` keyed on `kind:name`; `<Show>` renders the resolved
+`<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or once
+resolved to nothing, an empty `.sprite-empty` placeholder of the same size — never a layout shift,
+never a broken image. `ui/hue.ts` holds the unrelated `spriteHue(seed)` used to tint `WorldMap.tsx`'s
+background per world — it has nothing to do with portraits, kept separate on purpose.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.

@@ -62,7 +62,7 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
   return (
     <div class="portal-detail scroll">
       <div class="portal-hero">
-        <Sprite seed={props.anime.id} px={8} dim={status() === "locked"} />
+        <Sprite name={props.anime.name} kind="anime" px={8} dim={status() === "locked"} />
         <div>
           <h3>{props.anime.name}</h3>
           <p class="muted small">
@@ -132,7 +132,7 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
                         });
                         return (
                           <div class="portal-recruit">
-                            <Sprite seed={character.id} px={3} />
+                            <Sprite name={character.name} kind="character" anime={props.anime.name} px={3} />
                             <div>
                               <strong class="small">{character.name}</strong>
                               <Show
@@ -195,7 +195,7 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
                 classList={{ active: anime.id === selectedId(), locked: status() === "locked" }}
                 onClick={() => setSelectedId(anime.id)}
               >
-                <Sprite seed={anime.id} px={4} dim={status() === "locked"} />
+                <Sprite name={anime.name} kind="anime" px={4} dim={status() === "locked"} />
                 <span class="name">{anime.name}</span>
                 <span class="portal-badge" classList={{ [status()]: true }}>
                   <Show when={status() === "locked"}>

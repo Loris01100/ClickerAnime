@@ -1,23 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { SPRITE_HEIGHT, SPRITE_WIDTH, spriteCells, spriteHue } from "./pixel";
+import { spriteHue } from "./hue";
 import { describeAbility, describeModifier } from "./describe";
 
-describe("pixel sprites", () => {
-  it("gives the same sprite for the same id, every time", () => {
-    expect(spriteCells("char-a1")).toEqual(spriteCells("char-a1"));
+describe("spriteHue", () => {
+  it("gives the same hue for the same id, every time", () => {
     expect(spriteHue("char-a1")).toBe(spriteHue("char-a1"));
   });
 
-  it("gives different sprites to different ids", () => {
-    expect(spriteCells("char-a1")).not.toEqual(spriteCells("char-a2"));
-  });
-
-  it("mirrors each row so the result reads as a creature", () => {
-    for (const row of spriteCells("boss-1")) {
-      expect(row).toHaveLength(SPRITE_WIDTH);
-      expect(row).toEqual([...row].reverse());
-    }
-    expect(spriteCells("boss-1")).toHaveLength(SPRITE_HEIGHT);
+  it("gives different hues to different ids", () => {
+    expect(spriteHue("char-a1")).not.toBe(spriteHue("char-a2"));
   });
 });
 

@@ -1,6 +1,6 @@
 /**
  * Deterministic id → number hash (FNV-1a), shared by anything that needs a stable value derived
- * from an id: generated pixel art (`ui/pixel.ts`) and world-map layout (`mapLayout.ts`) alike.
+ * from an id: the world-map tint hue (`ui/hue.ts`) and world-map layout (`mapLayout.ts`) alike.
  * Lives in the engine, not `ui/`, so pure engine modules never have to reach into `ui/` for it.
  */
 
