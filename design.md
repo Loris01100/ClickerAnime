@@ -370,13 +370,17 @@ code écrit à la main.
 
 - **Un panel = `.panel` + `.panel-head`.** Titre à gauche, info secondaire (compteur, select,
   chip) à droite. Ne jamais empiler un titre au-dessus d'un tableau sans cet en-tête.
-- **Un panel repliable remplace le `<span>` du titre par `<PanelTitle>`** (`ui/PanelTitle.tsx`) :
-  même position à gauche du `.panel-head`, un `IconChevron` qui pivote à -90° replié
-  (`.panel-title .icon.collapsed`) devant le libellé, et le corps du panel dans un
-  `<Show when={open()}>` local au composant (pas d'état partagé entre panels, pas de persistance —
-  replier est une commodité d'affichage, pas un réglage à sauvegarder). Utilisé par Capacités,
-  Équipe, Objets (`RosterPanel.tsx`) et Carte (`WorldMap.tsx`) ; l'info secondaire à droite du
-  header (compteur, select) reste toujours visible, seul le corps se replie.
+- **Tout panel est repliable**, sans exception : le `<span>` du titre est remplacé par
+  `<PanelTitle>` (`ui/PanelTitle.tsx`) — même position à gauche du `.panel-head`, un `IconChevron`
+  qui pivote à -90° replié (`.panel-title .icon.collapsed`) devant le libellé — et le corps du
+  panel va dans un `<Show when={open()}>` juste en dessous. L'état est un signal local au
+  composant (pas de partage entre panels, pas de persistance — replier est une commodité
+  d'affichage, pas un réglage à sauvegarder) ; un panel généré par un `<For>` (un par monde
+  débloqué dans `ProgressPanel.tsx`) garde un état par instance via un `Record<id, boolean>`
+  plutôt qu'un signal booléen unique. L'info secondaire à droite du header (compteur, select,
+  difficulté) reste toujours visible, seul le corps se replie. Tout nouveau panel doit suivre ce
+  patron dès sa création — ne pas en ajouter un en `<span>` nu qu'il faudrait reconvertir plus
+  tard.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.
   Pas de tableau HTML natif, pas de pagination — le scroll interne au panel est le seul mécanisme
   de dépassement.

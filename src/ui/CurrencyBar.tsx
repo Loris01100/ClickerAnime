@@ -1,14 +1,20 @@
+import { createSignal, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
 import { IconBookmark, IconGlobe } from "./icons";
 
 /** The row of running totals at the top of the middle column. */
 export default function CurrencyBar(props: { game: GameStore }) {
+  const [open, setOpen] = createSignal(true);
   return (
     <section class="panel">
       <header class="panel-head">
-        <span>Ressources</span>
+        <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
+          Ressources
+        </PanelTitle>
       </header>
+      <Show when={open()}>
       <div class="currency-row">
         <div class="currency">
           <span class="coin gold">◆</span>
@@ -27,6 +33,7 @@ export default function CurrencyBar(props: { game: GameStore }) {
           <strong>{props.game.clearedAnimes().length}</strong>
         </div>
       </div>
+      </Show>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 import { IconCrown, IconStar } from "./icons";
@@ -14,6 +15,7 @@ interface Pop {
 /** Middle column: the arc stepper, the fight, and the running combat stats. */
 export default function ClickStage(props: { game: GameStore }) {
   const [pops, setPops] = createSignal<Pop[]>([]);
+  const [open, setOpen] = createSignal(true);
   let popId = 0;
 
   function handleClick(event: MouseEvent) {
@@ -60,12 +62,15 @@ export default function ClickStage(props: { game: GameStore }) {
   return (
     <section class="panel">
       <header class="panel-head">
-        <span>Combat</span>
+        <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
+          Combat
+        </PanelTitle>
         <small class="muted">
           {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
         </small>
       </header>
 
+      <Show when={open()}>
       <div class="arc-stepper">
         <button disabled={!neighbour(-1)} onClick={() => props.game.stepArc(-1)}>
           ‹ {neighbour(-1)?.name ?? "—"}
@@ -148,6 +153,7 @@ export default function ClickStage(props: { game: GameStore }) {
           <strong>{fmt(props.game.lifetimeEarned())}</strong>
         </div>
       </div>
+      </Show>
     </section>
   );
 }

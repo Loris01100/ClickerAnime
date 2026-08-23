@@ -1,5 +1,6 @@
 import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
 import { IconLock } from "./icons";
 import PrestigeTree from "./PrestigeTree";
@@ -9,6 +10,11 @@ const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / ne
 /** Right column: the arc list per world, travel, and the prestige track. */
 export default function ProgressPanel(props: { game: GameStore }) {
   const [treeOpen, setTreeOpen] = createSignal(false);
+  const [openAnimes, setOpenAnimes] = createSignal<Record<string, boolean>>({});
+  const [travelOpen, setTravelOpen] = createSignal(true);
+  const [prestigeOpen, setPrestigeOpen] = createSignal(true);
+  const isAnimeOpen = (id: string) => openAnimes()[id] ?? true;
+  const toggleAnime = (id: string) => setOpenAnimes((o) => ({ ...o, [id]: !isAnimeOpen(id) }));
   // Un monde dont le préalable n'est pas rempli ne doit même pas apparaître dans le choix.
   const otherAnimes = () =>
     props.game.data.animes.filter(
@@ -21,12 +27,13 @@ export default function ProgressPanel(props: { game: GameStore }) {
         {(anime) => (
           <section class="panel">
             <header class="panel-head">
-              <span>
+              <PanelTitle open={isAnimeOpen(anime.id)} onToggle={() => toggleAnime(anime.id)}>
                 {anime.name}
                 <Show when={props.game.animeCleared(anime.id)}> ✓</Show>
-              </span>
+              </PanelTitle>
               <small class="muted">x{fmt(props.game.difficultyOf(anime.id))}</small>
             </header>
+            <Show when={isAnimeOpen(anime.id)}>
             <For each={props.game.arcsOf(anime.id)}>
               {(arc) => {
                 const open = () => props.game.arcOpen(arc);
@@ -58,6 +65,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
                 );
               }}
             </For>
+            </Show>
           </section>
         )}
       </For>
@@ -65,9 +73,12 @@ export default function ProgressPanel(props: { game: GameStore }) {
       <Show when={otherAnimes().length > 0}>
         <section class="panel">
           <header class="panel-head">
-            <span>Voyager</span>
+            <PanelTitle open={travelOpen()} onToggle={() => setTravelOpen(!travelOpen())}>
+              Voyager
+            </PanelTitle>
             <small class="muted">x{fmt(props.game.nextDifficulty())}</small>
           </header>
+          <Show when={travelOpen()}>
           <p class="muted pad small">
             <Show
               when={props.game.canTravel()}
@@ -97,14 +108,18 @@ export default function ProgressPanel(props: { game: GameStore }) {
               </div>
             )}
           </For>
+          </Show>
         </section>
       </Show>
 
       <section class="panel">
         <header class="panel-head">
-          <span>Prestige</span>
+          <PanelTitle open={prestigeOpen()} onToggle={() => setPrestigeOpen(!prestigeOpen())}>
+            Prestige
+          </PanelTitle>
           <small class="muted">{props.game.prestige().prestigePoints} ✦</small>
         </header>
+        <Show when={prestigeOpen()}>
         <div class="pad">
           <button
             class="primary"
@@ -119,6 +134,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
             Seuls les points de prestige sont conservés.
           </p>
         </div>
+        </Show>
       </section>
 
       <Show when={treeOpen()}>

@@ -23,6 +23,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
   const [abilitiesOpen, setAbilitiesOpen] = createSignal(true);
   const [teamOpen, setTeamOpen] = createSignal(true);
   const [itemsOpen, setItemsOpen] = createSignal(true);
+  const [recruitsOpen, setRecruitsOpen] = createSignal(true);
 
   const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
 
@@ -161,9 +162,12 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
       <Show when={props.game.arcRecruits().length > 0}>
         <section class="panel">
           <header class="panel-head">
-            <span>À battre ici</span>
+            <PanelTitle open={recruitsOpen()} onToggle={() => setRecruitsOpen(!recruitsOpen())}>
+              À battre ici
+            </PanelTitle>
             <small class="muted">{props.game.arcRecruits().length}</small>
           </header>
+          <Show when={recruitsOpen()}>
           <For each={props.game.arcRecruits()}>
             {(character) => (
               <div class="row">
@@ -178,6 +182,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
               </div>
             )}
           </For>
+          </Show>
         </section>
       </Show>
 
