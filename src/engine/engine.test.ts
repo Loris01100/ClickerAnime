@@ -495,7 +495,7 @@ describe("store boot", () => {
     }
   });
 
-  it("does not stack two abilities boosting the same stat: activating one replaces the other", () => {
+  it("does not stack two abilities boosting the same stat: the second is locked out while the first's buff is up", () => {
     const testData = {
       animes: [],
       arcs: [],
@@ -566,9 +566,10 @@ describe("store boot", () => {
       expect(game.teamDps()).toBe(10); // base dps only, no ability active yet
       game.activateAbility("ability-a");
       expect(game.teamDps()).toBeCloseTo(20); // 10 * (1 + 1.0)
-      game.activateAbility("ability-b");
-      // 10 * (1 + 2.0) — ability-a's buff was replaced, not stacked (would be 40 otherwise)
-      expect(game.teamDps()).toBeCloseTo(30);
+      // ability-b touches the same stat and is locked out for the rest of ability-a's buff: it can't
+      // fire yet, so its effect never applies (10 * (1 + 2.0) = 30 would mean it slipped through).
+      expect(game.activateAbility("ability-b")).toBe(false);
+      expect(game.teamDps()).toBeCloseTo(20);
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
@@ -709,7 +710,7 @@ describe("store boot", () => {
     }
   });
 
-  it("same-stat abilities adopt the just-activated ability's cooldown, unless their own is already shorter", () => {
+  it("same-stat abilities are locked for the just-activated ability's buff duration, not its cooldown", () => {
     const testData = {
       animes: [],
       arcs: [],
@@ -726,7 +727,7 @@ describe("store boot", () => {
             id: "ability-a",
             name: "A",
             cooldownMs: 30_000,
-            durationMs: 10_000,
+            durationMs: 20_000,
             effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
           },
         },
@@ -741,9 +742,9 @@ describe("store boot", () => {
           ability: {
             id: "ability-b",
             name: "B",
-            cooldownMs: 90_000,
+            cooldownMs: 5_000,
             durationMs: 10_000,
-            // longer cooldown than A: must adopt A's (shorter) cooldown instead of its own
+            // shorter cooldown than A, same stat: must still be locked for A's whole 20s buff
             effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
           },
         },
@@ -758,10 +759,10 @@ describe("store boot", () => {
           ability: {
             id: "ability-c",
             name: "C",
-            cooldownMs: 15_000,
+            cooldownMs: 5_000,
             durationMs: 10_000,
-            // shorter cooldown than A: must be left untouched, not extended to A's cooldown
-            effects: [{ id: "c-eff", target: "teamDps" as const, kind: "percent" as const, value: 3 }],
+            // different stat: never locked by A
+            effects: [{ id: "c-eff", target: "clickPower" as const, kind: "percent" as const, value: 3 }],
           },
         },
       ],
@@ -796,11 +797,14 @@ describe("store boot", () => {
       });
 
       game.activateAbility("ability-a");
+      // A's own cooldown is unaffected by this feature: still running its normal 30s.
+      expect(game.abilityCooldownRemaining("ability-a")).toBeGreaterThan(20_000);
+      // B is locked for A's 20s buff duration, well past B's own 5s cooldown.
       const bRemaining = game.abilityCooldownRemaining("ability-b");
-      // adopts A's 30s cooldown, not its own 90s
-      expect(bRemaining).toBeGreaterThan(0);
-      expect(bRemaining).toBeLessThanOrEqual(30_000);
-      // C's own 15s cooldown is already shorter than A's: left untouched, still ready
+      expect(bRemaining).toBeGreaterThan(15_000);
+      expect(bRemaining).toBeLessThanOrEqual(20_000);
+      expect(game.activateAbility("ability-b")).toBe(false);
+      // C touches a different stat: never locked, ready throughout.
       expect(game.abilityCooldownRemaining("ability-c")).toBe(0);
     } finally {
       disposeRoot();

@@ -168,6 +168,8 @@ export function createGameStore(data: GameData) {
   );
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
+  // Same-stat abilities can't fire while another's buff on that stat is still up — see activateAbility.
+  const [abilityBlockedUntil, setAbilityBlockedUntil] = createSignal<Record<string, number>>({});
 
   // Combat is transient: the current fight restarts from scratch on reload rather than being saved.
   const [enemy, setEnemy] = createSignal<Enemy | null>(null);
@@ -711,21 +713,20 @@ export function createGameStore(data: GameData) {
 
     const nowMs = Date.now();
     if (!isAbilityReady(abilityLastUsed()[abilityId], unlocked.ability.cooldownMs, nowMs)) return false;
+    if ((abilityBlockedUntil()[abilityId] ?? 0) > nowMs) return false;
 
     triggerAbilityEffects(unlocked.ability);
-    // Abilities that touch the same stat also start cooling down together: activating one would cut
-    // a same-stat buff short anyway, so leaving it "ready" would just invite a wasted activation. They
-    // adopt the just-used ability's cooldown instead of their own — a long-cooldown ability fired
-    // alongside a short one comes back sooner — unless their own cooldown is already shorter, in which
-    // case they're left untouched and keep running their own, faster cycle.
-    const usedCooldown = unlocked.ability.cooldownMs;
-    const sameType = unlockedAbilities().filter((u) => abilitiesShareType(u.ability, unlocked.ability));
-    setAbilityLastUsed((used) => {
-      const next = { ...used };
-      for (const u of sameType) {
-        if (u.ability.id === abilityId) next[u.ability.id] = nowMs;
-        else if (u.ability.cooldownMs >= usedCooldown) next[u.ability.id] = nowMs - (u.ability.cooldownMs - usedCooldown);
-      }
+    setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
+    // Abilities that touch the same stat can't be fired while this one's buff is still up: activating
+    // one would immediately cut the other's effect short anyway (`replaceModifiersByTarget`), so lock
+    // them for the buff's duration — not its cooldown, which keeps running on its own, untouched.
+    const lockedUntil = nowMs + unlocked.ability.durationMs;
+    const sameType = unlockedAbilities().filter(
+      (u) => u.ability.id !== abilityId && abilitiesShareType(u.ability, unlocked.ability)
+    );
+    setAbilityBlockedUntil((blocked) => {
+      const next = { ...blocked };
+      for (const u of sameType) next[u.ability.id] = lockedUntil;
       return next;
     });
     bumpAchievement("abilitiesUsed");
@@ -734,7 +735,9 @@ export function createGameStore(data: GameData) {
 
   function abilityCooldownRemaining(abilityId: string): number {
     const cooldownMs = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability.cooldownMs ?? 0;
-    return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
+    const cd = cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
+    const blockedFor = Math.max(0, (abilityBlockedUntil()[abilityId] ?? 0) - now());
+    return Math.max(cd, blockedFor);
   }
 
   /**
