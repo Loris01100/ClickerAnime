@@ -350,8 +350,13 @@ A character belongs to exactly one world and is recruitable in exactly one arc: 
 one from part 1, it introduces new faces only (`engine.test.ts` enforces both rules, along with every
 id being unique and every reference resolvable). Combos may still span worlds — the team only wipes
 on prestige, not on travel — which is what makes "Le Sommet des Cinq Kage" (Gaara and Tsunade from
-part 1, plus the Shippūden Kage) worth keeping a mixed team for. A handful of part-1 faces (Naruto,
-Sakura, Gaara) do get stronger once fought alongside in Shippūden — see [Evolutions](#evolutions) —
-but that's the same Codex entry growing, never a new recruit.
+part 1, plus the Shippūden Kage) worth keeping a mixed team for. Every part-1 `rarity: "main"`
+character who is still part of the Shippūden cast (Naruto, Kakashi, Sasuke, Neji, Jiraiya, Tsunade,
+Gaara) gets stronger once fought alongside there — see [Evolutions](#evolutions) — but that's the
+same Codex entry growing, never a new recruit. Secondary-rarity part-1 characters get no evolution
+even when they do appear in Shippūden (Rock Lee, Shikamaru, Hinata, Temari, Kankurô, Shizune, Chôji,
+Kiba), and Sakura is the one secondary-rarity exception, kept from an earlier pass. Kimimaro, also
+`"main"`, is excluded on purpose: he dies at the end of part 1 and is never part of the Shippūden
+cast.
 
 UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.

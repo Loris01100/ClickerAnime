@@ -177,6 +177,18 @@ export const narutoData: GameData = {
         durationMs: 8_000,
         effects: [{ id: "sharingan-dps", target: "teamDps", kind: "percent", value: 0.75 }],
       },
+      evolution: {
+        animeId: "shippuden",
+        label: "Maître du Sharingan",
+        bonus: [{ id: "kakashi-sharingan-click", target: "clickPower", kind: "percent", value: 0.35 }],
+        ability: {
+          id: "ability-raikiri",
+          name: "Raikiri",
+          cooldownMs: 45_000,
+          durationMs: 8_000,
+          effects: [{ id: "raikiri-dps", target: "teamDps", kind: "multiplier", value: 3.5 }],
+        },
+      },
     },
     {
       id: "haku",
@@ -239,6 +251,18 @@ export const narutoData: GameData = {
         durationMs: 4_000,
         effects: [{ id: "chidori-dps", target: "teamDps", kind: "multiplier", value: 3.5 }],
       },
+      evolution: {
+        animeId: "shippuden",
+        label: "Susanoo du Sharingan Éternel",
+        bonus: [{ id: "sasuke-susanoo-dps", target: "teamDps", kind: "percent", value: 0.45 }],
+        ability: {
+          id: "ability-amaterasu",
+          name: "Amaterasu — Flammes Noires",
+          cooldownMs: 40_000,
+          durationMs: 4_000,
+          effects: [{ id: "amaterasu-dps", target: "teamDps", kind: "multiplier", value: 5 }],
+        },
+      },
     },
     {
       id: "neji-hyuga",
@@ -249,6 +273,18 @@ export const narutoData: GameData = {
       baseClickPower: 3,
       baseDps: 13,
       passive: { id: "neji-passive", target: "teamDps", kind: "percent", value: 0.2 },
+      evolution: {
+        animeId: "shippuden",
+        label: "Byakugan Libéré du Destin",
+        bonus: [{ id: "neji-destin-dps", target: "teamDps", kind: "percent", value: 0.3 }],
+        ability: {
+          id: "ability-hakke-rokuju",
+          name: "Hakke Rokujûyonshô",
+          cooldownMs: 45_000,
+          durationMs: 6_000,
+          effects: [{ id: "hakke-rokuju-dps", target: "teamDps", kind: "multiplier", value: 3.2 }],
+        },
+      },
     },
     {
       id: "temari",
@@ -327,6 +363,21 @@ export const narutoData: GameData = {
           { id: "gamabunta-click", target: "teamDps", kind: "percent", value: 0.5 },
         ],
       },
+      evolution: {
+        animeId: "shippuden",
+        label: "Mode Sennin du Mont Myôboku",
+        bonus: [{ id: "jiraya-sennin-click", target: "clickPower", kind: "percent", value: 0.4 }],
+        ability: {
+          id: "ability-rasengan-sennin",
+          name: "Rasengan Sennin",
+          cooldownMs: 70_000,
+          durationMs: 10_000,
+          effects: [
+            { id: "rasengan-sennin-dps", target: "teamDps", kind: "multiplier", value: 4.5 },
+            { id: "rasengan-sennin-click", target: "teamDps", kind: "percent", value: 0.6 },
+          ],
+        },
+      },
     },
     {
       id: "tsunade",
@@ -337,6 +388,18 @@ export const narutoData: GameData = {
       baseClickPower: 20,
       baseDps: 50,
       passive: { id: "tsunade-passive", target: "teamDps", kind: "percent", value: 0.35 },
+      evolution: {
+        animeId: "shippuden",
+        label: "Sôzô Saisei — Régénération Totale",
+        bonus: [{ id: "tsunade-souzou-dps", target: "teamDps", kind: "percent", value: 0.5 }],
+        ability: {
+          id: "ability-souzou-saisei",
+          name: "Sôzô Saisei",
+          cooldownMs: 55_000,
+          durationMs: 8_000,
+          effects: [{ id: "souzou-saisei-dps", target: "teamDps", kind: "multiplier", value: 3.8 }],
+        },
+      },
     },
     {
       id: "choji-akimichi",

@@ -2,6 +2,7 @@ import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-j
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
 import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
+import { defaultSynergyConfig } from "../engine/synergy";
 import Sprite from "./Sprite";
 import { describeAbility, describeModifier } from "./describe";
 import { fmt } from "./format";
@@ -228,7 +229,8 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                   <h4>Synergie</h4>
                   <p class="muted small">
                     Fort dans : {arcNames(character()).join(", ") || "aucun arc"}. Ailleurs dans{" "}
-                    {animeName(character().animeId)} ses stats tombent à 85 %, et dans un autre anime à 50 %.
+                    {animeName(character().animeId)} ses stats tombent à {Math.round(defaultSynergyConfig.sameAnimeMalus * 100)}{" "}
+                    %, et dans un autre anime à {Math.round(defaultSynergyConfig.otherAnimeMalus * 100)} %.
                   </p>
                 </div>
               </div>
