@@ -76,9 +76,9 @@ function makeArc(id: string, animeId: string, order: number, mobs: Enemy[], mobs
 describe("computeEffectiveStat", () => {
   it("applies flat, then percent, then multiplier in order", () => {
     const modifiers: ActiveModifier[] = [
-      { id: "m1", sourceId: "s1", target: "clickPower", kind: "flat", value: 5 },
-      { id: "m2", sourceId: "s2", target: "clickPower", kind: "percent", value: 0.5 },
-      { id: "m3", sourceId: "s3", target: "clickPower", kind: "multiplier", value: 2 },
+      { sourceId: "s1", target: "clickPower", kind: "flat", value: 5 },
+      { sourceId: "s2", target: "clickPower", kind: "percent", value: 0.5 },
+      { sourceId: "s3", target: "clickPower", kind: "multiplier", value: 2 },
     ];
     // (0 + 5) * (1 + 0.5) * 2 = 15
     expect(computeEffectiveStat(0, "clickPower", modifiers, 0)).toBe(15);
@@ -86,7 +86,7 @@ describe("computeEffectiveStat", () => {
 
   it("ignores expired modifiers", () => {
     const modifiers: ActiveModifier[] = [
-      { id: "m1", sourceId: "s1", target: "clickPower", kind: "flat", value: 5, expiresAt: 100 },
+      { sourceId: "s1", target: "clickPower", kind: "flat", value: 5, expiresAt: 100 },
     ];
     expect(computeEffectiveStat(0, "clickPower", modifiers, 200)).toBe(0);
     expect(computeEffectiveStat(0, "clickPower", modifiers, 50)).toBe(5);
@@ -94,7 +94,7 @@ describe("computeEffectiveStat", () => {
 
   it("ignores modifiers targeting a different stat", () => {
     const modifiers: ActiveModifier[] = [
-      { id: "m1", sourceId: "s1", target: "teamDps", kind: "flat", value: 5 },
+      { sourceId: "s1", target: "teamDps", kind: "flat", value: 5 },
     ];
     expect(computeEffectiveStat(0, "clickPower", modifiers, 0)).toBe(0);
   });
@@ -103,11 +103,11 @@ describe("computeEffectiveStat", () => {
 describe("replaceModifiersByTarget", () => {
   it("cuts short whatever else was boosting the same stat instead of stacking with it", () => {
     const existing: ActiveModifier[] = [
-      { id: "a", sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 9_000 },
-      { id: "b", sourceId: "ability-a", target: "clickPower", kind: "percent", value: 0.5, expiresAt: 9_000 },
+      { sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 9_000 },
+      { sourceId: "ability-a", target: "clickPower", kind: "percent", value: 0.5, expiresAt: 9_000 },
     ];
     const incoming: ActiveModifier[] = [
-      { id: "c", sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 20_000 },
+      { sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 20_000 },
     ];
     const result = replaceModifiersByTarget(existing, incoming);
     // the old teamDps buff is gone, the unrelated clickPower one survives, the new one is in
@@ -189,7 +189,7 @@ describe("abilities", () => {
       name: "Ability 1",
       cooldownMs: 1000,
       durationMs: 500,
-      effects: [{ id: "e1", target: "clickPower", kind: "multiplier", value: 2 }],
+      effects: [{ target: "clickPower", kind: "multiplier", value: 2 }],
     },
   };
   const plain: Character = { ...base, id: "c2", name: "C2" };
@@ -202,7 +202,7 @@ describe("abilities", () => {
       name: "Combo ability",
       cooldownMs: 2000,
       durationMs: 1000,
-      effects: [{ id: "e2", target: "teamDps", kind: "multiplier", value: 2 }],
+      effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
     },
   };
 
@@ -232,7 +232,7 @@ describe("abilities", () => {
           name: "Evolved ability",
           cooldownMs: 1000,
           durationMs: 500,
-          effects: [{ id: "e3", target: "teamDps", kind: "multiplier", value: 3 }],
+          effects: [{ target: "teamDps", kind: "multiplier", value: 3 }],
         },
       },
     };
@@ -320,7 +320,7 @@ describe("combat", () => {
 describe("character growth", () => {
   const main: Character = {
     id: "m", name: "Main", animeId: "a", rarity: "main", arcIds: [], baseClickPower: 2, baseDps: 3,
-    passive: { id: "p", target: "clickPower", kind: "percent", value: 0.1 },
+    passive: { target: "clickPower", kind: "percent", value: 0.1 },
   };
   const side: Character = { ...main, id: "s", name: "Side", rarity: "secondary" };
 
@@ -605,21 +605,21 @@ describe("store boot", () => {
       name: "dps",
       cooldownMs: 0,
       durationMs: 0,
-      effects: [{ id: "e", target: "teamDps", kind: "percent", value: 1 }],
+      effects: [{ target: "teamDps", kind: "percent", value: 1 }],
     };
     const dpsToo: import("./types").AbilityDefinition = {
       id: "dpsToo",
       name: "dpsToo",
       cooldownMs: 0,
       durationMs: 0,
-      effects: [{ id: "e", target: "teamDps", kind: "multiplier", value: 2 }],
+      effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
     };
     const click: import("./types").AbilityDefinition = {
       id: "click",
       name: "click",
       cooldownMs: 0,
       durationMs: 0,
-      effects: [{ id: "e", target: "clickPower", kind: "percent", value: 1 }],
+      effects: [{ target: "clickPower", kind: "percent", value: 1 }],
     };
     const both: import("./types").AbilityDefinition = {
       id: "both",
@@ -627,8 +627,8 @@ describe("store boot", () => {
       cooldownMs: 0,
       durationMs: 0,
       effects: [
-        { id: "e1", target: "teamDps", kind: "percent", value: 1 },
-        { id: "e2", target: "clickPower", kind: "percent", value: 1 },
+        { target: "teamDps", kind: "percent", value: 1 },
+        { target: "clickPower", kind: "percent", value: 1 },
       ],
     };
     expect(abilitiesShareType(dps, dpsToo)).toBe(true);

@@ -69,7 +69,6 @@ export default function AchievementsPanel(props: { game: GameStore; onClose: () 
                         </span>
                         <strong classList={{ muted: i() >= completed() }}>
                           {describeModifier({
-                            id: "achievement",
                             target: "clickPower",
                             kind: "percent",
                             value: achievementTierBonus(i()),

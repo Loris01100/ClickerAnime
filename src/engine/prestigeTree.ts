@@ -322,7 +322,6 @@ export function prestigeTreeContributions(ranks: Record<string, number[]>): Acti
   const narratorLevel = nodeLevel(nodeLevels(ranks, "narratorClick"), 1);
   if (narratorLevel > 0) {
     mods.push({
-      id: "prestige-tree:narratorClick:1",
       sourceId: "prestige-tree:narratorClick:1",
       target: "clickPower",
       kind: "percent",
@@ -332,7 +331,6 @@ export function prestigeTreeContributions(ranks: Record<string, number[]>): Acti
   const teamDpsLevel = nodeLevel(nodeLevels(ranks, "teamDps"), 1);
   if (teamDpsLevel > 0) {
     mods.push({
-      id: "prestige-tree:teamDps:1",
       sourceId: "prestige-tree:teamDps:1",
       target: "teamDps",
       kind: "percent",

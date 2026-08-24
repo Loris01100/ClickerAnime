@@ -26,9 +26,9 @@ describe("themeOf", () => {
 
 describe("describeModifier", () => {
   it("words each kind of modifier for its target", () => {
-    expect(describeModifier({ id: "m", target: "clickPower", kind: "flat", value: 5 })).toBe("+5 au clic");
-    expect(describeModifier({ id: "m", target: "clickPower", kind: "percent", value: 0.1 })).toBe("+10 % au clic");
-    expect(describeModifier({ id: "m", target: "teamDps", kind: "multiplier", value: 2 })).toBe("x2 de DPS");
+    expect(describeModifier({ target: "clickPower", kind: "flat", value: 5 })).toBe("+5 au clic");
+    expect(describeModifier({ target: "clickPower", kind: "percent", value: 0.1 })).toBe("+10 % au clic");
+    expect(describeModifier({ target: "teamDps", kind: "multiplier", value: 2 })).toBe("x2 de DPS");
   });
 
   it("lists every effect of an ability with its timings", () => {
@@ -37,7 +37,7 @@ describe("describeModifier", () => {
       name: "A",
       cooldownMs: 30_000,
       durationMs: 5_000,
-      effects: [{ id: "e", target: "clickPower", kind: "multiplier", value: 3 }],
+      effects: [{ target: "clickPower", kind: "multiplier", value: 3 }],
     });
     expect(text).toContain("x3 au clic");
     expect(text).toContain("5.0s");

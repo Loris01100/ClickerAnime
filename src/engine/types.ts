@@ -5,7 +5,6 @@ export type ModifierTarget = "clickPower" | "teamDps";
 export type ModifierKind = "flat" | "percent" | "multiplier";
 
 export interface ModifierTemplate {
-  id: string;
   target: ModifierTarget;
   kind: ModifierKind;
   value: number;

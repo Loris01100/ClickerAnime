@@ -54,14 +54,12 @@ export function characterContributions(
 
   const contributions: ActiveModifier[] = [
     {
-      id: `${character.id}:base-click`,
       sourceId: character.id,
       target: "clickPower",
       kind: "flat",
       value: character.baseClickPower * damageGrowth * synergy,
     },
     {
-      id: `${character.id}:base-dps`,
       sourceId: character.id,
       target: "teamDps",
       kind: "flat",
