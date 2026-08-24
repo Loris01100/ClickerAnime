@@ -383,8 +383,12 @@ discount-style effects are clamped (`scaledChance`, `scaledDiscount`) so a high 
 push a chance past 100% or a cost to zero; the xp curve has its own floor (`MIN_XP_GROWTH`) so it
 can never stop being geometric:
 
-- **Clic du Narrateur** — click percent (node 1); an autoclick every 2s, at a level-scaled fraction
-  of click power (node 2, driven by the main tick's `autoClickAccumMs`). It **announces** every hit
+- **Clic du Narrateur** — click percent (node 1); an automatic click at **full** click power
+  (node 2, driven by the main tick's `autoClickAccumMs`), whose levels buy **cadence, not strength**:
+  `autoClickIntervalMs(level)` is 2s at level 1 down to 0.8s at level 5, shaving
+  `AUTOCLICK_INTERVAL_REDUCTION_MS` each. (It used to be the reverse — a fixed 2s at a level-scaled
+  *fraction* of click power — which made the first level feel like nothing and never changed the
+  rhythm of the fight.) It **announces** every hit
   through `autoClickPulse` (`{ id, damage }`, the id bumped so two identical hits in a row are still
   two events) — a perk that lands in silence is indistinguishable from one that isn't working, and
   `ClickStage` turns each pulse into a damage pop of its own (`.pop.auto`, dimmer than a manual

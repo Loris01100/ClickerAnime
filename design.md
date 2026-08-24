@@ -181,7 +181,9 @@ Le clavier compte aussi : `.stage` porte `role="button"` + `tabindex="0"` et ré
 au centre de la scène faute de coordonnées de pointeur, et `.stage:focus-visible` donne l'anneau de
 focus qu'un `<div>` cliquable n'a pas.
 
-L'auto-clic de l'arbre de prestige suit la même règle que le reste : **ce qui frappe doit se voir**.
+L'auto-clic frappe à **pleine puissance de clic** ; ce que ses niveaux achètent, c'est la *cadence*
+(2s → 0,8s), pas la force. C'est ce qui en fait un effet qu'on voit et qu'on entend battre, au lieu
+d'un pourcentage invisible. Il suit la même règle que le reste : **ce qui frappe doit se voir**.
 Il produit donc son propre pop de dégâts, volontairement distinct de celui du joueur (plus petit,
 `--blue`, sans le `!` du critique) et posé près de l'ennemi avec une légère dispersion — il n'a
 aucun curseur derrière lui. L'interrupteur `.auto-toggle` vit dans le `panel-head` du Combat,

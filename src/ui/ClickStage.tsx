@@ -5,7 +5,6 @@ import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconSparkle, IconStar } from "./icons";
-import { AUTOCLICK_INTERVAL_MS } from "../engine/prestigeTree";
 
 interface Pop {
   id: number;
@@ -133,7 +132,7 @@ export default function ClickStage(props: { game: GameStore }) {
             classList={{ on: props.game.autoClickEnabled() }}
             title={
               props.game.autoClickEnabled()
-                ? `Clic automatique actif — un clic toutes les ${AUTOCLICK_INTERVAL_MS / 1000}s. Cliquez pour le couper.`
+                ? `Clic automatique actif — un clic à pleine puissance toutes les ${seconds(props.game.autoClickInterval())}. Cliquez pour le couper.`
                 : "Clic automatique coupé. Cliquez pour le relancer."
             }
             onClick={() => props.game.setAutoClickEnabled(!props.game.autoClickEnabled())}

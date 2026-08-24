@@ -37,8 +37,20 @@ export const MIN_XP_GROWTH = 1.02;
 // --- effect magnitudes: what ONE level of each node is worth; levels stack additively ---
 
 export const NARRATOR_CLICK_PERCENT = 0.08;
+/**
+ * The autoclicker always fires at the narrator's *full* click power; what its levels buy is
+ * **cadence**, not strength. Level 1 clicks every 2s and each level above shaves
+ * `AUTOCLICK_INTERVAL_REDUCTION_MS`, down to 0.8s at level 5 — see `autoClickIntervalMs`.
+ * (It used to be the other way round: a fixed 2s at a level-scaled *fraction* of click power,
+ * which made the first level feel like nothing and never changed the rhythm of the fight.)
+ */
 export const AUTOCLICK_INTERVAL_MS = 2_000;
-export const AUTOCLICK_POWER_FRACTION = 0.2;
+export const AUTOCLICK_INTERVAL_REDUCTION_MS = 300;
+
+/** Milliseconds between two automatic clicks at this node level; 0 when the node isn't bought. */
+export function autoClickIntervalMs(level: number): number {
+  return level <= 0 ? 0 : AUTOCLICK_INTERVAL_MS - AUTOCLICK_INTERVAL_REDUCTION_MS * (level - 1);
+}
 export const CRIT_CHANCE = 0.15;
 export const CRIT_MULTIPLIER = 3;
 export const CLICK_COOLDOWN_REDUCTION_MS = 300;
@@ -92,6 +104,9 @@ export function scaledDiscount(base: number, level: number): number {
   return Math.min(MAX_DISCOUNT, base * level);
 }
 
+/** Seconds, written the French way — 2s, 0,8s — for the node descriptions. */
+const secs = (ms: number) => `${String(ms / 1000).replace(".", ",")}s`;
+
 const pct = (value: number) => {
   const percent = value * 100;
   return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(1).replace(/\.0$/, "")}%`;
@@ -110,7 +125,9 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
       {
         position: 2,
         label: "Écho du clic",
-        description: `Un clic automatique toutes les ${AUTOCLICK_INTERVAL_MS / 1000}s, à ${pct(AUTOCLICK_POWER_FRACTION)} de la puissance de clic`,
+        description:
+          `Un clic automatique à 100% de la puissance de clic, toutes les ${secs(AUTOCLICK_INTERVAL_MS)} — ` +
+          `${secs(AUTOCLICK_INTERVAL_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoClickIntervalMs(LEVELS_PER_NODE))}`,
       },
       {
         position: 3,

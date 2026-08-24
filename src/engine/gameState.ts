@@ -45,8 +45,7 @@ import {
   ABILITY_DAMAGE_BOOST,
   ABILITY_DURATION_BOOST,
   AUSPICE_DOUBLE_DROP_CHANCE,
-  AUTOCLICK_INTERVAL_MS,
-  AUTOCLICK_POWER_FRACTION,
+  autoClickIntervalMs,
   BOSS_TIMER_BOOST,
   BOSS_XP_BOOST,
   CLICK_COOLDOWN_REDUCTION_MS,
@@ -296,6 +295,8 @@ export function createGameStore(data: GameData) {
   const [autoClickEnabled, setAutoClickEnabled] = createSignal(saved?.autoClickEnabled ?? true);
   /** Level of the autoclicker node — 0 means it isn't bought, so the UI hides the toggle entirely. */
   const autoClickLevel = () => nodeLevelOf("narratorClick", 2);
+  /** Milliseconds between two automatic clicks at the level currently bought; 0 when unbought. */
+  const autoClickInterval = () => autoClickIntervalMs(autoClickLevel());
   // Kills `dealDamage` may still resolve, refilled by the tick at MAX_KILLS_PER_SECOND and capped
   // there so an idle stretch banks no burst. Transient like the rest of combat state.
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
@@ -1322,14 +1323,17 @@ export function createGameStore(data: GameData) {
 
     const autoClickLevel = nodeLevelOf("narratorClick", 2);
     if (autoClickLevel > 0 && autoClickEnabled()) {
+      // Levels buy cadence, not strength: every automatic click lands at full click power, they
+      // just come closer together — see `autoClickIntervalMs`.
+      const interval = autoClickInterval();
       const accumMs = autoClickAccumMs() + deltaMs;
-      if (accumMs >= AUTOCLICK_INTERVAL_MS) {
-        const damage = clickPower() * Math.min(1, AUTOCLICK_POWER_FRACTION * autoClickLevel);
+      if (accumMs >= interval) {
+        const damage = clickPower();
         dealDamage(damage);
         // Announced, not just dealt: an autoclick that lands in silence is indistinguishable from a
         // perk that isn't working. `ClickStage` turns each pulse into a damage pop-up of its own.
         setAutoClickPulse({ id: autoClickPulse().id + 1, damage });
-        setAutoClickAccumMs(accumMs % AUTOCLICK_INTERVAL_MS);
+        setAutoClickAccumMs(accumMs % interval);
       } else {
         setAutoClickAccumMs(accumMs);
       }
@@ -1426,6 +1430,7 @@ export function createGameStore(data: GameData) {
     autoClickEnabled,
     setAutoClickEnabled,
     autoClickLevel,
+    autoClickInterval,
     enemy,
     enemyHpLeft,
     enemyMaxHp,

@@ -51,7 +51,8 @@ import { layoutArcs, MAP_COLS } from "./mapLayout";
 import {
   AUSPICE_DOUBLE_DROP_CHANCE,
   AUTOCLICK_INTERVAL_MS,
-  AUTOCLICK_POWER_FRACTION,
+  AUTOCLICK_INTERVAL_REDUCTION_MS,
+  autoClickIntervalMs,
   canPurchaseNodeLevel,
   CRIT_CHANCE,
   CURRENCY_GAIN_PERCENT,
@@ -1231,7 +1232,7 @@ describe("prestige tree — wired into gameState", () => {
   }
 
 
-  it("Clic du Narrateur node 2 fires an automatic click every AUTOCLICK_INTERVAL_MS", () => {
+  it("Clic du Narrateur node 2 : un clic automatique à pleine puissance, à la cadence du niveau", () => {
     const testData = makeTestData({ mobBaseHp: 1_000_000 });
     // node 1 has just 1 level (enough to unlock node 2) + 1 level into node 2, the autoclicker.
     const restore = installSave(baseSave({ prestigeTreeRanks: { narratorClick: [1, 1, 0, 0, 0] } }));
@@ -1243,13 +1244,52 @@ describe("prestige tree — wired into gameState", () => {
         return createGameStore(testData);
       });
       const hpBefore = game.enemyHpLeft();
-      const expectedHit = game.clickPower() * AUTOCLICK_POWER_FRACTION;
+      const expectedHit = game.clickPower(); // pleine puissance, pas une fraction
       vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS);
       expect(hpBefore - game.enemyHpLeft()).toBeCloseTo(expectedHit, 5);
     } finally {
       disposeRoot();
       vi.useRealTimers();
       restore();
+    }
+  });
+
+  it("l'échelle de cadence de l'autoclic est bien 2 / 1,7 / 1,4 / 1,1 / 0,8s", () => {
+    expect(autoClickIntervalMs(0)).toBe(0); // nœud non acheté
+    expect([1, 2, 3, 4, 5].map(autoClickIntervalMs)).toEqual([2_000, 1_700, 1_400, 1_100, 800]);
+    // La descente s'arrête au niveau max du nœud : jamais un intervalle nul ou négatif.
+    expect(autoClickIntervalMs(LEVELS_PER_NODE)).toBeGreaterThan(0);
+    expect(AUTOCLICK_INTERVAL_REDUCTION_MS * (LEVELS_PER_NODE - 1)).toBeLessThan(AUTOCLICK_INTERVAL_MS);
+  });
+
+  it("un niveau supérieur fait effectivement tirer plus souvent", () => {
+    const testData = makeTestData({ mobBaseHp: 1_000_000 });
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+
+    /** Auto-clics tirés en une fenêtre donnée, à ce niveau de nœud. */
+    const shotsIn = (level: number, windowMs: number) => {
+      const restore = installSave(baseSave({ prestigeTreeRanks: { narratorClick: [1, level, 0, 0, 0] } }));
+      try {
+        const game = createRoot((dispose) => {
+          disposeRoot = dispose;
+          return createGameStore(testData);
+        });
+        expect(game.autoClickInterval()).toBe(autoClickIntervalMs(level));
+        vi.advanceTimersByTime(windowMs);
+        return game.autoClickPulse().id;
+      } finally {
+        disposeRoot();
+        restore();
+      }
+    };
+
+    try {
+      // 4s : 2 tirs à 2s d'intervalle, 5 à 0,8s.
+      expect(shotsIn(1, 4_000)).toBe(2);
+      expect(shotsIn(5, 4_000)).toBe(5);
+    } finally {
+      vi.useRealTimers();
     }
   });
 
@@ -1268,7 +1308,7 @@ describe("prestige tree — wired into gameState", () => {
       vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS);
       const first = game.autoClickPulse();
       expect(first.id).toBe(1);
-      expect(first.damage).toBeCloseTo(game.clickPower() * AUTOCLICK_POWER_FRACTION, 5);
+      expect(first.damage).toBeCloseTo(game.clickPower(), 5);
 
       // The id has to move even when two hits land for exactly the same damage, or the stage's
       // effect would miss the second one and draw a single pop for two clicks.
