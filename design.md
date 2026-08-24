@@ -473,19 +473,25 @@ vue qui a besoin d'un symbole (monnaie, statut, direction, coche) doit chercher 
 `icons.tsx` avant d'écrire un caractère unicode — c'est la règle que ce ménage vient de faire
 respecter partout.
 
-## 11. Panneau Boutique
+## 11. Boutique et cristaux de crossover (overlays)
 
-Sous le panneau Prestige (colonne de droite), `ShopPanel.tsx` liste les achats en monnaie
-principale — copies d'objet ou personnage — avec le même vocabulaire que le reste de l'app plutôt
-qu'un système dédié :
+Les deux se lancent depuis la barre **Ressources** : chaque tuile de `CurrencyBar` est un
+`<button class="currency">` qui ouvre l'endroit où cette ressource se dépense (or → Boutique,
+prestige → Arbre, cristaux → Crossover, mondes → Portail). C'est la seule navigation qu'a le joueur
+entre une monnaie et son puits, donc aucune tuile ne doit rester inerte.
+
+`ShopPanel.tsx` est un **overlay** (`.overlay` > `.modal`, fermé par ✕/Échap/clic dehors) comme le
+portail des mondes, plus un bouton `<IconShop /> Boutique` dans la topbar — la colonne de droite
+était déjà pleine et le tiroir laisse la place de lister de vraies offres. Le contenu garde le
+vocabulaire du reste de l'app plutôt qu'un système dédié :
 
 - **Une ligne = `.row` + `.name`**, le patron déjà utilisé par « À battre ici » et « Voyager » :
   sprite ou `IconBookmark` à gauche, coût à droite dans un `<button>` (`{cout} <IconDiamond
   class="coin gold" />`), ou un `<IconLock />` + le nom du monde requis quand l'offre est encore
   verrouillée — même widget que les nœuds d'arc verrouillés de `ProgressPanel`/`WorldMap`.
-- **Le panneau entier se cache** (`<Show when={offers().length > 0}>`) plutôt que d'afficher une
-  section vide : tant qu'aucune offre n'existe (ou que tout est déjà possédé), il n'y a rien à
-  montrer — cohérent avec `RosterPanel`'s « À battre ici » qui fait pareil.
+- **Rien à vendre = une ligne muette** dans l'overlay : un tiroir ouvert exprès par le joueur ne
+  doit jamais être vide sans explication (contrairement à l'ancienne version en colonne, qui se
+  cachait entièrement).
 - **Une offre personnage achetée disparaît** de la liste affichée (filtrée sur `owned` côté UI) ;
   une offre objet reste affichée indéfiniment puisque les objets s'empilent. `game.shopOffers()`
   lui-même ne filtre rien — il renvoie l'état complet (`locked`/`owned`/`affordable`) pour que le
@@ -497,6 +503,21 @@ qu'un système dédié :
   `engine.test.ts` impose qu'aucun personnage ne soit "recrutable nulle part", donc une offre
   boutique est un raccourci payant vers quelqu'un qu'on peut aussi obtenir en jouant, jamais un
   recrutement exclusif à la boutique.
+
+### 11.1 Cristaux de crossover
+
+`CrossoverPanel.tsx`, même coque d'overlay, ouvert par la tuile bleue (qui remplace l'ancien compteur
+d'objets — les objets se lisent déjà dans le panneau « Objets » de la colonne de gauche). Trois blocs
+`.codex-block`, dans l'ordre où la question se pose :
+
+1. **La réserve** et d'où elle vient (12% par mob, 5 par boss, uniquement en équipe multi-mondes).
+2. **L'équipe**, un `.codex-row` par monde représenté — c'est le diagnostic : si un seul monde est
+   listé, la ligne muette explique que la source est coupée.
+3. **Fusion des mondes**, le bouton `.primary` d'activation (coût + durée), remplacé pendant la
+   fenêtre par le décompte en secondes.
+
+La tuile Ressources prend `.currency.active` (fond `--active-tint`) tant que la fenêtre est ouverte :
+c'est un buff temporaire, il doit se voir sans ouvrir le tiroir.
 
 ## 12. Typographie
 

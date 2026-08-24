@@ -30,9 +30,14 @@ to `localStorage` every 5s. Components call its returned actions (`click`, `recr
 `activateAbility`, `prestigeReset`, …) and read its accessors.
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
-PokéClicker's density: many small stacked panels, everything visible at once, no modals. Left is the
+PokéClicker's density: many small stacked panels, everything visible at once. Left is the
 roster (abilities, sortable team table, item table), middle is resources + the fight + the world
-map, right is the arc lists per world plus travel and prestige. `Codex.tsx` is the one overlay: the
+map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
+(`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
+`WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
+`PrestigeTree.tsx`. `CurrencyBar.tsx`'s four tiles are buttons, each opening the overlay where that
+resource is spent (gold → shop, prestige → tree, crystals → crossover, worlds → portal), so no
+counter is a dead end. `Codex.tsx` is the largest: the
 full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities,
 evolution and combos. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
@@ -330,6 +335,18 @@ e.g. `IconLock` on several locked map nodes, was equally affected).
 Unlocked two ways, both computed from the owned set in `getUnlockedAbilities`: a single character
 that grants one, or owning *every* character a `ComboDefinition` requires. Cooldowns are tracked as
 last-used timestamps in a record, not as counters.
+
+### Crossover crystals (`crossover.ts`)
+
+The one resource that exists because the game is inter-anime. Crystals only drop while
+`isMixedTeam(ownedCharacters())` — the team spans two worlds — at `CROSSOVER_MOB_CHANCE` per mob and
+`CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. `activateCrossover()` spends
+`CROSSOVER_COST` for a `CROSSOVER_DURATION_MS` window during which `activeSynergyConfig` is wrapped
+in `crossoverSynergyConfig` — every malus flattened to `matchingArcMultiplier`, so the whole team
+fights at full power anywhere. Damage only: a passive is still a story ability and stays shut off
+outside its own anime (`characterContributions` decides that from the arc, not from the config).
+The stock is saved and run-scoped (`prestigeReset` wipes it, like items); the window's deadline is
+transient like combat state, so a reload drops an active buff.
 
 ### Achievements (`achievements.ts`)
 

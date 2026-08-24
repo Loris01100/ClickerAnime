@@ -2,21 +2,17 @@ import { createSignal, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
-import { IconBookmark, IconDiamond, IconGlobe, IconSparkle } from "./icons";
-
-/** Scrolls to the panel where a resource is spent — no-op if it isn't rendered right now. */
-function goTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
-}
+import { IconCrystal, IconDiamond, IconGlobe, IconSparkle } from "./icons";
 
 /**
  * The row of running totals at the top of the middle column. Each total is a shortcut to where that
- * resource is used: the shop and the item table are panels on this page, prestige points and worlds
- * are overlays App owns.
+ * resource is spent — every destination is an overlay App owns.
  */
 export default function CurrencyBar(props: {
   game: GameStore;
+  onOpenShop: () => void;
   onOpenPrestige: () => void;
+  onOpenCrossover: () => void;
   onOpenWorlds: () => void;
 }) {
   const [open, setOpen] = createSignal(true);
@@ -29,7 +25,7 @@ export default function CurrencyBar(props: {
       </header>
       <Show when={open()}>
       <div class="currency-row">
-        <button class="currency" title="Dépenser à la boutique" onClick={() => goTo("panel-shop")}>
+        <button class="currency" title="Dépenser à la boutique" onClick={props.onOpenShop}>
           <span class="coin gold"><IconDiamond /></span>
           <strong>{fmt(props.game.currency())}</strong>
         </button>
@@ -37,9 +33,14 @@ export default function CurrencyBar(props: {
           <span class="coin violet"><IconSparkle /></span>
           <strong>{props.game.prestige().prestigePoints}</strong>
         </button>
-        <button class="currency" title="Objets : passifs et équipement" onClick={() => goTo("panel-items")}>
-          <span class="coin blue"><IconBookmark /></span>
-          <strong>{props.game.foundItems().length}</strong>
+        <button
+          class="currency"
+          classList={{ active: props.game.crossoverActive() }}
+          title="Cristaux de crossover : annuler le malus de synergie"
+          onClick={props.onOpenCrossover}
+        >
+          <span class="coin blue"><IconCrystal /></span>
+          <strong>{props.game.crossoverCrystals()}</strong>
         </button>
         <button class="currency" title="Mondes terminés" onClick={props.onOpenWorlds}>
           <span class="coin green"><IconGlobe /></span>

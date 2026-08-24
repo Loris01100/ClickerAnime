@@ -11,6 +11,7 @@ import {
 } from "./achievements";
 import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
+import { crossoverSynergyConfig, isMixedTeam } from "./crossover";
 import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
 import { abilitiesShareType, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import {
@@ -114,6 +115,25 @@ describe("replaceModifiersByTarget", () => {
     expect(result.find((m) => m.sourceId === "ability-a" && m.target === "teamDps")).toBeUndefined();
     expect(result.find((m) => m.sourceId === "ability-a" && m.target === "clickPower")).toBeDefined();
     expect(result.find((m) => m.sourceId === "ability-b")).toBeDefined();
+  });
+});
+
+describe("crossover", () => {
+  const arc = makeArc("arc-1", "anime-1", 0, []);
+  const base = { name: "C", baseClickPower: 1, baseDps: 1, rarity: "secondary" as const };
+  const home: Character = { ...base, id: "c1", animeId: "anime-1", arcIds: ["arc-1"] };
+  const foreign: Character = { ...base, id: "c2", animeId: "anime-2", arcIds: ["arc-x"] };
+
+  it("only counts a team spanning two worlds as mixed", () => {
+    expect(isMixedTeam([home])).toBe(false);
+    expect(isMixedTeam([home, { ...home, id: "c1b" }])).toBe(false);
+    expect(isMixedTeam([home, foreign])).toBe(true);
+  });
+
+  it("lifts every synergy malus while active", () => {
+    const config = crossoverSynergyConfig(defaultSynergyConfig);
+    expect(synergyMultiplier(foreign, arc, config)).toBe(config.matchingArcMultiplier);
+    expect(synergyMultiplier({ ...home, arcIds: ["arc-9"] }, arc, config)).toBe(config.matchingArcMultiplier);
   });
 });
 

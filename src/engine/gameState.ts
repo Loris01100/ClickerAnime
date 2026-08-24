@@ -10,6 +10,14 @@ import {
   unlockAnime as unlockAnimeState,
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
+import {
+  CROSSOVER_BOSS_REWARD,
+  CROSSOVER_COST,
+  CROSSOVER_DURATION_MS,
+  CROSSOVER_MOB_CHANCE,
+  crossoverSynergyConfig,
+  isMixedTeam,
+} from "./crossover";
 import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
@@ -118,6 +126,8 @@ interface SaveFile {
   prestigeTreeRanks?: Record<string, number[]>;
   /** absent on a save from before equipment existed; every reader defaults it to {} */
   characterEquipment?: Record<string, string>;
+  /** absent on a save from before crossover crystals existed; every reader defaults it to 0 */
+  crossoverCrystals?: number;
 }
 
 // A save from another build must never break the boot — fall back to a fresh run instead.
@@ -177,6 +187,14 @@ export function createGameStore(data: GameData) {
   const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
     saved?.characterEquipment ?? {}
   );
+  // Cristaux de crossover: earned on kills with a team spanning two worlds, spent to lift the
+  // synergy malus for a while (see crossover.ts). Run-scoped like items — prestigeReset wipes them.
+  const [crossoverCrystals, setCrossoverCrystals] = createSignal(saved?.crossoverCrystals ?? 0);
+  // When the current crossover window ends. Transient like combat state: a reload drops the buff.
+  const [crossoverUntil, setCrossoverUntil] = createSignal(0);
+  /** True while a bought crossover window is still running — see activateCrossover. */
+  const crossoverActive = () => crossoverUntil() > now();
+  const crossoverRemaining = () => Math.max(0, crossoverUntil() - now());
   const [prestige, setPrestige] = createSignal(
     saved
       ? { prestigePoints: saved.prestigePoints ?? 0, unlockedAnimeIds: saved.unlockedAnimeIds ?? [] }
@@ -218,9 +236,21 @@ export function createGameStore(data: GameData) {
   });
 
   /** Synergy malus softened by "DPS Équipe" node 3's level — see softenedSynergyConfig. */
-  const activeSynergyConfig = createMemo<SynergyConfig>(() =>
-    softenedSynergyConfig(defaultSynergyConfig, nodeLevelOf("teamDps", 3))
-  );
+  const activeSynergyConfig = createMemo<SynergyConfig>(() => {
+    const config = softenedSynergyConfig(defaultSynergyConfig, nodeLevelOf("teamDps", 3));
+    return crossoverActive() ? crossoverSynergyConfig(config) : config;
+  });
+
+  /** Only a two-world team earns crystals, so the panel can say why the drip stopped. */
+  const teamIsMixed = () => isMixedTeam(ownedCharacters());
+
+  /** Spends crystals for one crossover window; refuses while one is already up. */
+  function activateCrossover(): boolean {
+    if (crossoverActive() || crossoverCrystals() < CROSSOVER_COST) return false;
+    setCrossoverCrystals((c) => c - CROSSOVER_COST);
+    setCrossoverUntil(Date.now() + CROSSOVER_DURATION_MS);
+    return true;
+  }
 
   const activeArc = createMemo<Arc | null>(() => data.arcs.find((a) => a.id === activeArcId()) ?? null);
 
@@ -480,6 +510,11 @@ export function createGameStore(data: GameData) {
     }
 
     const isBoss = target.id === arc.boss.id;
+    // Crossover crystals: only a team spanning two worlds earns them — bosses always pay, mobs roll.
+    if (teamIsMixed()) {
+      const crystals = isBoss ? CROSSOVER_BOSS_REWARD : Math.random() < CROSSOVER_MOB_CHANCE ? 1 : 0;
+      if (crystals > 0) setCrossoverCrystals((c) => c + crystals);
+    }
     const bossXpLevel = nodeLevelOf("xp", 5);
     // xp is a multiple of the currency reward — see XP_PER_KILL_REWARD — so it scales with the
     // world just like currency does, only harder.
@@ -874,6 +909,8 @@ export function createGameStore(data: GameData) {
     setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
+    setCrossoverCrystals(0);
+    setCrossoverUntil(0);
     spawnNext();
   }
 
@@ -894,6 +931,7 @@ export function createGameStore(data: GameData) {
       achievementCounts: achievementCounts(),
       prestigeTreeRanks: prestigeTreeRanks(),
       characterEquipment: characterEquipment(),
+      crossoverCrystals: crossoverCrystals(),
     };
   }
 
@@ -946,6 +984,8 @@ export function createGameStore(data: GameData) {
     setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
+    setCrossoverCrystals(0);
+    setCrossoverUntil(0);
     setEnemy(null);
   }
 
@@ -1026,6 +1066,12 @@ export function createGameStore(data: GameData) {
     unequipItem,
     shopOffers,
     buyShopOffer,
+    // crossover
+    crossoverCrystals,
+    crossoverActive,
+    crossoverRemaining,
+    teamIsMixed,
+    activateCrossover,
     unlockedAbilities,
     synergyOf,
     achievementCounts,

@@ -1,28 +1,40 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
-import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
+import { fmt } from "./format";
 import { IconBookmark, IconDiamond, IconLock, IconShop } from "./icons";
 
 /**
- * Right column, under Prestige: currency purchases — item copies and characters, some gated behind
- * a cleared world. A character offer disappears once bought; item offers stay listed, they stack.
+ * The shop, an overlay like the world portal rather than a column panel: currency purchases — item
+ * copies and characters, some gated behind a cleared world. A character offer disappears once
+ * bought; item offers stay listed, they stack.
  */
-export default function ShopPanel(props: { game: GameStore }) {
-  const [open, setOpen] = createSignal(true);
+export default function ShopPanel(props: { game: GameStore; onClose: () => void }) {
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape") props.onClose();
+  }
+  onMount(() => document.addEventListener("keydown", onKeyDown));
+  onCleanup(() => document.removeEventListener("keydown", onKeyDown));
+
   const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const offers = () => props.game.shopOffers().filter((entry) => !entry.owned);
 
   return (
-    <Show when={offers().length > 0}>
-      <section class="panel" id="panel-shop">
+    <div class="overlay" onClick={props.onClose}>
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Boutique" onClick={(e) => e.stopPropagation()}>
         <header class="panel-head">
-          <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
+          <span>
             <IconShop /> Boutique
-          </PanelTitle>
-          <small class="muted">{offers().length}</small>
+          </span>
+          <span class="muted">
+            {fmt(props.game.currency())} <IconDiamond class="coin gold" />
+            <button onClick={props.onClose} aria-label="Fermer">
+              ✕
+            </button>
+          </span>
         </header>
-        <Show when={open()}>
+
+        <div class="codex-detail scroll">
           <For each={offers()}>
             {(entry) => (
               <div class="row">
@@ -52,8 +64,11 @@ export default function ShopPanel(props: { game: GameStore }) {
               </div>
             )}
           </For>
-        </Show>
-      </section>
-    </Show>
+          <Show when={offers().length === 0}>
+            <p class="muted pad">Plus rien à acheter pour l'instant.</p>
+          </Show>
+        </div>
+      </div>
+    </div>
   );
 }

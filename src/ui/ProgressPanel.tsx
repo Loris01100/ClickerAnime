@@ -4,7 +4,6 @@ import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
 import { IconCheck, IconLock, IconSparkle } from "./icons";
 import PrestigeTree from "./PrestigeTree";
-import ShopPanel from "./ShopPanel";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -137,8 +136,6 @@ export default function ProgressPanel(props: { game: GameStore }) {
         </div>
         </Show>
       </section>
-
-      <ShopPanel game={props.game} />
 
       <Show when={treeOpen()}>
         <PrestigeTree game={props.game} onClose={() => setTreeOpen(false)} />

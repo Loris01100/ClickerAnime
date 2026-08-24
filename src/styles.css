@@ -401,6 +401,9 @@ small {
 .currency:hover {
   background: var(--active-tint);
 }
+.currency.active {
+  background: var(--active-tint);
+}
 .currency:last-child {
   border-right: none;
 }

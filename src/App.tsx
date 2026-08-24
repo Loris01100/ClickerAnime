@@ -11,9 +11,11 @@ import WorldPortal from "./ui/WorldPortal";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
+import ShopPanel from "./ui/ShopPanel";
+import CrossoverPanel from "./ui/CrossoverPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
-import { IconCrown, IconGlobe, IconMonitor, IconMoon, IconSun, IconTrophy } from "./ui/icons";
+import { IconCrown, IconGlobe, IconMonitor, IconMoon, IconShop, IconSun, IconTrophy } from "./ui/icons";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
@@ -24,6 +26,8 @@ export default function App() {
   const [portalOpen, setPortalOpen] = createSignal(false);
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
   const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
+  const [shopOpen, setShopOpen] = createSignal(false);
+  const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
 
   /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
@@ -71,6 +75,9 @@ export default function App() {
             <button onClick={() => setPortalOpen(true)}>
               <IconGlobe /> Mondes
             </button>
+            <button onClick={() => setShopOpen(true)}>
+              <IconShop /> Boutique
+            </button>
           </Show>
           <button
             onClick={() => {
@@ -107,7 +114,9 @@ export default function App() {
           <div class="column">
             <CurrencyBar
               game={game}
+              onOpenShop={() => setShopOpen(true)}
               onOpenPrestige={() => setPrestigeTreeOpen(true)}
+              onOpenCrossover={() => setCrossoverOpen(true)}
               onOpenWorlds={() => setPortalOpen(true)}
             />
             <ClickStage game={game} />
@@ -127,6 +136,14 @@ export default function App() {
 
       <Show when={achievementsOpen()}>
         <AchievementsPanel game={game} onClose={() => setAchievementsOpen(false)} />
+      </Show>
+
+      <Show when={shopOpen()}>
+        <ShopPanel game={game} onClose={() => setShopOpen(false)} />
+      </Show>
+
+      <Show when={crossoverOpen()}>
+        <CrossoverPanel game={game} onClose={() => setCrossoverOpen(false)} />
       </Show>
 
       <Show when={prestigeTreeOpen()}>
