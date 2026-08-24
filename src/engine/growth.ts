@@ -50,6 +50,16 @@ export function levelGrowth(level: number): number {
   return 1 + level * LEVEL_DAMAGE_STEP;
 }
 
+/**
+ * Multiplier on a passive's printed value at a given rank: rank 1 is the passive exactly as written
+ * in the data, and every rank past it deepens it by the same step a level adds to damage. Rank 0
+ * means locked and never reaches here. Named once because three places need it — the pipeline
+ * (`characterContributions`) and the two screens that preview a passive at rank 1 / at its cap.
+ */
+export function passiveGrowth(rank: number): number {
+  return levelGrowth(rank - 1);
+}
+
 /** ponytail: one global xp curve for every character, split per rarity if pacing needs it. */
 const XP_BASE = 25;
 /** Default steepness; the prestige tree's "XP" tier 3 perk hands callers a slightly smaller value. */

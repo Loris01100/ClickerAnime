@@ -168,7 +168,9 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
 Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
 copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
 chooses which character of an arc gets the copies. `passiveUpgradeOf` is what the UI reads — rank,
-cost, copies held, affordable. `rankUpPassive` refuses a character who isn't in the team: only
+cost, copies held, affordable; `passiveGrowth(rank)` is the one place the "rank 1 = as printed, each
+rank past it adds a `LEVEL_DAMAGE_STEP`" rule lives, shared by the pipeline and by the two screens
+that preview a passive at rank 1 and at its cap. `rankUpPassive` refuses a character who isn't in the team: only
 owned characters reach `characterContributions`, so the copies would be burnt for nothing (the item
 Codex lists the whole cast, met or not). Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
@@ -254,10 +256,15 @@ bonus and (once owned) whether it has fired yet, independent of whether the char
 
 ### Persistence
 
-The save is a flat `SaveFile` in `localStorage` under the key `clicker-anime:save:v10`.
-`readSave` shape-checks it
+The save is a flat `SaveFile` in `localStorage` under the key `clicker-anime:save:v10`, and carries
+its own `version` field (`SAVE_VERSION`) so a future shape change can be **migrated** in `readSave`
+instead of costing every player their save. `readSave` shape-checks it
 (via `isValidSave`) and falls back to a fresh run rather than throwing, so an old save can never
-brick the boot. Bump the key version when the shape *breaks* — an old field renamed or retyped, not a
+brick the boot. `isValidSave` checks the *type* of every field that is present rather than the
+presence of every field — each reader already defaults a missing one (`saved?.x ?? []`), which is
+what lets an older save load, while a wrong-typed field is the one thing those defaults can't
+absorb. It is a real trust boundary: `importSave` runs an arbitrary player-supplied file through it
+and writes whatever passes straight to `localStorage` before reloading. Bump the key version when the shape *breaks* — an old field renamed or retyped, not a
 new optional field, which `?? {}`/`?? []` defaults already absorb without a bump; bumping wipes every
 existing player's save (a new key means the old one is never read again), so treat it as a last
 resort. `gameState`'s `buildSaveFile` is the one place the on-disk shape is assembled, shared by
@@ -315,9 +322,13 @@ can never stop being geometric:
 
 - **Clic du Narrateur** — click percent (node 1); an autoclick every 2s, at a level-scaled fraction
   of click power (node 2, driven by the main tick's `autoClickAccumMs`); crit chance (node 3);
-  shaves time off every unlocked ability's cooldown on each click, scaled by level (node 4); a
+  shaves time off every unlocked ability's cooldown on each click, scaled by level — only those
+  still on cooldown, so a ready ability's timestamp never drifts without bound (node 4); a
   chance to fire a random unlocked ability for free, via `triggerAbilityEffects` (node 5, shared
-  with abilities' normal activation path).
+  with abilities' normal activation path). Node 5 draws **only** from abilities whose every
+  `ModifierTarget` is currently unbuffed: `triggerAbilityEffects` goes through
+  `replaceModifiersByTarget`, so a proc over a running buff on the same stat would replace it — a
+  bought perk must never make the player weaker.
 - **DPS Équipe** — teamDps percent (node 1); boosts an activated ability's percent/multiplier
   effects, via `buildAbilityModifiers` (node 2); softens the active arc's synergy malus further per
   level, via `softenedSynergyConfig` wrapping `defaultSynergyConfig` (node 3); stretches an

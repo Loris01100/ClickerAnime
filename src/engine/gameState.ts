@@ -18,7 +18,7 @@ import {
   crossoverSynergyConfig,
   isMixedTeam,
 } from "./crossover";
-import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { abilitiesShareType, abilityTargets, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
@@ -111,8 +111,18 @@ const AUTOSAVE_MS = 5_000;
 const MAX_KILLS_PER_HIT = 100;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 const SAVE_KEY = "clicker-anime:save:v10";
+/** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
+const SAVE_VERSION = 10;
 
 interface SaveFile {
+  /**
+   * Shape version, carried inside the save rather than only in `SAVE_KEY`. A key bump means every
+   * existing player is wiped (the old key is never read again); a version field means the next
+   * breaking change can be *migrated* in `readSave` instead. Absent on any save written before this
+   * field existed, which `readSave` treats as `SAVE_VERSION` — those are v10 by definition, since
+   * the key they live under says so.
+   */
+  version?: number;
   currency: number;
   lifetimeEarned: number;
   ownedCharacterIds: string[];
@@ -139,11 +149,53 @@ interface SaveFile {
   characterDuplicates?: Record<string, number>;
 }
 
-// A save from another build must never break the boot — fall back to a fresh run instead.
+const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+const isStringArray = (v: unknown) => Array.isArray(v) && v.every((e) => typeof e === "string");
+/** A plain `Record<string, T>` — rejects arrays and null, which `typeof === "object"` would let through. */
+function isRecordOf(v: unknown, valueOk: (value: unknown) => boolean): boolean {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  return Object.values(v as Record<string, unknown>).every(valueOk);
+}
+
+/**
+ * Full shape check, not a smoke test: `importSave` feeds this an arbitrary file the player supplied,
+ * and whatever passes is written straight to `localStorage` before a reload — a half-checked blob
+ * would persist a broken run the player can't get out of without a hard reset.
+ *
+ * What it enforces is the *type* of every field that is present, not the presence of every field:
+ * each reader below already defaults a missing one (`saved?.x ?? []`), which is what lets a save
+ * written by an older build still load. A field of the wrong type is the one thing those defaults
+ * can't absorb — `arcKills: "abc"` sails past `?? {}` and poisons the run.
+ */
 function isValidSave(value: unknown): value is SaveFile {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<SaveFile>;
-  return typeof candidate.currency === "number" && Array.isArray(candidate.ownedCharacterIds);
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const c = value as Record<string, unknown>;
+  const opt = (v: unknown, ok: (value: unknown) => boolean) => v === undefined || ok(v);
+
+  // The two that identify the blob as a save at all.
+  if (!isNumber(c.currency) || !isStringArray(c.ownedCharacterIds)) return false;
+
+  return (
+    opt(c.version, isNumber) &&
+    opt(c.lifetimeEarned, isNumber) &&
+    opt(c.prestigePoints, isNumber) &&
+    opt(c.crossoverCrystals, isNumber) &&
+    opt(c.activeArcId, (v) => v === null || typeof v === "string") &&
+    opt(c.unlockedAnimeIds, isStringArray) &&
+    opt(c.clearedArcIds, isStringArray) &&
+    opt(c.evolvedCharacterIds, isStringArray) &&
+    opt(c.arcKills, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.characterXp, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.itemCounts, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.passiveRanks, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.achievementCounts, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.worldPoints, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.characterDuplicates, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
+    opt(c.prestigeTreeRanks, (v) =>
+      isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
+    )
+  );
 }
 
 function readSave(): SaveFile | null {
@@ -705,7 +757,13 @@ export function createGameStore(data: GameData) {
 
     const freeTriggerLevel = nodeLevelOf("narratorClick", 5);
     if (freeTriggerLevel > 0 && Math.random() < scaledChance(FREE_ABILITY_TRIGGER_CHANCE, freeTriggerLevel)) {
-      const candidates = unlockedAbilities();
+      // Only abilities whose stats are free right now: `triggerAbilityEffects` goes through
+      // `replaceModifiersByTarget`, so firing one over a running buff on the same stat *replaces*
+      // it — a random weak proc could cut a x3 combo short. A perk must never make the player weaker.
+      const busy = new Set(pruneExpired(temporaryModifiers(), Date.now()).map((m) => m.target));
+      const candidates = unlockedAbilities().filter((u) =>
+        abilityTargets(u.ability).every((target) => !busy.has(target))
+      );
       if (candidates.length > 0) {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
         triggerAbilityEffects(pick.ability);
@@ -1011,6 +1069,7 @@ export function createGameStore(data: GameData) {
 
   function buildSaveFile(): SaveFile {
     return {
+      version: SAVE_VERSION,
       currency: currency(),
       lifetimeEarned: lifetimeEarned(),
       ownedCharacterIds: ownedCharacterIds(),

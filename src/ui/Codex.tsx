@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
-import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
+import { passiveGrowth } from "../engine/growth";
 import { defaultSynergyConfig } from "../engine/synergy";
 import { DUPLICATE_DAMAGE_STEP } from "../engine/packs";
 import ItemCodex from "./ItemCodex";
@@ -165,13 +165,13 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                   <h4>Passif</h4>
                   <Show when={character().passive} fallback={<p class="muted small">Aucun passif.</p>}>
                     {(passive) => {
-                      const cap = () => PASSIVE_LEVEL_CAP[character().rarity];
-                      const atCap = () => ({ ...passive(), value: passive().value * levelGrowth(cap() - 1) });
+                      const cap = () => props.game.passiveCapOf(character());
+                      const atCap = () => ({ ...passive(), value: passive().value * passiveGrowth(cap()) });
                       const rank = () => props.game.passiveRankOf(character());
                       const upgrade = () => props.game.passiveUpgradeOf(character());
                       const current = () => ({
                         ...passive(),
-                        value: passive().value * levelGrowth(rank() - 1),
+                        value: passive().value * passiveGrowth(rank()),
                       });
                       return (
                         <>

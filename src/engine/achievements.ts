@@ -49,7 +49,6 @@ export function achievementContributions(counts: Record<string, number>): Active
   return ACHIEVEMENT_CATEGORIES.flatMap((category) => {
     const completed = achievementTiersCompleted(category, counts[category.id] ?? 0);
     return Array.from({ length: completed }, (_, tier) => ({
-      id: `achievement:${category.id}:${tier}`,
       sourceId: `achievement:${category.id}:${tier}`,
       target: "clickPower" as const,
       kind: "percent" as const,

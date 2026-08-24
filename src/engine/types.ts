@@ -45,7 +45,8 @@ export type ItemKind = "common" | "unique";
 /**
  * Found by beating the enemy that holds it, and never lost. Commons are the currency of passives:
  * each arc has its own, and it is the only thing that ranks up the passives of the characters met
- * there. Uniques drop from bosses and do nothing yet — on hold until they get their own idea.
+ * there. Uniques drop from bosses, one copy only, and are equipped on a character to grant their
+ * `effects` permanently — `equippableBy` restricts who may wear one.
  */
 export interface Item {
   id: string;

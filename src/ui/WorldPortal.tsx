@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Anime, Arc, Character } from "../engine/types";
-import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
+import { passiveGrowth } from "../engine/growth";
 import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import { describeModifier } from "./describe";
@@ -135,10 +135,10 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
                   <div class="portal-recruits">
                     <For each={recruits()}>
                       {(character) => {
-                        const cap = () => PASSIVE_LEVEL_CAP[character.rarity];
+                        const cap = () => props.game.passiveCapOf(character);
                         const atCap = (passive: NonNullable<Character["passive"]>) => ({
                           ...passive,
-                          value: passive.value * levelGrowth(cap() - 1),
+                          value: passive.value * passiveGrowth(cap()),
                         });
                         return (
                           <div class="portal-recruit">

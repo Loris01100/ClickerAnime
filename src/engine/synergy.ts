@@ -1,4 +1,4 @@
-import { levelGrowth } from "./growth";
+import { levelGrowth, passiveGrowth } from "./growth";
 import { duplicateGrowth } from "./packs";
 import type { ActiveModifier, Arc, Character, Item, SynergyConfig } from "./types";
 
@@ -54,7 +54,7 @@ export function characterContributions(
   // Levels and pack duplicates both scale the printed base damage, and stack with each other.
   const damageGrowth = levelGrowth(level) * duplicateGrowth(duplicates);
   // Rank 1 is the passive as printed; every rank past it deepens it by the usual step.
-  const passiveGrowth = levelGrowth(passiveRank - 1);
+  const passiveScale = passiveGrowth(passiveRank);
 
   const contributions: ActiveModifier[] = [
     {
@@ -75,7 +75,7 @@ export function characterContributions(
     contributions.push({
       ...character.passive,
       sourceId: character.id,
-      value: character.passive.value * passiveGrowth * synergy,
+      value: character.passive.value * passiveScale * synergy,
     });
   }
 

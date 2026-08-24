@@ -697,6 +697,134 @@ describe("store boot", () => {
     }
   });
 
+  it("the free ability trigger never overwrites a stronger buff already running on that stat", () => {
+    const ability = (id: string, value: number) => ({
+      id,
+      name: id,
+      cooldownMs: 0,
+      durationMs: 10_000,
+      effects: [{ target: "teamDps" as const, kind: "percent" as const, value }],
+    });
+    const testData = {
+      animes: [],
+      arcs: [],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 10,
+          ability: ability("ability-weak", 1),
+        },
+        {
+          id: "cb",
+          name: "B",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 0,
+          ability: ability("ability-strong", 2),
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const save = {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["ca", "cb"],
+      activeArcId: null,
+      prestigePoints: 0,
+      unlockedAnimeIds: [],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+      // "Clic du Narrateur" fully bought: node 5 is the free-trigger proc.
+      prestigeTreeRanks: { narratorClick: [5, 5, 5, 5, 5] },
+    };
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+    // 0 always clears the proc's odds, and always picks the first candidate.
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      game.activateAbility("ability-strong");
+      expect(game.teamDps()).toBeCloseTo(30); // 10 * (1 + 2.0)
+      // The proc fires on this click. It must find no candidate — the weak ability targets the same
+      // stat, and `replaceModifiersByTarget` would swap the x3 out for it (10 * (1 + 1.0) = 20).
+      game.click();
+      expect(game.teamDps()).toBeCloseTo(30);
+    } finally {
+      randomSpy.mockRestore();
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("importSave refuses a blob whose fields are the wrong type", () => {
+    const valid = {
+      currency: 5,
+      lifetimeEarned: 5,
+      ownedCharacterIds: [],
+      activeArcId: null,
+      prestigePoints: 0,
+      unlockedAnimeIds: [],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+      evolvedCharacterIds: [],
+    };
+    const stored: string[] = [];
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => null,
+      setItem: (_k: string, v: string) => stored.push(v),
+      removeItem: () => {},
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], combos: [], items: [] });
+      });
+      const blob = (save: unknown) => btoa(JSON.stringify(save));
+
+      expect(game.importSave("not base64 at all")).toBe(false);
+      expect(game.importSave(blob({ currency: "rich", ownedCharacterIds: [] }))).toBe(false);
+      expect(game.importSave(blob({ ...valid, arcKills: "abc" }))).toBe(false);
+      expect(game.importSave(blob({ ...valid, ownedCharacterIds: [1, 2] }))).toBe(false);
+      expect(game.importSave(blob({ ...valid, prestigeTreeRanks: { xp: ["1"] } }))).toBe(false);
+      expect(game.importSave(blob({ ...valid, characterEquipment: { ca: 7 } }))).toBe(false);
+      expect(stored).toEqual([]); // nothing bad ever reached localStorage
+
+      // ...and a well-formed one still goes through, missing optional fields included.
+      expect(game.importSave(blob(valid))).toBe(true);
+      expect(stored).toHaveLength(1);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
   it("abilitiesShareType: true when effects touch a common stat, false otherwise", () => {
     const dps: import("./types").AbilityDefinition = {
       id: "dps",
@@ -1174,6 +1302,15 @@ describe("game data", () => {
       for (const arcId of character.arcIds) {
         expect(gameData.arcs.find((a) => a.id === arcId)?.animeId).toBe(character.animeId);
       }
+    }
+  });
+
+  it("leaves every arc a mob pool that survives recruiting its whole cast", () => {
+    // `encounterPool` falls back to the non-recruit mobs once every character of the zone has
+    // joined. With none, `nextEnemy` hands back the boss forever and a cleared arc re-clears itself
+    // on every kill. No arc is in that state today; this keeps it that way.
+    for (const arc of gameData.arcs) {
+      expect(arc.mobs.some((m) => !m.characterId), `${arc.id} n'a que des mobs recrutables`).toBe(true);
     }
   });
 
