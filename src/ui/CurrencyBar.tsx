@@ -2,7 +2,7 @@ import { createSignal, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
-import { IconCrystal, IconDiamond, IconGlobe, IconSparkle } from "./icons";
+import { IconCrystal, IconDiamond, IconPack, IconSparkle } from "./icons";
 
 /**
  * The row of running totals at the top of the middle column. Each total is a shortcut to where that
@@ -13,9 +13,11 @@ export default function CurrencyBar(props: {
   onOpenShop: () => void;
   onOpenPrestige: () => void;
   onOpenCrossover: () => void;
-  onOpenWorlds: () => void;
+  onOpenPacks: () => void;
 }) {
   const [open, setOpen] = createSignal(true);
+  /** Pack points are per world, so the fourth tile always shows the world being fought in. */
+  const currentAnime = () => props.game.data.animes.find((a) => a.id === props.game.activeArc()?.animeId);
   return (
     <section class="panel">
       <header class="panel-head">
@@ -42,9 +44,13 @@ export default function CurrencyBar(props: {
           <span class="coin blue"><IconCrystal /></span>
           <strong>{props.game.crossoverCrystals()}</strong>
         </button>
-        <button class="currency" title="Mondes terminés" onClick={props.onOpenWorlds}>
-          <span class="coin green"><IconGlobe /></span>
-          <strong>{props.game.clearedAnimes().length}</strong>
+        <button
+          class="currency"
+          title={`Points de pack — ${currentAnime()?.name ?? "aucun monde"}`}
+          onClick={props.onOpenPacks}
+        >
+          <span class="coin green"><IconPack /></span>
+          <strong>{fmt(props.game.worldPointsOf(currentAnime()?.id ?? ""))}</strong>
         </button>
       </div>
       </Show>

@@ -24,6 +24,7 @@ import {
 } from "./progression";
 import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import { canBuyShopOffer, shopOfferUnlocked } from "./shop";
+import { drawPack, duplicateGrowth, packPool, PACK_COST } from "./packs";
 import {
   isPassiveMaxed,
   LEVEL_DAMAGE_STEP,
@@ -1742,6 +1743,87 @@ describe("prestige tree — wired into gameState", () => {
     } finally {
       disposeRoot();
       restore();
+    }
+  });
+});
+
+describe("packs", () => {
+  const cast: Character[] = [
+    { id: "m1", name: "M1", animeId: "ta", rarity: "main", arcIds: [], baseClickPower: 10, baseDps: 10 },
+    { id: "m2", name: "M2", animeId: "ta", rarity: "main", arcIds: [], baseClickPower: 10, baseDps: 10 },
+    { id: "s1", name: "S1", animeId: "ta", rarity: "secondary", arcIds: [], baseClickPower: 10, baseDps: 10 },
+    { id: "o1", name: "O1", animeId: "tb", rarity: "main", arcIds: [], baseClickPower: 10, baseDps: 10 },
+  ];
+
+  it("packPool keeps one world's cast at one rarity, and drawPack picks by the roll", () => {
+    expect(packPool(cast, "ta", "main").map((c) => c.id)).toEqual(["m1", "m2"]);
+    expect(packPool(cast, "ta", "secondary").map((c) => c.id)).toEqual(["s1"]);
+    const pool = packPool(cast, "ta", "main");
+    expect(drawPack(pool, 0)?.id).toBe("m1");
+    expect(drawPack(pool, 0.99)?.id).toBe("m2");
+    // A roll of exactly 1 must not fall off the end of the pool.
+    expect(drawPack(pool, 1)?.id).toBe("m2");
+    expect(drawPack([], 0.5)).toBeNull();
+  });
+
+  it("duplicates multiply a character's base damage, on top of levels", () => {
+    const arc: Arc = {
+      id: "ta-arc",
+      animeId: "ta",
+      name: "Arc",
+      order: 0,
+      mobs: [],
+      mobsToBoss: 1,
+      boss: { id: "b", name: "B", baseHp: 1, reward: 1 },
+    };
+    const none = characterContributions(cast[0], arc, defaultSynergyConfig, 0, 0, false, [], 0);
+    const two = characterContributions(cast[0], arc, defaultSynergyConfig, 0, 0, false, [], 2);
+    const clickOf = (mods: ActiveModifier[]) => mods.find((m) => m.target === "clickPower")!.value;
+    expect(clickOf(two)).toBeCloseTo(clickOf(none) * duplicateGrowth(2));
+  });
+
+  it("earns a point per fight won in that world, buys a duplicate, and survives a prestige", () => {
+    const testData = {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 100_000,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1_000_000, reward: 1 },
+        },
+      ],
+      characters: [cast[2]],
+      combos: [],
+      items: [],
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      game.travelTo("ta");
+
+      expect(game.openPack("ta", "secondary")).toBeNull(); // no points yet
+      for (let i = 0; i < PACK_COST.secondary; i++) game.click();
+      expect(game.worldPointsOf("ta")).toBe(PACK_COST.secondary);
+      // No main-rarity character in this world: that pack can't be drawn at all.
+      expect(game.packPoolOf("ta", "main")).toEqual([]);
+
+      expect(game.openPack("ta", "secondary")?.id).toBe("s1");
+      expect(game.worldPointsOf("ta")).toBe(0);
+      expect(game.duplicatesOf("s1")).toBe(1);
+
+      // Meta-progression: the run resets, the copies (and any leftover points) do not.
+      game.prestigeReset();
+      expect(game.duplicatesOf("s1")).toBe(1);
+    } finally {
+      disposeRoot();
     }
   });
 });

@@ -477,8 +477,10 @@ respecter partout.
 
 Les deux se lancent depuis la barre **Ressources** : chaque tuile de `CurrencyBar` est un
 `<button class="currency">` qui ouvre l'endroit où cette ressource se dépense (or → Boutique,
-prestige → Arbre, cristaux → Crossover, mondes → Portail). C'est la seule navigation qu'a le joueur
-entre une monnaie et son puits, donc aucune tuile ne doit rester inerte.
+prestige → Arbre, cristaux → Crossover, points de pack → Packs). C'est la seule navigation qu'a le
+joueur entre une monnaie et son puits, donc aucune tuile ne doit rester inerte. La quatrième tuile
+affichait avant le nombre de mondes terminés — un compteur inerte, doublon du bouton « Mondes » de
+la topbar ; elle porte maintenant les points de pack (§11.2).
 
 `ShopPanel.tsx` est un **overlay** (`.overlay` > `.modal`, fermé par ✕/Échap/clic dehors) comme le
 portail des mondes, plus un bouton `<IconShop /> Boutique` dans la topbar — la colonne de droite
@@ -518,6 +520,25 @@ d'objets — les objets se lisent déjà dans le panneau « Objets » de la colo
 
 La tuile Ressources prend `.currency.active` (fond `--active-tint`) tant que la fenêtre est ouverte :
 c'est un buff temporaire, il doit se voir sans ouvrir le tiroir.
+
+### 11.2 Packs et doublons
+
+`PackPanel.tsx`, même coque d'overlay, ouvert par la tuile verte. C'est la réponse au « mes premiers
+personnages ne servent plus à rien » : un personnage ne se recrute qu'une fois (refaire son arc ne
+le redonne jamais), donc les **doublons** ne s'obtiennent que là.
+
+- **Une monnaie par monde**, +1 par combat gagné dans ce monde. La tuile Ressources suit l'arc actif
+  et affiche donc le solde du monde où on se bat — elle change de valeur en voyageant, c'est voulu.
+- **Deux packs par monde** : cast principal (500) ou secondaire (250), tirage uniforme dans le cast
+  de ce monde à cette rareté. Pas d'animation d'ouverture : juste la carte du résultat (`.pack-result`,
+  bordure et fond teintés par `--world-hue` du monde du personnage tiré) avec son portrait `Sprite`
+  et son total de copies. Une pioche est instantanée, l'attente n'ajouterait rien.
+- **Chaque doublon = +25% des dégâts de base** du personnage (clic et DPS), sans plafond, empilé
+  multiplicativement avec les niveaux. C'est ce qui garde un personnage de départ pertinent tard.
+- **Méta-progression** : points et doublons survivent au prestige (seul `hardReset` les efface), au
+  même titre que les succès et l'arbre. Un doublon tiré sur un personnage pas encore rencontré n'est
+  donc jamais perdu — il l'attend au recrutement suivant.
+- **Liste des doublons** en bas du tiroir, triée par nombre de copies, avec le bonus cumulé en clair.
 
 ## 12. Typographie
 

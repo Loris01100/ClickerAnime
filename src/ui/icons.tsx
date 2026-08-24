@@ -175,3 +175,10 @@ export const IconShop = icon("0 0 24 24", () => (
 export const IconCrystal = icon("0 0 24 24", () => (
   <path d="M12 2 20 9l-8 13L4 9l8-7zm0 3.2L7 9h10l-5-3.8z" fill="currentColor" />
 ));
+
+export const IconPack = icon("0 0 24 24", () => (
+  <>
+    <path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" fill="none" stroke="currentColor" stroke-width="1.6" />
+    <path d="M3 7l9 4 9-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6" />
+  </>
+));

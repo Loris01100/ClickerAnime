@@ -1,4 +1,5 @@
 import { levelGrowth } from "./growth";
+import { duplicateGrowth } from "./packs";
 import type { ActiveModifier, Arc, Character, Item, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
@@ -31,7 +32,8 @@ export function synergyMultiplier(
  * instead — copies of the origin item, see `passiveRank` — and is absent while still locked, or
  * while fighting in a different anime entirely (the passive is a story ability, it doesn't travel) —
  * unless `evolved` and that anime is the character's evolution, which counts as home. An evolved
- * character also adds `evolution.bonus`, scaled the same way as the passive.
+ * character also adds `evolution.bonus`, scaled the same way as the passive. `duplicates` are the
+ * pack copies held of this character (see packs.ts) — they multiply the base damage, uncapped.
  */
 export function characterContributions(
   character: Character,
@@ -40,7 +42,8 @@ export function characterContributions(
   level = 0,
   passiveRank = 0,
   evolved = false,
-  equipmentItems: Item[] = []
+  equipmentItems: Item[] = [],
+  duplicates = 0
 ): ActiveModifier[] {
   const synergy = activeArc ? synergyMultiplier(character, activeArc, config, evolved) : 1;
   const isHome = (arc: Arc) =>
@@ -48,7 +51,8 @@ export function characterContributions(
   // Outside every world this character calls home, the passive shuts off — only damage still
   // applies, at the (steep) other-anime malus.
   const otherAnime = activeArc ? !isHome(activeArc) : false;
-  const damageGrowth = levelGrowth(level);
+  // Levels and pack duplicates both scale the printed base damage, and stack with each other.
+  const damageGrowth = levelGrowth(level) * duplicateGrowth(duplicates);
   // Rank 1 is the passive as printed; every rank past it deepens it by the usual step.
   const passiveGrowth = levelGrowth(passiveRank - 1);
 

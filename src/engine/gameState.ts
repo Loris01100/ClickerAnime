@@ -20,6 +20,7 @@ import {
 import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
+import { drawPack, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   levelFromXp,
   narratorClickPower,
@@ -87,6 +88,7 @@ import type {
   Enemy,
   Item,
   ModifierTemplate,
+  Rarity,
   ShopOffer,
   SynergyConfig,
 } from "./types";
@@ -127,6 +129,10 @@ interface SaveFile {
   characterEquipment?: Record<string, string>;
   /** absent on a save from before crossover crystals existed; every reader defaults it to 0 */
   crossoverCrystals?: number;
+  /** pack points held per world; absent on an older save, defaults to {} */
+  worldPoints?: Record<string, number>;
+  /** pack copies held per character; absent on an older save, defaults to {} */
+  characterDuplicates?: Record<string, number>;
 }
 
 // A save from another build must never break the boot — fall back to a fresh run instead.
@@ -189,6 +195,13 @@ export function createGameStore(data: GameData) {
   // Cristaux de crossover: earned on kills with a team spanning two worlds, spent to lift the
   // synergy malus for a while (see crossover.ts). Run-scoped like items — prestigeReset wipes them.
   const [crossoverCrystals, setCrossoverCrystals] = createSignal(saved?.crossoverCrystals ?? 0);
+  // Pack points, one bucket per world: earned on every fight won there, spent on that world's
+  // packs (see packs.ts). Meta-progression like the duplicates they buy — prestigeReset spares
+  // both, only hardReset wipes them.
+  const [worldPoints, setWorldPoints] = createSignal<Record<string, number>>(saved?.worldPoints ?? {});
+  const [characterDuplicates, setCharacterDuplicates] = createSignal<Record<string, number>>(
+    saved?.characterDuplicates ?? {}
+  );
   // When the current crossover window ends. Transient like combat state: a reload drops the buff.
   const [crossoverUntil, setCrossoverUntil] = createSignal(0);
   /** True while a bought crossover window is still running — see activateCrossover. */
@@ -337,7 +350,16 @@ export function createGameStore(data: GameData) {
       return item && item.kind === "unique" ? [item] : [];
     };
     const fromCharacters = ownedCharacters().flatMap((c) =>
-      characterContributions(c, arc, config, levelOf(c.id), passiveRankOf(c), isEvolved(c), equipmentOf(c))
+      characterContributions(
+        c,
+        arc,
+        config,
+        levelOf(c.id),
+        passiveRankOf(c),
+        isEvolved(c),
+        equipmentOf(c),
+        duplicatesOf(c.id)
+      )
     );
     return [
       ...fromCharacters,
@@ -506,6 +528,8 @@ export function createGameStore(data: GameData) {
     const reward = currencyLevel > 0 ? baseReward * (1 + CURRENCY_GAIN_PERCENT * currencyLevel) : baseReward;
     setCurrency((c) => c + reward);
     setLifetimeEarned((l) => l + reward);
+    // Pack points are per world and flat: one per fight won, wherever it was won.
+    setWorldPoints((points) => ({ ...points, [arc.animeId]: (points[arc.animeId] ?? 0) + POINTS_PER_KILL }));
 
     const isNewRecruit = !!target.characterId && !ownedCharacterIds().includes(target.characterId);
     if (isNewRecruit) {
@@ -728,6 +752,30 @@ export function createGameStore(data: GameData) {
     return true;
   }
 
+  const worldPointsOf = (animeId: string) => worldPoints()[animeId] ?? 0;
+
+  /** Pack copies held of a character. A function declaration, so `allModifiers` can hoist it. */
+  function duplicatesOf(characterId: string): number {
+    return characterDuplicates()[characterId] ?? 0;
+  }
+
+  /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
+  const packPoolOf = (animeId: string, rarity: Rarity) => packPool(data.characters, animeId, rarity);
+
+  /**
+   * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.
+   * Returns the character drawn so the panel can show it, or null when it couldn't be bought.
+   */
+  function openPack(animeId: string, rarity: Rarity): Character | null {
+    const cost = PACK_COST[rarity];
+    if (worldPointsOf(animeId) < cost) return null;
+    const drawn = drawPack(packPoolOf(animeId, rarity), Math.random());
+    if (!drawn) return null;
+    setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
+    setCharacterDuplicates((copies) => ({ ...copies, [drawn.id]: (copies[drawn.id] ?? 0) + 1 }));
+    return drawn;
+  }
+
   /** Every shop offer with the display state (locked/owned/affordable) the panel needs. */
   function shopOffers() {
     const clearedIds = clearedAnimes().map((a) => a.id);
@@ -886,8 +934,9 @@ export function createGameStore(data: GameData) {
 
   /**
    * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared, items and
-   * passive ranks all go. Only the prestige points survive — the whole point is to redo the climb
-   * faster.
+   * passive ranks all go. Only the prestige points survive — plus the meta-progression the run
+   * never owned: achievement counts, tree levels, and the pack points and duplicates (see packs.ts).
+   * The whole point is to redo the climb faster.
    */
   function prestigeReset() {
     // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
@@ -934,6 +983,8 @@ export function createGameStore(data: GameData) {
       prestigeTreeRanks: prestigeTreeRanks(),
       characterEquipment: characterEquipment(),
       crossoverCrystals: crossoverCrystals(),
+      worldPoints: worldPoints(),
+      characterDuplicates: characterDuplicates(),
     };
   }
 
@@ -988,6 +1039,8 @@ export function createGameStore(data: GameData) {
     setAutoClickAccumMs(0);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
+    setWorldPoints({});
+    setCharacterDuplicates({});
     setEnemy(null);
   }
 
@@ -1069,6 +1122,11 @@ export function createGameStore(data: GameData) {
     unequipItem,
     shopOffers,
     buyShopOffer,
+    // packs
+    worldPointsOf,
+    duplicatesOf,
+    packPoolOf,
+    openPack,
     // crossover
     crossoverCrystals,
     crossoverActive,

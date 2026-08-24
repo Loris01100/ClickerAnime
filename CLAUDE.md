@@ -35,9 +35,9 @@ roster (abilities, sortable team table, item table), middle is resources + the f
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`. `CurrencyBar.tsx`'s four tiles are buttons, each opening the overlay where that
-resource is spent (gold → shop, prestige → tree, crystals → crossover, worlds → portal), so no
-counter is a dead end. `Codex.tsx` is the largest: the
+`PrestigeTree.tsx`, `PackPanel.tsx`. `CurrencyBar.tsx`'s four tiles are buttons, each opening the overlay where that
+resource is spent (gold → shop, prestige → tree, crystals → crossover, pack points → packs), so no
+counter is a dead end; the pack tile follows the active arc, since pack points are per world. `Codex.tsx` is the largest: the
 full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities,
 evolution and combos. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
@@ -257,8 +257,8 @@ a setter per field. There is no offline-progress catch-up.
 
 ### Prestige
 
-`prestigeReset()` wipes everything but the prestige points, the achievement counts and the prestige
-tree ranks (see below): currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
+`prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
+tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
 and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale) * (1 + COMPLETION_GAIN_BONUS * completion))`, zero below
 `scale`, where `completion` is the share of the game's arcs cleared this run (`runCompletion` in
 `gameState`) — resetting deep into the game banks up to 3x what the same earnings bank early; both `scale` and a
@@ -352,6 +352,24 @@ fights at full power anywhere. Damage only: a passive is still a story ability a
 outside its own anime (`characterContributions` decides that from the arc, not from the config).
 The stock is saved and run-scoped (`prestigeReset` wipes it, like items); the window's deadline is
 transient like combat state, so a reload drops an active buff.
+
+### Packs and duplicates (`packs.ts`)
+
+A character is recruited exactly once — refighting their arc never gives them again — so packs are
+the only source of **duplicates**, and each duplicate multiplies that character's base click damage
+and dps by `DUPLICATE_DAMAGE_STEP` (uncapped), folded into `characterContributions` next to
+`levelGrowth`. That is what keeps a starting character worth having late.
+
+The currency is **one bucket per world** (`worldPoints` in `gameState`), `POINTS_PER_KILL` per fight
+won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws uniformly from the
+world's `rarity: "main"` cast, `PACK_COST.secondary` (250) from its secondary cast. `packPool` and
+`drawPack` are pure and take the 0..1 roll as an argument, like `rollsDrop`; `openPack` in
+`gameState` is the only caller of `Math.random()` and returns the character drawn so `PackPanel` can
+show it. The pool is **not** filtered by the team: a copy of someone not met yet is banked for later.
+
+Points and duplicates are meta-progression like `achievementCounts` and `prestigeTreeRanks` —
+`prestigeReset` spares both, only `hardReset` wipes them. Both are optional save fields, so no
+`SAVE_KEY` bump was needed.
 
 ### Achievements (`achievements.ts`)
 

@@ -13,6 +13,7 @@ import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
 import ShopPanel from "./ui/ShopPanel";
 import CrossoverPanel from "./ui/CrossoverPanel";
+import PackPanel from "./ui/PackPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconCrown, IconGlobe, IconMonitor, IconMoon, IconShop, IconSun, IconTrophy } from "./ui/icons";
@@ -28,6 +29,7 @@ export default function App() {
   const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
   const [shopOpen, setShopOpen] = createSignal(false);
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
+  const [packsOpen, setPacksOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
 
   /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
@@ -117,7 +119,7 @@ export default function App() {
               onOpenShop={() => setShopOpen(true)}
               onOpenPrestige={() => setPrestigeTreeOpen(true)}
               onOpenCrossover={() => setCrossoverOpen(true)}
-              onOpenWorlds={() => setPortalOpen(true)}
+              onOpenPacks={() => setPacksOpen(true)}
             />
             <ClickStage game={game} />
             <WorldMap game={game} />
@@ -140,6 +142,10 @@ export default function App() {
 
       <Show when={shopOpen()}>
         <ShopPanel game={game} onClose={() => setShopOpen(false)} />
+      </Show>
+
+      <Show when={packsOpen()}>
+        <PackPanel game={game} onClose={() => setPacksOpen(false)} />
       </Show>
 
       <Show when={crossoverOpen()}>

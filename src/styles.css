@@ -419,6 +419,18 @@ small {
 .coin.green {
   color: var(--good);
 }
+
+/* --- packs --- */
+.pack-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid hsl(var(--world-hue) 60% 50% / 0.5);
+  border-radius: 6px;
+  background: hsl(var(--world-hue) 60% 50% / 0.12);
+}
 .icon.gold {
   color: var(--gold);
 }
