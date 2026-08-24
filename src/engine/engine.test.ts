@@ -179,6 +179,15 @@ describe("prestige", () => {
     expect(applyPrestige(createInitialPrestigeState(), 4_000_000).prestigePoints).toBe(2);
   });
 
+  it("scales the gain with run completion", () => {
+    const st = createInitialPrestigeState();
+    // sqrt(4) = 2, x(1 + 2 * completion)
+    expect(applyPrestige(st, 4_000_000, undefined, 0.5).prestigePoints).toBe(4);
+    expect(applyPrestige(st, 4_000_000, undefined, 1).prestigePoints).toBe(6);
+    // completion alone never conjures points out of nothing
+    expect(applyPrestige(st, 999, undefined, 1).prestigePoints).toBe(0);
+  });
+
   it("sends the player back to square one: the worlds entered are wiped", () => {
     const after = applyPrestige({ prestigePoints: 1, unlockedAnimeIds: ["anime-a"] }, 4_000_000);
     expect(after).toEqual({ prestigePoints: 3, unlockedAnimeIds: [] });
@@ -902,7 +911,7 @@ describe("store boot", () => {
     }
   });
 
-  it("clearing an arc for the first time grants a flat prestige point, but only once", () => {
+  it("clearing an arc grants no prestige point — points only come from a prestige reset", () => {
     const testData = {
       animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
       arcs: [
@@ -933,11 +942,10 @@ describe("store boot", () => {
       expect(game.prestige().prestigePoints).toBe(0);
 
       game.click(); // kills the boss, clearing the arc
-      expect(game.prestige().prestigePoints).toBe(1);
+      expect(game.prestige().prestigePoints).toBe(0);
 
-      // arc is cleared now, so it farms mobs forever — no repeat payout
       game.click();
-      expect(game.prestige().prestigePoints).toBe(1);
+      expect(game.prestige().prestigePoints).toBe(0);
     } finally {
       disposeRoot();
     }

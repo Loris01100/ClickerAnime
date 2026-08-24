@@ -6,7 +6,6 @@ import {
   calculatePrestigeGain,
   canUnlockAnime,
   createInitialPrestigeState,
-  PRESTIGE_PER_ARC_CLEAR,
   unlockAnime as unlockAnimeState,
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
@@ -394,8 +393,13 @@ export function createGameStore(data: GameData) {
   /** Currency threshold worth one prestige point on reset — kept at the default scale. */
   const prestigeScale = createMemo(() => 1_000_000);
 
+  /** Share of the game's arcs cleared this run — the completion the prestige gain scales with. */
+  const runCompletion = createMemo(() => (data.arcs.length === 0 ? 0 : clearedArcIds().length / data.arcs.length));
+
   /** Prestige points the player would bank by resetting right now. */
-  const pendingPrestigeGain = createMemo(() => calculatePrestigeGain(lifetimeEarned(), prestigeScale()));
+  const pendingPrestigeGain = createMemo(() =>
+    calculatePrestigeGain(lifetimeEarned(), prestigeScale(), runCompletion())
+  );
 
   // --- world progression ---
 
@@ -536,8 +540,6 @@ export function createGameStore(data: GameData) {
     if (isBoss) {
       if (!clearedArcIds().includes(arc.id)) {
         setClearedArcIds((ids) => [...ids, arc.id]);
-        // Clearing an arc always grants 1 prestige point; the "Destin" branch no longer adds extra here.
-        setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + PRESTIGE_PER_ARC_CLEAR }));
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
       bumpAchievement("bossesKilled");
@@ -891,7 +893,7 @@ export function createGameStore(data: GameData) {
     // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
     const doubleLevel = nodeLevelOf("destin", 5);
     const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
-    setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), gainMultiplier));
+    setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier));
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
@@ -1040,6 +1042,7 @@ export function createGameStore(data: GameData) {
     lifetimeEarned,
     prestige,
     pendingPrestigeGain,
+    runCompletion,
     activeArc,
     unlockedAnimes,
     ownedCharacters,

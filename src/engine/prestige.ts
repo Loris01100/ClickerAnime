@@ -8,18 +8,22 @@ export function createInitialPrestigeState(starterAnimeIds: string[] = []): Pres
   return { prestigePoints: 0, unlockedAnimeIds: [...starterAnimeIds] };
 }
 
-/** Diminishing-returns curve so prestige points don't scale linearly with lifetime earnings. */
-export function calculatePrestigeGain(lifetimeEarned: number, scale = 1_000_000): number {
-  if (lifetimeEarned < scale) return 0;
-  return Math.floor(Math.sqrt(lifetimeEarned / scale));
-}
+/**
+ * How much a fully completed run (every arc of every world cleared) multiplies the gain by, on top
+ * of the earnings curve: at 0% completion the gain is the bare curve, at 100% it is 1 + this.
+ */
+export const COMPLETION_GAIN_BONUS = 2;
 
 /**
- * Flat reward for clearing an arc for the first time this run. Unlike `calculatePrestigeGain`
- * (banked only on `prestigeReset`), this trickles in mid-run so the tree stays fed by progress
- * itself, not just by resetting.
+ * Diminishing-returns curve so prestige points don't scale linearly with lifetime earnings,
+ * scaled by `completion` (0..1, the share of the game's arcs cleared this run): resetting deep
+ * into the game banks more than resetting early with the same earnings.
  */
-export const PRESTIGE_PER_ARC_CLEAR = 1;
+export function calculatePrestigeGain(lifetimeEarned: number, scale = 1_000_000, completion = 0): number {
+  if (lifetimeEarned < scale) return 0;
+  const clamped = Math.min(Math.max(completion, 0), 1);
+  return Math.floor(Math.sqrt(lifetimeEarned / scale) * (1 + COMPLETION_GAIN_BONUS * clamped));
+}
 
 export function canUnlockAnime(state: PrestigeState, animeId: string, cost: number): boolean {
   return !state.unlockedAnimeIds.includes(animeId) && state.prestigePoints >= cost;
@@ -36,17 +40,20 @@ export function unlockAnime(state: PrestigeState, animeId: string, cost: number)
 
 /**
  * Banks the gain and sends the player back to square one: the worlds entered are wiped too.
- * `scale` is the default currency threshold worth one prestige point; `gainMultiplier` is the
+ * `scale` is the default currency threshold worth one prestige point; `completion` is the share of
+ * the game's arcs cleared this run (see `calculatePrestigeGain`); `gainMultiplier` is the
  * "Destin" tier 5 perk (a random 2x rolled by the caller — this function itself stays free of randomness).
  */
 export function applyPrestige(
   state: PrestigeState,
   lifetimeEarned: number,
   scale?: number,
+  completion = 0,
   gainMultiplier = 1
 ): PrestigeState {
   return {
-    prestigePoints: state.prestigePoints + calculatePrestigeGain(lifetimeEarned, scale) * gainMultiplier,
+    prestigePoints:
+      state.prestigePoints + calculatePrestigeGain(lifetimeEarned, scale, completion) * gainMultiplier,
     unlockedAnimeIds: [],
   };
 }

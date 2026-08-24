@@ -259,7 +259,9 @@ a setter per field. There is no offline-progress catch-up.
 
 `prestigeReset()` wipes everything but the prestige points, the achievement counts and the prestige
 tree ranks (see below): currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
-and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale))`, zero below `scale`; both `scale` and a
+and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale) * (1 + COMPLETION_GAIN_BONUS * completion))`, zero below
+`scale`, where `completion` is the share of the game's arcs cleared this run (`runCompletion` in
+`gameState`) — resetting deep into the game banks up to 3x what the same earnings bank early; both `scale` and a
 double-gain chance are perks of the tree's "Ressource" branch, see below. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.
@@ -317,11 +319,14 @@ can never stop being geometric:
   a successful common drop (node 3); a pity timer — `killsSinceDrop` per arc forces a common after
   a streak that shortens by a fixed amount per level (node 4); a small chance an item-less enemy
   hands over the arc's common anyway (node 5).
-- **Ressource** — currency-per-kill percent (node 1); lowers the `scale` `calculatePrestigeGain`
-  uses, further per level (node 2); adds to `PRESTIGE_PER_ARC_CLEAR` per level (node 3); discounts
-  an anime's `unlockCost` (node 4); a chance to double the points a `prestigeReset` banks, rolled
-  in `gameState` and passed as `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays
-  free of randomness (node 5).
+- **Destin** — currency-per-kill percent (node 1); a small chance per kill to gain 1 prestige point
+  outright (node 2); a chance at a bonus copy of a common drop (node 3); a shop discount (node 4);
+  a chance to double the points a `prestigeReset` banks, rolled in `gameState` and passed as
+  `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays free of randomness (node 5).
+
+Prestige points are **only** banked by `prestigeReset` (plus the "Destin" node 2 chance, itself
+bought with points): clearing an arc grants none, so a player has zero points until their first
+prestige.
 
 `PrestigeTree.tsx` is the built UI — see `design.md` §5 for its node anatomy and layout. Its
 `icon()` helper in `ui/icons.tsx` needed a fix while building it: `body` must be a factory

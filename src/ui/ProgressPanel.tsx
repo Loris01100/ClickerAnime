@@ -130,6 +130,10 @@ export default function ProgressPanel(props: { game: GameStore }) {
           </button>
           <button onClick={() => setTreeOpen(true)}>Arbre de prestige</button>
           <p class="muted small">
+            Complétion : {Math.round(props.game.runCompletion() * 100)}% des arcs terminés — plus elle est
+            haute, plus la réinitialisation rapporte de points.
+          </p>
+          <p class="muted small">
             Réinitialise tout : monnaie, équipe, niveaux, mondes, arcs terminés, objets et passifs.
             Seuls les points de prestige sont conservés.
           </p>
