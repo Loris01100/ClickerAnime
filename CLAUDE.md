@@ -263,9 +263,11 @@ a setter per field. There is no offline-progress catch-up.
 
 `prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
 tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
-and the worlds entered. Gain is `floor(sqrt(lifetimeEarned / scale) * (1 + COMPLETION_GAIN_BONUS * completion))`, zero below
-`scale`, where `completion` is the share of the game's arcs cleared this run (`runCompletion` in
-`gameState`) — resetting deep into the game banks up to 3x what the same earnings bank early; both `scale` and a
+and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
+zero below `scale` (`PRESTIGE_SCALE`, 100k), where `completion` is the share of the game's arcs
+cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 4x what
+the same earnings bank early. `PRESTIGE_EXPONENT` (0.65) sits above the old 0.5/sqrt on purpose: the
+curve has to keep growing with how deep a run went, or a full tree (775 points) stays out of reach; both `scale` and a
 double-gain chance are perks of the tree's "Ressource" branch, see below. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.

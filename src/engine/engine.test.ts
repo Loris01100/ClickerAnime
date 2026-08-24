@@ -172,26 +172,26 @@ describe("synergyMultiplier", () => {
 
 describe("prestige", () => {
   it("computes no gain below the scale threshold", () => {
-    expect(applyPrestige(createInitialPrestigeState(), 999).prestigePoints).toBe(0);
+    expect(applyPrestige(createInitialPrestigeState(), 99_999).prestigePoints).toBe(0);
   });
 
   it("computes diminishing-returns gain above the scale threshold", () => {
-    // sqrt(4_000_000 / 1_000_000) = 2
-    expect(applyPrestige(createInitialPrestigeState(), 4_000_000).prestigePoints).toBe(2);
+    // (12_800_000 / 100_000) ^ 0.65 = 128 ^ 0.65 = 23.4
+    expect(applyPrestige(createInitialPrestigeState(), 12_800_000).prestigePoints).toBe(23);
   });
 
   it("scales the gain with run completion", () => {
     const st = createInitialPrestigeState();
-    // sqrt(4) = 2, x(1 + 2 * completion)
-    expect(applyPrestige(st, 4_000_000, undefined, 0.5).prestigePoints).toBe(4);
-    expect(applyPrestige(st, 4_000_000, undefined, 1).prestigePoints).toBe(6);
+    // 23.4 x (1 + 3 * completion)
+    expect(applyPrestige(st, 12_800_000, undefined, 0.5).prestigePoints).toBe(58);
+    expect(applyPrestige(st, 12_800_000, undefined, 1).prestigePoints).toBe(93);
     // completion alone never conjures points out of nothing
-    expect(applyPrestige(st, 999, undefined, 1).prestigePoints).toBe(0);
+    expect(applyPrestige(st, 99_999, undefined, 1).prestigePoints).toBe(0);
   });
 
   it("sends the player back to square one: the worlds entered are wiped", () => {
-    const after = applyPrestige({ prestigePoints: 1, unlockedAnimeIds: ["anime-a"] }, 4_000_000);
-    expect(after).toEqual({ prestigePoints: 3, unlockedAnimeIds: [] });
+    const after = applyPrestige({ prestigePoints: 1, unlockedAnimeIds: ["anime-a"] }, 12_800_000);
+    expect(after).toEqual({ prestigePoints: 24, unlockedAnimeIds: [] });
   });
 
   it("lets the player unlock any anime they can afford, in any order", () => {

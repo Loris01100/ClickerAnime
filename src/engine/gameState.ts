@@ -3,6 +3,7 @@ import { achievementContributions } from "./achievements";
 import { computeEffectiveStat, pruneExpired, replaceModifiersByTarget } from "./modifiers";
 import {
   applyPrestige,
+  PRESTIGE_SCALE,
   calculatePrestigeGain,
   canUnlockAnime,
   createInitialPrestigeState,
@@ -413,7 +414,7 @@ export function createGameStore(data: GameData) {
   );
 
   /** Currency threshold worth one prestige point on reset — kept at the default scale. */
-  const prestigeScale = createMemo(() => 1_000_000);
+  const prestigeScale = createMemo(() => PRESTIGE_SCALE);
 
   /** Share of the game's arcs cleared this run — the completion the prestige gain scales with. */
   const runCompletion = createMemo(() => (data.arcs.length === 0 ? 0 : clearedArcIds().length / data.arcs.length));

@@ -12,17 +12,26 @@ export function createInitialPrestigeState(starterAnimeIds: string[] = []): Pres
  * How much a fully completed run (every arc of every world cleared) multiplies the gain by, on top
  * of the earnings curve: at 0% completion the gain is the bare curve, at 100% it is 1 + this.
  */
-export const COMPLETION_GAIN_BONUS = 2;
+export const COMPLETION_GAIN_BONUS = 3;
+
+/** Currency worth one prestige point at 0% completion — the curve's threshold too. */
+export const PRESTIGE_SCALE = 100_000;
+
+/**
+ * Curve exponent. Above 0.5 (the old sqrt) the gain keeps growing with how deep a run went instead
+ * of flattening out: it is the main "is prestige worth it?" knob.
+ */
+export const PRESTIGE_EXPONENT = 0.65;
 
 /**
  * Diminishing-returns curve so prestige points don't scale linearly with lifetime earnings,
  * scaled by `completion` (0..1, the share of the game's arcs cleared this run): resetting deep
  * into the game banks more than resetting early with the same earnings.
  */
-export function calculatePrestigeGain(lifetimeEarned: number, scale = 1_000_000, completion = 0): number {
+export function calculatePrestigeGain(lifetimeEarned: number, scale = PRESTIGE_SCALE, completion = 0): number {
   if (lifetimeEarned < scale) return 0;
   const clamped = Math.min(Math.max(completion, 0), 1);
-  return Math.floor(Math.sqrt(lifetimeEarned / scale) * (1 + COMPLETION_GAIN_BONUS * clamped));
+  return Math.floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * clamped));
 }
 
 export function canUnlockAnime(state: PrestigeState, animeId: string, cost: number): boolean {
