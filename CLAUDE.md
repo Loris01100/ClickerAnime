@@ -111,7 +111,7 @@ One file per area under `docs/`. Each carries the full rationale and the tuning 
 
 | Area | File | What it covers |
 |---|---|---|
-| Combat | `docs/combat.md` | The arc loop, overkill carry-over, `MAX_KILLS_PER_SECOND`, boss timers, the narrator's click |
+| Combat | `docs/combat.md` | The arc loop, overkill carry-over, `MAX_KILLS_PER_SECOND`, boss timers, how steep a world's hp table has to be, the narrator's click |
 | Progression | `docs/progression.md` | Levels and xp, world/arc unlocking and tiers, synergy, evolutions |
 | Economy | `docs/economy.md` | Items and passive ranks, prestige, the 25-node prestige tree, crossover crystals, packs and duplicates, achievements, the shop |
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
@@ -135,9 +135,11 @@ world genuinely has no such section.
 
 - `naruto/` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
 - `shippuden/` — **Naruto Shippūden**, 15 arcs, deliberately the long one: it is the climax of the
-  Naruto worlds. Generated from a table, so its hp, rewards and recruit stats all ramp by the same
-  ~1.85 per arc — keep that ratio when editing, it is what keeps the pace flat while the numbers
-  explode. Boruto is meant to come last and hardest.
+  Naruto worlds. Generated from a table, on **three ramps per arc**: boss hp ~2.5, mob hp ~2.33,
+  rewards and recruit stats ~1.85. Keep all three when editing — the hp ones track how fast the
+  team's dps actually grows (measured, not guessed: `docs/combat.md`), and the reward one is what
+  keeps the economy where it was. Boruto is meant to come last and hardest, and its own ramps have
+  to be **measured again** rather than copied from here.
 
 A character belongs to exactly one world and is recruitable in exactly one arc: Shippūden reuses no
 one from part 1, it introduces new faces only (`engine.test.ts` enforces both rules, along with every

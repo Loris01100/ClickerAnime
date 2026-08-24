@@ -1027,6 +1027,32 @@ describe("game data", () => {
       );
     }
   });
+
+  /**
+   * Shippūden's table is generated on three ramps, and the two hp ones are not free: they track the
+   * rate the team's own dps grows (~2.53x per arc, measured with `npm run sim --json`). Ramp the hp
+   * slower and the world's pace inverts — the climax ends up the fastest part of the game and the
+   * boss clock stops mattering, which is exactly what this table used to do at a flat 1.85. The
+   * rationale and the tuning history are in `docs/combat.md`; this test is what stops an edit from
+   * quietly walking one arc off the ramp.
+   */
+  it("tient les trois rampes de la table de Shippūden", () => {
+    const arcs = gameData.arcs
+      .filter((arc) => arc.animeId === "shippuden")
+      .sort((a, b) => a.order - b.order);
+    expect(arcs).toHaveLength(15);
+
+    for (let n = 1; n < arcs.length; n++) {
+      const [previous, arc] = [arcs[n - 1], arcs[n]];
+      const label = `${arc.name} (ordre ${arc.order})`;
+      // Rounded to 3 significant figures in the data, so a ramp lands within ~1% of its target.
+      expect(arc.boss.baseHp / previous.boss.baseHp, `${label} : pv du boss`).toBeCloseTo(2.5, 1);
+      expect(arc.mobs[0].baseHp / previous.mobs[0].baseHp, `${label} : pv des mobs`).toBeCloseTo(2.33, 1);
+      // The reward ramp is deliberately the one left alone: kills per arc are fixed, so touching it
+      // would move the economy, which the hp retune explicitly did not.
+      expect(arc.boss.reward / previous.boss.reward, `${label} : récompense`).toBeCloseTo(1.85, 1);
+    }
+  });
 });
 
 /** Boots a store from a chosen save blob; the returned function puts localStorage back. */

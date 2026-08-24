@@ -15,11 +15,11 @@ Enemies carrying an `itemId` may hand it over — see the narrator's click below
 `dps / mob hp`, and a cleared arc's mobs never grow while the team's damage does — so going back to
 farm an old zone, which the passive-item design explicitly asks for, resolved hundreds of fights a
 second. Every per-kill reward rides on that rate: item drops, currency, xp, pack points. Rather than
-capping each of them, `MAX_KILLS_PER_SECOND` (20) caps the thing they all derive from, spent from a
+capping each of them, `MAX_KILLS_PER_SECOND` (5) caps the thing they all derive from, spent from a
 `killBudget` the tick refills and never lets bank above the cap. `dealDamage` always resolves at
 least one kill whatever the budget, so a fight can never stall at 0 hp; surplus overkill past the
 budget is discarded. It never touches a boss (one enemy, one kill) and never bites during normal
-progress, only when the team outguns a zone by more than ~20x. `MAX_KILLS_PER_HIT` stays what it
+progress, only when the team outguns a zone by more than ~5x. `MAX_KILLS_PER_HIT` stays what it
 was: a loop safety net against a data mistake, not a knob.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
@@ -53,6 +53,40 @@ answers "come back later?", not "fire now?" — it must not blink on and off wit
 
 Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved: a reload
 restarts the current fight. Only kill counts and cleared arcs persist.
+
+## How steep a world's hp table has to be
+
+A world's arcs are generated from a table that ramps every number by a fixed factor per arc. The
+factor is not free: **it has to match the rate the team's own dps ramps**, or the world's pace drifts
+one way or the other for the whole of its length, compounding.
+
+`npm run sim --json` measures that rate, and it is much steeper than it looks. Across Shippūden the
+team's dps grows by a geometric mean of **2.53x per arc** — recruits whose own stats ramp, their
+passives stacking additively as the roster deepens, levels, duplicates, achievements and the tree,
+all multiplying together. Shippūden's table originally ramped everything by 1.85x, tuned when the
+roster was small. The gap of 1.37x per arc compounded over fifteen arcs: the first arcs took ~3
+minutes and the last ones **0.3** — bottomed out on `MAX_KILLS_PER_SECOND`, not on enemy hp at all.
+The climax was the fastest part of the game, and the boss clock — the only thing that can stop a run
+— had stopped mattering: the margin between a boss's time-to-kill and its own timer drifted from
+**0.8x on the first arc to 134x on the last**. Bosses after arc 6 were a formality.
+
+Shippūden is now tuned on three ramps rather than one, all verified with the simulator:
+
+| What | Ramp per arc | Why |
+|---|---|---|
+| Boss `baseHp` | **2.5x** | Matches the dps ramp, so the boss keeps the same pressure at every arc |
+| Mob `baseHp` | **2.33x** | Slightly under, so the grind rises gently instead of turning the climax into a slog |
+| `reward`, recruit stats | 1.85x | **Untouched** — currency comes from kills, and kills per arc are fixed by `mobsToBoss`, so an hp-only change moves the clock without touching the economy at all |
+
+Boss timers were widened by 1.5x alongside (rounded to 15s steps). The result, on seed 1 at 4
+clicks/s: Shippūden's arcs run 1.3 → 3.4 minutes in a gentle rise, every boss fight uses 18-56s of
+its timer for a margin of 1.9x to 6.6x, and a full run goes from 27 to ~45 minutes with the same
+8.76B earned and the same 236 prestige points banked — the proof the economy really is untouched.
+
+**Adding a world means measuring this again, not copying 2.33.** The dps ramp is a property of how
+deep the roster is by then, so a fourth world's table starts from what the simulator reports at the
+end of the third, and its arc 0 starts from where the previous world's last arc left off — not from
+`difficultyMultiplier`, whose 2.5x per *tier* is nothing next to a world's own internal ramp.
 
 ## The narrator's click
 
