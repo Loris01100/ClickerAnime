@@ -1,6 +1,6 @@
 # ClickerAnime — Agent Guide
 
-This file is the first thing an AI coding agent should read before touching the codebase. It complements `CLAUDE.md` (technical architecture) and `design.md` (visual/UX intent). When a change touches architecture, update `CLAUDE.md`; when it touches design, update `design.md`; when it touches the conventions in this file, update this file.
+This file is the first thing an AI coding agent should read before touching the codebase. It complements `CLAUDE.md` (layers and invariants), `docs/` (one file per system) and `design.md` (visual/UX intent). When a change touches an invariant or adds a system, update `CLAUDE.md`; when it touches how one system works, update its `docs/` file; when it touches design, update `design.md`; when it touches the conventions in this file, update this file.
 
 ## Project Overview
 
@@ -31,7 +31,7 @@ All commands run from the project root.
 - Single test: `npx vitest run src/engine/engine.test.ts -t "applies flat, then percent"`
 - `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
   check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
-  See **The balance simulator** in `CLAUDE.md`.
+  See `docs/simulator.md`.
 
 A `PostToolUse` hook (`.claude/hooks/verify-edit.mjs`, wired in `.claude/settings.json`) runs the
 suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit under `src/ui/`. A
@@ -64,7 +64,7 @@ Key modules:
 - `prestige.ts` — prestige point gain and anime unlock shortcuts.
 - `prestigeTree.ts` — five-branch prestige skill tree; 25 nodes, each rebuyable 5 times.
 - `abilities.ts` — ability unlocking, cooldowns, same-stat sharing.
-- `achievements.ts` — lifetime counters and tiered click-power bonuses.
+- `achievements.ts` — lifetime counters and tiered bonuses, paid into `clickPower` or `teamDps` per category.
 - `shop.ts` — currency shop offers.
 
 ### 2. `src/ui/` — Presentation Only
@@ -92,10 +92,12 @@ Key components:
 
 ### 3. `src/data/` — Content
 
-One file per world plus `index.ts`. Adding a world means adding a file and an entry in `worlds`.
+One **directory** per world plus `index.ts`. Adding a world means adding a directory and an entry in
+`worlds`. A world directory is always the same four files — `arcs.ts`, `characters.ts`, `items.ts`,
+`combos.ts` — plus an `index.ts` holding the short `animes` entry and assembling them.
 
-- `naruto.ts` — Naruto part 1, 5 arcs.
-- `shippuden.ts` — Naruto Shippūden, 15 arcs (generated from a table with a ~1.85 ramp).
+- `naruto/` — Naruto part 1, 5 arcs.
+- `shippuden/` — Naruto Shippūden, 15 arcs (generated from a table with a ~1.85 ramp).
 - `index.ts` — concatenates all worlds into `gameData` and defines shop offers.
 
 ## Code Style Guidelines
@@ -127,6 +129,30 @@ These come from `design.md` and are enforced in the existing components. Any new
 - UI tests (`ui.test.ts`, `anilist.test.ts`) also run in Node; DOM-dependent code is avoided or mocked.
 - Run `npm test` before declaring work done.
 - When adding new game rules, add a test in `engine.test.ts` or a focused test file. The project relies heavily on regression coverage.
+
+## Seeing the game
+
+Half of this project is visual, and neither the test suite nor the typecheck can see a layout. A
+**Playwright MCP server** is configured in `.mcp.json` so an agent can open the running game, click
+through it, screenshot it and read its console — the difference between guessing at `styles.css` and
+looking at the result.
+
+- Start `npm run dev` first; the server is pinned to `http://localhost:5173`.
+- It is deliberately locked down: `--allowed-origins` permits only the dev server and AniList
+  (`graphql.anilist.co` for the lookups, `s4.anilist.co` for the images they return — portraits
+  break if you drop those). `--isolated` keeps the browser profile in memory, so every session
+  starts on a fresh `localStorage`, i.e. a fresh run. Remove `--isolated` if you need a save to
+  survive between sessions.
+- `--browser firefox`, because that is the browser this project is actually used in — and Gecko is
+  not Blink, so a layout bug that only shows there is one worth catching. Note this is **Playwright's
+  own Firefox build**, not the system install: it needs a one-time `npx playwright install firefox`
+  (~120 MB, already done on this machine). `msedge` is the zero-download fallback — Edge ships with
+  Windows — and is worth a second pass when a rendering difference is suspected.
+- It is `--headless`; drop that flag to watch it work.
+- MCP servers from `.mcp.json` need approval once, in an interactive session (`/mcp`).
+- It writes snapshots and console logs to `.playwright-mcp/`, which is gitignored. **Screenshots are
+  written relative to the working directory**, so pass a filename under `.playwright-mcp/` — a bare
+  `shot.png` lands in the repo root.
 
 ## Persistence & Save Format
 
@@ -177,5 +203,6 @@ The production artifact is the `dist/` directory produced by `npm run build`. It
 | `src/data/index.ts` | World aggregation + shop |
 | `src/App.tsx` | Root layout |
 | `src/styles.css` | All styling |
-| `CLAUDE.md` | Detailed technical architecture |
+| `CLAUDE.md` | Layers, invariants, and the map of `docs/` |
+| `docs/` | One file per system: combat, progression, economy, modifiers, ui, persistence, simulator |
 | `design.md` | Visual/UX design intent |

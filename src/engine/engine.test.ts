@@ -2150,6 +2150,62 @@ describe("plafond de kills par seconde", () => {
   });
 });
 
+describe("le succès « objets uniques équipés »", () => {
+  const data = {
+    animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+    arcs: [
+      {
+        id: "ta-arc",
+        animeId: "ta",
+        name: "Arc",
+        order: 0,
+        mobsToBoss: 3,
+        mobs: [{ id: "m", name: "M", baseHp: 10, reward: 1 }],
+        boss: { id: "b", name: "B", baseHp: 50, reward: 5 },
+      },
+    ],
+    characters: [
+      {
+        id: "ca",
+        name: "A",
+        animeId: "ta",
+        rarity: "main" as const,
+        arcIds: ["ta-arc"],
+        baseClickPower: 1,
+        baseDps: 1,
+      },
+    ],
+    combos: [],
+    items: [{ id: "u1", name: "U1", kind: "unique" as const, effects: [] }],
+  };
+
+  it("ne compte pas deux fois le même objet qu'on déséquipe et rééquipe", () => {
+    const restore = installSave(baseSave({ itemCounts: { u1: 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+
+      expect(game.equipItem("ca", "u1")).toBe(true);
+      expect(game.achievementCounts().uniquesEquipped).toBe(1);
+
+      // Le va-et-vient sur le même objet : `unequipItem` vide la table, donc sans garde le
+      // rééquipement recompte. Quelques centaines d'allers-retours d'un seul `<select>` suffisaient
+      // à monter toute l'échelle — un bonus de teamDps permanent qui survit même au prestige.
+      for (let i = 0; i < 20; i++) {
+        game.unequipItem("ca");
+        game.equipItem("ca", "u1");
+      }
+      expect(game.achievementCounts().uniquesEquipped).toBe(1);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+});
+
 describe("le simulateur de run", () => {
   // Le harnais remplace l'horloge, `setInterval`, `localStorage` et `Math.random` le temps d'une
   // run. Ce qu'on garde ici, ce n'est pas un chiffre d'équilibrage — il bouge à chaque réglage —

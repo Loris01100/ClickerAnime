@@ -1,0 +1,17 @@
+[mcp_servers.higgsfield]
+url = "https://mcp.higgsfield.ai/mcp"
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+    "-y",
+    "@playwright/mcp@0.0.79",
+    "--browser",
+    "firefox",
+    "--headless",
+    "--isolated",
+    "--viewport-size",
+    "1600x1000",
+    "--allowed-origins",
+    "http://localhost:5173;http://127.0.0.1:5173;https://graphql.anilist.co;https://s4.anilist.co",
+]

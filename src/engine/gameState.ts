@@ -446,7 +446,15 @@ export function createGameStore(data: GameData) {
     if (!character || !item || item.kind !== "unique") return false;
     if (!canEquipItem(character, itemId)) return false;
     // Only an item coming off the shelf counts: moving one between characters isn't a new equip.
-    if (!Object.values(characterEquipment()).includes(itemId)) bumpAchievement("uniquesEquipped");
+    // The second clause is what closes the loop: `unequipItem` clears the mapping, so without it
+    // un-equipping and re-equipping the same item bumps the ladder again, and a few hundred toggles
+    // of one `<select>` buy every tier — a permanent teamDps bonus that even survives prestige. The
+    // ladder can never count more uniques than the player actually owns.
+    const uniquesOwned = data.items.filter((i) => i.kind === "unique" && (itemCounts()[i.id] ?? 0) > 0).length;
+    const alreadyWorn = Object.values(characterEquipment()).includes(itemId);
+    if (!alreadyWorn && (achievementCounts().uniquesEquipped ?? 0) < uniquesOwned) {
+      bumpAchievement("uniquesEquipped");
+    }
     // Unequip the item from any other character first (uniques are single-copy).
     setCharacterEquipment((map) => {
       const next: Record<string, string> = {};

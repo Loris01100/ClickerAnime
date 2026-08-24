@@ -1,0 +1,225 @@
+# Economy
+
+Everything the player spends: item copies, prestige points, crossover crystals, pack points and
+gold — and the two ladders (achievements, the prestige tree) that pay out across runs.
+
+## Items and passives
+
+Items deal no damage at all. They are the passive currency, hung off `Enemy.itemId` and separated by
+`Item.kind`:
+
+- **common** — carried by ordinary mobs with a `dropChance`, and they **stack**. Each arc has exactly
+  one common, and it is the only thing that ranks up the passives of the characters *met in that arc*
+  (`passiveItemOf` finds it by walking back to the arc whose mobs recruit the character). This is the
+  whole point: deepening a passive means travelling back to that zone and farming it.
+- **unique** — carried by bosses, guaranteed, one copy only. Each owned unique can be equipped on
+  one character at a time (`characterEquipment` in the save). Equipped uniques grant permanent
+  `ModifierTemplate` effects (`Item.effects`) that are merged into `characterContributions` and scaled
+  by synergy just like base stats and passives. An item may restrict who can wear it via
+  `Item.equippableBy` (character ids, anime ids, or character tags).
+
+Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
+copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
+chooses which character of an arc gets the copies. `passiveUpgradeOf` is what the UI reads — rank,
+cost, copies held, affordable; `passiveGrowth(rank)` is the one place the "rank 1 = as printed, each
+rank past it adds a `LEVEL_DAMAGE_STEP`" rule lives, shared by the pipeline and by the two screens
+that preview a passive at rank 1 and at its cap. `rankUpPassive` refuses a character who isn't in the team: only
+owned characters reach `characterContributions`, so the copies would be burnt for nothing (the item
+Codex lists the whole cast, met or not). Rank 0 means the passive is **locked** and contributes nothing, rank 1
+is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
+Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
+
+`rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
+`gameState`, which keeps the odds testable.
+
+**A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
+any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
+Two constants were over that line and together took the effective common-drop rate from the printed
+12% to **0.73 copies per kill**: `DOUBLE_DROP_CHANCE` at 0.25 (a maxed node doubled *every* drop)
+and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third amplifier — `PITY_REDUCTION_PER_LEVEL`
+at 3 forced a common every 3 kills at max level, a 33% floor that made the printed chance
+meaningless. Retuned to 0.08 / 0.1 / 1 respectively (0.41 copies per kill fully maxed).
+`engine.test.ts` now asserts the rule for every chance constant and keeps the pity floor above the
+base draw's own ~8-kill average, so this class of mistake can't come back.
+
+## Prestige
+
+Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONENT` is 0.22 and
+`COMPLETION_GAIN_BONUS` is 9, so clearing one more arc is worth far more than farming the current
+one for hours. Currency spans ~x43 000 between clearing the first world and the last, and the old
+0.65 exponent turned that span into a gain of thousands — a single full run banked ~6 600 points
+against a 775-point tree, buying the whole of the game's meta-progression the first time it was
+reachable. At 0.22 a full run banks ~240 and the tree takes several. Adding a world self-balances:
+`runCompletion` is a share of *all* the game's arcs, so new content dilutes it. `engine.test.ts`
+guards the trio together rather than the individual constants.
+
+`prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
+tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
+and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
+zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
+cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what
+the same earnings bank early. The exponent is deliberately *low* (0.22, see above): completion has to
+dominate, or farming one arc for hours outpaces clearing the next one. A double-gain chance is a perk
+of the tree's **"Destin"** branch, see below. Points are spent two ways:
+`unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
+is permanent.
+
+## The prestige tree (`prestigeTree.ts`)
+
+Five independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Destin — each a column of
+5 nodes, and **each node is rebuyable up to 5 levels**, every level repeating the exact same effect
+(e.g. node 1's "+8% click damage" stacks to +40% at level 5). A node unlocks as soon as its
+predecessor has **just one level** bought (`isNodeUnlocked`), not once it's maxed — so several
+nodes of a branch are often purchasable, and levelling, at the same time; only a node's own 5
+levels are strictly sequential (`purchaseNodeLevel` refuses to skip one). Every level, of every
+node, costs `2, 3, 5, 8, 13` prestige points depending only on its position *within its node*
+(~×1.6 growth, the same ratio as `passiveRankCost` but reset at the start of each node rather than
+escalating across the whole branch) — a maxed node costs 31 points, a maxed branch 155, all five
+775.
+
+`gameState` keeps one 5-entry level array per branch in `prestigeTreeRanks`
+(`Record<categoryId, number[]>`, index = position - 1) — a signal of its own, not a field on
+`PrestigeState`: `prestige.ts` stays a pure `{ prestigePoints, unlockedAnimeIds }` testable without
+knowing the tree exists. A flat single number per branch can't represent "node 1 at 2/5, node 3 at
+1/5, the rest at 0" once a node unlocks the next at just 1 level, hence the array. `nodeLevel(levels,
+position)` reads one node's level (0..5); `nodeLevelOf(categoryId, position)` is `gameState`'s
+wrapper over it, `isNodeUnlockedFor`/`nodeCostOf` the equivalents for a node's unlock state and
+next-level price. `prestigeTreeRanks` survives `prestigeReset` exactly like `achievementCounts`
+does, wiped only by `hardReset`.
+
+Only two of the 25 nodes are `ActiveModifier`s: node 1 of Clic du Narrateur and of DPS Équipe, a
+flat `clickPower`/`teamDps` percent multiplied by the node's level, folded into `allModifiers` via
+`prestigeTreeContributions` next to `achievementContributions`. Every other node is read directly
+at its point of use, its magnitude scaled by `nodeLevelOf(...)` — `ModifierTarget` was deliberately
+**not** widened to cover them, since things like an autoclick interval, a crit chance or a
+pity-timer threshold have no `base` for `computeEffectiveStat` to operate on. Chance- and
+discount-style effects are clamped (`scaledChance`, `scaledDiscount`) so a high level can never
+push a chance past 100% or a cost to zero; the xp curve has its own floor (`MIN_XP_GROWTH`) so it
+can never stop being geometric:
+
+- **Clic du Narrateur** — click percent (node 1); an automatic click at **full** click power
+  (node 2, driven by the main tick's `autoClickAccumMs`), whose levels buy **cadence, not strength**:
+  `autoClickIntervalMs(level)` is 2s at level 1 down to 0.8s at level 5, shaving
+  `AUTOCLICK_INTERVAL_REDUCTION_MS` each. (It used to be the reverse — a fixed 2s at a level-scaled
+  *fraction* of click power — which made the first level feel like nothing and never changed the
+  rhythm of the fight.) It **announces** every hit
+  through `autoClickPulse` (`{ id, damage }`, the id bumped so two identical hits in a row are still
+  two events) — a perk that lands in silence is indistinguishable from one that isn't working, and
+  `ClickStage` turns each pulse into a damage pop of its own (`.pop.auto`, dimmer than a manual
+  one). It can also be switched off: `autoClickEnabled` is a saved optional field defaulting to on,
+  toggled from the Combat panel head, which only shows the switch once the node is bought. The perk
+  is a convenience, not an obligation — and its pop-ups are noise for a player who wants to feel
+  their own clicks land; crit chance (node 3);
+  shaves time off every unlocked ability's cooldown on each click, scaled by level — only those
+  still on cooldown, so a ready ability's timestamp never drifts without bound (node 4); a
+  chance to fire a random unlocked ability for free, via `triggerAbilityEffects` (node 5, shared
+  with abilities' normal activation path). Node 5 draws **only** from abilities whose every
+  `ModifierTarget` is currently unbuffed: `triggerAbilityEffects` goes through
+  `replaceModifiersByTarget`, so a proc over a running buff on the same stat would replace it — a
+  bought perk must never make the player weaker.
+- **DPS Équipe** — teamDps percent (node 1); boosts an activated ability's percent/multiplier
+  effects, via `buildAbilityModifiers` (node 2); softens the active arc's synergy malus further per
+  level, via `softenedSynergyConfig` wrapping `defaultSynergyConfig` (node 3); stretches an
+  ability's buff duration (node 4); extends a boss's `timerMs` (node 5).
+- **XP** — xp-per-grant percent, applied inside `grantXp` so every source benefits (node 1); a
+  passive xp trickle each tick regardless of combat (node 2); flattens the level curve further per
+  level by handing a reduced growth constant into `levelFromXp`/`xpProgress` (node 3, see
+  `growth.ts`'s optional `growth` param); a newly recruited character gets a flat xp head start,
+  via `grantXpTo` (node 4); boss kills grant extra xp on top of the usual multiple of their reward
+  (node 5).
+- **Objets** — boosts the effective `dropChance` passed into `rollsDrop` (node 1); discounts
+  `passiveRankCost` (node 2, see its optional `discount` param); a chance at a bonus copy on top of
+  a successful common drop (node 3); a pity timer — `killsSinceDrop` per arc forces a common after
+  a streak that shortens by a fixed amount per level (node 4); a small chance an item-less enemy
+  hands over the arc's common anyway (node 5).
+- **Destin** — currency-per-kill percent (node 1); a small chance per kill to gain 1 prestige point
+  outright (node 2); a chance at a bonus copy of a common drop (node 3); a shop discount (node 4);
+  a chance to double the points a `prestigeReset` banks, rolled in `gameState` and passed as
+  `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays free of randomness (node 5).
+
+Prestige points are **only** banked by `prestigeReset` (plus the "Destin" node 2 chance, itself
+bought with points): clearing an arc grants none, so a player has zero points until their first
+prestige.
+
+`PrestigeTree.tsx` is the built UI — see `design.md` §5 for its node anatomy and layout. Its
+`icon()` helper in `ui/icons.tsx` needed a fix while building it: `body` must be a factory
+(`() => JSX.Element`), not a materialized JSX value — Solid's JSX makes real DOM nodes, so a value
+evaluated once at module load is one shared node that only the last simultaneous on-screen instance
+keeps (25 nodes reusing 5 icons made this obvious, but any icon rendered more than once at a time,
+e.g. `IconLock` on several locked map nodes, was equally affected).
+
+## Crossover crystals (`crossover.ts`)
+
+The one resource that exists because the game is inter-anime. Crystals only drop while
+`isMixedTeam(ownedCharacters())` — the team spans two worlds — at `CROSSOVER_MOB_CHANCE` per mob and
+`CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. `activateCrossover()` spends
+`CROSSOVER_COST` for a `CROSSOVER_DURATION_MS` window during which `activeSynergyConfig` is wrapped
+in `crossoverSynergyConfig` — every malus flattened to `matchingArcMultiplier`, so the whole team
+fights at full power anywhere. Damage only: a passive is still a story ability and stays shut off
+outside its own anime (`characterContributions` decides that from the arc, not from the config).
+The stock is saved and run-scoped (`prestigeReset` wipes it, like items); the window's deadline is
+transient like combat state, so a reload drops an active buff. `crossoverAdvised` is the nudge the
+resource never had — true only while the player is fighting somewhere at least one team member sits
+at the steep other-anime malus, which is exactly the "come back and farm an old world's common"
+case; `CurrencyBar` pulses the tile on it.
+
+## Packs and duplicates (`packs.ts`)
+
+A character is recruited exactly once — refighting their arc never gives them again — so packs are
+the only source of **duplicates**, and each duplicate multiplies that character's base click damage
+and dps by `DUPLICATE_DAMAGE_STEP` (uncapped), folded into `characterContributions` next to
+`levelGrowth`. That is what keeps a starting character worth having late.
+
+The currency is **one bucket per world** (`worldPoints` in `gameState`), `POINTS_PER_KILL` per fight
+won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws uniformly from the
+world's `rarity: "main"` cast, `PACK_COST.secondary` (250) from its secondary cast. `packPool` and
+`drawPack` are pure and take the 0..1 roll as an argument, like `rollsDrop`; `openPack` in
+`gameState` is the only caller of `Math.random()` and returns the character drawn so `PackPanel` can
+show it. The pool is **not** filtered by the team: a copy of someone not met yet is banked for later.
+
+Points and duplicates are meta-progression like `achievementCounts` and `prestigeTreeRanks` —
+`prestigeReset` spares both, only `hardReset` wipes them. Both are optional save fields, so no
+`SAVE_KEY` bump was needed.
+
+## Achievements (`achievements.ts`)
+
+Thirteen countable actions, each with its own ladder of tiers (`ACHIEVEMENT_CATEGORIES`): mobs
+killed, bosses killed, characters recruited, arcs cleared, evolutions unlocked, crossovers
+activated, uniques equipped, prestiges, clicks, common items collected, abilities activated, passive
+ranks bought, packs opened. `gameState` keeps one lifetime counter per category
+(`achievementCounts`, bumped by `bumpAchievement` at the point of the event, in the function that
+owns it — `defeat` for kills/recruits/arcs, `maybeDropItem` for commons only since uniques don't
+count, `click` plus the tick's autoclick, which lands at full click power and so counts like a manual
+one, `maybeEvolve`, `activateCrossover`, `equipItem`, `rankUpPassive`, `openPack`,
+`activateAbility`, `prestigeReset`). Counts only ever go up, even when the thing counted can later
+be spent (a common item collected still counts once it's spent ranking up a passive), because the
+achievement is about the action having happened, not a stock still held. `equipItem` is the one that
+needs a guard: it bumps only for an item not already worn by someone, so shuffling one unique
+between characters isn't a free ladder.
+
+Each completed tier folds into `allModifiers` as a permanent percent bonus
+(`achievementTierBonus`, geometric growth — early tiers are a taste, late ones matter), through
+`achievementContributions` exactly like any other modifier source. **The stat it pays into is per
+category** (`AchievementCategory.target`): the click is a trigger, not a damage source, so only five
+ladders — the ones the player does *with* the click or with what it drops (clicks, commons,
+abilities, passive ranks, packs) — pay `clickPower`, exactly as many as before the list was
+extended; the other eight, all about what the team kills, clears and becomes, pay `teamDps`.
+`engine.test.ts` guards that split so a new ladder can't quietly be dumped onto the click. Unlike almost everything else,
+achievement counts are **not** wiped by `prestigeReset` — they are meta-progression in the same spirit
+as prestige points, meant to keep paying off across runs. Only `hardReset`, the full-wipe button,
+clears them.
+
+## Shop (`shop.ts`)
+
+`ShopOffer`s spend the main currency (never prestige points) on either copies of an item or a
+character not yet owned — `data.shop`, an optional `GameData` field so older test fixtures don't
+need one. `shopOfferUnlocked`/`canBuyShopOffer` are pure; `gameState`'s `shopOffers()` folds in the
+live item/character lookup plus `locked`/`owned`/`affordable` for the panel to read, and
+`buyShopOffer` is the only place currency actually changes hands. An offer's `requiresAnimeId` is
+the only gate (an anime already **cleared** — `animeCleared`, same as everywhere else); with none
+set, a high `cost` is the only barrier. Buying a character just calls the same `setOwnedCharacterIds`
+path `defeat` uses, so it is run-scoped exactly like a combat recruit: wiped by `prestigeReset` along
+with the currency that paid for it, same as the rest of a run. A character bought here must still be
+recruitable in a fight somewhere — `engine.test.ts`'s "recrutable nulle part" check covers
+`gameData.characters` regardless of a shop offer existing, so a shop character is always a paid
+shortcut to someone reachable in combat too, never an exclusive recruit.

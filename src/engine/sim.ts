@@ -199,11 +199,9 @@ function rankUpPassives(game: GameStore) {
 function equipUniques(game: GameStore) {
   for (const item of game.foundItems()) {
     if (item.kind !== "unique") continue;
-    const worn = game.ownedCharacters().some((c) => game.equippedItemOf(c)?.id === item.id);
-    if (worn) continue;
-    const candidate = game
-      .ownedCharacters()
-      .find((c) => !game.equippedItemOf(c) && game.canEquipItem(c, item.id));
+    const team = game.ownedCharacters();
+    if (team.some((c) => game.equippedItemOf(c)?.id === item.id)) continue;
+    const candidate = team.find((c) => !game.equippedItemOf(c) && game.canEquipItem(c, item.id));
     if (candidate) game.equipItem(candidate.id, item.id);
   }
 }

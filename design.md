@@ -47,7 +47,7 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   `ProgressPanel`, `Codex` sont des composants génériques pilotés uniquement par `GameData` — il
   n'existe et il ne doit jamais exister de composant `NarutoMap.tsx` ou de branchement
   `if (anime.id === "naruto")` dans `src/ui/`. Un nouveau monde s'ajoute en `src/data/`
-  uniquement (déjà la règle documentée dans `CLAUDE.md`).
+  uniquement (déjà la règle documentée dans `docs/ui.md`).
 - **Ce qui change, c'est la teinte.** `spriteHue(anime.id)` (hash déterministe de l'id) alimente
   déjà le dégradé radial derrière la carte du monde (`WorldMap.tsx:59`). C'est le bon mécanisme :
   systématique, sans travail manuel, garanti unique par monde. Il faut l'étendre à *tout* ce qui
@@ -87,7 +87,7 @@ une raison d'ajouter du code spécifique.
 
 ## 3. Système de couleur
 
-Le thème clair/sombre (`styles.css:1-71`, documenté dans `CLAUDE.md`) reste la seule source de
+Le thème clair/sombre (`styles.css:1-71`, documenté dans `docs/ui.md`) reste la seule source de
 vérité pour les couleurs *fonctionnelles* (fond, texte, accent, bon/mauvais...). Aucune couleur
 codée en dur en dehors de `:root` — règle déjà en place, à ne pas relâcher en ajoutant la DA par
 anime : `themeOf(anime)` produit une **teinte** (nombre 0..360) combinée à `hsl()`, jamais une
@@ -198,7 +198,7 @@ Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
   l'œil va pour juger si un combat avance. `∞` quand l'équipe ne fait aucun DPS.
 - **Marqueur « trop dur »** (`.arc-hard`, fond `--bad`) sur un arc ouvert dont le boss dépasse son
   propre chrono, plus le détail en `title` : le chrono du boss est le seul mur du jeu, donc la
-  seule chose qui mérite un avertissement. Voir `bossOutlookOf` dans `CLAUDE.md`.
+  seule chose qui mérite un avertissement. Voir `bossOutlookOf` dans `docs/combat.md`.
 - **Tuile de crossover qui pulse** (`.currency.advised`) quand dépenser des cristaux paierait
   vraiment — l'équipe combat hors de son monde. Sans ça le stock ne bougeait jamais.
 - **État de la sauvegarde** dans la topbar (`.save-state`) : un autosave silencieux est
@@ -345,7 +345,7 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 ## 6. Sourcing d'images (personnages, mondes)
 
 Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
-`ui/Sprite.tsx`, voir `CLAUDE.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
+`ui/Sprite.tsx`, voir `docs/ui.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
 ni pixel-art généré, ni fichier custom déposé dans le repo — chaque `Character`/`Enemy`/`Anime` a
 déjà un `.name` lisible, une recherche AniList par nom suffit, pas besoin de gérer des fichiers
 d'assets du tout.
@@ -369,11 +369,11 @@ blocked"`) : les quelques IP de sortie partagées par les Workers sont blacklist
 importe le débit. Un appel direct **depuis le navigateur de chaque joueur** fonctionne, chaque
 joueur utilisant sa propre IP — c'est exactement l'usage que le CORS d'AniList autorise. Puisque
 ClickerAnime est déjà une SPA statique sans serveur (`Vite` + `localStorage`, voir « Persistence »
-dans `CLAUDE.md`), cet appel se fait naturellement depuis le navigateur : pas de proxy à ajouter.
+dans `docs/ui.md`), cet appel se fait naturellement depuis le navigateur : pas de proxy à ajouter.
 
 ### 6.2 Comment c'est intégré
 
-`ui/anilist.ts` (voir le détail dans `CLAUDE.md`) fait l'appel au moment de l'affichage, pas en
+`ui/anilist.ts` (voir le détail dans `docs/ui.md`) fait l'appel au moment de l'affichage, pas en
 amont : `portraitUrl(name, kind)` interroge `Character(search:)`/`Media(search:type:ANIME)`,
 déduplique les requêtes concurrentes en mémoire, et garde les portraits trouvés dans `localStorage`
 pour ne jamais re-télécharger la même soixantaine de portraits à chaque rechargement (l'art d'un

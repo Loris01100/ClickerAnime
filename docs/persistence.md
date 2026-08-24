@@ -1,0 +1,22 @@
+# Persistence
+
+The save file, its version, and the trust boundary `importSave` sits on.
+
+
+The save is a flat `SaveFile` in `localStorage` under the key `clicker-anime:save:v10`, and carries
+its own `version` field (`SAVE_VERSION`) so a future shape change can be **migrated** in `readSave`
+instead of costing every player their save. `readSave` shape-checks it
+(via `isValidSave`) and falls back to a fresh run rather than throwing, so an old save can never
+brick the boot. `isValidSave` checks the *type* of every field that is present rather than the
+presence of every field — each reader already defaults a missing one (`saved?.x ?? []`), which is
+what lets an older save load, while a wrong-typed field is the one thing those defaults can't
+absorb. It is a real trust boundary: `importSave` runs an arbitrary player-supplied file through it
+and writes whatever passes straight to `localStorage` before reloading. Bump the key version when the shape *breaks* — an old field renamed or retyped, not a
+new optional field, which `?? {}`/`?? []` defaults already absorb without a bump; bumping wipes every
+existing player's save (a new key means the old one is never read again), so treat it as a last
+resort. `gameState`'s `buildSaveFile` is the one place the on-disk shape is assembled, shared by
+`save`, `exportSave` and `importSave` so they can never drift apart. `exportSave` base64-encodes the
+same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.txt` download);
+`importSave` decodes and shape-checks it exactly like `readSave`, then writes straight to
+`localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
+a setter per field. There is no offline-progress catch-up.

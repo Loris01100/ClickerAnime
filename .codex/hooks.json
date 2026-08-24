@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node 'c:\\Dev\\ClickerAnime\\.codex\\hooks\\verify-edit.mjs'",
+            "timeout": 180,
+            "statusMessage": "Vérification du moteur / typecheck"
+          }
+        ]
+      }
+    ]
+  }
+}
