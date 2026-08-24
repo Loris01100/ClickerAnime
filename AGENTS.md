@@ -29,8 +29,16 @@ All commands run from the project root.
 - `npm run preview` — preview the production build locally.
 - `npm test` — run the full Vitest suite (`src/**/*.test.ts`).
 - Single test: `npx vitest run src/engine/engine.test.ts -t "applies flat, then percent"`
+- `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
+  check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
+  See **The balance simulator** in `CLAUDE.md`.
 
-The project currently has **97 passing tests** across three test files:
+A `PostToolUse` hook (`.claude/hooks/verify-edit.mjs`, wired in `.claude/settings.json`) runs the
+suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit under `src/ui/`. A
+failure comes straight back instead of waiting for the next build. It is a safety net, not a
+substitute for running `npm test` yourself before declaring work done.
+
+The project currently has **129 passing tests** across three test files:
 
 - `src/engine/engine.test.ts` — engine rules
 - `src/ui/ui.test.ts` — small UI utilities
@@ -122,7 +130,7 @@ These come from `design.md` and are enforced in the existing components. Any new
 
 ## Persistence & Save Format
 
-- Save key: `clicker-anime:save:v9` in `localStorage`.
+- Save key: `clicker-anime:save:v10` in `localStorage`.
 - `buildSaveFile` in `gameState.ts` is the single source of truth for the on-disk shape.
 - `readSave` shape-checks via `isValidSave` and falls back to a fresh run instead of throwing.
 - **Bump the save-key version** only when a field is renamed or retyped. New optional fields can be absorbed with `??` defaults. Bumping wipes all existing saves.
