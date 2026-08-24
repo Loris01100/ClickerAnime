@@ -119,6 +119,17 @@ stops appearing and the zone farms mobs forever. Mobs carrying a `characterId` a
 characters — beating one adds them to the team for free, and they drop out of the pool afterwards.
 Enemies carrying an `itemId` may hand it over — see the narrator's click below.
 
+**The kill rate is capped, and that is a balance decision.** Overkill (below) makes the kill rate
+`dps / mob hp`, and a cleared arc's mobs never grow while the team's damage does — so going back to
+farm an old zone, which the passive-item design explicitly asks for, resolved hundreds of fights a
+second. Every per-kill reward rides on that rate: item drops, currency, xp, pack points. Rather than
+capping each of them, `MAX_KILLS_PER_SECOND` (20) caps the thing they all derive from, spent from a
+`killBudget` the tick refills and never lets bank above the cap. `dealDamage` always resolves at
+least one kill whatever the budget, so a fight can never stall at 0 hp; surplus overkill past the
+budget is discarded. It never touches a boss (one enemy, one kill) and never bites during normal
+progress, only when the team outguns a zone by more than ~20x. `MAX_KILLS_PER_HIT` stays what it
+was: a loop safety net against a data mistake, not a knob.
+
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
 change — by default only bosses carry one, because timed mobs would break idling.

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
-import { createGameStore } from "./gameState";
+import { createGameStore, MAX_KILLS_PER_SECOND } from "./gameState";
 import { gameData } from "../data";
 import {
   ACHIEVEMENT_CATEGORIES,
@@ -666,8 +666,9 @@ describe("store boot", () => {
       // late-game team can never farm an early arc faster than 5 fights a second.
       game.click();
       expect(game.killsIn(arc)).toBeGreaterThan(1);
-      // ...and the safety net still stops there rather than looping forever.
-      expect(game.killsIn(arc)).toBeLessThanOrEqual(100);
+      // ...and the kill budget stops it well before the raw damage would: 1001 damage on 1-hp mobs
+      // is a thousand potential kills, and one hit may never resolve more than a second's worth.
+      expect(game.killsIn(arc)).toBeLessThanOrEqual(MAX_KILLS_PER_SECOND);
       expect(game.enemy()).not.toBeNull();
     } finally {
       (globalThis as { localStorage?: unknown }).localStorage = original;
@@ -1936,5 +1937,91 @@ describe("les nœuds de chance restent des chances", () => {
     // sinon la pitié devient le vrai taux de drop et la chance affichée ne veut plus rien dire.
     const floor = PITY_KILLS_THRESHOLD - PITY_REDUCTION_PER_LEVEL * (LEVELS_PER_NODE - 1);
     expect(floor).toBeGreaterThan(8);
+  });
+});
+
+describe("plafond de kills par seconde", () => {
+  /**
+   * Overkill carry-over makes the kill rate `dps / mob hp`, and a cleared arc's mobs never grow:
+   * coming back to farm an old zone — which the passive-item design asks for — used to resolve
+   * hundreds of fights a second, and every per-kill reward rode on it (drops, monnaie, xp, points
+   * de pack). This is the one thing bounding that.
+   */
+  const farmData = (dps: number) => ({
+    animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+    arcs: [
+      {
+        id: "ta-arc",
+        animeId: "ta",
+        name: "Arc",
+        order: 0,
+        mobsToBoss: 1_000_000,
+        mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1, itemId: "ta-item", dropChance: 1 }],
+        boss: { id: "ta-boss", name: "Boss", baseHp: 1e12, reward: 1 },
+      },
+    ],
+    characters: [
+      {
+        id: "ca",
+        name: "A",
+        animeId: "ta",
+        rarity: "secondary" as const,
+        arcIds: ["ta-arc"],
+        baseClickPower: 0,
+        baseDps: dps,
+      },
+    ],
+    combos: [],
+    items: [{ id: "ta-item", name: "Item", kind: "common" as const }],
+  });
+
+  it("un DPS absurde ne dépasse pas le budget de kills, et les drops suivent", () => {
+    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      // A billion dps against 1-hp mobs: uncapped, each of the ten ticks below would resolve
+      // MAX_KILLS_PER_HIT (100) kills — a thousand fights and a thousand guaranteed drops.
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(farmData(1e9));
+      });
+      game.setActiveArc("ta-arc");
+
+      vi.advanceTimersByTime(2_000);
+
+      const arc = game.activeArc()!;
+      // Two seconds of refill on top of the full budget the store starts with.
+      expect(game.killsIn(arc)).toBeLessThanOrEqual(MAX_KILLS_PER_SECOND * 3);
+      expect(game.killsIn(arc)).toBeGreaterThan(MAX_KILLS_PER_SECOND); // et ça avance quand même
+      // dropChance 1: the common count is the kill count, which is the whole point of the cap.
+      expect(game.countOf("ta-item")).toBe(game.killsIn(arc));
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+
+  it("ne ralentit jamais un boss : un seul ennemi, un seul kill", () => {
+    const data = farmData(1e9);
+    data.arcs[0].mobsToBoss = 0;
+    data.arcs[0].boss = { id: "ta-boss", name: "Boss", baseHp: 1_000, reward: 1 };
+    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      game.setActiveArc("ta-arc");
+      vi.advanceTimersByTime(200); // un seul tick
+      expect(game.arcCleared(game.data.arcs[0])).toBe(true);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
   });
 });

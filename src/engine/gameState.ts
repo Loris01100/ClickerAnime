@@ -127,6 +127,20 @@ export interface Notice {
 
 /** Safety net on `dealDamage`'s overkill carry-over — see there. Not a balance knob. */
 const MAX_KILLS_PER_HIT = 100;
+/**
+ * Kills the game will resolve per second, however far the team outguns the zone — and, unlike
+ * `MAX_KILLS_PER_HIT`, very much a balance knob.
+ *
+ * Overkill carry-over (see `dealDamage`) makes the kill rate `dps / mob hp`: the team's damage
+ * keeps growing while a cleared arc's mobs stay where they are, so going back to farm an old zone
+ * — which the passive-item design *wants* the player to do — resolved hundreds of fights a second.
+ * Every per-kill reward rides on that: item drops, currency, xp, pack points. Capping the rate is
+ * what stops "how overpowered am I" from being the real drop rate; nothing else needs a cap.
+ *
+ * It never touches a boss (one enemy, one kill) and never bites during normal progress, where the
+ * team is nowhere near outgunning the zone by 20x.
+ */
+export const MAX_KILLS_PER_SECOND = 5;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 const SAVE_KEY = "clicker-anime:save:v10";
 /** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
@@ -265,6 +279,9 @@ export function createGameStore(data: GameData) {
   const [killsSinceDrop, setKillsSinceDrop] = createSignal<Record<string, number>>({});
   // Sub-tick accumulator driving the "Clic du Narrateur" tier 2 autoclicker. Also transient.
   const [autoClickAccumMs, setAutoClickAccumMs] = createSignal(0);
+  // Kills `dealDamage` may still resolve, refilled by the tick at MAX_KILLS_PER_SECOND and capped
+  // there so an idle stretch banks no burst. Transient like the rest of combat state.
+  const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
   // characterId -> itemId for equipped unique items.
   const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
     saved?.characterEquipment ?? {}
@@ -747,11 +764,17 @@ export function createGameStore(data: GameData) {
    * farming an early arc's common item for a passive rank absurdly slow late in a run.
    * `MAX_KILLS_PER_HIT` is a safety net, not balance: it stops a data mistake (a 0-hp enemy, an arc
    * that always respawns) from locking the tick in an endless loop.
+   *
+   * What *is* balance is `MAX_KILLS_PER_SECOND`, spent from `killBudget` here: past it the surplus
+   * overkill is simply discarded rather than felling more enemies. One kill is always allowed
+   * whatever the budget, so a fight can never stall at 0 hp waiting for it to refill.
    */
   function dealDamage(amount: number) {
     if (!enemy() || amount <= 0) return 0;
     let remaining = amount;
-    for (let i = 0; i < MAX_KILLS_PER_HIT; i++) {
+    const allowance = Math.min(MAX_KILLS_PER_HIT, Math.max(1, Math.floor(killBudget())));
+    let spent = 0;
+    for (let i = 0; i < allowance; i++) {
       const target = enemy();
       if (!target || remaining <= 0) break;
       const left = enemyHpLeft() - remaining;
@@ -760,8 +783,10 @@ export function createGameStore(data: GameData) {
         break;
       }
       remaining = -left;
+      spent++;
       defeat(target);
     }
+    if (spent > 0) setKillBudget((budget) => budget - spent);
     return amount;
   }
 
@@ -1163,6 +1188,7 @@ export function createGameStore(data: GameData) {
     setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
+    setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
     spawnNext();
@@ -1242,6 +1268,7 @@ export function createGameStore(data: GameData) {
     setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
+    setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
     setWorldPoints({});
@@ -1269,6 +1296,9 @@ export function createGameStore(data: GameData) {
     const deltaMs = Math.min(nowMs - now(), MAX_TICK_DELTA_MS);
     const deltaSeconds = deltaMs / 1000;
     setNow(nowMs);
+    // Refill before spending, and never above the cap: banking an idle minute into one burst would
+    // hand back exactly the spike this budget exists to remove.
+    setKillBudget((budget) => Math.min(MAX_KILLS_PER_SECOND, budget + deltaSeconds * MAX_KILLS_PER_SECOND));
     dealDamage(teamDps() * deltaSeconds);
     checkTimer(nowMs);
 
