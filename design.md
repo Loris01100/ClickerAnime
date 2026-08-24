@@ -471,6 +471,14 @@ code écrit à la main.
   Ces fonctions doivent rester pures, testables sans DOM.
 - **Toute couleur vient d'un token.** Un nouveau token va dans le bloc `:root` clair, et dans les
   deux blocs sombres — jamais une seule des trois définitions.
+- **Un nom de monde ne se fait jamais tronquer.** La colonne de gauche du portail
+  (`.portal` `grid-template-columns`) est dimensionnée pour que le nom tienne en entier à côté de
+  son badge de statut, pas pour être serrée : elle est passée de 240px à **280px** quand
+  « Naruto Shippūden » s'est retrouvé coupé en plein mot, sans ellipse (le nom réclamait 107px pour
+  96px disponibles). Le choix assumé est d'élargir la colonne plutôt que d'ajouter une ellipse —
+  un monde s'identifie par son nom complet. À revoir si un titre bien plus long arrive (un
+  « Boruto : Naruto Next Generations » ne tiendra dans aucune largeur raisonnable, et demandera
+  alors un vrai arbitrage : ellipse, passage sur deux lignes, ou nom court dans les données).
 - **Toute animation respecte `prefers-reduced-motion`.**
 - **En dessous de 1100px les trois colonnes s'empilent, et le combat passe en premier.**
   `.game > .column:nth-child(2) { order: -1 }` : dans l'ordre du DOM, la colonne du milieu arrive

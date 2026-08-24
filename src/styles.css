@@ -962,7 +962,10 @@ small {
 }
 .portal {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  /* 280px, not 240: the widest world name ("Naruto Shippūden") needs 107px next to a 80px status
+     badge, a 28px sprite and 35px of padding/gaps — 250px in all, which 240 cut mid-word with no
+     ellipse. The extra ~30px is headroom for a name a little longer than today's. */
+  grid-template-columns: 280px minmax(0, 1fr);
   min-height: 0;
   margin-top: 1rem;
   border: 1px solid var(--line);
