@@ -3,6 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
 import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
 import { defaultSynergyConfig } from "../engine/synergy";
+import { duplicateGrowth, DUPLICATE_DAMAGE_STEP } from "../engine/packs";
 import Sprite from "./Sprite";
 import { describeAbility, describeModifier } from "./describe";
 import { fmt } from "./format";
@@ -19,6 +20,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
 
   const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
+  /** What multiplies the printed base damage right now: levels and pack duplicates, stacked. */
+  const growthOf = (character: Character) =>
+    levelGrowth(props.game.levelOf(character.id)) * duplicateGrowth(props.game.duplicatesOf(character.id));
 
   const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
@@ -118,12 +122,21 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                       +{fmt(character().baseClickPower)} clic / +{fmt(character().baseDps)} dps
                     </strong>
                   </div>
+                  <Show when={props.game.duplicatesOf(character().id) > 0}>
+                    <div class="codex-row">
+                      <span class="muted">Doublons (packs)</span>
+                      <strong>
+                        x{props.game.duplicatesOf(character().id)} — +
+                        {Math.round(props.game.duplicatesOf(character().id) * DUPLICATE_DAMAGE_STEP * 100)} % dégâts
+                      </strong>
+                    </div>
+                  </Show>
                   <Show when={owned(character())}>
                     <div class="codex-row">
                       <span class="muted">Actuel</span>
                       <strong>
-                        {fmt(character().baseClickPower * levelGrowth(props.game.levelOf(character().id)))} clic /{" "}
-                        {fmt(character().baseDps * levelGrowth(props.game.levelOf(character().id)))} dps
+                        {fmt(character().baseClickPower * growthOf(character()))} clic /{" "}
+                        {fmt(character().baseDps * growthOf(character()))} dps
                       </strong>
                     </div>
                   </Show>
