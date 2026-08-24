@@ -1,0 +1,118 @@
+import type { GameData } from "../../engine/gameState";
+
+
+export const shippudenItems: GameData["items"] = [
+  // Uniques : lâchés par les boss. Effets permanents quand équipés.
+  {
+    id: "item-argile",
+    kind: "unique",
+    name: "Argile explosive",
+    effects: [{ target: "teamDps", kind: "percent", value: 0.25 }],
+  },
+  {
+    id: "item-fiole",
+    kind: "unique",
+    name: "Fiole de sceau maudit",
+    effects: [{ target: "clickPower", kind: "multiplier", value: 1.35 }],
+  },
+  {
+    id: "item-coeur",
+    kind: "unique",
+    name: "Cœur supplémentaire",
+    effects: [{ target: "teamDps", kind: "percent", value: 0.3 }],
+  },
+  {
+    id: "item-samehada",
+    kind: "unique",
+    name: "Samehada",
+    equippableBy: { tags: ["swordsman"] },
+    effects: [{ target: "teamDps", kind: "multiplier", value: 1.7 }],
+  },
+  {
+    id: "item-message",
+    kind: "unique",
+    name: "Dernier message de Jiraya",
+    equippableBy: { tags: ["sage"] },
+    effects: [{ target: "teamDps", kind: "percent", value: 0.4 }],
+  },
+  {
+    id: "item-susanoo",
+    kind: "unique",
+    name: "Fragment de Susanô",
+    equippableBy: { tags: ["uchiwa"] },
+    effects: [{ target: "teamDps", kind: "multiplier", value: 1.7 }],
+  },
+  {
+    id: "item-barre",
+    kind: "unique",
+    name: "Barre de fer noir",
+    effects: [{ target: "clickPower", kind: "multiplier", value: 1.4 }],
+  },
+  {
+    id: "item-bras",
+    kind: "unique",
+    name: "Bras aux Sharingan",
+    effects: [{ target: "clickPower", kind: "multiplier", value: 1.5 }],
+  },
+  {
+    id: "item-mue",
+    kind: "unique",
+    name: "Mue de serpent blanc",
+    effects: [{ target: "teamDps", kind: "percent", value: 0.28 }],
+  },
+  {
+    id: "item-sceau-kage",
+    kind: "unique",
+    name: "Sceau des Kage",
+    effects: [{ target: "teamDps", kind: "percent", value: 0.35 }],
+  },
+  {
+    id: "item-gunbai",
+    kind: "unique",
+    name: "Éventail Gunbai",
+    equippableBy: { tags: ["uchiwa"] },
+    effects: [{ target: "teamDps", kind: "multiplier", value: 1.75 }],
+  },
+  {
+    id: "item-masque-spirale",
+    kind: "unique",
+    name: "Masque spiralé",
+    effects: [{ target: "clickPower", kind: "multiplier", value: 1.6 }],
+  },
+  {
+    id: "item-kotoamatsukami",
+    kind: "unique",
+    name: "Kotoamatsukami",
+    equippableBy: { tags: ["uchiwa"] },
+    effects: [{ target: "teamDps", kind: "multiplier", value: 1.9 }],
+  },
+  {
+    id: "item-fruit",
+    kind: "unique",
+    name: "Fruit du Chakra",
+    effects: [{ target: "teamDps", kind: "multiplier", value: 2.0 }],
+  },
+  {
+    id: "item-tenseigan",
+    kind: "unique",
+    name: "Tenseigan",
+    equippableBy: { tags: ["hyuga", "otsutsuki"] },
+    effects: [{ target: "teamDps", kind: "multiplier", value: 2.0 }],
+  },
+  // Communs : un par arc, c'est eux qui montent les passifs des personnages rencontrés là.
+  { id: "item-fil", kind: "common", name: "Fil de marionnettiste" },
+  { id: "item-note-espion", kind: "common", name: "Note codée de l'espion" },
+  { id: "item-masque-coeur", kind: "common", name: "Masque de cœur fissuré" },
+  { id: "item-ecaille", kind: "common", name: "Écaille de Samehada" },
+  { id: "item-parchemin-crapaud", kind: "common", name: "Parchemin des crapauds" },
+  { id: "item-plume", kind: "common", name: "Plume de corbeau" },
+  { id: "item-recepteur", kind: "common", name: "Récepteur de chakra" },
+  { id: "item-lame", kind: "common", name: "Lame de samouraï ébréchée" },
+  { id: "item-talisman", kind: "common", name: "Talisman d'Edo Tensei" },
+  { id: "item-fragment-lame", kind: "common", name: "Fragment d'épée de la Brume" },
+  { id: "item-eclat-bois", kind: "common", name: "Éclat de bois du Premier" },
+  { id: "item-graine", kind: "common", name: "Graine du Shinjû" },
+  { id: "item-insigne", kind: "common", name: "Insigne de la Racine" },
+  { id: "item-fragment-dimension", kind: "common", name: "Fragment de dimension" },
+  { id: "item-eclat-lune", kind: "common", name: "Éclat de la Lune" },
+];

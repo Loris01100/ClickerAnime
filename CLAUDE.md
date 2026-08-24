@@ -164,7 +164,11 @@ Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes bot
 
 Everything that affects a stat becomes an `ActiveModifier`, and `computeEffectiveStat` folds them:
 `(base + flats) * (1 + Σpercents) * Πmultipliers`. That order is a balance decision — changing it
-rebalances the whole game. Modifiers come from three sources, merged in `allModifiers`:
+rebalances the whole game. A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
+of its own**: nothing in the pipeline keys off one (`computeEffectiveStat` and
+`replaceModifiersByTarget` both key on `target`), and `ActiveModifier.sourceId` is what names where a
+modifier came from. Don't reintroduce a per-effect `id` in the data files. Modifiers come from three
+sources, merged in `allModifiers`:
 
 1. **Owned characters** → `characterContributions` converts base stats + innate passive + any
    equipped unique item (`Item.effects`) into modifiers, each pre-scaled by the character's synergy
@@ -361,12 +365,20 @@ shortcut to someone reachable in combat too, never an exclusive recruit.
 
 ## Content
 
-`src/data/` holds the real content, one file per world plus `index.ts`, which is the only thing the
-app imports (`gameData` = every world concatenated). Adding a world means adding a file and one entry
-to the `worlds` array there.
+`src/data/` holds the real content, **one directory per world** plus `index.ts`, which is the only
+thing the app imports (`gameData` = every world concatenated). Adding a world means adding a
+directory and one entry to the `worlds` array there.
 
-- `naruto.ts` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
-- `shippuden.ts` — **Naruto Shippūden**, 15 arcs, deliberately the long one: it is the climax of the
+A world directory is always the same four files — `arcs.ts`, `characters.ts`, `items.ts`,
+`combos.ts` — each exporting one `GameData["<section>"]` array, plus an `index.ts` that holds the
+short `animes` entry and assembles them into the world's `GameData`. The layout is uniform on
+purpose, whatever a world's size: a predictable path (`data/<world>/characters.ts`) is the point,
+and it matches how the content is actually edited — you balance characters, or write arcs, or add
+combos, rarely a whole world at once. Keep the shape when adding a world; omit a file only when the
+world genuinely has no such section.
+
+- `naruto/` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
+- `shippuden/` — **Naruto Shippūden**, 15 arcs, deliberately the long one: it is the climax of the
   Naruto worlds. Generated from a table, so its hp, rewards and recruit stats all ramp by the same
   ~1.85 per arc — keep that ratio when editing, it is what keeps the pace flat while the numbers
   explode. Boruto is meant to come last and hardest.
