@@ -5,6 +5,8 @@ const BOSS_TIMER_MS = 60_000;
 export const narutoArcs: GameData["arcs"] = [
   {
     id: "naruto-vagues",
+    mapX: 0.655,
+    mapY: 0.455,
     animeId: "naruto",
     name: "Prologue / Le Pays des Vagues",
     order: 0,
@@ -22,6 +24,8 @@ export const narutoArcs: GameData["arcs"] = [
   },
   {
     id: "naruto-chunin",
+    mapX: 0.522,
+    mapY: 0.429,
     animeId: "naruto",
     name: "L'Examen Chûnin",
     order: 1,
@@ -47,6 +51,8 @@ export const narutoArcs: GameData["arcs"] = [
   },
   {
     id: "naruto-konoha",
+    mapX: 0.487,
+    mapY: 0.47,
     animeId: "naruto",
     name: "L'Invasion de Konoha",
     order: 2,
@@ -63,6 +69,8 @@ export const narutoArcs: GameData["arcs"] = [
   },
   {
     id: "naruto-tsunade",
+    mapX: 0.63,
+    mapY: 0.395,
     animeId: "naruto",
     name: "À la recherche de Tsunade",
     order: 3,
@@ -79,6 +87,8 @@ export const narutoArcs: GameData["arcs"] = [
   },
   {
     id: "naruto-sasuke",
+    mapX: 0.586,
+    mapY: 0.36,
     animeId: "naruto",
     name: "La Mission de Récupération de Sasuke",
     order: 4,

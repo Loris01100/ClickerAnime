@@ -4,6 +4,8 @@ import type { GameData } from "../../engine/gameState";
 export const shippudenArcs: GameData["arcs"] = [
   {
     id: "shippuden-kazekage",
+    mapX: 0.285,
+    mapY: 0.602,
     animeId: "shippuden",
     name: "Le Sauvetage du Kazekage",
     order: 0,
@@ -27,6 +29,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-tenchi",
+    mapX: 0.68,
+    mapY: 0.31,
     animeId: "shippuden",
     name: "Reconnaissance au Pont Tenchi",
     order: 1,
@@ -49,6 +53,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-akatsuki",
+    mapX: 0.487,
+    mapY: 0.5,
     animeId: "shippuden",
     name: "L'Éradication de l'Akatsuki",
     order: 2,
@@ -72,6 +78,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-traque-itachi",
+    mapX: 0.42,
+    mapY: 0.52,
     animeId: "shippuden",
     name: "La Traque d'Itachi",
     order: 3,
@@ -96,6 +104,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-jiraya",
+    mapX: 0.361,
+    mapY: 0.375,
     animeId: "shippuden",
     name: "Le Conte de Jiraya le Galant",
     order: 4,
@@ -118,6 +128,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-freres",
+    mapX: 0.575,
+    mapY: 0.335,
     animeId: "shippuden",
     name: "Le Combat Fratricide",
     order: 5,
@@ -140,6 +152,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-pain",
+    mapX: 0.522,
+    mapY: 0.429,
     animeId: "shippuden",
     name: "L'Assaut de Pain",
     order: 6,
@@ -162,6 +176,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-sommet",
+    mapX: 0.612,
+    mapY: 0.161,
     animeId: "shippuden",
     name: "Le Sommet des Cinq Kage",
     order: 7,
@@ -188,6 +204,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-compte-a-rebours",
+    mapX: 0.76,
+    mapY: 0.115,
     animeId: "shippuden",
     name: "Quatrième Guerre : Compte à rebours",
     order: 8,
@@ -211,6 +229,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-confrontation",
+    mapX: 0.855,
+    mapY: 0.115,
     animeId: "shippuden",
     name: "Quatrième Guerre : Confrontation",
     order: 9,
@@ -236,6 +256,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-climax",
+    mapX: 0.94,
+    mapY: 0.135,
     animeId: "shippuden",
     name: "Quatrième Guerre : Climax",
     order: 10,
@@ -260,6 +282,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-dix-queues",
+    mapX: 0.945,
+    mapY: 0.245,
     animeId: "shippuden",
     name: "La Naissance du Jinchûriki de Dix-Queues",
     order: 11,
@@ -282,6 +306,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-histoire-itachi",
+    mapX: 0.465,
+    mapY: 0.38,
     animeId: "shippuden",
     name: "L'Histoire d'Itachi",
     order: 12,
@@ -304,6 +330,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-kaguya",
+    mapX: 0.6,
+    mapY: 0.045,
     animeId: "shippuden",
     name: "Kaguya Ôtsutsuki fait irruption",
     order: 13,
@@ -326,6 +354,8 @@ export const shippudenArcs: GameData["arcs"] = [
   },
   {
     id: "shippuden-the-last",
+    mapX: 0.11,
+    mapY: 0.07,
     animeId: "shippuden",
     name: "Naruto : The Last",
     order: 14,

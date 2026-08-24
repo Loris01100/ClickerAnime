@@ -37,6 +37,11 @@ export interface Anime {
    * back to `spriteHue(id)`, so an unstyled world stays visually distinct from its neighbours.
    */
   themeHue?: number;
+  /**
+   * Background art for this world's map panel (a URL under `public/`). The canvas takes the image's
+   * own aspect ratio, and arcs are placed with `Arc.mapX`/`mapY` instead of the snake layout.
+   */
+  mapImage?: string;
 }
 
 /** Commons drop from ordinary fights and stack; uniques come from bosses and are one copy only. */
@@ -96,6 +101,12 @@ export interface Arc {
   mobsToBoss: number;
   /** defeating it clears the arc; after that the zone goes back to endless mob farming */
   boss: Enemy;
+  /**
+   * Where this arc sits on its world's `mapImage`, as a 0..1 fraction of the image. Absent falls
+   * back to the generated snake layout — so a world can be hand-placed arc by arc.
+   */
+  mapX?: number;
+  mapY?: number;
 }
 
 export interface Character {

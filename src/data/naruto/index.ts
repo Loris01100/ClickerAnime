@@ -11,6 +11,7 @@ export const narutoData: GameData = {
     {
       id: "naruto",
       name: "Naruto",
+      mapImage: "/naruto-map.jpg",
       unlockCost: 3,
       themeHue: 28, // l'orange de Konoha
 

@@ -1068,6 +1068,12 @@ small {
     ),
     var(--panel-2);
 }
+.map-bg {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.55;
+}
 .map-links {
   position: absolute;
   inset: 0;

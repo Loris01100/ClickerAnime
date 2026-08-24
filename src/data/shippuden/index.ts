@@ -16,6 +16,7 @@ export const shippudenData: GameData = {
       id: "shippuden",
       name: "Naruto Shippūden",
       requiresAnimeId: "naruto",
+      mapImage: "/naruto-map.jpg",
       unlockCost: 8,
       themeHue: 350, // le rouge sombre de la guerre ninja
 

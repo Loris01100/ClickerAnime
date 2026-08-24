@@ -59,13 +59,19 @@ export default function WorldMap(props: { game: GameStore }) {
             <div
               class="map-canvas"
               style={{
-                "aspect-ratio": `${layout().cols} / ${layout().rows}`,
-                "max-width": `calc(${layout().cols} * 9rem)`,
+                // With a map image the canvas takes the image's own ratio; without one it takes the
+                // generated grid's.
+                "aspect-ratio": anime().mapImage ? undefined : `${layout().cols} / ${layout().rows}`,
+                "max-width": anime().mapImage ? "48rem" : `calc(${layout().cols} * 9rem)`,
                 // The pinned tab can show a different world than the one being fought, so the map
                 // carries its own hue rather than inheriting the shell's.
                 "--world-hue": themeOf(anime()),
               }}
             >
+              <Show when={anime().mapImage}>
+                {(src) => <img class="map-bg" src={src()} alt="" />}
+              </Show>
+
               <svg class="map-links" viewBox="0 0 100 100" preserveAspectRatio="none">
                 <For each={layout().nodes}>
                   {(node, index) => {

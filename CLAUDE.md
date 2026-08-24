@@ -57,6 +57,14 @@ The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: Ga
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
 
+**A world can carry a real map.** `Anime.mapImage` names art under `public/`, and each arc places
+itself on it with `Arc.mapX`/`mapY` (0..1 fractions of the image). `layoutArcs` falls back to the
+generated snake cell per arc, so a world with no art — or an arc not yet placed — still lays out on
+its own. Naruto and Shippûden share `public/naruto-map.jpg` — one ninja world, one map — and every arc of
+both is placed on it. The coordinates are eyeballed from the named villages and landmarks and are
+meant to be tuned by hand; the Fourth War arcs are spread along the northern band rather than
+stacked on the one battlefield, since a node is a labelled card and they would cover each other.
+
 **Portraits are fetched live from AniList, in the player's own browser.** `ui/anilist.ts` is a
 small best-effort client: `portraitUrl(name, kind)` queries `graphql.anilist.co` by character or
 anime *name* (not id — every `Character`/`Enemy`/`Anime` already carries a human-readable `.name`,

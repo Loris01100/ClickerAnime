@@ -43,8 +43,10 @@ export function layoutArcs(arcs: Arc[]): MapLayout {
     const row = Math.floor(index / cols);
     const local = index % cols;
     const col = row % 2 === 0 ? local : cols - 1 - local;
-    const x = (col + 0.5 + jitter(arc.id, "x") * JITTER_FRACTION) / cols;
-    const y = (row + 0.5 + jitter(arc.id, "y") * JITTER_FRACTION) / rows;
+    // A hand-placed arc (see `Arc.mapX`) wins over the generated cell — that is how a world with a
+    // real map image pins its arcs to actual places.
+    const x = arc.mapX ?? (col + 0.5 + jitter(arc.id, "x") * JITTER_FRACTION) / cols;
+    const y = arc.mapY ?? (row + 0.5 + jitter(arc.id, "y") * JITTER_FRACTION) / rows;
     return { arc, col, row, x, y };
   });
 
