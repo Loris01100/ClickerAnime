@@ -1500,3 +1500,11 @@ button.danger {
     animation: none;
   }
 }
+
+/* Verrouillée par le buff d'une autre capacité sur la même stat — distinct d'une simple recharge. */
+.ability.blocked {
+  border-style: dashed;
+}
+.ability.blocked .ability-cd {
+  color: var(--bad);
+}

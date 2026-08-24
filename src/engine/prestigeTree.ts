@@ -59,17 +59,28 @@ export const BOSS_XP_BOOST = 0.5;
 
 export const DROP_CHANCE_BOOST = 0.2;
 export const PASSIVE_RANK_DISCOUNT = 0.15;
-export const DOUBLE_DROP_CHANCE = 0.25;
+/**
+ * A "chance" node must still be a chance at level 5, never a guarantee: `scaledChance` clamps
+ * `base * level` at 1, which silently turned 0.25 into "always double" at max level and took the
+ * effective common-drop rate from 12% to 48% per kill on its own. Keep every chance constant
+ * strictly under 1/5 — `engine.test.ts` asserts it for all of them.
+ */
+export const DOUBLE_DROP_CHANCE = 0.08;
 export const PITY_KILLS_THRESHOLD = 15;
-/** Kills shaved off the pity threshold per level above 1; the threshold bottoms out at level 5. */
-export const PITY_REDUCTION_PER_LEVEL = 3;
+/**
+ * Kills shaved off the pity threshold per level above 1. At 3 the max level forced a common every
+ * 3 kills — a 33% floor, nearly 3x the printed base chance, and the second big reason commons
+ * poured in. At 1 the floor is a common every 11 kills, which is a safety net rather than a source.
+ */
+export const PITY_REDUCTION_PER_LEVEL = 1;
 export const GHOST_LOOT_CHANCE = 0.05;
 
 export const CURRENCY_GAIN_PERCENT = 0.15;
 export const PRESTIGE_PER_KILL_CHANCE = 0.001;
 export const AUSPICE_DOUBLE_DROP_CHANCE = 0.05;
 export const SHOP_COST_DISCOUNT = 0.06;
-export const DOUBLE_PRESTIGE_CHANCE = 0.2;
+/** Under 1/5 like every chance constant: 0.2 made a maxed node double *every* prestige. */
+export const DOUBLE_PRESTIGE_CHANCE = 0.1;
 
 /** Shared by every chance-based effect so `base * level` can never exceed certainty. */
 export function scaledChance(base: number, level: number): number {

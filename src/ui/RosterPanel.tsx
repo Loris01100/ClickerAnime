@@ -102,18 +102,38 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
               {(unlocked) => {
                 const remaining = () => props.game.abilityCooldownRemaining(unlocked.ability.id);
                 const running = () => props.game.activeBuffs().includes(unlocked.ability.id);
+                /**
+                 * A greyed button used to say nothing about why. Same-stat abilities lock each
+                 * other out on purpose (see `activateAbility`), so name the culprit and its
+                 * remaining time rather than letting it read as a plain cooldown.
+                 */
+                const blockedBy = () => props.game.abilityBlockedBy(unlocked.ability.id);
+                const label = () => {
+                  if (running()) return "actif";
+                  if (blockedBy()) return `bloquée ${seconds(props.game.abilityBlockRemaining(unlocked.ability.id))}`;
+                  return remaining() > 0 ? seconds(remaining()) : "Prêt";
+                };
+                const tooltip = () => {
+                  const lines = [unlocked.ability.name, describeAbility(unlocked.ability)];
+                  const by = blockedBy();
+                  if (by) {
+                    lines.push(
+                      `Bloquée par « ${by} » (${seconds(props.game.abilityBlockRemaining(unlocked.ability.id))}) — ` +
+                        "deux capacités ne peuvent pas booster la même statistique en même temps."
+                    );
+                  }
+                  return lines.join("\n");
+                };
                 return (
                   <button
                     class="ability"
-                    classList={{ running: running() }}
+                    classList={{ running: running(), blocked: !!blockedBy() }}
                     disabled={remaining() > 0}
-                    title={`${unlocked.ability.name}\n${describeAbility(unlocked.ability)}`}
+                    title={tooltip()}
                     onClick={() => props.game.activateAbility(unlocked.ability.id)}
                   >
                     <span class="ability-name">{unlocked.ability.name}</span>
-                    <span class="ability-cd">
-                      {running() ? "actif" : remaining() > 0 ? seconds(remaining()) : "Prêt"}
-                    </span>
+                    <span class="ability-cd">{label()}</span>
                   </button>
                 );
               }}

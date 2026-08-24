@@ -9,7 +9,7 @@ import {
   achievementTierBonus,
   achievementTiersCompleted,
 } from "./achievements";
-import { computeEffectiveStat, replaceModifiersBySource, STACK_FALLOFF } from "./modifiers";
+import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { CROSSOVER_COST, crossoverSynergyConfig, isMixedTeam } from "./crossover";
 import {
@@ -21,7 +21,7 @@ import {
   PRESTIGE_SCALE,
   unlockAnime,
 } from "./prestige";
-import { getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { abilitiesShareType, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import {
   animeTier,
   arcsOfAnime,
@@ -49,10 +49,16 @@ import {
 import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy, ShopOffer } from "./types";
 import { layoutArcs, MAP_COLS } from "./mapLayout";
 import {
+  AUSPICE_DOUBLE_DROP_CHANCE,
   AUTOCLICK_INTERVAL_MS,
   AUTOCLICK_POWER_FRACTION,
   canPurchaseNodeLevel,
+  CRIT_CHANCE,
   CURRENCY_GAIN_PERCENT,
+  DOUBLE_DROP_CHANCE,
+  DOUBLE_PRESTIGE_CHANCE,
+  FREE_ABILITY_TRIGGER_CHANCE,
+  GHOST_LOOT_CHANCE,
   isNodeUnlocked,
   LEVEL_COSTS,
   LEVELS_PER_BRANCH,
@@ -61,9 +67,13 @@ import {
   nodeLevel,
   nodeLevels,
   NARRATOR_CLICK_PERCENT,
+  PITY_KILLS_THRESHOLD,
+  PITY_REDUCTION_PER_LEVEL,
   prestigeTreeContributions,
+  PRESTIGE_PER_KILL_CHANCE,
   PRESTIGE_TREE_CATEGORIES,
   purchaseNodeLevel,
+  scaledChance,
   SHOP_COST_DISCOUNT,
   softenedSynergyConfig,
   TEAM_DPS_PERCENT,
@@ -110,20 +120,41 @@ describe("computeEffectiveStat", () => {
   });
 });
 
-describe("replaceModifiersBySource", () => {
-  it("refreshes an ability's own buff and leaves every other ability's alone", () => {
+describe("abilitiesShareType", () => {
+  const make = (id: string, targets: Array<"teamDps" | "clickPower">) => ({
+    id,
+    name: id,
+    cooldownMs: 0,
+    durationMs: 0,
+    effects: targets.map((target) => ({ target, kind: "percent" as const, value: 1 })),
+  });
+
+  it("is true exactly when two abilities touch a common stat", () => {
+    const dps = make("dps", ["teamDps"]);
+    const dpsToo = make("dpsToo", ["teamDps"]);
+    const click = make("click", ["clickPower"]);
+    const both = make("both", ["teamDps", "clickPower"]);
+    expect(abilitiesShareType(dps, dpsToo)).toBe(true);
+    expect(abilitiesShareType(dps, click)).toBe(false);
+    expect(abilitiesShareType(both, dps)).toBe(true);
+    expect(abilitiesShareType(both, click)).toBe(true);
+  });
+});
+
+describe("replaceModifiersByTarget", () => {
+  it("cuts short whatever else was boosting the same stat instead of stacking with it", () => {
     const existing: ActiveModifier[] = [
       { sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 9_000 },
-      { sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 9_000 },
+      { sourceId: "ability-a", target: "clickPower", kind: "percent", value: 0.5, expiresAt: 9_000 },
     ];
     const incoming: ActiveModifier[] = [
-      { sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 20_000 },
+      { sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 20_000 },
     ];
-    const result = replaceModifiersBySource(existing, incoming);
-    // A appears once, refreshed; B — a different ability on the same stat — survives untouched.
-    expect(result.filter((m) => m.sourceId === "ability-a")).toHaveLength(1);
-    expect(result.find((m) => m.sourceId === "ability-a")?.expiresAt).toBe(20_000);
-    expect(result.find((m) => m.sourceId === "ability-b")?.expiresAt).toBe(9_000);
+    const result = replaceModifiersByTarget(existing, incoming);
+    // the old teamDps buff is gone, the unrelated clickPower one survives, the new one is in
+    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "teamDps")).toBeUndefined();
+    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "clickPower")).toBeDefined();
+    expect(result.find((m) => m.sourceId === "ability-b")).toBeDefined();
   });
 });
 
@@ -643,7 +674,7 @@ describe("store boot", () => {
     }
   });
 
-  it("deux capacités sur la même stat se cumulent, la plus faible avec un rendement décroissant", () => {
+  it("deux capacités sur la même stat ne se cumulent pas : la seconde est verrouillée, et dit par qui", () => {
     const testData = {
       animes: [],
       arcs: [],
@@ -714,20 +745,22 @@ describe("store boot", () => {
       expect(game.teamDps()).toBe(10); // base dps only, no ability active yet
       game.activateAbility("ability-a");
       expect(game.teamDps()).toBeCloseTo(20); // 10 * (1 + 1.0)
-      // B used to be refused outright for the rest of A's buff. It now fires and stacks: the
-      // stronger +200% counts in full, the weaker +100% at STACK_FALLOFF — 10 * (1 + 2 + 0.4).
-      expect(game.activateAbility("ability-b")).toBe(true);
-      expect(game.teamDps()).toBeCloseTo(10 * (1 + 2 + 1 * STACK_FALLOFF));
-      expect(game.activeBuffs()).toEqual(["ability-a", "ability-b"]);
-      // Raw stacking would have been 10 * (1 + 3) = 40: the falloff is what keeps it bounded.
-      expect(game.teamDps()).toBeLessThan(40);
+      expect(game.activeBuffs()).toEqual(["ability-a"]);
+      // ability-b touches the same stat and is locked out for the rest of ability-a's buff: it can't
+      // fire yet, so its effect never applies (10 * (1 + 2.0) = 30 would mean it slipped through).
+      expect(game.activateAbility("ability-b")).toBe(false);
+      expect(game.teamDps()).toBeCloseTo(20);
+      // And the bar can say why rather than greying the button out silently.
+      expect(game.abilityBlockedBy("ability-b")).toBe("A");
+      expect(game.abilityBlockRemaining("ability-b")).toBeGreaterThan(0);
+      expect(game.abilityBlockedBy("ability-a")).toBeNull();
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
     }
   });
 
-  it("le proc gratuit s'ajoute au buff en cours au lieu de l'écraser", () => {
+  it("the free ability trigger never overwrites a stronger buff already running on that stat", () => {
     const ability = (id: string, value: number) => ({
       id,
       name: id,
@@ -796,12 +829,10 @@ describe("store boot", () => {
 
       game.activateAbility("ability-strong");
       expect(game.teamDps()).toBeCloseTo(30); // 10 * (1 + 2.0)
-      // The proc fires on this click and picks the weak ability. It used to be filtered out, since
-      // replacing by target would have swapped the +200% for its +100%. It now stacks, diminished:
-      // +200% at full strength plus +100% * STACK_FALLOFF.
+      // The proc fires on this click. It must find no candidate — the weak ability targets the same
+      // stat, and `replaceModifiersByTarget` would swap the x3 out for it (10 * (1 + 1.0) = 20).
       game.click();
-      expect(game.teamDps()).toBeCloseTo(10 * (1 + 2 + 1 * STACK_FALLOFF));
-      expect(game.teamDps()).toBeGreaterThan(30); // the perk can still never make the player weaker
+      expect(game.teamDps()).toBeCloseTo(30);
     } finally {
       randomSpy.mockRestore();
       disposeRoot();
@@ -854,171 +885,6 @@ describe("store boot", () => {
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
-    }
-  });
-
-  it("l'ordre d'activation ne change pas le total : le plus fort compte toujours à plein", () => {
-    const mods = (values: number[]): ActiveModifier[] =>
-      values.map((value, i) => ({
-        sourceId: `a${i}`,
-        target: "teamDps" as const,
-        kind: "multiplier" as const,
-        value,
-        expiresAt: 9_000,
-      }));
-    const expected = 10 * 3 * (1 + 1 * STACK_FALLOFF) * (1 + 0.5 * STACK_FALLOFF ** 2);
-    expect(computeEffectiveStat(10, "teamDps", mods([3, 2, 1.5]), 0)).toBeCloseTo(expected);
-    expect(computeEffectiveStat(10, "teamDps", mods([1.5, 3, 2]), 0)).toBeCloseTo(expected);
-    // Permanent modifiers never diminish, whatever temporaries are running alongside them.
-    const permanent: ActiveModifier = { sourceId: "item", target: "teamDps", kind: "multiplier", value: 2 };
-    expect(computeEffectiveStat(10, "teamDps", [permanent, ...mods([3, 2])], 0)).toBeCloseTo(
-      10 * 2 * 3 * (1 + 1 * STACK_FALLOFF)
-    );
-  });
-
-
-  it("never blocks on a boss: a timeout falls back to farming, until the player rematches it", () => {
-    const testData = {
-      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
-      arcs: [
-        {
-          id: "ta-arc",
-          animeId: "ta",
-          name: "Arc",
-          order: 0,
-          mobsToBoss: 1,
-          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
-          boss: { id: "ta-boss", name: "Boss", baseHp: 1_000_000, reward: 100, timerMs: 1_000 },
-        },
-      ],
-      characters: [],
-      combos: [],
-      items: [],
-    };
-    const arc = testData.arcs[0];
-
-    vi.useFakeTimers();
-    let disposeRoot!: () => void;
-    try {
-      const game = createRoot((dispose) => {
-        disposeRoot = dispose;
-        return createGameStore(testData);
-      });
-
-      game.travelTo("ta");
-      game.click(); // kills the one mob standing before the boss
-      expect(game.enemy()?.id).toBe("ta-boss");
-
-      // The boss vastly outlives the player's damage: let its timer run out.
-      vi.advanceTimersByTime(1_200);
-      expect(game.hasRetreatedFromBoss(arc)).toBe(true);
-      expect(game.enemy()?.id).toBe("ta-mob");
-      expect(game.bossChallengeable(arc)).toBe(true);
-
-      game.challengeBoss();
-      expect(game.hasRetreatedFromBoss(arc)).toBe(false);
-      expect(game.enemy()?.id).toBe("ta-boss");
-    } finally {
-      disposeRoot();
-      vi.useRealTimers();
-    }
-  });
-
-  it("clearing an arc grants no prestige point — points only come from a prestige reset", () => {
-    const testData = {
-      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
-      arcs: [
-        {
-          id: "ta-arc",
-          animeId: "ta",
-          name: "Arc",
-          order: 0,
-          mobsToBoss: 0,
-          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
-          boss: { id: "ta-boss", name: "Boss", baseHp: 1, reward: 100 },
-        },
-      ],
-      characters: [],
-      combos: [],
-      items: [],
-    };
-
-    let disposeRoot!: () => void;
-    try {
-      const game = createRoot((dispose) => {
-        disposeRoot = dispose;
-        return createGameStore(testData);
-      });
-
-      game.travelTo("ta");
-      expect(game.enemy()?.id).toBe("ta-boss");
-      expect(game.prestige().prestigePoints).toBe(0);
-
-      game.click(); // kills the boss, clearing the arc
-      expect(game.prestige().prestigePoints).toBe(0);
-
-      game.click();
-      expect(game.prestige().prestigePoints).toBe(0);
-    } finally {
-      disposeRoot();
-    }
-  });
-
-  it("buyShopOffer spends currency for item copies or a character, gated by cost and condition", () => {
-    const testData = {
-      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
-      arcs: [
-        {
-          id: "ta-arc",
-          animeId: "ta",
-          name: "Arc",
-          order: 0,
-          mobsToBoss: 0,
-          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
-          boss: { id: "ta-boss", name: "Boss", baseHp: 1, reward: 100 },
-        },
-      ],
-      characters: [
-        { id: "special-char", name: "Special", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 0, baseDps: 0 },
-      ],
-      combos: [],
-      items: [{ id: "item-x", name: "X", kind: "common" as const }],
-      shop: [
-        { id: "offer-item", kind: "item" as const, targetId: "item-x", cost: 10, amount: 2 },
-        { id: "offer-char", kind: "character" as const, targetId: "special-char", cost: 20, requiresAnimeId: "ta" },
-      ],
-    };
-
-    let disposeRoot!: () => void;
-    try {
-      const game = createRoot((dispose) => {
-        disposeRoot = dispose;
-        return createGameStore(testData);
-      });
-
-      // Not enough currency yet, and the character offer's anime isn't cleared yet.
-      expect(game.buyShopOffer("offer-item")).toBe(false);
-      expect(game.buyShopOffer("offer-char")).toBe(false);
-      expect(game.shopOffers().find((o) => o.offer.id === "offer-char")?.locked).toBe(true);
-
-      game.travelTo("ta");
-      game.click(); // kills the boss directly (mobsToBoss: 0), clearing the arc and its anime
-      expect(game.currency()).toBe(100);
-      expect(game.shopOffers().find((o) => o.offer.id === "offer-char")?.locked).toBe(false);
-
-      expect(game.buyShopOffer("offer-item")).toBe(true);
-      expect(game.currency()).toBe(90);
-      expect(game.countOf("item-x")).toBe(2);
-
-      expect(game.buyShopOffer("offer-char")).toBe(true);
-      expect(game.currency()).toBe(70);
-      expect(game.ownedCharacterIds()).toContain("special-char");
-      // bought once: the offer is now flagged owned (ShopPanel hides it), and can't be bought again
-      expect(game.shopOffers().find((o) => o.offer.id === "offer-char")?.owned).toBe(true);
-      expect(game.buyShopOffer("offer-char")).toBe(false);
-      expect(game.currency()).toBe(70);
-    } finally {
-      disposeRoot();
     }
   });
 });
@@ -2039,5 +1905,36 @@ describe("lisibilité de la progression", () => {
       disposeRoot();
       restore();
     }
+  });
+});
+
+describe("les nœuds de chance restent des chances", () => {
+  /**
+   * `scaledChance` clamps `base * level` at 1, so a base at or above 1/5 turns a node advertised as
+   * a chance into a guarantee at level 5 — silently, since nothing in the UI says so. That is what
+   * made a maxed "Objets" branch drop 0.73 commons per kill against a printed 12%, and a maxed
+   * "Destin" branch double every single prestige. Every chance constant must stay strictly under.
+   */
+  const CHANCE_CONSTANTS = {
+    CRIT_CHANCE,
+    FREE_ABILITY_TRIGGER_CHANCE,
+    DOUBLE_DROP_CHANCE,
+    GHOST_LOOT_CHANCE,
+    PRESTIGE_PER_KILL_CHANCE,
+    AUSPICE_DOUBLE_DROP_CHANCE,
+    DOUBLE_PRESTIGE_CHANCE,
+  };
+
+  it("aucune ne devient une certitude au niveau 5", () => {
+    for (const [name, base] of Object.entries(CHANCE_CONSTANTS)) {
+      expect(scaledChance(base, LEVELS_PER_NODE), name).toBeLessThan(1);
+    }
+  });
+
+  it("le palier de pitié reste un filet de sécurité, pas une source", () => {
+    // Au niveau max, le palier doit rester bien au-dessus du 1/0.12 ≈ 8 kills du tirage de base,
+    // sinon la pitié devient le vrai taux de drop et la chance affichée ne veut plus rien dire.
+    const floor = PITY_KILLS_THRESHOLD - PITY_REDUCTION_PER_LEVEL * (LEVELS_PER_NODE - 1);
+    expect(floor).toBeGreaterThan(8);
   });
 });

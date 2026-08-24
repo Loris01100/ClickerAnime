@@ -1,6 +1,6 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
 import { achievementContributions } from "./achievements";
-import { computeEffectiveStat, pruneExpired, replaceModifiersBySource } from "./modifiers";
+import { computeEffectiveStat, pruneExpired, replaceModifiersByTarget } from "./modifiers";
 import {
   applyPrestige,
   PRESTIGE_SCALE,
@@ -18,7 +18,7 @@ import {
   crossoverSynergyConfig,
   isMixedTeam,
 } from "./crossover";
-import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { abilitiesShareType, abilityTargets, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
@@ -291,6 +291,11 @@ export function createGameStore(data: GameData) {
   );
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
+  // Same-stat abilities can't fire while another's buff on that stat is still up — see
+  // activateAbility. `by` names the ability responsible, so the bar can say why a button is dead.
+  const [abilityBlockedUntil, setAbilityBlockedUntil] = createSignal<
+    Record<string, { until: number; by: string }>
+  >({});
 
   // Transient feed of "you just gained something" events — the HUD pops them up (see ui/Notices.tsx)
   // because a drop, a recruit or a cleared arc otherwise happen in complete silence. Pruned by the
@@ -790,10 +795,13 @@ export function createGameStore(data: GameData) {
 
     const freeTriggerLevel = nodeLevelOf("narratorClick", 5);
     if (freeTriggerLevel > 0 && Math.random() < scaledChance(FREE_ABILITY_TRIGGER_CHANCE, freeTriggerLevel)) {
-      // Any unlocked ability will do. This used to have to skip abilities whose stat was already
-      // buffed, because a proc replaced the running buff and could cut a x3 combo short; buffs now
-      // stack with diminishing returns, so the worst a proc can do is add a small bonus.
-      const candidates = unlockedAbilities();
+      // Only abilities whose stats are free right now: `triggerAbilityEffects` goes through
+      // `replaceModifiersByTarget`, so firing one over a running buff on the same stat *replaces*
+      // it — a random weak proc could cut a x3 combo short. A perk must never make the player weaker.
+      const busy = new Set(pruneExpired(temporaryModifiers(), Date.now()).map((m) => m.target));
+      const candidates = unlockedAbilities().filter((u) =>
+        abilityTargets(u.ability).every((target) => !busy.has(target))
+      );
       if (candidates.length > 0) {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
         triggerAbilityEffects(pick.ability);
@@ -1075,30 +1083,50 @@ export function createGameStore(data: GameData) {
 
   /** Applies an ability's effects without touching its cooldown — the "Clic du Narrateur" tier 5 freebie. */
   function triggerAbilityEffects(ability: AbilityDefinition) {
-    setTemporaryModifiers((existing) => replaceModifiersBySource(existing, buildAbilityModifiers(ability)));
+    setTemporaryModifiers((existing) => replaceModifiersByTarget(existing, buildAbilityModifiers(ability)));
   }
 
-  /**
-   * Abilities no longer lock each other out: overlapping buffs on one stat diminish instead (see
-   * `STACK_FALLOFF`), so an ability's own cooldown is the only gate left. That is what turns a bar
-   * of 35 permanently-greyed buttons back into 35 usable ones.
-   */
   function activateAbility(abilityId: string) {
     const unlocked = unlockedAbilities().find((u) => u.ability.id === abilityId);
     if (!unlocked) return false;
 
     const nowMs = Date.now();
     if (!isAbilityReady(abilityLastUsed()[abilityId], unlocked.ability.cooldownMs, nowMs)) return false;
+    if ((abilityBlockedUntil()[abilityId]?.until ?? 0) > nowMs) return false;
 
     triggerAbilityEffects(unlocked.ability);
     setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
+    // Abilities that touch the same stat can't be fired while this one's buff is still up: activating
+    // one would immediately cut the other's effect short anyway (`replaceModifiersByTarget`), so lock
+    // them for the buff's duration — not its cooldown, which keeps running on its own, untouched.
+    // `by` is carried alongside so the bar can name the ability responsible instead of just greying
+    // the button out with no explanation.
+    const lockedUntil = nowMs + unlocked.ability.durationMs;
+    const sameType = unlockedAbilities().filter(
+      (u) => u.ability.id !== abilityId && abilitiesShareType(u.ability, unlocked.ability)
+    );
+    setAbilityBlockedUntil((blocked) => {
+      const next = { ...blocked };
+      for (const u of sameType) next[u.ability.id] = { until: lockedUntil, by: unlocked.ability.name };
+      return next;
+    });
     bumpAchievement("abilitiesUsed");
     return true;
   }
 
   function abilityCooldownRemaining(abilityId: string): number {
     const cooldownMs = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability.cooldownMs ?? 0;
-    return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
+    const cd = cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
+    return Math.max(cd, abilityBlockRemaining(abilityId));
+  }
+
+  /** How long this ability stays locked out by another one's buff, and which — for the tooltip. */
+  function abilityBlockRemaining(abilityId: string): number {
+    return Math.max(0, (abilityBlockedUntil()[abilityId]?.until ?? 0) - now());
+  }
+
+  function abilityBlockedBy(abilityId: string): string | null {
+    return abilityBlockRemaining(abilityId) > 0 ? (abilityBlockedUntil()[abilityId]?.by ?? null) : null;
   }
 
   /** Buffs running right now, strongest first — what the ability bar shows as the live stack. */
@@ -1124,6 +1152,7 @@ export function createGameStore(data: GameData) {
     setCharacterXp({});
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
+    setAbilityBlockedUntil({});
     setItemCounts({});
     setPassiveRanks({});
     setArcKills({});
@@ -1198,6 +1227,7 @@ export function createGameStore(data: GameData) {
     setOwnedCharacterIds([]);
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
+    setAbilityBlockedUntil({});
     setPrestige(createInitialPrestigeState());
     setCharacterXp({});
     setItemCounts({});
@@ -1326,6 +1356,8 @@ export function createGameStore(data: GameData) {
     activateCrossover,
     unlockedAbilities,
     activeBuffs,
+    abilityBlockRemaining,
+    abilityBlockedBy,
     synergyOf,
     achievementCounts,
     // HUD notices

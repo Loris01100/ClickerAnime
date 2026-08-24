@@ -202,23 +202,31 @@ Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes bot
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
 
+**A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
+any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
+Two constants were over that line and together took the effective common-drop rate from the printed
+12% to **0.73 copies per kill**: `DOUBLE_DROP_CHANCE` at 0.25 (a maxed node doubled *every* drop)
+and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third amplifier — `PITY_REDUCTION_PER_LEVEL`
+at 3 forced a common every 3 kills at max level, a 33% floor that made the printed chance
+meaningless. Retuned to 0.08 / 0.1 / 1 respectively (0.41 copies per kill fully maxed).
+`engine.test.ts` now asserts the rule for every chance constant and keeps the pity floor above the
+base draw's own ~8-kill average, so this class of mistake can't come back.
+
 ### The modifier pipeline
 
 Everything that affects a stat becomes an `ActiveModifier`, and `computeEffectiveStat` folds them:
 `(base + flats) * (1 + Σpercents) * Πmultipliers`. That order is a balance decision — changing it
 rebalances the whole game.
 
-**Overlapping temporary buffs on one stat diminish.** Within a stat and a kind, the *temporary*
-modifiers (the ones carrying `expiresAt`, i.e. abilities) are ranked strongest-first and the k-th is
-worth `STACK_FALLOFF ** k` of its printed bonus — a x3 at 40% is x1.8, not x1.2. Permanent
-contributions (characters, passives, items, the tree) never diminish and never compete. This
-replaced a hard mutual lock: abilities used to be forbidden from overlapping on a stat at all, which
-was the only thing stopping three multipliers from compounding into x50 — at the price of a bar
-where 30 of ~35 buttons were permanently greyed out, since `ModifierTarget` is only
-`clickPower | teamDps` and 82 of the game's 93 effects target `teamDps`. Ranking strongest-first is
-what makes firing a second ability never worse than not firing it. `replaceModifiersBySource`
-(formerly `replaceModifiersByTarget`) is the matching change: re-firing one ability refreshes its
-own buff, and touches nobody else's. A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
+**One buff per stat, and that is deliberate.** `replaceModifiersByTarget` means a new ability buff
+cuts short whatever else was boosting the same stat, and `activateAbility` pairs it with a lock so
+the player is never allowed to waste an ability on an effect that would be replaced instantly.
+Diminishing returns (a `STACK_FALLOFF` on overlapping temporaries) were tried as a way to keep every
+ability button live — `ModifierTarget` is only `clickPower | teamDps` and 82 of the game's 93
+effects target `teamDps`, so the lock greys out most of the bar — and **rejected**: firing several
+at once still stacked into far too much damage. A large-but-bounded burst is worse for balance than
+a flat "one buff per stat" rule. Don't reintroduce it; the fix for the greyed bar is the tooltip,
+not the stacking (see Abilities). A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
 of its own**: nothing in the pipeline keys off one (`computeEffectiveStat` and
 `replaceModifiersByTarget` both key on `target`), and `ActiveModifier.sourceId` is what names where a
 modifier came from. Don't reintroduce a per-effect `id` in the data files. Modifiers come from three
@@ -408,11 +416,14 @@ e.g. `IconLock` on several locked map nodes, was equally affected).
 
 Unlocked two ways, both computed from the owned set in `getUnlockedAbilities`: a single character
 that grants one, or owning *every* character a `ComboDefinition` requires. Cooldowns are tracked as
-last-used timestamps in a record, not as counters, and an ability's own cooldown is now the **only**
-gate on it — see the stacking rule under the modifier pipeline. `activeBuffs` lists which abilities
-are still running, so the bar can mark them; `RosterPanel` sorts ready-first on a deliberately
-*binary* key, since sorting by exact cooldown left would reshuffle the bar under the cursor every
-tick.
+last-used timestamps in a record, not as counters. Two gates, not one: an ability's own cooldown,
+and `abilityBlockedUntil` — same-stat abilities are locked for the duration of the running buff (see
+the modifier pipeline). That record carries the blocking ability's name alongside its deadline, so
+`abilityBlockedBy`/`abilityBlockRemaining` let the bar say *« Bloquée par X (12s) »* instead of
+greying a button out with no explanation; `.ability.blocked` is dashed, a plain cooldown is not.
+`activeBuffs` lists which abilities are still running, so the bar can mark them; `RosterPanel` sorts
+ready-first on a deliberately *binary* key, since sorting by exact cooldown left would reshuffle the
+bar under the cursor every tick.
 
 ### Crossover crystals (`crossover.ts`)
 
