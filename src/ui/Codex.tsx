@@ -3,7 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
 import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
 import { defaultSynergyConfig } from "../engine/synergy";
-import { duplicateGrowth, DUPLICATE_DAMAGE_STEP } from "../engine/packs";
+import { DUPLICATE_DAMAGE_STEP } from "../engine/packs";
 import ItemCodex from "./ItemCodex";
 import Sprite from "./Sprite";
 import { describeAbility, describeModifier } from "./describe";
@@ -26,8 +26,7 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
   const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
   /** What multiplies the printed base damage right now: levels and pack duplicates, stacked. */
-  const growthOf = (character: Character) =>
-    levelGrowth(props.game.levelOf(character.id)) * duplicateGrowth(props.game.duplicatesOf(character.id));
+  const growthOf = (character: Character) => props.game.damageGrowthOf(character.id);
 
   const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>

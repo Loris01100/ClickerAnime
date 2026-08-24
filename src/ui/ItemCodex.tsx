@@ -168,6 +168,9 @@ export default function ItemCodex(props: { game: GameStore }) {
                 <For each={rankedUpBy(item())} fallback={<p class="muted small">Aucun personnage ne s'en sert.</p>}>
                   {(character) => {
                     const upgrade = () => props.game.passiveUpgradeOf(character);
+                    // A passive only contributes for a character in the team, so the copies would
+                    // be burnt for nothing — `rankUpPassive` refuses it too.
+                    const owned = () => props.game.ownedCharacterIds().includes(character.id);
                     return (
                       <div class="codex-row with-action">
                         <span class="muted">{character.name}</span>
@@ -178,7 +181,8 @@ export default function ItemCodex(props: { game: GameStore }) {
                         <Show when={!upgrade().maxed} fallback={<small class="capped">max</small>}>
                           <button
                             class="rank-up"
-                            disabled={!upgrade().affordable}
+                            disabled={!upgrade().affordable || !owned()}
+                            title={owned() ? undefined : "Pas encore rencontré"}
                             onClick={() => props.game.rankUpPassive(character)}
                           >
                             +1 · {upgrade().copies}/{upgrade().cost}

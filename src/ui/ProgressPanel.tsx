@@ -3,13 +3,11 @@ import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt } from "./format";
 import { IconCheck, IconLock, IconSparkle } from "./icons";
-import PrestigeTree from "./PrestigeTree";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
 /** Right column: the arc list per world, travel, and the prestige track. */
-export default function ProgressPanel(props: { game: GameStore }) {
-  const [treeOpen, setTreeOpen] = createSignal(false);
+export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: () => void }) {
   const [openAnimes, setOpenAnimes] = createSignal<Record<string, boolean>>({});
   const [travelOpen, setTravelOpen] = createSignal(true);
   const [prestigeOpen, setPrestigeOpen] = createSignal(true);
@@ -128,7 +126,7 @@ export default function ProgressPanel(props: { game: GameStore }) {
           >
             Prestige (+{props.game.pendingPrestigeGain()})
           </button>
-          <button onClick={() => setTreeOpen(true)}>Arbre de prestige</button>
+          <button onClick={props.onOpenPrestige}>Arbre de prestige</button>
           <p class="muted small">
             Complétion : {Math.round(props.game.runCompletion() * 100)}% des arcs terminés — plus elle est
             haute, plus la réinitialisation rapporte de points.
@@ -141,9 +139,6 @@ export default function ProgressPanel(props: { game: GameStore }) {
         </Show>
       </section>
 
-      <Show when={treeOpen()}>
-        <PrestigeTree game={props.game} onClose={() => setTreeOpen(false)} />
-      </Show>
     </div>
   );
 }

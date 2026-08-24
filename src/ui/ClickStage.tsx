@@ -150,7 +150,7 @@ export default function ClickStage(props: { game: GameStore }) {
 
             <Show when={timer() !== null}>
               <div class="bar timer-bar" classList={{ urgent: (timer() ?? 0) < 10_000 }}>
-                <div class="bar-fill" style={{ width: `${((timer() ?? 0) / (current().timerMs ?? 1)) * 100}%` }} />
+                <div class="bar-fill" style={{ width: `${((timer() ?? 0) / (props.game.timerTotal() || 1)) * 100}%` }} />
                 <span class="bar-label"><IconClock /> {seconds(timer() ?? 0)}</span>
               </div>
             </Show>

@@ -97,8 +97,9 @@ wins in both directions. `ui/theme.ts` owns the `data-theme` attribute and remem
 the bare `:root` block: gradients, the sticky topbar tint and the bar-label text-shadow are all
 tokenised (`--stage-bg`, `--topbar-bg`, `--label-shadow`, `--active-tint`) precisely because they
 have to flip. Never hard-code a colour in a rule. Components must never compute balance themselves — if a number needs deriving, it belongs in
-the engine and gets exposed on the store (that is why `synergyOf`, `costOf` and `pendingPrestigeGain`
-exist). Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+the engine and gets exposed on the store (that is why `synergyOf`, `costOf`, `damageGrowthOf` and
+`pendingPrestigeGain` exist — `damageGrowthOf` in particular is what stops the roster and the Codex
+from printing two different damage numbers for the same character). Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 
 ### The combat loop
 
@@ -113,7 +114,12 @@ full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mo
 change — by default only bosses carry one, because timed mobs would break idling.
 
 Damage has two sources, both modifier-driven: `clickPower` (one narrator click, based on
-`narratorClickPower`) and `teamDps` (applied every tick as `dps * delta`). Currency only ever comes from kills — there is no passive
+`narratorClickPower`) and `teamDps` (applied every tick as `dps * delta`). **Overkill carries over
+to the next enemy**: `dealDamage` loops, spending the leftover on the replacement `spawnNext` puts
+up. Without it a single hit could only ever land one kill, capping progress at 5 fights/second
+whatever the dps — which the design's "come back and farm this arc's common" loop cannot afford late
+in a run. `MAX_KILLS_PER_HIT` bounds that loop: a safety net against a data mistake, not a balance
+knob. Currency only ever comes from kills — there is no passive
 income any more, and `lifetimeEarned` is what feeds prestige.
 
 Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved: a reload
@@ -162,7 +168,9 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
 Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
 copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
 chooses which character of an arc gets the copies. `passiveUpgradeOf` is what the UI reads — rank,
-cost, copies held, affordable. Rank 0 means the passive is **locked** and contributes nothing, rank 1
+cost, copies held, affordable. `rankUpPassive` refuses a character who isn't in the team: only
+owned characters reach `characterContributions`, so the copies would be burnt for nothing (the item
+Codex lists the whole cast, met or not). Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
 Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
 

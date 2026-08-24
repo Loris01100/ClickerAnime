@@ -21,9 +21,10 @@ import {
 import { abilitiesShareType, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
-import { drawPack, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
+import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   levelFromXp,
+  levelGrowth,
   narratorClickPower,
   passiveUpgrade,
   PASSIVE_LEVEL_CAP,
@@ -106,6 +107,8 @@ export interface GameData {
 
 const TICK_MS = 200;
 const AUTOSAVE_MS = 5_000;
+/** Safety net on `dealDamage`'s overkill carry-over — see there. Not a balance knob. */
+const MAX_KILLS_PER_HIT = 100;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 const SAVE_KEY = "clicker-anime:save:v10";
 
@@ -223,6 +226,9 @@ export function createGameStore(data: GameData) {
   const [enemyHpLeft, setEnemyHpLeft] = createSignal(0);
   const [enemyMaxHp, setEnemyMaxHp] = createSignal(0);
   const [timerDeadline, setTimerDeadline] = createSignal<number | null>(null);
+  // The timer's full length, boost included — the bar needs it as its denominator, and the raw
+  // `Enemy.timerMs` is not it once "DPS Équipe" node 5 has stretched a boss's clock.
+  const [timerTotal, setTimerTotal] = createSignal<number | null>(null);
   const [lastTimeout, setLastTimeout] = createSignal(0);
   // Arcs whose boss timed out on the player: farming resumes instead of respawning the same boss,
   // so the player is never stuck. Also transient — a reload forgets it, like the rest of combat.
@@ -303,7 +309,9 @@ export function createGameStore(data: GameData) {
     if (!restriction) return true;
     if (restriction.characterIds && !restriction.characterIds.includes(character.id)) return false;
     if (restriction.animeIds && !restriction.animeIds.includes(character.animeId)) return false;
-    if (restriction.tags && !restriction.tags.every((tag) => (character.tags ?? []).includes(tag))) return false;
+    // Any one of the listed tags is enough, like characterIds and animeIds above — the Tenseigan is
+    // "Hyûga or Ôtsutsuki", and no character carries both.
+    if (restriction.tags && !restriction.tags.some((tag) => (character.tags ?? []).includes(tag))) return false;
     return true;
   }
 
@@ -518,6 +526,7 @@ export function createGameStore(data: GameData) {
     const timerMs =
       isBoss && next.timerMs && timerLevel > 0 ? next.timerMs * (1 + BOSS_TIMER_BOOST * timerLevel) : next.timerMs;
     setTimerDeadline(timerMs ? Date.now() + timerMs : null);
+    setTimerTotal(timerMs ?? null);
   }
 
   function defeat(target: Enemy) {
@@ -641,13 +650,25 @@ export function createGameStore(data: GameData) {
     }
   }
 
+  /**
+   * Overkill carries over to the enemy that replaces the one just felled: without it a tick could
+   * only ever land one kill, capping progress at 5 fights/second however high the dps — which makes
+   * farming an early arc's common item for a passive rank absurdly slow late in a run.
+   * `MAX_KILLS_PER_HIT` is a safety net, not balance: it stops a data mistake (a 0-hp enemy, an arc
+   * that always respawns) from locking the tick in an endless loop.
+   */
   function dealDamage(amount: number) {
-    const target = enemy();
-    if (!target || amount <= 0) return 0;
-    const left = enemyHpLeft() - amount;
-    if (left > 0) {
-      setEnemyHpLeft(left);
-    } else {
+    if (!enemy() || amount <= 0) return 0;
+    let remaining = amount;
+    for (let i = 0; i < MAX_KILLS_PER_HIT; i++) {
+      const target = enemy();
+      if (!target || remaining <= 0) break;
+      const left = enemyHpLeft() - remaining;
+      if (left > 0) {
+        setEnemyHpLeft(left);
+        break;
+      }
+      remaining = -left;
       defeat(target);
     }
     return amount;
@@ -667,9 +688,17 @@ export function createGameStore(data: GameData) {
     const cooldownLevel = nodeLevelOf("narratorClick", 4);
     if (cooldownLevel > 0) {
       const reduction = CLICK_COOLDOWN_REDUCTION_MS * cooldownLevel;
+      const nowMs = Date.now();
+      // Only abilities still on cooldown are shaved: pushing an already-ready timestamp further
+      // into the past changes nothing and lets it drift without bound.
       setAbilityLastUsed((used) => {
-        const next: Record<string, number> = {};
-        for (const [id, at] of Object.entries(used)) next[id] = at - reduction;
+        const next = { ...used };
+        for (const unlocked of unlockedAbilities()) {
+          const at = next[unlocked.ability.id];
+          if (at !== undefined && nowMs - at < unlocked.ability.cooldownMs) {
+            next[unlocked.ability.id] = at - reduction;
+          }
+        }
         return next;
       });
     }
@@ -743,8 +772,13 @@ export function createGameStore(data: GameData) {
   }
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
-  /** Spends the origin item to buy the next rank of a character's passive. */
+  /**
+   * Spends the origin item to buy the next rank of a character's passive. Refuses on a character
+   * who isn't in the team: `characterContributions` only ever runs on owned characters, so the
+   * copies would be burnt for nothing (the item Codex lists the whole cast, met or not).
+   */
   function rankUpPassive(character: Character): boolean {
+    if (!ownedCharacterIds().includes(character.id)) return false;
     const item = passiveItemOf(character);
     const upgrade = passiveUpgradeOf(character);
     if (!item || !upgrade.affordable) return false;
@@ -758,6 +792,15 @@ export function createGameStore(data: GameData) {
   /** Pack copies held of a character. A function declaration, so `allModifiers` can hoist it. */
   function duplicatesOf(characterId: string): number {
     return characterDuplicates()[characterId] ?? 0;
+  }
+
+  /**
+   * What multiplies a character's printed base damage right now: levels and pack duplicates,
+   * stacked exactly as `characterContributions` does it. Lives here rather than in a component so
+   * the roster and the Codex can never print two different numbers for the same character.
+   */
+  function damageGrowthOf(characterId: string): number {
+    return levelGrowth(levelOf(characterId)) * duplicateGrowth(duplicatesOf(characterId));
   }
 
   /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
@@ -1126,6 +1169,7 @@ export function createGameStore(data: GameData) {
     // packs
     worldPointsOf,
     duplicatesOf,
+    damageGrowthOf,
     packPoolOf,
     openPack,
     // crossover
@@ -1148,6 +1192,7 @@ export function createGameStore(data: GameData) {
     enemyHpLeft,
     enemyMaxHp,
     timerRemaining,
+    timerTotal,
     lastTimeout,
     hasRetreatedFromBoss,
     bossChallengeable,

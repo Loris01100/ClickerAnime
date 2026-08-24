@@ -548,6 +548,74 @@ describe("store boot", () => {
     }
   });
 
+  it("carries overkill over to the next enemy instead of dropping it", () => {
+    const testData = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "arc-a",
+          animeId: "ta",
+          name: "Arc A",
+          order: 1,
+          mobsToBoss: 1000,
+          mobs: [{ id: "m1", name: "M1", baseHp: 1, reward: 1 }],
+          boss: { id: "b1", name: "B1", baseHp: 1_000_000, reward: 1 },
+        },
+      ],
+      characters: [
+        {
+          id: "hitter",
+          name: "Hitter",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["arc-a"],
+          baseClickPower: 1000,
+          baseDps: 0,
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const save = {
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["hitter"],
+      activeArcId: "arc-a",
+      prestigePoints: 0,
+      unlockedAnimeIds: ["ta"],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: {},
+      passiveRanks: {},
+      evolvedCharacterIds: [],
+    };
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => JSON.stringify(save),
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(testData);
+        dispose();
+        return store;
+      });
+      const arc = game.activeArc()!;
+      // ~1001 damage against 1-hp mobs: one hit has to land many kills, not exactly one, or a
+      // late-game team can never farm an early arc faster than 5 fights a second.
+      game.click();
+      expect(game.killsIn(arc)).toBeGreaterThan(1);
+      // ...and the safety net still stops there rather than looping forever.
+      expect(game.killsIn(arc)).toBeLessThanOrEqual(100);
+      expect(game.enemy()).not.toBeNull();
+    } finally {
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
   it("does not stack two abilities boosting the same stat: the second is locked out while the first's buff is up", () => {
     const testData = {
       animes: [],
@@ -1271,7 +1339,10 @@ describe("prestige tree — wired into gameState", () => {
     const mob: Enemy = {
       id: "ta-mob",
       name: "Mob",
-      baseHp: opts.mobBaseHp ?? 1,
+      // Exactly one click's worth of hp (narrator base 2 + the character's flat 10), so these
+      // per-kill assertions stay "one click = one kill" now that overkill carries into the next
+      // enemy — a 1-hp mob would let a single click chain a dozen kills.
+      baseHp: opts.mobBaseHp ?? 12,
       reward: 10,
       ...(opts.mobItemId ? { itemId: opts.mobItemId, dropChance: opts.mobDropChance ?? 1 } : {}),
     };
@@ -1810,13 +1881,16 @@ describe("packs", () => {
       game.travelTo("ta");
 
       expect(game.openPack("ta", "secondary")).toBeNull(); // no points yet
-      for (let i = 0; i < PACK_COST.secondary; i++) game.click();
-      expect(game.worldPointsOf("ta")).toBe(PACK_COST.secondary);
+      // Clicking until the pack is affordable rather than a fixed count: one click can fell several
+      // 1-hp mobs once an achievement tier has lifted the click's damage (overkill carries over).
+      while (game.worldPointsOf("ta") < PACK_COST.secondary) game.click();
+      const banked = game.worldPointsOf("ta");
+      expect(banked).toBeGreaterThanOrEqual(PACK_COST.secondary);
       // No main-rarity character in this world: that pack can't be drawn at all.
       expect(game.packPoolOf("ta", "main")).toEqual([]);
 
       expect(game.openPack("ta", "secondary")?.id).toBe("s1");
-      expect(game.worldPointsOf("ta")).toBe(0);
+      expect(game.worldPointsOf("ta")).toBe(banked - PACK_COST.secondary);
       expect(game.duplicatesOf("s1")).toBe(1);
 
       // Meta-progression: the run resets, the copies (and any leftover points) do not.

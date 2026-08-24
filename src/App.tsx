@@ -49,7 +49,8 @@ export default function App() {
     link.href = url;
     link.download = `clickeranime-save-${Date.now()}.txt`;
     link.click();
-    URL.revokeObjectURL(url);
+    // Revoking synchronously can cancel the download before the browser has read the blob.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   async function onImportFile(event: Event) {
@@ -124,7 +125,7 @@ export default function App() {
             <ClickStage game={game} />
             <WorldMap game={game} />
           </div>
-          <ProgressPanel game={game} />
+          <ProgressPanel game={game} onOpenPrestige={() => setPrestigeTreeOpen(true)} />
         </main>
       </Show>
 
