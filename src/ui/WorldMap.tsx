@@ -40,7 +40,7 @@ export default function WorldMap(props: { game: GameStore }) {
 
           <Show when={open()}>
           <Show when={props.game.unlockedAnimes().length > 1}>
-            <div class="map-tabs">
+            <div class="tabs">
               <For each={props.game.unlockedAnimes()}>
                 {(candidate) => (
                   <button

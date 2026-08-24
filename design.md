@@ -540,6 +540,22 @@ le redonne jamais), donc les **doublons** ne s'obtiennent que là.
   donc jamais perdu — il l'attend au recrutement suivant.
 - **Liste des doublons** en bas du tiroir, triée par nombre de copies, avec le bonus cumulé en clair.
 
+### 11.3 Codex des objets
+
+Deuxième onglet du Codex (`.tabs`, la même bande que les onglets de la carte), pas un overlay de
+plus : la coque à deux volets et les classes `.codex-*` sont réutilisées telles quelles, seul le
+contenu change. `ItemCodex.tsx` rend directement les deux volets, sans wrapper, pour que la grille
+`.codex` garde ses deux colonnes.
+
+- **Liste groupée par monde** (l'arc d'où l'objet tombe), les objets sans source dans un groupe
+  « Hors monde » en fin de liste. Un objet jamais trouvé est `.unmet` comme un personnage jamais
+  rencontré ; sinon la colonne de droite affiche le nombre de copies.
+- **Pas de portrait** : les objets n'existent pas sur AniList. Un glyphe tient lieu d'illustration
+  (`IconBookmark` bleu pour un commun, `IconStar` doré pour un unique), agrandi à 40px dans le hero.
+- **Le détail répond aux questions du joueur dans l'ordre où il se les pose** : d'où ça tombe (arc,
+  ennemi, chance), puis à quoi ça sert — les passifs qu'un commun monte avec leur rang actuel, ou
+  pour un unique ses effets, son porteur du moment et sa restriction éventuelle.
+
 ## 12. Typographie
 
 `system-ui` partout donnait au jeu un air de tableau de bord plutôt que d'anime. Une **seule** police

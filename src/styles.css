@@ -1008,14 +1008,14 @@ small {
   min-width: 2.1rem;
 }
 
-/* --- world map --- */
-.map-tabs {
+/* Tab strip shared by the world map and the Codex. */
+.tabs {
   display: flex;
   gap: 0.3rem;
   padding: 0.4rem 0.6rem;
   border-bottom: 1px solid var(--line);
 }
-.map-tabs button.active {
+.tabs button.active {
   border-color: var(--accent);
   background: var(--active-tint);
 }

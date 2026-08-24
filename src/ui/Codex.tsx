@@ -4,6 +4,7 @@ import type { Character } from "../engine/types";
 import { levelGrowth, PASSIVE_LEVEL_CAP } from "../engine/growth";
 import { defaultSynergyConfig } from "../engine/synergy";
 import { duplicateGrowth, DUPLICATE_DAMAGE_STEP } from "../engine/packs";
+import ItemCodex from "./ItemCodex";
 import Sprite from "./Sprite";
 import { describeAbility, describeModifier } from "./describe";
 import { fmt } from "./format";
@@ -14,9 +15,13 @@ const RARITY_LABEL: Record<Character["rarity"], string> = {
   secondary: "Personnage secondaire",
 };
 
-/** Every character in the game, met or not, with their stats and what their passive actually does. */
+/**
+ * Every character in the game, met or not, with their stats and what their passive actually does —
+ * plus a second tab over the same shell listing every item, see `ItemCodex`.
+ */
 export default function Codex(props: { game: GameStore; onClose: () => void; initialSelectedId?: string }) {
   const [selectedId, setSelectedId] = createSignal(props.initialSelectedId ?? props.game.data.characters[0]?.id ?? "");
+  const [tab, setTab] = createSignal<"characters" | "items">("characters");
 
   const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
@@ -45,14 +50,29 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
       <div class="modal" role="dialog" aria-modal="true" aria-label="Codex" onClick={(e) => e.stopPropagation()}>
         <header class="panel-head">
           <span>
-            Codex — {props.game.ownedCharacterIds().length} / {props.game.data.characters.length} rencontrés
+            <Show
+              when={tab() === "characters"}
+              fallback={`Codex — ${props.game.foundItems().length} / ${props.game.data.items.length} objets trouvés`}
+            >
+              Codex — {props.game.ownedCharacterIds().length} / {props.game.data.characters.length} rencontrés
+            </Show>
           </span>
           <button onClick={props.onClose} aria-label="Fermer">
             ✕
           </button>
         </header>
 
+        <div class="tabs">
+          <button classList={{ active: tab() === "characters" }} onClick={() => setTab("characters")}>
+            Personnages
+          </button>
+          <button classList={{ active: tab() === "items" }} onClick={() => setTab("items")}>
+            Objets
+          </button>
+        </div>
+
         <div class="codex">
+          <Show when={tab() === "characters"} fallback={<ItemCodex game={props.game} />}>
           <div class="codex-list scroll">
             <For each={props.game.data.animes}>
               {(anime) => (
@@ -248,6 +268,7 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                 </div>
               </div>
             )}
+          </Show>
           </Show>
         </div>
       </div>
