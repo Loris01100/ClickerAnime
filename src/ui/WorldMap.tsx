@@ -101,6 +101,7 @@ export default function WorldMap(props: { game: GameStore }) {
                     <button
                       class="map-node"
                       classList={{
+                        pin: !!anime().mapImage,
                         active: props.game.activeArc()?.id === node.arc.id,
                         cleared: cleared(),
                         locked: !open(),
@@ -111,7 +112,7 @@ export default function WorldMap(props: { game: GameStore }) {
                       onClick={() => props.game.setActiveArc(node.arc.id)}
                     >
                       <Show when={open()} fallback={<span class="map-lock"><IconLock /></span>}>
-                        <Sprite name={node.arc.boss.name} kind="character" anime={anime().name} px={4} dim={!open()} />
+                        <Sprite name={node.arc.boss.name} kind="character" anime={anime().name} px={anime().mapImage ? 2.6 : 4} dim={!open()} />
                       </Show>
                       <span class="map-name">{node.arc.name}</span>
                       <small class="muted">{cleared() ? "terminé" : `${kills()}/${node.arc.mobsToBoss}`}</small>

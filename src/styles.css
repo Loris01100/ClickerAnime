@@ -1072,7 +1072,7 @@ small {
   display: block;
   width: 100%;
   height: auto;
-  opacity: 0.55;
+  opacity: 0.9;
 }
 .map-links {
   position: absolute;
@@ -1109,6 +1109,45 @@ small {
 }
 .map-node.locked {
   opacity: 0.5;
+}
+/*
+ * On a real map the arcs sit where they actually happened, and history piles several of them onto
+ * the same village — so a mapped world shrinks its nodes to portrait pins and only unfolds the
+ * label of the one under the cursor (or the active one).
+ */
+.map-node.pin {
+  width: auto;
+  padding: 0.15rem;
+  border-radius: 50%;
+  gap: 0;
+}
+.map-node.pin .map-name,
+.map-node.pin small {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.2rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5.5rem;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+.map-node.pin small {
+  top: calc(100% + 2.4rem);
+}
+.map-node.pin:hover,
+.map-node.pin:focus-visible,
+.map-node.pin.active {
+  z-index: 2;
+}
+.map-node.pin:hover .map-name,
+.map-node.pin:focus-visible .map-name,
+.map-node.pin.active .map-name,
+.map-node.pin:hover small,
+.map-node.pin:focus-visible small,
+.map-node.pin.active small {
+  display: block;
 }
 .map-name {
   font-size: 0.68rem;
