@@ -139,6 +139,7 @@ changement moteur, rien dans le tick 200ms) :
 | Fade d'overlay + scale-in de modale | `.overlay` / `.modal` | à l'ouverture |
 | Notice qui glisse depuis la droite | `.notice` (`notice-in`) | à l'arrivée dans `game.notices()` |
 | Coup critique agrandi et teinté `--accent-2` | `.pop.crit` | `game.click()` renvoie `{ damage, crit }` |
+| Dégât d'auto-clic, plus discret et teinté `--blue` | `.pop.auto` | `createEffect` sur `game.autoClickPulse()` |
 
 Les classes sont levées sur `animationend` plutôt que par un `setTimeout`, pour qu'un clic rapide
 ne laisse jamais une classe collée.
@@ -179,6 +180,13 @@ Le clavier compte aussi : `.stage` porte `role="button"` + `tabindex="0"` et ré
 (`ClickStage`'s `handleKey`), le Clic du Narrateur étant le verbe central du jeu. Le pop naît alors
 au centre de la scène faute de coordonnées de pointeur, et `.stage:focus-visible` donne l'anneau de
 focus qu'un `<div>` cliquable n'a pas.
+
+L'auto-clic de l'arbre de prestige suit la même règle que le reste : **ce qui frappe doit se voir**.
+Il produit donc son propre pop de dégâts, volontairement distinct de celui du joueur (plus petit,
+`--blue`, sans le `!` du critique) et posé près de l'ennemi avec une légère dispersion — il n'a
+aucun curseur derrière lui. L'interrupteur `.auto-toggle` vit dans le `panel-head` du Combat,
+c'est-à-dire là où l'effet se produit, et n'apparaît qu'une fois le nœud acheté : un interrupteur
+pour quelque chose qu'on ne possède pas est du bruit.
 
 ### 4.2 Lire sa progression d'un coup d'œil
 

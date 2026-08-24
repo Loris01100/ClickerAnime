@@ -1253,6 +1253,79 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
+  it("chaque auto-clic s'annonce, pour que la scène puisse l'afficher", () => {
+    const testData = makeTestData({ mobBaseHp: 1_000_000 });
+    const restore = installSave(baseSave({ prestigeTreeRanks: { narratorClick: [1, 1, 0, 0, 0] } }));
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.autoClickPulse().id).toBe(0);
+
+      vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS);
+      const first = game.autoClickPulse();
+      expect(first.id).toBe(1);
+      expect(first.damage).toBeCloseTo(game.clickPower() * AUTOCLICK_POWER_FRACTION, 5);
+
+      // The id has to move even when two hits land for exactly the same damage, or the stage's
+      // effect would miss the second one and draw a single pop for two clicks.
+      vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS);
+      expect(game.autoClickPulse().id).toBe(2);
+      expect(game.autoClickPulse().damage).toBeCloseTo(first.damage, 5);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+
+  it("l'auto-clic peut être coupé, et le choix est sauvegardé", () => {
+    const testData = makeTestData({ mobBaseHp: 1_000_000 });
+    const ranks = { narratorClick: [1, 1, 0, 0, 0] };
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+
+    const restoreOff = installSave(baseSave({ prestigeTreeRanks: ranks, autoClickEnabled: false }));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.autoClickEnabled()).toBe(false);
+      expect(game.autoClickLevel()).toBe(1); // le perk est bien acheté, il est juste débranché
+
+      const hpBefore = game.enemyHpLeft();
+      vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS * 2);
+      expect(game.enemyHpLeft()).toBe(hpBefore); // aucun dégât, aucune annonce
+      expect(game.autoClickPulse().id).toBe(0);
+
+      // Et le rebranchement reprend immédiatement.
+      game.setAutoClickEnabled(true);
+      vi.advanceTimersByTime(AUTOCLICK_INTERVAL_MS);
+      expect(game.enemyHpLeft()).toBeLessThan(hpBefore);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restoreOff();
+    }
+
+    // Un save d'avant l'option n'a pas le champ : l'auto-clic reste actif par défaut.
+    const restoreLegacy = installSave(baseSave({ prestigeTreeRanks: ranks }));
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.autoClickEnabled()).toBe(true);
+    } finally {
+      disposeRoot();
+      restoreLegacy();
+    }
+  });
+
   it("DPS Équipe node 3 softens the synergy malus outside the active arc's anime", () => {
     const testData = {
       animes: [

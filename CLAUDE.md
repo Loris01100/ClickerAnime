@@ -384,7 +384,14 @@ push a chance past 100% or a cost to zero; the xp curve has its own floor (`MIN_
 can never stop being geometric:
 
 - **Clic du Narrateur** — click percent (node 1); an autoclick every 2s, at a level-scaled fraction
-  of click power (node 2, driven by the main tick's `autoClickAccumMs`); crit chance (node 3);
+  of click power (node 2, driven by the main tick's `autoClickAccumMs`). It **announces** every hit
+  through `autoClickPulse` (`{ id, damage }`, the id bumped so two identical hits in a row are still
+  two events) — a perk that lands in silence is indistinguishable from one that isn't working, and
+  `ClickStage` turns each pulse into a damage pop of its own (`.pop.auto`, dimmer than a manual
+  one). It can also be switched off: `autoClickEnabled` is a saved optional field defaulting to on,
+  toggled from the Combat panel head, which only shows the switch once the node is bought. The perk
+  is a convenience, not an obligation — and its pop-ups are noise for a player who wants to feel
+  their own clicks land; crit chance (node 3);
   shaves time off every unlocked ability's cooldown on each click, scaled by level — only those
   still on cooldown, so a ready ability's timestamp never drifts without bound (node 4); a
   chance to fire a random unlocked ability for free, via `triggerAbilityEffects` (node 5, shared

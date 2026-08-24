@@ -4,12 +4,15 @@ import { bannerUrl } from "./anilist";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
-import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar } from "./icons";
+import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconSparkle, IconStar } from "./icons";
+import { AUTOCLICK_INTERVAL_MS } from "../engine/prestigeTree";
 
 interface Pop {
   id: number;
   amount: number;
   crit: boolean;
+  /** Fired by the prestige autoclicker rather than by the player — styled apart, see `.pop.auto`. */
+  auto: boolean;
   x: number;
   y: number;
 }
@@ -25,17 +28,37 @@ export default function ClickStage(props: { game: GameStore }) {
   let popId = 0;
 
   /**
-   * `at` is where the pop-up sprouts, in percent of the stage: the pointer for a mouse click, the
-   * middle for a keyboard one — see `handleKey`, which has no coordinates to work from.
+   * Puts one damage number on the stage and clears it once its `rise` animation is done. `at` is
+   * where it sprouts, in percent of the stage.
+   */
+  function addPop(amount: number, crit: boolean, auto: boolean, at: { x: number; y: number }) {
+    const entry: Pop = { id: popId++, amount, crit, auto, ...at };
+    setPops((list) => [...list, entry]);
+    setTimeout(() => setPops((list) => list.filter((p) => p.id !== entry.id)), 900);
+  }
+
+  /**
+   * One narrator click. `at` is the pointer for a mouse click, the middle of the stage for a
+   * keyboard one — see `handleKey`, which has no coordinates to work from.
    */
   function strike(at: { x: number; y: number }) {
     const { damage, crit } = props.game.click();
     if (damage <= 0) return;
     setHit(true);
-    const pop: Pop = { id: popId++, amount: damage, crit, ...at };
-    setPops((list) => [...list, pop]);
-    setTimeout(() => setPops((list) => list.filter((p) => p.id !== pop.id)), 900);
+    addPop(damage, crit, false, at);
   }
+
+  // The prestige autoclicker (Clic du Narrateur node 2) fires from the tick, with no pointer behind
+  // it — so it lands near the enemy with a little jitter, rather than exactly where the last manual
+  // click happened. Keyed on the pulse's id: two identical hits in a row must still be two pops.
+  createEffect((previous: number | undefined) => {
+    const pulse = props.game.autoClickPulse();
+    if (previous !== undefined && pulse.id !== previous && pulse.damage > 0) {
+      setHit(true);
+      addPop(pulse.damage, false, true, { x: 42 + Math.random() * 16, y: 32 + Math.random() * 16 });
+    }
+    return pulse.id;
+  });
 
   function handleClick(event: MouseEvent) {
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -103,6 +126,21 @@ export default function ClickStage(props: { game: GameStore }) {
         <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
           Combat
         </PanelTitle>
+        {/* Only once the perk is actually bought — an off switch for something you don't have is noise. */}
+        <Show when={props.game.autoClickLevel() > 0}>
+          <button
+            class="auto-toggle"
+            classList={{ on: props.game.autoClickEnabled() }}
+            title={
+              props.game.autoClickEnabled()
+                ? `Clic automatique actif — un clic toutes les ${AUTOCLICK_INTERVAL_MS / 1000}s. Cliquez pour le couper.`
+                : "Clic automatique coupé. Cliquez pour le relancer."
+            }
+            onClick={() => props.game.setAutoClickEnabled(!props.game.autoClickEnabled())}
+          >
+            <IconSparkle /> Auto {props.game.autoClickEnabled() ? "ON" : "OFF"}
+          </button>
+        </Show>
         <small class="muted">
           {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
         </small>
@@ -160,7 +198,7 @@ export default function ClickStage(props: { game: GameStore }) {
                 {(pop) => (
                   <span
                     class="pop"
-                    classList={{ crit: pop.crit }}
+                    classList={{ crit: pop.crit, auto: pop.auto }}
                     style={{ left: `${pop.x}%`, top: `${pop.y}%` }}
                   >
                     -{fmt(pop.amount)}

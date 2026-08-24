@@ -179,6 +179,8 @@ interface SaveFile {
   worldPoints?: Record<string, number>;
   /** pack copies held per character; absent on an older save, defaults to {} */
   characterDuplicates?: Record<string, number>;
+  /** whether the bought autoclicker runs; absent on an older save, defaults to on */
+  autoClickEnabled?: boolean;
 }
 
 const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
@@ -223,6 +225,7 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.achievementCounts, (v) => isRecordOf(v, isNumber)) &&
     opt(c.worldPoints, (v) => isRecordOf(v, isNumber)) &&
     opt(c.characterDuplicates, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.autoClickEnabled, (v) => typeof v === "boolean") &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
     opt(c.prestigeTreeRanks, (v) =>
       isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
@@ -279,6 +282,20 @@ export function createGameStore(data: GameData) {
   const [killsSinceDrop, setKillsSinceDrop] = createSignal<Record<string, number>>({});
   // Sub-tick accumulator driving the "Clic du Narrateur" tier 2 autoclicker. Also transient.
   const [autoClickAccumMs, setAutoClickAccumMs] = createSignal(0);
+  /**
+   * Bumped every time the autoclicker fires, so the stage can pop the damage the way it pops a
+   * manual click. `id` is what the effect keys on — `damage` alone would miss two identical hits
+   * in a row. Transient: a reload has no autoclick to redraw.
+   */
+  const [autoClickPulse, setAutoClickPulse] = createSignal({ id: 0, damage: 0 });
+  /**
+   * Whether the bought autoclicker actually runs. It is a perk, not an obligation: some players
+   * want to feel their own clicks land, and the pop-ups it now draws are noise if you don't. Saved,
+   * because a preference that resets on every reload is worse than no preference at all.
+   */
+  const [autoClickEnabled, setAutoClickEnabled] = createSignal(saved?.autoClickEnabled ?? true);
+  /** Level of the autoclicker node — 0 means it isn't bought, so the UI hides the toggle entirely. */
+  const autoClickLevel = () => nodeLevelOf("narratorClick", 2);
   // Kills `dealDamage` may still resolve, refilled by the tick at MAX_KILLS_PER_SECOND and capped
   // there so an idle stretch banks no burst. Transient like the rest of combat state.
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
@@ -1215,6 +1232,7 @@ export function createGameStore(data: GameData) {
       crossoverCrystals: crossoverCrystals(),
       worldPoints: worldPoints(),
       characterDuplicates: characterDuplicates(),
+      autoClickEnabled: autoClickEnabled(),
     };
   }
 
@@ -1303,10 +1321,14 @@ export function createGameStore(data: GameData) {
     checkTimer(nowMs);
 
     const autoClickLevel = nodeLevelOf("narratorClick", 2);
-    if (autoClickLevel > 0) {
+    if (autoClickLevel > 0 && autoClickEnabled()) {
       const accumMs = autoClickAccumMs() + deltaMs;
       if (accumMs >= AUTOCLICK_INTERVAL_MS) {
-        dealDamage(clickPower() * Math.min(1, AUTOCLICK_POWER_FRACTION * autoClickLevel));
+        const damage = clickPower() * Math.min(1, AUTOCLICK_POWER_FRACTION * autoClickLevel);
+        dealDamage(damage);
+        // Announced, not just dealt: an autoclick that lands in silence is indistinguishable from a
+        // perk that isn't working. `ClickStage` turns each pulse into a damage pop-up of its own.
+        setAutoClickPulse({ id: autoClickPulse().id + 1, damage });
         setAutoClickAccumMs(accumMs % AUTOCLICK_INTERVAL_MS);
       } else {
         setAutoClickAccumMs(accumMs);
@@ -1400,6 +1422,10 @@ export function createGameStore(data: GameData) {
     nodeCostOf,
     purchaseTreeLevel,
     // combat
+    autoClickPulse,
+    autoClickEnabled,
+    setAutoClickEnabled,
+    autoClickLevel,
     enemy,
     enemyHpLeft,
     enemyMaxHp,

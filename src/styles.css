@@ -1508,3 +1508,30 @@ button.danger {
 .ability.blocked .ability-cd {
   color: var(--bad);
 }
+
+/*
+ * Un dégât d'auto-clic (arbre de prestige) : même animation que le clic manuel, mais plus discret,
+ * pour qu'on distingue au premier regard ce qu'on a frappé de ce que le perk a frappé.
+ */
+.pop.auto {
+  color: var(--blue);
+  font-size: 0.85em;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Interrupteur de l'auto-clic, dans le panel-head du Combat. */
+.auto-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  opacity: 0.6;
+}
+.auto-toggle.on {
+  border-color: var(--blue);
+  color: var(--blue);
+  opacity: 1;
+}
