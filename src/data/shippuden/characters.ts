@@ -52,6 +52,18 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 46,
     baseDps: 240,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
+    evolution: {
+      animeId: "boruto",
+      label: "Chef de la Racine",
+      bonus: [{ target: "teamDps", kind: "percent", value: 0.4 }],
+      ability: {
+        id: "ability-racine",
+        name: "Fauves de l'Encre — Escadron",
+        cooldownMs: 85_000,
+        durationMs: 10_000,
+        effects: [{ target: "teamDps", kind: "multiplier", value: 4.5 }],
+      },
+    },
   },
   {
     id: "yamato",
@@ -62,6 +74,11 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 46,
     baseDps: 240,
     passive: { target: "teamDps", kind: "percent", value: 0.25 },
+    evolution: {
+      animeId: "boruto",
+      label: "Traqueur de Kara",
+      bonus: [{ target: "teamDps", kind: "percent", value: 0.35 }],
+    },
   },
   {
     id: "asuma",
@@ -239,6 +256,11 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 1_850,
     baseDps: 9_640,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
+    evolution: {
+      animeId: "boruto",
+      label: "Ancienne Mizukage",
+      bonus: [{ target: "clickPower", kind: "percent", value: 0.45 }],
+    },
   },
   {
     id: "onoki",
@@ -249,6 +271,18 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 1_850,
     baseDps: 9_640,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
+    evolution: {
+      animeId: "boruto",
+      label: "Le Fossile Vivant",
+      bonus: [{ target: "teamDps", kind: "percent", value: 0.45 }],
+      ability: {
+        id: "ability-jinton-onoki",
+        name: "Jinton — Dernier Souffle",
+        cooldownMs: 95_000,
+        durationMs: 11_000,
+        effects: [{ target: "teamDps", kind: "multiplier", value: 5 }],
+      },
+    },
   },
   {
     id: "darui",
@@ -297,6 +331,18 @@ export const shippudenCharacters: GameData["characters"] = [
       effects: [
         { target: "teamDps", kind: "multiplier", value: 3 },
       ],
+    },
+    evolution: {
+      animeId: "boruto",
+      label: "Hachibi Déchaîné",
+      bonus: [{ target: "teamDps", kind: "percent", value: 0.5 }],
+      ability: {
+        id: "ability-hachibi-bee",
+        name: "Lariat du Hachibi",
+        cooldownMs: 100_000,
+        durationMs: 12_000,
+        effects: [{ target: "teamDps", kind: "multiplier", value: 5.5 }],
+      },
     },
   },
   {

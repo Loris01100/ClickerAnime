@@ -3,8 +3,9 @@
 import type { GameData } from "../engine/gameState";
 import { narutoData } from "./naruto";
 import { shippudenData } from "./shippuden";
+import { borutoData } from "./boruto";
 
-const worlds = [narutoData, shippudenData];
+const worlds = [narutoData, shippudenData, borutoData];
 
 export const gameData: GameData = {
   animes: worlds.flatMap((w) => w.animes),

@@ -501,6 +501,11 @@ code écrit à la main.
   un monde s'identifie par son nom complet. À revoir si un titre bien plus long arrive (un
   « Boruto : Naruto Next Generations » ne tiendra dans aucune largeur raisonnable, et demandera
   alors un vrai arbitrage : ellipse, passage sur deux lignes, ou nom court dans les données).
+  **Arbitrage rendu quand Boruto est arrivé : c'est le nom court dans les données.** Le monde
+  s'appelle « Boruto », point. Ni champ `shortName` de plus sur `Anime`, ni cas particulier dans le
+  CSS, ni ellipse — et la règle du dessus tient toujours telle quelle : un nom de monde ne se fait
+  jamais tronquer, parce qu'aucun nom de monde n'est trop long. Un futur monde au titre à rallonge
+  se règle pareil, dans les données, pas dans la mise en page.
 - **Toute animation respecte `prefers-reduced-motion`.**
 - **En dessous de 1100px les trois colonnes s'empilent, et le combat passe en premier.**
   `.game > .column:nth-child(2) { order: -1 }` : dans l'ordre du DOM, la colonne du milieu arrive

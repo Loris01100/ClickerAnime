@@ -235,16 +235,22 @@ describe("prestige", () => {
 
   /**
    * The curve is what stops the tree from being bought outright the first time it is reachable:
-   * a full run of the whole game earns on the order of 9e9, and must bank a few hundred points
-   * against a 775-point tree — not thousands. Guards the exponent/scale/bonus trio together.
+   * a full run of the whole game earns on the order of 3e12 (`npm run sim` prints the figure), and
+   * must bank a few hundred points against a 775-point tree — not thousands. Guards the
+   * exponent/scale/bonus trio together.
+   *
+   * **The earnings figure here moves every time a world is added**, and so must the exponent — a
+   * full clear stays at 100% completion while `lifetimeEarned` explodes, so nothing dilutes that
+   * half on its own. Boruto took a full run from 8.76e9 to 3.21e12, which at the old 0.22 exponent
+   * banked 866 points and bought the whole tree in one run. See `PRESTIGE_EXPONENT`.
    */
   it("un run complet du jeu banque quelques centaines de points, pas des milliers", () => {
-    const fullRun = applyPrestige(createInitialPrestigeState(), 8.9e9, undefined, 1).prestigePoints;
+    const fullRun = applyPrestige(createInitialPrestigeState(), 3.2e12, undefined, 1).prestigePoints;
     expect(fullRun).toBeGreaterThan(100);
     expect(fullRun).toBeLessThan(400);
     // And farming one arc forever must not substitute for clearing more of them: 10x the earnings
     // at the same completion is worth far less than the completion bonus itself.
-    expect(applyPrestige(createInitialPrestigeState(), 8.9e10, undefined, 1).prestigePoints).toBeLessThan(
+    expect(applyPrestige(createInitialPrestigeState(), 3.2e13, undefined, 1).prestigePoints).toBeLessThan(
       fullRun * 2
     );
   });
@@ -1029,27 +1035,32 @@ describe("game data", () => {
   });
 
   /**
-   * Shippūden's table is generated on three ramps, and the two hp ones are not free: they track the
-   * rate the team's own dps grows (~2.53x per arc, measured with `npm run sim --json`). Ramp the hp
-   * slower and the world's pace inverts — the climax ends up the fastest part of the game and the
-   * boss clock stops mattering, which is exactly what this table used to do at a flat 1.85. The
-   * rationale and the tuning history are in `docs/combat.md`; this test is what stops an edit from
-   * quietly walking one arc off the ramp.
+   * Shippūden and Boruto are both generated from a table, on three ramps, and the two hp ones are
+   * not free: they track the rate the team's own dps grows, measured with `npm run sim --json`.
+   * Ramp the hp slower and the world's pace inverts — the climax ends up the fastest part of the
+   * game and the boss clock stops mattering, which is exactly what Shippūden's table used to do at
+   * a flat 1.85. Boruto is steeper still because the roster it inherits is deeper. The rationale
+   * and the tuning history are in `docs/combat.md`; this test is what stops an edit from quietly
+   * walking one arc off its world's ramp.
+   *
+   * Naruto part 1 is deliberately absent: it is hand-written arc by arc, not generated, because the
+   * opening world is where the team is still forming and its pacing is not a clean geometric ramp.
    */
-  it("tient les trois rampes de la table de Shippūden", () => {
-    const arcs = gameData.arcs
-      .filter((arc) => arc.animeId === "shippuden")
-      .sort((a, b) => a.order - b.order);
-    expect(arcs).toHaveLength(15);
+  it.each([
+    { animeId: "shippuden", arcCount: 15, mobRamp: 2.33, bossRamp: 2.5 },
+    { animeId: "boruto", arcCount: 8, mobRamp: 2.4, bossRamp: 2.55 },
+  ])("tient les trois rampes de la table de $animeId", ({ animeId, arcCount, mobRamp, bossRamp }) => {
+    const arcs = gameData.arcs.filter((arc) => arc.animeId === animeId).sort((a, b) => a.order - b.order);
+    expect(arcs).toHaveLength(arcCount);
 
     for (let n = 1; n < arcs.length; n++) {
       const [previous, arc] = [arcs[n - 1], arcs[n]];
       const label = `${arc.name} (ordre ${arc.order})`;
       // Rounded to 3 significant figures in the data, so a ramp lands within ~1% of its target.
-      expect(arc.boss.baseHp / previous.boss.baseHp, `${label} : pv du boss`).toBeCloseTo(2.5, 1);
-      expect(arc.mobs[0].baseHp / previous.mobs[0].baseHp, `${label} : pv des mobs`).toBeCloseTo(2.33, 1);
-      // The reward ramp is deliberately the one left alone: kills per arc are fixed, so touching it
-      // would move the economy, which the hp retune explicitly did not.
+      expect(arc.boss.baseHp / previous.boss.baseHp, `${label} : pv du boss`).toBeCloseTo(bossRamp, 1);
+      expect(arc.mobs[0].baseHp / previous.mobs[0].baseHp, `${label} : pv des mobs`).toBeCloseTo(mobRamp, 1);
+      // The reward ramp is the one deliberately left alone, and it is the same in every world: kills
+      // per arc are fixed, so touching it would move the economy, which the hp tuning must not.
       expect(arc.boss.reward / previous.boss.reward, `${label} : récompense`).toBeCloseTo(1.85, 1);
     }
   });

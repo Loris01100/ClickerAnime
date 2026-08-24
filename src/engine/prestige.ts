@@ -21,14 +21,21 @@ export const COMPLETION_GAIN_BONUS = 9;
 export const PRESTIGE_SCALE = 5_000;
 
 /**
- * Curve exponent, deliberately *low*. Currency spans ~×43 000 between clearing the first world and
- * clearing the last, so any exponent near 0.5 turns that span into a gain of thousands: a single
- * full run used to bank ~6 600 points against a 775-point tree, i.e. the whole of the game's
- * meta-progression bought the first time it was reachable. At 0.22 the same span is worth ~×11, and
- * COMPLETION_GAIN_BONUS above supplies the rest — so farming an arc longer barely helps, and
- * clearing one more arc does. A full clear banks a few hundred points, several runs buy the tree.
+ * Curve exponent, deliberately *low*. Currency spans a colossal range between clearing the first
+ * world and clearing the last, so any exponent near 0.5 turns that span into a gain of thousands: a
+ * single full run used to bank ~6 600 points against a 775-point tree, i.e. the whole of the game's
+ * meta-progression bought the first time it was reachable. A low exponent keeps that span worth
+ * ~×10, and COMPLETION_GAIN_BONUS above supplies the rest — so farming an arc longer barely helps,
+ * and clearing one more arc does. A full clear banks a few hundred points, several runs buy the tree.
+ *
+ * **This is a per-world knob, and it has to be re-checked every time a world is added.** Only half
+ * of the "adding a world self-balances" story is true: `runCompletion` is a share of *all* the
+ * game's arcs, so new content does dilute what a partial run banks — but a *full* clear is still
+ * 100% completion against a far bigger `lifetimeEarned`, and that half grows unchecked. Boruto
+ * multiplied a full run's earnings by ~366 (8.76B → 3.21T), which at the old 0.22 took a full clear
+ * from 236 points to 866 — one run buying the entire 775-point tree. 0.16 puts it back at ~250.
  */
-export const PRESTIGE_EXPONENT = 0.22;
+export const PRESTIGE_EXPONENT = 0.16;
 
 /**
  * Diminishing-returns curve so prestige points don't scale linearly with lifetime earnings,

@@ -70,23 +70,41 @@ The climax was the fastest part of the game, and the boss clock — the only thi
 — had stopped mattering: the margin between a boss's time-to-kill and its own timer drifted from
 **0.8x on the first arc to 134x on the last**. Bosses after arc 6 were a formality.
 
-Shippūden is now tuned on three ramps rather than one, all verified with the simulator:
+Both generated worlds are now tuned on three ramps rather than one, all verified with the simulator:
 
-| What | Ramp per arc | Why |
-|---|---|---|
-| Boss `baseHp` | **2.5x** | Matches the dps ramp, so the boss keeps the same pressure at every arc |
-| Mob `baseHp` | **2.33x** | Slightly under, so the grind rises gently instead of turning the climax into a slog |
-| `reward`, recruit stats | 1.85x | **Untouched** — currency comes from kills, and kills per arc are fixed by `mobsToBoss`, so an hp-only change moves the clock without touching the economy at all |
+| What | Shippūden | Boruto | Why |
+|---|---|---|---|
+| Boss `baseHp` | **2.5x** | **2.55x** | Matches the dps ramp, so the boss keeps the same pressure at every arc |
+| Mob `baseHp` | **2.33x** | **2.4x** | Slightly under, so the grind rises gently instead of turning the climax into a slog |
+| `reward`, recruit stats | 1.85x | 1.85x | **Untouched, in every world** — currency comes from kills, and kills per arc are fixed by `mobsToBoss`, so an hp-only change moves the clock without touching the economy at all |
 
 Boss timers were widened by 1.5x alongside (rounded to 15s steps). The result, on seed 1 at 4
 clicks/s: Shippūden's arcs run 1.3 → 3.4 minutes in a gentle rise, every boss fight uses 18-56s of
 its timer for a margin of 1.9x to 6.6x, and a full run goes from 27 to ~45 minutes with the same
 8.76B earned and the same 236 prestige points banked — the proof the economy really is untouched.
+Boruto, the world after it, runs 3.5 → 7.2 minutes per arc for margins of 3.2x to 8.4x. It is the
+hardest world by a clear margin, which is what its place in the reading order calls for.
 
-**Adding a world means measuring this again, not copying 2.33.** The dps ramp is a property of how
+### Where a new world's arc 0 starts — not where you would think
+
+**Adding a world means measuring this again, not copying a ramp.** The dps ramp is a property of how
 deep the roster is by then, so a fourth world's table starts from what the simulator reports at the
-end of the third, and its arc 0 starts from where the previous world's last arc left off — not from
-`difficultyMultiplier`, whose 2.5x per *tier* is nothing next to a world's own internal ramp.
+end of the third — not from `difficultyMultiplier`, whose 2.5x per *tier* is nothing next to a
+world's own internal ramp.
+
+But the number to measure is **not the dps the team ends the previous world with.** Boruto's table
+was first sized against Shippūden's closing 61.8B dps, and the world walled on its very first boss.
+Crossing into a new world does two things at once to a team built over sixty recruits:
+`synergyMultiplier` drops every one of them to `otherAnimeMalus` (half damage), and
+`characterContributions` **shuts their passives off entirely** — and by then those additive percents
+are most of what the team's dps is. Measured, the crossing cost 61.8B → **1.95B, a 32x cliff**, and
+it gets steeper with every world added because the roster carried across keeps growing.
+
+So a world's arc 0 is sized against the dps the team has **once it is standing there**, which is far
+below where the previous world left off. The cliff closes fast — Boruto's own recruits bring their
+passives home, and its arc 1 is already back to 15B — so only arc 0 needs the allowance; the ramp
+takes over from there. The same shape is why both worlds open with an arc noticeably easier than the
+finale before it: crossing a world border is a breather by construction, not by accident.
 
 ## The narrator's click
 

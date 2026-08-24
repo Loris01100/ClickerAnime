@@ -44,21 +44,29 @@ base draw's own ~8-kill average, so this class of mistake can't come back.
 
 ## Prestige
 
-Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONENT` is 0.22 and
+Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONENT` is 0.16 and
 `COMPLETION_GAIN_BONUS` is 9, so clearing one more arc is worth far more than farming the current
-one for hours. Currency spans ~x43 000 between clearing the first world and the last, and the old
-0.65 exponent turned that span into a gain of thousands — a single full run banked ~6 600 points
-against a 775-point tree, buying the whole of the game's meta-progression the first time it was
-reachable. At 0.22 a full run banks ~240 and the tree takes several. Adding a world self-balances:
-`runCompletion` is a share of *all* the game's arcs, so new content dilutes it. `engine.test.ts`
-guards the trio together rather than the individual constants.
+one for hours. Currency spans an enormous range between clearing the first world and the last, and
+the old 0.65 exponent turned that span into a gain of thousands — a single full run banked ~6 600
+points against a 775-point tree, buying the whole of the game's meta-progression the first time it
+was reachable. At 0.16 a full run banks ~250 and the tree takes several. `engine.test.ts` guards
+the trio together rather than the individual constants.
+
+**Adding a world only half self-balances, and the exponent is the other half.** `runCompletion` is a
+share of *all* the game's arcs, so new content dilutes what a *partial* run banks — a Naruto +
+Shippūden clear went from 100% to 20/28 when Boruto landed, and from 236 points to 201. But a *full*
+clear is still 100% completion against a much bigger `lifetimeEarned`, and nothing dilutes that
+half: Boruto multiplied a full run's earnings by ~366 (8.76B → 3.21T), which at 0.22 banked **866**
+points — one run buying the whole tree. Dropping the exponent to 0.16 puts a full clear back at ~250
+without moving the early game (a Naruto-only clear goes 5 points → 4). Re-run this arithmetic
+whenever a world is added; `npm run sim` prints the banked total on every run.
 
 `prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
 tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what
-the same earnings bank early. The exponent is deliberately *low* (0.22, see above): completion has to
+the same earnings bank early. The exponent is deliberately *low* (0.16, see above): completion has to
 dominate, or farming one arc for hours outpaces clearing the next one. A double-gain chance is a perk
 of the tree's **"Destin"** branch, see below. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which

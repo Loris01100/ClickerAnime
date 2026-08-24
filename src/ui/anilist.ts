@@ -37,7 +37,16 @@ const NAME_OVERRIDES: [from: string, to: string][] = [
   ["Jiraya", "Jiraiya"],
   ["Ay, le Quatrième Raikage", "A"],
   ["Nagato", "Pain"],
+  ["Sarada Uchiwa", "Sarada Uchiha"],
 ];
+
+// Checked against the live cast of every show the game ships (172 characters for Boruto), with this
+// file's own `normalize`/`matchScore`: every name resolves except **Isshiki Ôtsutsuki**, who has no
+// card on AniList at all — not under that name, not as an alternative, not anywhere in the database.
+// He is left to resolve to `null`, i.e. `Sprite`'s placeholder. The tempting fix is an override onto
+// "Jigen", his vessel and the same person — the `Nagato` → `Pain` trick above — but Jigen is a
+// separate roster entry standing in the very same arc, so the two Codex cards would wear one face
+// and read as a bug. A known blank beats a confusing duplicate.
 
 function applyNameOverrides(name: string): string {
   let result = name;
@@ -56,6 +65,9 @@ const ANIME_ID_OVERRIDES: Record<string, number> = {
   Naruto: 20,
   "Naruto Shippūden": 1735,
   "The Last: Naruto the Movie": 16870,
+  // Verified live, and a textbook case for this table: searching the bare "Boruto" resolves to
+  // BORUTO: NARUTO THE MOVIE (21220), not the 293-episode TV series the game's cast comes from.
+  Boruto: 97938,
 };
 
 // A character's own story can span a spin-off movie the game's data doesn't model as a separate

@@ -62,6 +62,12 @@ entry — `Character.evolution` (`animeId`, `label`, `bonus` modifiers, an optio
 `animeId`, enforced in `engine.test.ts`) — evolutions only ever look forward in a universe's reading
 order, never sideways or back.
 
+The Naruto universe uses this twice, one link per world border: part 1's mains grow when they reach
+Shippūden, and Shippūden's mains who are still standing in Boruto (Saï, Yamato, Ônoki, Killer Bee,
+Mei) grow again there. A character has exactly one `evolution` field, so a given entry evolves at
+most once — Naruto's own evolution fires at Shippūden and that is the end of it, which is why the
+Boruto set is drawn from characters introduced *in* Shippūden rather than from part 1's cast.
+
 Unlocking is permanent, not location-gated: the first time an owned character fights in
 `evolution.animeId`, `gameState`'s `maybeEvolve` (called from `spawnNext`, so on every recruit and
 arc switch) adds their id to `evolvedCharacterIds` for the rest of the run, and it never re-locks —

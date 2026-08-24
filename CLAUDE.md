@@ -134,12 +134,18 @@ combos, rarely a whole world at once. Keep the shape when adding a world; omit a
 world genuinely has no such section.
 
 - `naruto/` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
+- `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~4.6 minutes an arc against
+  Shippūden's ~2.4. Generated from a table like Shippūden, on its own **steeper** ramps (boss hp
+  ~2.55, mob hp ~2.4, rewards and recruit stats ~1.85), because the roster it inherits grows faster.
+  Its `name` is deliberately the short one — see `design.md`. Only new faces are recruitable here:
+  the new generation, Kara and the Ôtsutsuki.
 - `shippuden/` — **Naruto Shippūden**, 15 arcs, deliberately the long one: it is the climax of the
   Naruto worlds. Generated from a table, on **three ramps per arc**: boss hp ~2.5, mob hp ~2.33,
   rewards and recruit stats ~1.85. Keep all three when editing — the hp ones track how fast the
   team's dps actually grows (measured, not guessed: `docs/combat.md`), and the reward one is what
-  keeps the economy where it was. Boruto is meant to come last and hardest, and its own ramps have
-  to be **measured again** rather than copied from here.
+  keeps the economy where it was. A world added after this one needs its own ramps **measured
+  again** rather than copied from here — and sized against the dps the team has *after* crossing the
+  border, which is far below what it ends the previous world with (`docs/combat.md`).
 
 A character belongs to exactly one world and is recruitable in exactly one arc: Shippūden reuses no
 one from part 1, it introduces new faces only (`engine.test.ts` enforces both rules, along with every
