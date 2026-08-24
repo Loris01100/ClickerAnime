@@ -471,6 +471,12 @@ code écrit à la main.
   Ces fonctions doivent rester pures, testables sans DOM.
 - **Toute couleur vient d'un token.** Un nouveau token va dans le bloc `:root` clair, et dans les
   deux blocs sombres — jamais une seule des trois définitions.
+- **Un badge collé à un texte de longueur libre est un bloc atomique.** Une pastille multi-mots
+  (`.arc-hard` « trop dur », et toute future du même genre) se met en `inline-block` +
+  `white-space: nowrap`, jamais en `inline` : sinon le navigateur a le droit de couper *à
+  l'intérieur*, et le fond coloré se peint en deux morceaux sur deux lignes. Le bon comportement est
+  que le badge bascule entier à la ligne suivante. `.portal-badge` est déjà couvert par son
+  `inline-flex`. Un badge d'un seul mot ne risque rien, mais autant appliquer la règle partout.
 - **Un nom de monde ne se fait jamais tronquer.** La colonne de gauche du portail
   (`.portal` `grid-template-columns`) est dimensionnée pour que le nom tienne en entier à côté de
   son badge de statut, pas pour être serrée : elle est passée de 240px à **280px** quand

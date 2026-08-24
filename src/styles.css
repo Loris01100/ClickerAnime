@@ -1569,7 +1569,14 @@ button.danger {
 
 /* --- lisibilité de la progression --- */
 /* Un arc ouvert dont le boss dépasse son propre chrono : « reviens plus tard », sans survol. */
+/* Le badge suit un nom d'arc de longueur libre, donc il finit toujours par tomber en fin de ligne.
+   `inline-block` + `nowrap` en font un bloc atomique : il bascule entier sur la ligne suivante au
+   lieu d'être coupé en son milieu. En `inline` (le défaut), « La Mission de Récupération de Sasuke »
+   scindait le badge en deux fragments — « trop » sur une ligne, « dur » sur la suivante — avec le
+   fond rose peint deux fois. */
 .arc-hard {
+  display: inline-block;
+  white-space: nowrap;
   margin-left: 0.35rem;
   padding: 0 0.3rem;
   border-radius: 4px;
