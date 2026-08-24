@@ -531,6 +531,15 @@ describe("achievements", () => {
     }
   });
 
+  it("has unique ids and spreads its bonuses over both targets", () => {
+    const ids = ACHIEVEMENT_CATEGORIES.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // The click is a trigger, not a damage source: it must not carry every ladder in the game.
+    const clickLadders = ACHIEVEMENT_CATEGORIES.filter((c) => c.target === "clickPower");
+    expect(clickLadders.length).toBeGreaterThan(0);
+    expect(clickLadders.length).toBeLessThan(ACHIEVEMENT_CATEGORIES.length / 2);
+  });
+
   it("counts completed tiers at, but not before, their threshold", () => {
     const category = ACHIEVEMENT_CATEGORIES[0];
     const [first, second] = category.tiers;
@@ -549,9 +558,10 @@ describe("achievements", () => {
   it("grows the bonus with the tier, and only emits modifiers for completed tiers", () => {
     expect(achievementTierBonus(1)).toBeGreaterThan(achievementTierBonus(0));
 
-    const oneTierIn = achievementContributions({ [ACHIEVEMENT_CATEGORIES[0].id]: ACHIEVEMENT_CATEGORIES[0].tiers[0] });
+    const category = ACHIEVEMENT_CATEGORIES[0];
+    const oneTierIn = achievementContributions({ [category.id]: category.tiers[0] });
     expect(oneTierIn).toHaveLength(1);
-    expect(oneTierIn[0]).toMatchObject({ target: "clickPower", kind: "percent" });
+    expect(oneTierIn[0]).toMatchObject({ target: category.target, kind: "percent" });
 
     expect(achievementContributions({})).toHaveLength(0);
   });

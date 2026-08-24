@@ -391,6 +391,7 @@ export function createGameStore(data: GameData) {
     if (crossoverActive() || crossoverCrystals() < CROSSOVER_COST) return false;
     setCrossoverCrystals((c) => c - CROSSOVER_COST);
     setCrossoverUntil(Date.now() + CROSSOVER_DURATION_MS);
+    bumpAchievement("crossoversUsed");
     return true;
   }
 
@@ -444,6 +445,8 @@ export function createGameStore(data: GameData) {
     const item = data.items.find((i) => i.id === itemId);
     if (!character || !item || item.kind !== "unique") return false;
     if (!canEquipItem(character, itemId)) return false;
+    // Only an item coming off the shelf counts: moving one between characters isn't a new equip.
+    if (!Object.values(characterEquipment()).includes(itemId)) bumpAchievement("uniquesEquipped");
     // Unequip the item from any other character first (uniques are single-copy).
     setCharacterEquipment((map) => {
       const next: Record<string, string> = {};
@@ -628,6 +631,7 @@ export function createGameStore(data: GameData) {
       .map((c) => c.id);
     if (newlyEvolved.length > 0) {
       setEvolvedCharacterIds((ids) => [...ids, ...newlyEvolved]);
+      bumpAchievement("evolutionsUnlocked", newlyEvolved.length);
     }
   }
 
@@ -698,6 +702,7 @@ export function createGameStore(data: GameData) {
     if (isBoss) {
       if (!clearedArcIds().includes(arc.id)) {
         setClearedArcIds((ids) => [...ids, arc.id]);
+        bumpAchievement("arcsCleared");
         pushNotice("arc", `${arc.name} terminé`);
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
@@ -814,6 +819,7 @@ export function createGameStore(data: GameData) {
    * for free (node 5).
    */
   function click() {
+    bumpAchievement("clicks");
     const critLevel = nodeLevelOf("narratorClick", 3);
     const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
     const dealt = dealDamage(crit ? clickPower() * CRIT_MULTIPLIER : clickPower());
@@ -966,6 +972,7 @@ export function createGameStore(data: GameData) {
     if (!item || !upgrade.affordable) return false;
     setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) - upgrade.cost }));
     setPassiveRanks((ranks) => ({ ...ranks, [character.id]: upgrade.rank + 1 }));
+    bumpAchievement("passiveRanksBought");
     return true;
   }
 
@@ -999,6 +1006,7 @@ export function createGameStore(data: GameData) {
     if (!drawn) return null;
     setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
     setCharacterDuplicates((copies) => ({ ...copies, [drawn.id]: (copies[drawn.id] ?? 0) + 1 }));
+    bumpAchievement("packsOpened");
     return drawn;
   }
 
@@ -1189,6 +1197,7 @@ export function createGameStore(data: GameData) {
     const doubleLevel = nodeLevelOf("destin", 5);
     const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
     setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier));
+    bumpAchievement("prestiges");
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
@@ -1330,6 +1339,7 @@ export function createGameStore(data: GameData) {
       if (accumMs >= interval) {
         const damage = clickPower();
         dealDamage(damage);
+        bumpAchievement("clicks");
         // Announced, not just dealt: an autoclick that lands in silence is indistinguishable from a
         // perk that isn't working. `ClickStage` turns each pulse into a damage pop-up of its own.
         setAutoClickPulse({ id: autoClickPulse().id + 1, damage });

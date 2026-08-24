@@ -503,7 +503,9 @@ densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent mêm
   `.bar.xp-bar`, la même barre fine déjà utilisée pour l'xp des personnages. Aucune couleur, classe
   ou animation n'a été ajoutée pour cet écran ; c'est le test du §2 appliqué à un système au lieu
   d'un monde : si l'écran a besoin d'inventer sa propre DA, c'est que la réutilisation a été
-  abandonnée trop tôt.
+  abandonnée trop tôt. Passer de 5 à 13 échelles n'a rien changé à l'écran : la liste vient de
+  `ACHIEVEMENT_CATEGORIES` et la ligne de palier lit `category.target` pour dire quelle stat le
+  bonus alimente (clic ou dps d'équipe), via `describeModifier` — aucun style par catégorie.
 - **Le bouton `Succès` de la topbar** utilise `IconTrophy` (déjà dans `icons.tsx`, jusque-là
   inutilisé) — même gabarit que les boutons `Codex`/`Mondes` voisins, aucun style de bouton dédié.
 - **Exporter/Importer** sont des boutons texte sans icône ni mise en avant particulière dans la

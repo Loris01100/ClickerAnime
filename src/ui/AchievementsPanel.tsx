@@ -11,8 +11,8 @@ import { fmt } from "./format";
 import { IconCheck } from "./icons";
 
 /**
- * Five lifetime ladders (kills, boss kills, recruits, common items, abilities used), each tier a
- * permanent click-power bonus that survives prestige — see gameState's achievementCounts.
+ * One lifetime ladder per countable action, each tier a permanent bonus on that ladder's own stat
+ * (click or team dps) that survives prestige — see gameState's achievementCounts.
  */
 export default function AchievementsPanel(props: { game: GameStore; onClose: () => void }) {
   function onKeyDown(event: KeyboardEvent) {
@@ -69,7 +69,7 @@ export default function AchievementsPanel(props: { game: GameStore; onClose: () 
                         </span>
                         <strong classList={{ muted: i() >= completed() }}>
                           {describeModifier({
-                            target: "clickPower",
+                            target: category.target,
                             kind: "percent",
                             value: achievementTierBonus(i()),
                           })}

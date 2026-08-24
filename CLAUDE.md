@@ -490,17 +490,28 @@ Points and duplicates are meta-progression like `achievementCounts` and `prestig
 
 ### Achievements (`achievements.ts`)
 
-Five countable actions — mobs killed, bosses killed, characters recruited, common items collected,
-abilities activated — each with its own ladder of tiers (`ACHIEVEMENT_CATEGORIES`). `gameState` keeps
-one lifetime counter per category (`achievementCounts`, bumped by `bumpAchievement` at the point of
-the event: `defeat` for kills and recruits, `maybeDropItem` for commons only — uniques don't count,
-`activateAbility` for activations). Counts only ever go up, even when the thing counted can later be
-spent (a common item collected still counts once it's spent ranking up a passive), because the
-achievement is about the action having happened, not a stock still held.
+Thirteen countable actions, each with its own ladder of tiers (`ACHIEVEMENT_CATEGORIES`): mobs
+killed, bosses killed, characters recruited, arcs cleared, evolutions unlocked, crossovers
+activated, uniques equipped, prestiges, clicks, common items collected, abilities activated, passive
+ranks bought, packs opened. `gameState` keeps one lifetime counter per category
+(`achievementCounts`, bumped by `bumpAchievement` at the point of the event, in the function that
+owns it — `defeat` for kills/recruits/arcs, `maybeDropItem` for commons only since uniques don't
+count, `click` plus the tick's autoclick, which lands at full click power and so counts like a manual
+one, `maybeEvolve`, `activateCrossover`, `equipItem`, `rankUpPassive`, `openPack`,
+`activateAbility`, `prestigeReset`). Counts only ever go up, even when the thing counted can later
+be spent (a common item collected still counts once it's spent ranking up a passive), because the
+achievement is about the action having happened, not a stock still held. `equipItem` is the one that
+needs a guard: it bumps only for an item not already worn by someone, so shuffling one unique
+between characters isn't a free ladder.
 
-Each completed tier folds into `allModifiers` as a permanent `clickPower` percent bonus
+Each completed tier folds into `allModifiers` as a permanent percent bonus
 (`achievementTierBonus`, geometric growth — early tiers are a taste, late ones matter), through
-`achievementContributions` exactly like any other modifier source. Unlike almost everything else,
+`achievementContributions` exactly like any other modifier source. **The stat it pays into is per
+category** (`AchievementCategory.target`): the click is a trigger, not a damage source, so only five
+ladders — the ones the player does *with* the click or with what it drops (clicks, commons,
+abilities, passive ranks, packs) — pay `clickPower`, exactly as many as before the list was
+extended; the other eight, all about what the team kills, clears and becomes, pay `teamDps`.
+`engine.test.ts` guards that split so a new ladder can't quietly be dumped onto the click. Unlike almost everything else,
 achievement counts are **not** wiped by `prestigeReset` — they are meta-progression in the same spirit
 as prestige points, meant to keep paying off across runs. Only `hardReset`, the full-wipe button,
 clears them.
