@@ -420,6 +420,26 @@ small {
   color: var(--good);
 }
 
+/* Three-column variant of .codex-row: label / value / action, so the values line up down the
+   list instead of drifting with the label's width. */
+.codex-row.with-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem 5.5rem;
+  align-items: center;
+}
+/* Left-aligned in a fixed column, not right-aligned: "rang 0 / 5" and "rang 0 / 10" don't have the
+   same width, so only a shared starting edge (plus tabular figures) makes them read as a column. */
+.codex-row.with-action > :nth-child(2) {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+/* Stretched, not end-aligned: a <button> carries its own padding and border, so a bare "max"
+   sitting flush right would never line up with the button label above it. Same box, either way. */
+.codex-row.with-action > :last-child {
+  justify-self: stretch;
+  text-align: center;
+}
+
 /* --- packs --- */
 .pack-result {
   display: flex;

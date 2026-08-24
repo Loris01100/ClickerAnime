@@ -169,6 +169,7 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                       const cap = () => PASSIVE_LEVEL_CAP[character().rarity];
                       const atCap = () => ({ ...passive(), value: passive().value * levelGrowth(cap() - 1) });
                       const rank = () => props.game.passiveRankOf(character());
+                      const upgrade = () => props.game.passiveUpgradeOf(character());
                       const current = () => ({
                         ...passive(),
                         value: passive().value * levelGrowth(rank() - 1),
@@ -187,6 +188,21 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                             <div class="codex-row">
                               <span class="muted">Actuel (rang {rank()})</span>
                               <strong>{rank() > 0 ? describeModifier(current()) : "verrouillé"}</strong>
+                            </div>
+                            {/* Same widget as the roster's team rows — the Codex is where the passive
+                                is read in full, so it is also where it should be bought. */}
+                            <div class="codex-row">
+                              <span class="muted">Rang suivant</span>
+                              <Show when={!upgrade().maxed} fallback={<small class="capped">max</small>}>
+                                <button
+                                  class="rank-up"
+                                  disabled={!upgrade().affordable}
+                                  onClick={() => props.game.rankUpPassive(character())}
+                                >
+                                  +1 · {fmt(upgrade().copies)}/{fmt(upgrade().cost)}{" "}
+                                  {props.game.passiveItemOf(character())?.name ?? "—"}
+                                </button>
+                              </Show>
                             </div>
                           </Show>
                           <p class="muted small">

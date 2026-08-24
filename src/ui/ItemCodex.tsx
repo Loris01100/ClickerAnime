@@ -166,14 +166,27 @@ export default function ItemCodex(props: { game: GameStore }) {
               <div class="codex-block">
                 <h4>Passifs qu'il monte</h4>
                 <For each={rankedUpBy(item())} fallback={<p class="muted small">Aucun personnage ne s'en sert.</p>}>
-                  {(character) => (
-                    <div class="codex-row">
-                      <span class="muted">{character.name}</span>
-                      <strong>
-                        rang {props.game.passiveRankOf(character)} / {props.game.passiveCapOf(character)}
-                      </strong>
-                    </div>
-                  )}
+                  {(character) => {
+                    const upgrade = () => props.game.passiveUpgradeOf(character);
+                    return (
+                      <div class="codex-row with-action">
+                        <span class="muted">{character.name}</span>
+                        <strong>
+                          rang {props.game.passiveRankOf(character)} / {props.game.passiveCapOf(character)}
+                        </strong>
+                        {/* Spending the copies from the screen that shows the stock is the point. */}
+                        <Show when={!upgrade().maxed} fallback={<small class="capped">max</small>}>
+                          <button
+                            class="rank-up"
+                            disabled={!upgrade().affordable}
+                            onClick={() => props.game.rankUpPassive(character)}
+                          >
+                            +1 · {upgrade().copies}/{upgrade().cost}
+                          </button>
+                        </Show>
+                      </div>
+                    );
+                  }}
                 </For>
                 <p class="muted small">
                   Les copies s'empilent : c'est la seule monnaie des passifs, et il faut revenir farmer cet

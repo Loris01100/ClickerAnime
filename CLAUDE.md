@@ -41,7 +41,9 @@ counter is a dead end; the pack tile follows the active arc, since pack points a
 full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities,
 evolution and combos. It carries a second tab over the same two-pane shell, `ItemCodex.tsx`: every
 item, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
-unique's effects, restriction and current wearer. The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: GameStore` as its only
+unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
+a passive can be bought from wherever it is read, not only from the team table.
+The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
 
