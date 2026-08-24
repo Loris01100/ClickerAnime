@@ -1938,7 +1938,11 @@ describe("tick delta clamp et notices du HUD", () => {
 });
 
 describe("lisibilité de la progression", () => {
-  function outlookData(bossHp: number, timerMs?: number) {
+  function outlookData(
+    bossHp: number,
+    timerMs?: number,
+    passive?: { target: "teamDps"; kind: "percent"; value: number }
+  ) {
     return {
       animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
       arcs: [
@@ -1961,6 +1965,7 @@ describe("lisibilité de la progression", () => {
           arcIds: ["ta-arc"],
           baseClickPower: 0,
           baseDps: 100,
+          ...(passive ? { passive } : {}),
         },
       ],
       combos: [],
@@ -1971,6 +1976,33 @@ describe("lisibilité de la progression", () => {
   it("timeToKillMs : le temps réel, et l'infini sans DPS", () => {
     expect(timeToKillMs(500, 100)).toBe(5_000);
     expect(timeToKillMs(500, 0)).toBe(Infinity);
+  });
+
+  it("bossOutlookOf fait passer l'équipe par tout le pipeline, pas seulement ses dégâts bruts", () => {
+    // Le pronostic ne sommait que la contribution `flat` des personnages : passifs, bonus
+    // d'évolution, objets équipés, succès et arbre de prestige — l'essentiel du dps d'une équipe qui
+    // a grandi — n'y entraient pas. Résultat : « trop dur » sur un boss que l'équipe abat largement.
+    const restore = installSave({
+      ...baseSave(),
+      ownedCharacterIds: ["ca"],
+      unlockedAnimeIds: ["ta"],
+      passiveRanks: { ca: 1 },
+    });
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        // 100 de dps de base, +100 % de passif = 200 : 1000 pv tombent en 5 s, sous un chrono de 7,5 s.
+        // Sans le passif le pronostic annonçait 10 s, donc « trop dur » — à tort.
+        return createGameStore(outlookData(1_000, 7_500, { target: "teamDps", kind: "percent", value: 1 }));
+      });
+      const arc = game.data.arcs[0];
+      expect(game.bossOutlookOf(arc).ttkMs).toBeCloseTo(5_000);
+      expect(game.bossOutlookOf(arc).winnable).toBe(true);
+    } finally {
+      disposeRoot();
+      restore();
+    }
   });
 
   it("bossOutlookOf compare le temps de mise à mort au chrono du boss", () => {

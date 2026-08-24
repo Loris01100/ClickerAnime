@@ -483,8 +483,17 @@ export function createGameStore(data: GameData) {
     setAchievementCounts((counts) => ({ ...counts, [categoryId]: (counts[categoryId] ?? 0) + amount }));
   }
 
-  const allModifiers = createMemo<ActiveModifier[]>(() => {
-    const arc = activeArc();
+  /**
+   * Everything the team permanently contributes **as if `arc` were the arc being fought** — the
+   * characters' own damage, their passives, evolution bonuses and equipped uniques, all scaled by
+   * that arc's synergy, plus the achievements and the prestige tree. No running buff: those are
+   * timed, and the only caller that wants them is `allModifiers`, which adds them itself.
+   *
+   * Split out of `allModifiers` because `bossOutlookOf` needs the same sum against an arc that
+   * isn't the active one, and rebuilding it by hand there left most of a grown team's dps out.
+   * A function declaration, so the `allModifiers` memo below can hoist it.
+   */
+  function permanentModifiersFor(arc: Arc | null): ActiveModifier[] {
     const config = activeSynergyConfig();
     const equipment = characterEquipment();
     const equipmentOf = (c: Character) => {
@@ -508,9 +517,13 @@ export function createGameStore(data: GameData) {
       ...fromCharacters,
       ...achievementContributions(achievementCounts()),
       ...prestigeTreeContributions(prestigeTreeRanks()),
-      ...pruneExpired(temporaryModifiers(), now()),
     ];
-  });
+  }
+
+  const allModifiers = createMemo<ActiveModifier[]>(() => [
+    ...permanentModifiersFor(activeArc()),
+    ...pruneExpired(temporaryModifiers(), now()),
+  ]);
 
   /** What one narrator click is worth before any modifier: just the allies standing at their side. */
   const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length));
@@ -902,13 +915,14 @@ export function createGameStore(data: GameData) {
     const timerMs = base && timerLevel > 0 ? base * (1 + BOSS_TIMER_BOOST * timerLevel) : base;
     // The boss's hp at that world's frozen difficulty, and the dps the team would deal *there* —
     // not here: synergy makes those two very different numbers once the arc isn't the active one.
-    const config = activeSynergyConfig();
-    const dps = ownedCharacters().reduce(
-      (sum, c) =>
-        sum +
-        c.baseDps * damageGrowthOf(c.id) * synergyMultiplier(c, arc, config, isEvolved(c)),
-      0
-    );
+    // It goes through the whole modifier pipeline instead of summing the characters' flat damage by
+    // hand: passives, evolution bonuses, equipped uniques, achievements and the prestige tree are
+    // most of a grown team's dps, and leaving them out had the arc claim it was out of reach long
+    // after it wasn't. Running buffs stay out on purpose — an ability lasts seconds, and this
+    // answers "come back later?", not "fire now?": the badge must not blink with a cooldown.
+    // The `now` argument is 0 because nothing `permanentModifiersFor` returns ever expires; reading
+    // the real clock would re-run this for every arc on screen at every tick.
+    const dps = computeEffectiveStat(0, "teamDps", permanentModifiersFor(arc), 0);
     const ttkMs = timeToKillMs(enemyHp(arc.boss, difficultyOf(arc.animeId)), dps);
     return { ttkMs, timerMs: timerMs ?? null, winnable: timerMs ? ttkMs <= timerMs : Number.isFinite(ttkMs) };
   }
