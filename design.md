@@ -226,6 +226,22 @@ gros) a inspiré l'anatomie d'un nœud (§5.2) et la technique de rendu (SVG + n
 absolu, comme `WorldMap`'s `.map-links`) ; la disposition réelle a été simplifiée par rapport au
 schéma — voir §5.3.
 
+### 5.0 La porte d'entrée : le bouton « Arbre de prestige »
+
+Dans le panneau Prestige, deux boutons se suivent, et ils ne jouent pas le même rôle : le CTA
+`Prestige (+N)` est l'action **destructrice et rare** (elle efface la run), l'arbre est la vue
+**qu'on ouvre souvent**. D'où le contraste assumé — un seul bouton plein a le droit au dégradé, et
+c'est le CTA ; `.tree-open` est un bouton à contour (`--accent`, fond transparent, fond `--active-tint`
+au survol). Deux remplissages côte à côte se disputeraient l'œil et rendraient le reset trop facile
+à cliquer par réflexe.
+
+Il est en **pleine largeur comme le CTA** : les deux forment une paire alignée au lieu d'une grosse
+barre suivie d'une pastille orpheline. Il porte à gauche l'étincelle des points de prestige — le même
+glyphe que le compteur du `.panel-head` juste au-dessus, pour que le lien « voilà où ces points se
+dépensent » soit visible sans le lire — et à droite un chevron, qui signale une vue qui s'ouvre et
+non une action qui s'exécute. Même logique que les tuiles de `CurrencyBar` : aucun compteur n'est un
+cul-de-sac.
+
 ### 5.1 Cinq branches, pas une par personnage
 
 Une branche par cible de progression, chacune avec sa teinte propre (dérivée de la palette

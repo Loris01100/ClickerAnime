@@ -2,7 +2,7 @@ import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt, seconds } from "./format";
-import { IconCheck, IconLock, IconSparkle } from "./icons";
+import { IconCheck, IconChevronRight, IconLock, IconSparkle } from "./icons";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -150,7 +150,15 @@ export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: 
           >
             Prestige (+{props.game.pendingPrestigeGain()})
           </button>
-          <button onClick={props.onOpenPrestige}>Arbre de prestige</button>
+          {/* Secondaire assumé : c'est le bouton qu'on ouvre souvent, face à un CTA de reset qu'on
+              n'actionne que rarement — il doit être lisible sans jamais rivaliser avec lui. L'étincelle
+              est celle des points de prestige (même glyphe que le compteur au-dessus), pour qu'on
+              voie d'un coup d'œil où ils se dépensent ; le chevron dit que ça ouvre une vue. */}
+          <button class="tree-open" onClick={props.onOpenPrestige}>
+            <IconSparkle />
+            Arbre de prestige
+            <IconChevronRight class="tree-open-go" />
+          </button>
           <p class="muted small">
             Complétion : {Math.round(props.game.runCompletion() * 100)}% des arcs terminés — plus elle est
             haute, plus la réinitialisation rapporte de points.

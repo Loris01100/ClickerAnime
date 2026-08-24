@@ -230,6 +230,29 @@ button.primary {
   box-shadow: var(--ink-shadow);
   padding: 0.45rem;
 }
+/* Bouton « Arbre de prestige ». Contour plutôt que remplissage : le dégradé est réservé au CTA de
+ * prestige au-dessus, qui est l'action destructrice — deux boutons pleins se disputeraient l'œil.
+ * Pleine largeur pour former une paire nette avec lui au lieu d'une pastille orpheline. */
+button.tree-open {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+button.tree-open:hover:not(:disabled) {
+  background: var(--active-tint);
+}
+/* Le chevron file à droite : il annonce une vue qui s'ouvre, il ne fait pas partie du libellé. */
+.tree-open-go {
+  margin-left: auto;
+  opacity: 0.65;
+}
+
 .boss-rematch {
   display: flex;
   align-items: center;
