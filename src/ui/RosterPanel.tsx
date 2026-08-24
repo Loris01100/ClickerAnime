@@ -204,7 +204,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </section>
       </Show>
 
-      <section class="panel">
+      <section class="panel" id="panel-items">
         <header class="panel-head">
           <PanelTitle open={itemsOpen()} onToggle={() => setItemsOpen(!itemsOpen())}>
             Objets

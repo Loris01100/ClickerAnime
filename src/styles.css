@@ -389,8 +389,17 @@ small {
   justify-content: center;
   gap: 0.35rem;
   padding: 0.5rem 0.25rem;
+  border: none;
   border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   font-size: 0.95rem;
+  cursor: pointer;
+}
+.currency:hover {
+  background: var(--active-tint);
 }
 .currency:last-child {
   border-right: none;

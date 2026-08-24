@@ -105,7 +105,11 @@ export default function App() {
         <main class="game" style={{ "--world-hue": themeOf(activeAnime()) }}>
           <RosterPanel game={game} onSelectCharacter={openCodexOn} />
           <div class="column">
-            <CurrencyBar game={game} />
+            <CurrencyBar
+              game={game}
+              onOpenPrestige={() => setPrestigeTreeOpen(true)}
+              onOpenWorlds={() => setPortalOpen(true)}
+            />
             <ClickStage game={game} />
             <WorldMap game={game} />
           </div>

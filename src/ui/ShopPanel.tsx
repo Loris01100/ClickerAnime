@@ -15,7 +15,7 @@ export default function ShopPanel(props: { game: GameStore }) {
 
   return (
     <Show when={offers().length > 0}>
-      <section class="panel">
+      <section class="panel" id="panel-shop">
         <header class="panel-head">
           <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
             <IconShop /> Boutique
