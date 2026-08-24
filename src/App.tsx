@@ -13,6 +13,7 @@ import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
 import ShopPanel from "./ui/ShopPanel";
 import CrossoverPanel from "./ui/CrossoverPanel";
+import Notices from "./ui/Notices";
 import PackPanel from "./ui/PackPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
@@ -51,6 +52,16 @@ export default function App() {
     link.click();
     // Revoking synchronously can cancel the download before the browser has read the blob.
     setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  /**
+   * The full wipe. Lives in the topbar rather than in a panel because it is also the way out of a
+   * save the player can't otherwise recover from — and the topbar is the one thing on screen in
+   * every state, including the world portal.
+   */
+  function onHardReset() {
+    if (!confirm("Tout effacer ? Points de prestige, arbre, succès, packs et doublons compris. Irréversible.")) return;
+    game.hardReset();
   }
 
   async function onImportFile(event: Event) {
@@ -105,6 +116,9 @@ export default function App() {
             style={{ display: "none" }}
             onChange={onImportFile}
           />
+          <button class="danger" onClick={onHardReset}>
+            Tout effacer
+          </button>
         </div>
       </header>
 
@@ -156,6 +170,8 @@ export default function App() {
       <Show when={prestigeTreeOpen()}>
         <PrestigeTree game={game} onClose={() => setPrestigeTreeOpen(false)} />
       </Show>
+
+      <Notices game={game} />
     </>
   );
 }

@@ -248,6 +248,13 @@ button.primary {
   .game {
     grid-template-columns: 1fr;
   }
+  /*
+   * Stacked, the source order would bury the fight under the whole roster (abilities + team table +
+   * items). The middle column is the one thing the player is actually looking at, so it goes first.
+   */
+  .game > .column:nth-child(2) {
+    order: -1;
+  }
 }
 
 /* --- panels --- */
@@ -719,6 +726,11 @@ small {
   color: var(--gold);
   pointer-events: none;
   animation: rise 0.9s ease-out forwards;
+}
+/* A crit lands for CRIT_MULTIPLIER times the usual damage — it has to read as such. */
+.pop.crit {
+  color: var(--accent-2);
+  font-size: 1.5em;
 }
 @keyframes rise {
   to {
@@ -1381,6 +1393,72 @@ small {
   .enemy.hit,
   .overlay,
   .modal {
+    animation: none;
+  }
+}
+
+/* --- HUD notices --- */
+/*
+ * A drop, a recruit or a cleared arc used to happen in complete silence. These float above
+ * everything, out of the way of the fight, and each one is a button so it can be dismissed early.
+ * The store expires them on its own tick — see gameState's `notices`.
+ */
+.notices {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: auto;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--muted);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  animation: notice-in 0.22s ease-out;
+}
+.notice-item {
+  border-left-color: var(--blue);
+}
+.notice-recruit {
+  border-left-color: var(--gold);
+}
+.notice-arc {
+  border-left-color: var(--good);
+}
+@keyframes notice-in {
+  from {
+    transform: translateX(1rem);
+    opacity: 0;
+  }
+}
+
+/* --- destructive action --- */
+button.danger {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+/* The stage is keyboard-operable (space/enter), so it needs a visible focus ring like any button. */
+.stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice {
     animation: none;
   }
 }

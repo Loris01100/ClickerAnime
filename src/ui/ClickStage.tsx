@@ -9,6 +9,7 @@ import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar } fro
 interface Pop {
   id: number;
   amount: number;
+  crit: boolean;
   x: number;
   y: number;
 }
@@ -23,19 +24,35 @@ export default function ClickStage(props: { game: GameStore }) {
   const [spawning, setSpawning] = createSignal(false);
   let popId = 0;
 
-  function handleClick(event: MouseEvent) {
-    const damage = props.game.click();
+  /**
+   * `at` is where the pop-up sprouts, in percent of the stage: the pointer for a mouse click, the
+   * middle for a keyboard one — see `handleKey`, which has no coordinates to work from.
+   */
+  function strike(at: { x: number; y: number }) {
+    const { damage, crit } = props.game.click();
     if (damage <= 0) return;
     setHit(true);
-    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const pop: Pop = {
-      id: popId++,
-      amount: damage,
-      x: ((event.clientX - box.left) / box.width) * 100,
-      y: ((event.clientY - box.top) / box.height) * 100,
-    };
+    const pop: Pop = { id: popId++, amount: damage, crit, ...at };
     setPops((list) => [...list, pop]);
     setTimeout(() => setPops((list) => list.filter((p) => p.id !== pop.id)), 900);
+  }
+
+  function handleClick(event: MouseEvent) {
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    strike({
+      x: ((event.clientX - box.left) / box.width) * 100,
+      y: ((event.clientY - box.top) / box.height) * 100,
+    });
+  }
+
+  /**
+   * The narrator's click is the game's core verb, so it has to be reachable without a mouse. Space
+   * and Enter only — anything else would swallow the keys the overlays listen for.
+   */
+  function handleKey(event: KeyboardEvent) {
+    if (event.key !== " " && event.key !== "Enter") return;
+    event.preventDefault(); // Space would otherwise scroll the page on every hit.
+    strike({ x: 50, y: 45 });
   }
 
   const arc = () => props.game.activeArc();
@@ -105,7 +122,14 @@ export default function ClickStage(props: { game: GameStore }) {
       <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour combattre.</div>}>
         {(current) => (
           <>
-            <div class="stage" onClick={handleClick}>
+            <div
+              class="stage"
+              role="button"
+              tabindex="0"
+              aria-label="Clic du Narrateur"
+              onClick={handleClick}
+              onKeyDown={handleKey}
+            >
               <Show when={banner()}>
                 {(src) => (
                   <div class="stage-backdrop" style={{ "background-image": `url(${src()})` }} aria-hidden="true" />
@@ -134,8 +158,13 @@ export default function ClickStage(props: { game: GameStore }) {
 
               <For each={pops()}>
                 {(pop) => (
-                  <span class="pop" style={{ left: `${pop.x}%`, top: `${pop.y}%` }}>
+                  <span
+                    class="pop"
+                    classList={{ crit: pop.crit }}
+                    style={{ left: `${pop.x}%`, top: `${pop.y}%` }}
+                  >
                     -{fmt(pop.amount)}
+                    {pop.crit ? " !" : ""}
                   </span>
                 )}
               </For>

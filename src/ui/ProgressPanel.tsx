@@ -13,6 +13,13 @@ export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: 
   const [prestigeOpen, setPrestigeOpen] = createSignal(true);
   const isAnimeOpen = (id: string) => openAnimes()[id] ?? true;
   const toggleAnime = (id: string) => setOpenAnimes((o) => ({ ...o, [id]: !isAnimeOpen(id) }));
+  /** Le prestige efface tout le run : un clic accidentel coûtait des heures, d'où la confirmation. */
+  function confirmPrestige() {
+    const gain = props.game.pendingPrestigeGain();
+    if (!confirm(`Réinitialiser le run et banquer ${gain} point${gain > 1 ? "s" : ""} de prestige ?`)) return;
+    props.game.prestigeReset();
+  }
+
   // Un monde dont le préalable n'est pas rempli ne doit même pas apparaître dans le choix.
   const otherAnimes = () =>
     props.game.data.animes.filter(
@@ -122,7 +129,7 @@ export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: 
           <button
             class="primary"
             disabled={props.game.pendingPrestigeGain() <= 0}
-            onClick={() => props.game.prestigeReset()}
+            onClick={confirmPrestige}
           >
             Prestige (+{props.game.pendingPrestigeGain()})
           </button>

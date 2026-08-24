@@ -137,6 +137,8 @@ changement moteur, rien dans le tick 200ms) :
 | Respiration du sprite (±3px, 3.4s) | `.enemy .sprite` | permanent |
 | Aura de boss qui pulse, teintée `--world-hue` | `.enemy.boss::before` | permanent |
 | Fade d'overlay + scale-in de modale | `.overlay` / `.modal` | à l'ouverture |
+| Notice qui glisse depuis la droite | `.notice` (`notice-in`) | à l'arrivée dans `game.notices()` |
+| Coup critique agrandi et teinté `--accent-2` | `.pop.crit` | `game.click()` renvoie `{ damage, crit }` |
 
 Les classes sont levées sur `animationend` plutôt que par un `setTimeout`, pour qu'un clic rapide
 ne laisse jamais une classe collée.
@@ -159,11 +161,24 @@ Restent des pistes, non faites :
 - **Nœud d'arbre qui se débloque.** Voir §5 — le seul endroit où une vraie « célébration »
   (particules courtes, pulse coloré) a un sens, parce que c'est un achat rare et définitif, pas
   un événement qui se répète 10 fois par seconde comme un clic.
-- **Notification de recrutement / drop d'objet.** Aujourd'hui, recruter un personnage ou looter
-  un objet unique n'a aucun accusé de réception visuel au-delà des chiffres qui changent dans les
-  panels. Un toast discret en haut de l'écran (« ✦ Zabuza Momochi rejoint l'équipe », auto-dismiss
-  ~3s, empilable) comblerait ce vide — cohérent avec la philosophie « tout visible » puisqu'il ne
-  bloque rien, contrairement à un modal.
+### 4.1 Les notices du HUD (`ui/Notices.tsx`)
+
+Un drop, un recrutement et un arc terminé se produisaient en silence : le seul accusé de réception
+était un compteur qui bougeait tout seul dans un panel. `Notices.tsx` est la pile flottante en bas
+à droite qui comble ce vide — trois `kind` (`item`, `recruit`, `arc`), chacun reconnaissable à la
+couleur de sa bordure gauche (`--blue`, `--gold`, `--good`) et à son icône d'`icons.tsx`. Elle ne
+bloque rien et ne se ferme pas : cohérent avec « tout visible », contrairement à une modale.
+
+La file vit dans le store (`gameState`'s `notices`), pas dans le composant, parce que les trois
+événements naissent dans le moteur (`grantItem`, `defeat`) et qu'un composant n'a aucun moyen de
+les observer autrement. Elle est **purgée par le tick 200ms existant**, pas par un `setTimeout` par
+notice — aucun timer ne peut survivre au store — et plafonnée à `MAX_NOTICES` (4), la plus vieille
+tombant en premier. Un clic sur une notice la retire tout de suite (`dismissNotice`).
+
+Le clavier compte aussi : `.stage` porte `role="button"` + `tabindex="0"` et répond à espace/entrée
+(`ClickStage`'s `handleKey`), le Clic du Narrateur étant le verbe central du jeu. Le pop naît alors
+au centre de la scène faute de coordonnées de pointeur, et `.stage:focus-visible` donne l'anneau de
+focus qu'un `<div>` cliquable n'a pas.
 
 Ce qu'on **n'ajoute pas** : rien qui bloque l'input (pas d'animation qui empêche d'enchaîner les
 clics), rien qui ralentisse la boucle de tick 200ms (`gameState.ts`), pas de dépendance externe —
@@ -426,6 +441,15 @@ code écrit à la main.
 - **Toute couleur vient d'un token.** Un nouveau token va dans le bloc `:root` clair, et dans les
   deux blocs sombres — jamais une seule des trois définitions.
 - **Toute animation respecte `prefers-reduced-motion`.**
+- **En dessous de 1100px les trois colonnes s'empilent, et le combat passe en premier.**
+  `.game > .column:nth-child(2) { order: -1 }` : dans l'ordre du DOM, la colonne du milieu arrive
+  après tout le roster (capacités + tableau d'équipe + objets), ce qui enterrerait la seule chose
+  que le joueur regarde. Une colonne ajoutée un jour doit reprendre cet arbitrage, pas l'ordre du
+  DOM.
+- **Une action destructive porte `button.danger`** (bordure et texte `--bad`) **et demande une
+  confirmation** : le prestige (`ProgressPanel`) comme le « Tout effacer » de la topbar. Le second
+  vit dans la topbar plutôt que dans un panel parce qu'il est aussi la sortie de secours d'une save
+  cassée, et la topbar est le seul élément affiché dans tous les états, portail des mondes compris.
 - **Le texte visible est en français**, y compris les nouveaux tooltips/labels de l'arbre de
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
 

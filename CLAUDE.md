@@ -26,7 +26,10 @@ DOM. Keep new game rules pure and here; keep them out of components.
 
 **`src/engine/gameState.ts` — the only reactive seam.** `createGameStore(data)` holds all signals,
 wires the pure functions into memos, runs the 200ms tick that accrues passive income, and autosaves
-to `localStorage` every 5s. Components call its returned actions (`click`, `recruitCharacter`,
+to `localStorage` every 5s plus on `pagehide` (`onCleanup` never runs on a closed tab, and
+`beforeunload` doesn't fire on iOS). The tick's elapsed time is clamped to `MAX_TICK_DELTA_MS`: a
+sleeping machine or a throttled tab would otherwise hand the first tick back hours of damage and xp
+— offline progress by accident, which the game deliberately doesn't have. Components call its returned actions (`click`, `recruitCharacter`,
 `activateAbility`, `prestigeReset`, …) and read its accessors.
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
@@ -35,7 +38,14 @@ roster (abilities, sortable team table, item table), middle is resources + the f
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`, `PackPanel.tsx`. `CurrencyBar.tsx`'s four tiles are buttons, each opening the overlay where that
+`PrestigeTree.tsx`, `PackPanel.tsx`. `Notices.tsx` is the exception to the overlay rule: a fixed,
+non-blocking stack of pop-ups fed by the store's `notices` queue, which `grantItem` and `defeat`
+push to so that a drop, a recruit and a cleared arc stop happening in silence. The queue lives in
+the store because those events are born in the engine, and it is expired by the existing 200ms tick
+rather than a timer per notice, so nothing can outlive the store. `App.tsx` also owns the two
+destructive actions, both behind a `confirm()`: the topbar's `hardReset` (there rather than in a
+panel because it is the way out of an unrecoverable save, and the topbar shows in every state) and
+`ProgressPanel`'s prestige. `CurrencyBar.tsx`'s four tiles are buttons, each opening the overlay where that
 resource is spent (gold → shop, prestige → tree, crystals → crossover, pack points → packs), so no
 counter is a dead end; the pack tile follows the active arc, since pack points are per world. `Codex.tsx` is the largest: the
 full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities,
@@ -144,6 +154,11 @@ and leaving a character's level worth nothing next to their ability. Only the xp
 with the team on `prestigeReset`.
 
 ### The narrator's click
+
+`click()` returns `{ damage, crit }`, not a bare number — the stage has no other way to tell the
+player a click landed for `CRIT_MULTIPLIER` times its usual damage (`.pop.crit`). The stage is also
+keyboard-operable (`role="button"`, space/enter): the click is the game's core verb, so it can't be
+mouse-only.
 
 `narratorClickPower(allyCount)` is the *base* fed into the `clickPower` pipeline: it rises with the
 number of allies in the team and with nothing else. The click is a **trigger, not a damage source** —

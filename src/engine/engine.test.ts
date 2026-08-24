@@ -2038,3 +2038,91 @@ describe("packs", () => {
     }
   });
 });
+
+describe("tick delta clamp et notices du HUD", () => {
+  /** `dps` at 0 freezes combat between clicks, so a test can advance timers without new kills. */
+  function sleepData(dps = 1) {
+    return {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 1,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 10, itemId: "ta-item", dropChance: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: 1, reward: 100, characterId: "cb" },
+        },
+      ],
+      characters: [
+        {
+          id: "cb",
+          name: "B",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["ta-arc"],
+          baseClickPower: 0,
+          // 1 dps against 1-hp mobs: one second of tick time = one kill, so the clamp is countable.
+          baseDps: dps,
+        },
+      ],
+      combos: [],
+      items: [{ id: "ta-item", name: "Item", kind: "common" as const }],
+    };
+  }
+
+  it("un tick après une longue veille ne banque pas des heures de dégâts", () => {
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(sleepData());
+      });
+      game.travelTo("ta");
+      game.click(); // kills the single mob standing before the boss
+      game.click(); // kills the boss, recruiting cb (1 dps) and clearing the arc
+      expect(game.ownedCharacterIds()).toContain("cb");
+      const before = game.lifetimeEarned();
+
+      // One hour of wall clock passing between two ticks: `setInterval` fires once on the way back.
+      vi.setSystemTime(Date.now() + 3_600_000);
+      vi.advanceTimersByTime(200);
+
+      // Without the clamp this tick would have carried 3600s of dps — i.e. MAX_KILLS_PER_HIT kills.
+      const kills = (game.lifetimeEarned() - before) / 10;
+      expect(kills).toBeLessThanOrEqual(5);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+    }
+  });
+
+  it("un drop, une recrue et un arc terminé poussent chacun une notice, expirée par le tick", () => {
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(sleepData(0));
+      });
+      game.travelTo("ta");
+      game.click(); // mob down: guaranteed drop
+      expect(game.notices().map((n) => n.kind)).toEqual(["item"]);
+
+      game.click(); // boss down: recruits cb and clears the arc
+      expect(game.notices().map((n) => n.kind)).toEqual(["item", "recruit", "arc"]);
+
+      game.dismissNotice(game.notices()[0].id);
+      expect(game.notices().map((n) => n.kind)).toEqual(["recruit", "arc"]);
+
+      // Expiry is the tick's job, not a per-notice timer.
+      vi.advanceTimersByTime(5_000);
+      expect(game.notices()).toEqual([]);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+    }
+  });
+});

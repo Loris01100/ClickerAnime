@@ -106,7 +106,25 @@ export interface GameData {
 }
 
 const TICK_MS = 200;
+/**
+ * Ceiling on one tick's elapsed time. `setInterval` doesn't fire while the machine sleeps or the
+ * tab is throttled, so the first tick back would otherwise carry hours of `deltaMs` and hand out
+ * free kills and xp — offline progress by accident, which the game deliberately doesn't have.
+ */
+const MAX_TICK_DELTA_MS = TICK_MS * 5;
 const AUTOSAVE_MS = 5_000;
+/** How long one HUD notice stays up, and how many can stack before the oldest is dropped. */
+const NOTICE_MS = 4_000;
+const MAX_NOTICES = 4;
+
+/** One "you just gained something" event, popped up by the HUD and pruned by the main tick. */
+export interface Notice {
+  id: number;
+  kind: "item" | "recruit" | "arc";
+  text: string;
+  expiresAt: number;
+}
+
 /** Safety net on `dealDamage`'s overkill carry-over — see there. Not a balance knob. */
 const MAX_KILLS_PER_HIT = 100;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
@@ -272,6 +290,18 @@ export function createGameStore(data: GameData) {
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
   // Same-stat abilities can't fire while another's buff on that stat is still up — see activateAbility.
   const [abilityBlockedUntil, setAbilityBlockedUntil] = createSignal<Record<string, number>>({});
+
+  // Transient feed of "you just gained something" events — the HUD pops them up (see ui/Notices.tsx)
+  // because a drop, a recruit or a cleared arc otherwise happen in complete silence. Pruned by the
+  // main tick rather than a timer per notice, so no stray timeout outlives the store.
+  const [notices, setNotices] = createSignal<Notice[]>([]);
+  let noticeId = 0;
+  function pushNotice(kind: Notice["kind"], text: string) {
+    setNotices((list) =>
+      [...list, { id: noticeId++, kind, text, expiresAt: Date.now() + NOTICE_MS }].slice(-MAX_NOTICES)
+    );
+  }
+  const dismissNotice = (id: number) => setNotices((list) => list.filter((n) => n.id !== id));
 
   // Combat is transient: the current fight restarts from scratch on reload rather than being saved.
   const [enemy, setEnemy] = createSignal<Enemy | null>(null);
@@ -597,6 +627,7 @@ export function createGameStore(data: GameData) {
     if (isNewRecruit) {
       setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
       bumpAchievement("charactersRecruited");
+      pushNotice("recruit", `${target.name} rejoint l'équipe`);
     }
 
     const isBoss = target.id === arc.boss.id;
@@ -626,6 +657,7 @@ export function createGameStore(data: GameData) {
     if (isBoss) {
       if (!clearedArcIds().includes(arc.id)) {
         setClearedArcIds((ids) => [...ids, arc.id]);
+        pushNotice("arc", `${arc.name} terminé`);
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
       bumpAchievement("bossesKilled");
@@ -641,6 +673,7 @@ export function createGameStore(data: GameData) {
   function grantItem(item: Item) {
     setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) + 1 }));
     if (item.kind === "common") bumpAchievement("commonItemsCollected");
+    pushNotice("item", `${item.name} +1`);
   }
 
   /**
@@ -733,9 +766,8 @@ export function createGameStore(data: GameData) {
    */
   function click() {
     const critLevel = nodeLevelOf("narratorClick", 3);
-    const power =
-      critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel) ? clickPower() * CRIT_MULTIPLIER : clickPower();
-    const dealt = dealDamage(power);
+    const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
+    const dealt = dealDamage(crit ? clickPower() * CRIT_MULTIPLIER : clickPower());
 
     const cooldownLevel = nodeLevelOf("narratorClick", 4);
     if (cooldownLevel > 0) {
@@ -770,7 +802,9 @@ export function createGameStore(data: GameData) {
       }
     }
 
-    return dealt;
+    // The crit is reported, not just rolled: without it the stage has no way to tell the player a
+    // click landed for CRIT_MULTIPLIER times its usual damage.
+    return { damage: dealt, crit };
   }
 
   /**
@@ -967,6 +1001,10 @@ export function createGameStore(data: GameData) {
     const cost = anime.unlockCost;
     if (!canUnlockAnime(prestige(), animeId, cost)) return false;
     setPrestige((p) => unlockAnimeState(p, animeId, cost));
+    // Same landing as `travelTo`: paying to enter a world puts the player *in* it, rather than
+    // leaving them in the old arc wondering what the points bought.
+    setActiveArcId(arcsOf(animeId)[0]?.id ?? null);
+    spawnNext();
     return true;
   }
 
@@ -1162,7 +1200,9 @@ export function createGameStore(data: GameData) {
 
   const interval = setInterval(() => {
     const nowMs = Date.now();
-    const deltaMs = nowMs - now();
+    // Clamped: a sleeping machine or a throttled tab must not bank hours of damage and xp on the
+    // first tick back — see MAX_TICK_DELTA_MS.
+    const deltaMs = Math.min(nowMs - now(), MAX_TICK_DELTA_MS);
     const deltaSeconds = deltaMs / 1000;
     setNow(nowMs);
     dealDamage(teamDps() * deltaSeconds);
@@ -1183,8 +1223,20 @@ export function createGameStore(data: GameData) {
     if (xpTrickleLevel > 0 && ownedCharacterIds().length > 0) {
       grantXp(XP_PASSIVE_PER_SECOND * xpTrickleLevel * deltaSeconds);
     }
+
+    // Only rebuild the list when something actually expired, so an idle tick stays a no-op.
+    if (notices().some((n) => n.expiresAt <= nowMs)) {
+      setNotices((list) => list.filter((n) => n.expiresAt > nowMs));
+    }
   }, TICK_MS);
   const autosave = setInterval(save, AUTOSAVE_MS);
+  // `onCleanup` never runs when a tab is simply closed, so up to AUTOSAVE_MS of progress would be
+  // lost. `pagehide` is the one lifecycle event that fires in that case on every browser, mobile
+  // included (`beforeunload` doesn't, on iOS).
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", save);
+    onCleanup(() => window.removeEventListener("pagehide", save));
+  }
   onCleanup(() => {
     clearInterval(interval);
     clearInterval(autosave);
@@ -1240,6 +1292,9 @@ export function createGameStore(data: GameData) {
     unlockedAbilities,
     synergyOf,
     achievementCounts,
+    // HUD notices
+    notices,
+    dismissNotice,
     // prestige tree
     branchLevelsOf,
     nodeLevelOf,
