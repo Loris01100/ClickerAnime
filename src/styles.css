@@ -615,6 +615,9 @@ small {
   filter: brightness(1.9) drop-shadow(0 0 12px var(--gold));
 }
 .enemy-name {
+  /* The backdrop's veil is positioned, so a static name paints under it. */
+  position: relative;
+  z-index: 1;
   font-weight: 700;
   letter-spacing: 0.01em;
   text-shadow: var(--label-shadow);
