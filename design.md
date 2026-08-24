@@ -645,3 +645,23 @@ pointent vers le paquet (`@fontsource/.../files/*.woff2`) et inline les plus pet
 Sous-ensembles latins seulement : les sous-ensembles japonais de cette famille pèsent des Mo pour des
 glyphes que le jeu ne rend jamais. **latin-ext n'est pas optionnel** — « Naruto Shippūden » a besoin
 de U+016B, que le sous-ensemble latin de base ne couvre pas.
+
+## 13. Ossature « anime » des surfaces
+
+Le squelette de §2 restait lisible mais fade : des panneaux gris, des boutons plats. Quatre règles,
+toutes tokenisées, lui donnent le poids d'une case de manga sans toucher à la densité de §1 :
+
+- **`--ink-shadow`** — bordures de 2px et ombre portée en deux temps (une arête franche + un halo
+  diffus). Sur `.panel` et `.primary`. Une surface doit sembler posée sur la page, pas peinte
+  dessus.
+- **`--speedlines`** — trame diagonale à 115°, portée par les seuls `.panel-head` et `.topbar`.
+  C'est une *texture*, jamais une couleur : elle passe donc par un token comme le reste (§3), et
+  se retourne en clair/sombre.
+- **En-tête de panneau** — dégradé sur `--world-hue`, liseré d'accent en `inset box-shadow` à
+  gauche, titre en capitales sur `--font-display` (§12). C'est la seule surface du châssis qui
+  affiche la DA du monde en cours.
+- **Boutons** — le geste se voit : `translateY(-1px)` + anneau d'accent au survol, `+1px` au clic.
+  L'onglet actif est *rempli* du dégradé accent → accent-2, pas seulement souligné.
+
+Ne pas étendre les trames aux corps de panneau ni aux tableaux : elles rendraient illisibles les
+chiffres alignés qui font tout l'intérêt de §1.

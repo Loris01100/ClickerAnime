@@ -77,6 +77,14 @@
   --enemy-ground: rgba(26, 29, 46, 0.18);
   /* How strongly `--world-hue` shows through a world's surfaces; dark needs more to read at all. */
   --world-strength: 0.2;
+  /* Contour « encre » et ombre portée : ce qui donne aux surfaces leur poids de case de manga. */
+  --ink-shadow: 0 2px 0 rgba(26, 29, 46, 0.09), 0 8px 18px rgba(26, 29, 46, 0.08);
+  /* Trames de vitesse posées sur les en-têtes — la texture, jamais une couleur. */
+  --speedlines: repeating-linear-gradient(
+    115deg,
+    transparent 0 7px,
+    rgba(26, 29, 46, 0.045) 7px 8px
+  );
   --font-display: "Zen Kaku Gothic New", system-ui, "Segoe UI", sans-serif;
   /* Fallback art-direction hue; every world overrides it via ui/hue.ts's themeOf. */
   --world-hue: 260;
@@ -107,6 +115,12 @@
     --stage-veil-soft: rgba(12, 14, 26, 0.35);
     --enemy-ground: rgba(0, 0, 0, 0.45);
     --world-strength: 0.32;
+    --ink-shadow: 0 2px 0 rgba(0, 0, 0, 0.5), 0 10px 22px rgba(0, 0, 0, 0.45);
+    --speedlines: repeating-linear-gradient(
+      115deg,
+      transparent 0 7px,
+      rgba(255, 255, 255, 0.05) 7px 8px
+    );
     color-scheme: dark;
   }
 }
@@ -134,6 +148,12 @@
   --stage-veil-soft: rgba(12, 14, 26, 0.35);
   --enemy-ground: rgba(0, 0, 0, 0.45);
   --world-strength: 0.32;
+  --ink-shadow: 0 2px 0 rgba(0, 0, 0, 0.5), 0 10px 22px rgba(0, 0, 0, 0.45);
+  --speedlines: repeating-linear-gradient(
+    115deg,
+    transparent 0 7px,
+    rgba(255, 255, 255, 0.05) 7px 8px
+  );
   color-scheme: dark;
 }
 
@@ -173,15 +193,25 @@ button,
 select {
   font: inherit;
   font-size: 0.8rem;
+  font-weight: 600;
   color: var(--text);
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 2px solid var(--line);
+  border-radius: 7px;
   padding: 0.25rem 0.5rem;
   cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
+/* Un bouton se soulève au survol et s'enfonce au clic : le geste doit se voir, pas juste changer
+ * de teinte (design.md §4). */
 button:hover:not(:disabled) {
   border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px var(--active-tint);
+}
+button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 button:disabled {
   opacity: 0.35;
@@ -191,7 +221,13 @@ button.primary {
   width: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   border: none;
-  font-weight: 600;
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--ink-shadow);
   padding: 0.45rem;
 }
 .boss-rematch {
@@ -208,8 +244,8 @@ button.primary {
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--topbar-bg);
+  border-bottom: 2px solid var(--line);
+  background: var(--speedlines), var(--topbar-bg);
   backdrop-filter: blur(6px);
   position: sticky;
   top: 0;
@@ -217,7 +253,10 @@ button.primary {
 }
 .topbar h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   -webkit-background-clip: text;
   background-clip: text;
@@ -260,20 +299,35 @@ button.primary {
 /* --- panels --- */
 .panel {
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: var(--ink-shadow);
 }
+/*
+ * L'en-tête est la seule surface qui porte la DA du monde : trames de vitesse, dégradé sur
+ * `--world-hue`, liseré d'accent à gauche. Titre en capitales sur la police d'affichage — c'est ce
+ * qui distingue un panneau de jeu d'un panneau d'admin.
+ */
 .panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
-  background: var(--panel-2);
-  border-bottom: 1px solid var(--line);
-  font-weight: 600;
+  background: var(--speedlines),
+    linear-gradient(
+      90deg,
+      hsl(var(--world-hue) 70% 55% / calc(var(--world-strength) * 1.5)),
+      transparent 65%
+    ),
+    var(--panel-2);
+  border-bottom: 2px solid var(--line);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 900;
   font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .panel-head select {
   padding: 0.1rem 0.3rem;
@@ -1048,8 +1102,10 @@ small {
   border-bottom: 1px solid var(--line);
 }
 .tabs button.active {
-  border-color: var(--accent);
-  background: var(--active-tint);
+  border-color: transparent;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 .map-canvas-wrap {
   display: flex;
