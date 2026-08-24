@@ -11,17 +11,24 @@ export function createInitialPrestigeState(starterAnimeIds: string[] = []): Pres
 /**
  * How much a fully completed run (every arc of every world cleared) multiplies the gain by, on top
  * of the earnings curve: at 0% completion the gain is the bare curve, at 100% it is 1 + this.
+ *
+ * This is deliberately the *dominant* term — see PRESTIGE_EXPONENT. What a reset banks is meant to
+ * say "how far did this run get", not "how long did you sit on one arc".
  */
-export const COMPLETION_GAIN_BONUS = 3;
+export const COMPLETION_GAIN_BONUS = 9;
 
 /** Currency worth one prestige point at 0% completion — the curve's threshold too. */
-export const PRESTIGE_SCALE = 100_000;
+export const PRESTIGE_SCALE = 5_000;
 
 /**
- * Curve exponent. Above 0.5 (the old sqrt) the gain keeps growing with how deep a run went instead
- * of flattening out: it is the main "is prestige worth it?" knob.
+ * Curve exponent, deliberately *low*. Currency spans ~×43 000 between clearing the first world and
+ * clearing the last, so any exponent near 0.5 turns that span into a gain of thousands: a single
+ * full run used to bank ~6 600 points against a 775-point tree, i.e. the whole of the game's
+ * meta-progression bought the first time it was reachable. At 0.22 the same span is worth ~×11, and
+ * COMPLETION_GAIN_BONUS above supplies the rest — so farming an arc longer barely helps, and
+ * clearing one more arc does. A full clear banks a few hundred points, several runs buy the tree.
  */
-export const PRESTIGE_EXPONENT = 0.65;
+export const PRESTIGE_EXPONENT = 0.22;
 
 /**
  * Diminishing-returns curve so prestige points don't scale linearly with lifetime earnings,

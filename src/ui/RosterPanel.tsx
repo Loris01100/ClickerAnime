@@ -3,7 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import type { Character, Item } from "../engine/types";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
-import { describeItem } from "./describe";
+import { describeAbility, describeItem } from "./describe";
 import { fmt, seconds } from "./format";
 import { IconBookmark, IconStar, IconStarOutline, IconTrophy } from "./icons";
 
@@ -18,9 +18,38 @@ const SORTS: Record<SortKey, { label: string; value: (game: GameStore, c: Charac
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
+/**
+ * The sort and the world filter are a view preference, not game state: they live in `localStorage`
+ * on their own rather than in the save, so they survive a reload (and a prestige) without adding a
+ * field to `SaveFile`. A missing or unreadable value just falls back to the default.
+ */
+const VIEW_KEY = "clicker-anime:roster-view:v1";
+function readView(): { sort: SortKey; world: string } {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(VIEW_KEY) ?? "null");
+    if (parsed && typeof parsed.sort === "string" && typeof parsed.world === "string") {
+      return { sort: parsed.sort in SORTS ? parsed.sort : "level", world: parsed.world };
+    }
+  } catch {
+    /* private mode, blocked storage, malformed value — the default is always fine */
+  }
+  return { sort: "level", world: "" };
+}
+
 /** Left column: abilities, the sortable team list, and the item collection. */
 export default function RosterPanel(props: { game: GameStore; onSelectCharacter?: (id: string) => void }) {
-  const [sortKey, setSortKey] = createSignal<SortKey>("level");
+  const view = readView();
+  const [sortKey, setSortKey] = createSignal<SortKey>(view.sort);
+  /** "" = tous les mondes. Le filtre devient indispensable à 60+ personnages. */
+  const [worldFilter, setWorldFilter] = createSignal(view.world);
+
+  function persistView() {
+    try {
+      localStorage.setItem(VIEW_KEY, JSON.stringify({ sort: sortKey(), world: worldFilter() }));
+    } catch {
+      /* storage full or blocked: the preference simply isn't remembered */
+    }
+  }
   const [abilitiesOpen, setAbilitiesOpen] = createSignal(true);
   const [teamOpen, setTeamOpen] = createSignal(true);
   const [itemsOpen, setItemsOpen] = createSignal(true);
@@ -29,10 +58,29 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
   const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
 
   const sortedTeam = createMemo(() =>
-    [...props.game.ownedCharacters()].sort(
-      (a, b) => SORTS[sortKey()].value(props.game, b) - SORTS[sortKey()].value(props.game, a)
-    )
+    props.game
+      .ownedCharacters()
+      .filter((c) => !worldFilter() || c.animeId === worldFilter())
+      .sort((a, b) => SORTS[sortKey()].value(props.game, b) - SORTS[sortKey()].value(props.game, a))
   );
+
+  /** Only worlds the team actually draws from — an empty filter option would be a dead end. */
+  const teamWorlds = createMemo(() => {
+    const ids = new Set(props.game.ownedCharacters().map((c) => c.animeId));
+    return props.game.data.animes.filter((a) => ids.has(a.id));
+  });
+
+  /**
+   * Ready abilities first, everything else in roster order. With every ability now usable (they
+   * stack instead of locking each other out) the bar is long, and what the player wants at the top
+   * is "what can I fire right now". Deliberately a *binary* key rather than the exact cooldown
+   * left: sorting by remaining ms would reshuffle the whole bar on every 200ms tick, sliding
+   * buttons out from under the cursor.
+   */
+  const sortedAbilities = createMemo(() => {
+    const ready = (u: { ability: { id: string } }) => (props.game.abilityCooldownRemaining(u.ability.id) > 0 ? 1 : 0);
+    return [...props.game.unlockedAbilities()].sort((a, b) => ready(a) - ready(b));
+  });
 
   const equippableUniques = (character: Character): Item[] =>
     props.game
@@ -50,18 +98,22 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </header>
         <Show when={abilitiesOpen()}>
           <div class="ability-bar">
-            <For each={props.game.unlockedAbilities()}>
+            <For each={sortedAbilities()}>
               {(unlocked) => {
                 const remaining = () => props.game.abilityCooldownRemaining(unlocked.ability.id);
+                const running = () => props.game.activeBuffs().includes(unlocked.ability.id);
                 return (
                   <button
                     class="ability"
+                    classList={{ running: running() }}
                     disabled={remaining() > 0}
-                    title={`${unlocked.ability.name} — ${seconds(unlocked.ability.durationMs)} d'effet`}
+                    title={`${unlocked.ability.name}\n${describeAbility(unlocked.ability)}`}
                     onClick={() => props.game.activateAbility(unlocked.ability.id)}
                   >
                     <span class="ability-name">{unlocked.ability.name}</span>
-                    <span class="ability-cd">{remaining() > 0 ? seconds(remaining()) : "Prêt"}</span>
+                    <span class="ability-cd">
+                      {running() ? "actif" : remaining() > 0 ? seconds(remaining()) : "Prêt"}
+                    </span>
                   </button>
                 );
               }}
@@ -76,9 +128,29 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
       <section class="panel">
         <header class="panel-head">
           <PanelTitle open={teamOpen()} onToggle={() => setTeamOpen(!teamOpen())}>
-            Équipe ({props.game.ownedCharacters().length})
+            Équipe ({sortedTeam().length}
+            <Show when={worldFilter()}>/{props.game.ownedCharacters().length}</Show>)
           </PanelTitle>
-          <select value={sortKey()} onChange={(e) => setSortKey(e.currentTarget.value as SortKey)}>
+          <Show when={teamWorlds().length > 1}>
+            <select
+              value={worldFilter()}
+              title="Filtrer l'équipe par monde"
+              onChange={(e) => {
+                setWorldFilter(e.currentTarget.value);
+                persistView();
+              }}
+            >
+              <option value="">Tous les mondes</option>
+              <For each={teamWorlds()}>{(anime) => <option value={anime.id}>{anime.name}</option>}</For>
+            </select>
+          </Show>
+          <select
+            value={sortKey()}
+            onChange={(e) => {
+              setSortKey(e.currentTarget.value as SortKey);
+              persistView();
+            }}
+          >
             <For each={Object.entries(SORTS)}>{([key, sort]) => <option value={key}>{sort.label}</option>}</For>
           </select>
         </header>

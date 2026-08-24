@@ -35,10 +35,19 @@ export default function CurrencyBar(props: {
           <span class="coin violet"><IconSparkle /></span>
           <strong>{props.game.prestige().prestigePoints}</strong>
         </button>
+        {/*
+          `advised` is the nudge the crystals never had: they only pay while the team is fighting
+          somewhere it suffers the steep other-anime malus — coming back to farm an old world's
+          common, typically — and nothing used to say so, so the stock just sat there.
+        */}
         <button
           class="currency"
-          classList={{ active: props.game.crossoverActive() }}
-          title="Cristaux de crossover : annuler le malus de synergie"
+          classList={{ active: props.game.crossoverActive(), advised: props.game.crossoverAdvised() }}
+          title={
+            props.game.crossoverAdvised()
+              ? "Vos personnages sont hors de leur monde : un crossover les remettrait à pleine puissance"
+              : "Cristaux de crossover : annuler le malus de synergie"
+          }
           onClick={props.onOpenCrossover}
         >
           <span class="coin blue"><IconCrystal /></span>

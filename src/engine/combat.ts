@@ -41,6 +41,15 @@ export function pendingRecruits(arc: Arc, recruitedIds: string[]): string[] {
     .filter((id): id is string => !!id && !recruitedIds.includes(id));
 }
 
+/**
+ * How long the team needs to fell `hp` at `dps`, in ms — `Infinity` when it deals none. The one
+ * number that says whether an arc is worth fighting: against a boss it is measured against the
+ * boss's own `timerMs`, which is the only real wall in the game (see `Enemy.timerMs`).
+ */
+export function timeToKillMs(hp: number, dps: number): number {
+  return dps > 0 ? (hp / dps) * 1000 : Infinity;
+}
+
 /** `roll` is a 0..1 draw supplied by the caller, so drop odds stay testable without stubbing RNG. */
 export function rollsDrop(enemy: Enemy, roll: number): boolean {
   if (!enemy.itemId) return false;

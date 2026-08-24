@@ -174,6 +174,12 @@ export default function ClickStage(props: { game: GameStore }) {
               <div class="bar-fill" style={{ width: `${Math.max(0, hpRatio()) * 100}%` }} />
               <span class="bar-label">
                 {fmt(Math.max(0, props.game.enemyHpLeft()))} / {fmt(props.game.enemyMaxHp())} PV
+                {/* Time-to-kill sits on the hp bar because that is where the player already looks
+                    to judge whether a fight is going anywhere. */}
+                <Show when={Number.isFinite(props.game.timeToKill())} fallback=" · ∞">
+                  {" · "}
+                  {seconds(props.game.timeToKill())}
+                </Show>
               </span>
             </div>
 

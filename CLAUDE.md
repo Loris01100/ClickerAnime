@@ -132,6 +132,14 @@ in a run. `MAX_KILLS_PER_HIT` bounds that loop: a safety net against a data mist
 knob. Currency only ever comes from kills — there is no passive
 income any more, and `lifetimeEarned` is what feeds prestige.
 
+`timeToKillMs(hp, dps)` is the one number that says whether a fight is going anywhere; the store
+exposes it for the current enemy (`timeToKill`, printed on the hp bar) and, per arc, as
+`bossOutlookOf` — the boss's hp at that world's frozen difficulty against the dps the team would
+deal **there**, not here (synergy makes those very different), measured against the boss's own
+`timerMs` with the tree's boost applied exactly as `spawnNext` applies it. That comparison is what
+`ProgressPanel` turns into the "trop dur" marker, since the boss clock is the only thing in the game
+that can actually stop a run.
+
 Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved: a reload
 restarts the current fight. Only kill counts and cleared arcs persist.
 
@@ -198,7 +206,19 @@ Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes bot
 
 Everything that affects a stat becomes an `ActiveModifier`, and `computeEffectiveStat` folds them:
 `(base + flats) * (1 + Σpercents) * Πmultipliers`. That order is a balance decision — changing it
-rebalances the whole game. A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
+rebalances the whole game.
+
+**Overlapping temporary buffs on one stat diminish.** Within a stat and a kind, the *temporary*
+modifiers (the ones carrying `expiresAt`, i.e. abilities) are ranked strongest-first and the k-th is
+worth `STACK_FALLOFF ** k` of its printed bonus — a x3 at 40% is x1.8, not x1.2. Permanent
+contributions (characters, passives, items, the tree) never diminish and never compete. This
+replaced a hard mutual lock: abilities used to be forbidden from overlapping on a stat at all, which
+was the only thing stopping three multipliers from compounding into x50 — at the price of a bar
+where 30 of ~35 buttons were permanently greyed out, since `ModifierTarget` is only
+`clickPower | teamDps` and 82 of the game's 93 effects target `teamDps`. Ranking strongest-first is
+what makes firing a second ability never worse than not firing it. `replaceModifiersBySource`
+(formerly `replaceModifiersByTarget`) is the matching change: re-firing one ability refreshes its
+own buff, and touches nobody else's. A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
 of its own**: nothing in the pipeline keys off one (`computeEffectiveStat` and
 `replaceModifiersByTarget` both key on `target`), and `ActiveModifier.sourceId` is what names where a
 modifier came from. Don't reintroduce a per-effect `id` in the data files. Modifiers come from three
@@ -291,6 +311,15 @@ a setter per field. There is no offline-progress catch-up.
 
 ### Prestige
 
+Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONENT` is 0.22 and
+`COMPLETION_GAIN_BONUS` is 9, so clearing one more arc is worth far more than farming the current
+one for hours. Currency spans ~x43 000 between clearing the first world and the last, and the old
+0.65 exponent turned that span into a gain of thousands — a single full run banked ~6 600 points
+against a 775-point tree, buying the whole of the game's meta-progression the first time it was
+reachable. At 0.22 a full run banks ~240 and the tree takes several. Adding a world self-balances:
+`runCompletion` is a share of *all* the game's arcs, so new content dilutes it. `engine.test.ts`
+guards the trio together rather than the individual constants.
+
 `prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
 tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
@@ -379,7 +408,11 @@ e.g. `IconLock` on several locked map nodes, was equally affected).
 
 Unlocked two ways, both computed from the owned set in `getUnlockedAbilities`: a single character
 that grants one, or owning *every* character a `ComboDefinition` requires. Cooldowns are tracked as
-last-used timestamps in a record, not as counters.
+last-used timestamps in a record, not as counters, and an ability's own cooldown is now the **only**
+gate on it — see the stacking rule under the modifier pipeline. `activeBuffs` lists which abilities
+are still running, so the bar can mark them; `RosterPanel` sorts ready-first on a deliberately
+*binary* key, since sorting by exact cooldown left would reshuffle the bar under the cursor every
+tick.
 
 ### Crossover crystals (`crossover.ts`)
 
@@ -391,7 +424,10 @@ in `crossoverSynergyConfig` — every malus flattened to `matchingArcMultiplier`
 fights at full power anywhere. Damage only: a passive is still a story ability and stays shut off
 outside its own anime (`characterContributions` decides that from the arc, not from the config).
 The stock is saved and run-scoped (`prestigeReset` wipes it, like items); the window's deadline is
-transient like combat state, so a reload drops an active buff.
+transient like combat state, so a reload drops an active buff. `crossoverAdvised` is the nudge the
+resource never had — true only while the player is fighting somewhere at least one team member sits
+at the steep other-anime malus, which is exactly the "come back and farm an old world's common"
+case; `CurrencyBar` pulses the tile on it.
 
 ### Packs and duplicates (`packs.ts`)
 

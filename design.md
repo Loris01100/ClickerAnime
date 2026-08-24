@@ -180,6 +180,25 @@ Le clavier compte aussi : `.stage` porte `role="button"` + `tabindex="0"` et ré
 au centre de la scène faute de coordonnées de pointeur, et `.stage:focus-visible` donne l'anneau de
 focus qu'un `<div>` cliquable n'a pas.
 
+### 4.2 Lire sa progression d'un coup d'œil
+
+Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
+
+- **Temps de mise à mort** collé au label de la barre de PV (`ClickStage`) — c'est déjà là que
+  l'œil va pour juger si un combat avance. `∞` quand l'équipe ne fait aucun DPS.
+- **Marqueur « trop dur »** (`.arc-hard`, fond `--bad`) sur un arc ouvert dont le boss dépasse son
+  propre chrono, plus le détail en `title` : le chrono du boss est le seul mur du jeu, donc la
+  seule chose qui mérite un avertissement. Voir `bossOutlookOf` dans `CLAUDE.md`.
+- **Tuile de crossover qui pulse** (`.currency.advised`) quand dépenser des cristaux paierait
+  vraiment — l'équipe combat hors de son monde. Sans ça le stock ne bougeait jamais.
+- **État de la sauvegarde** dans la topbar (`.save-state`) : un autosave silencieux est
+  indiscernable d'un autosave cassé.
+
+Et la barre de capacités marque celles dont le buff tourne encore (`.ability.running`, bordure
+`--good`) plutôt que d'en griser 30 sur 35 : elles se cumulent désormais avec rendements
+décroissants au lieu de se verrouiller mutuellement. Le tri « prêtes d'abord » est **binaire** et
+pas par temps restant — sinon les boutons glissent sous le curseur à chaque tick de 200ms.
+
 Ce qu'on **n'ajoute pas** : rien qui bloque l'input (pas d'animation qui empêche d'enchaîner les
 clics), rien qui ralentisse la boucle de tick 200ms (`gameState.ts`), pas de dépendance externe —
 tout en CSS/`@keyframes` ou signaux Solid, comme l'existant.
@@ -450,6 +469,11 @@ code écrit à la main.
   confirmation** : le prestige (`ProgressPanel`) comme le « Tout effacer » de la topbar. Le second
   vit dans la topbar plutôt que dans un panel parce qu'il est aussi la sortie de secours d'une save
   cassée, et la topbar est le seul élément affiché dans tous les états, portail des mondes compris.
+- **Une préférence d'affichage ne va pas dans la save.** Le tri et le filtre par monde de l'équipe
+  vivent sous leur propre clé `localStorage` (`clicker-anime:roster-view:v1`, lecture et écriture
+  dans un `try`), pas dans `SaveFile` : elles survivent au rechargement et au prestige sans imposer
+  un champ de plus au format de sauvegarde, et une valeur illisible retombe simplement sur le
+  défaut.
 - **Le texte visible est en français**, y compris les nouveaux tooltips/labels de l'arbre de
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
 

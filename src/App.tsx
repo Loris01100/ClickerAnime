@@ -77,6 +77,12 @@ export default function App() {
     <>
       <header class="topbar">
         <h1>ClickerAnime</h1>
+        {/* A silent autosave is indistinguishable from a broken one — say when the last one landed. */}
+        <small class="save-state muted" title="Sauvegarde automatique toutes les 5s">
+          <Show when={game.lastSavedAt() > 0} fallback="pas encore sauvegardé">
+            sauvegardé il y a {Math.max(0, Math.round((game.now() - game.lastSavedAt()) / 1000))}s
+          </Show>
+        </small>
         <div class="topbar-actions">
           <button
             class="theme-toggle"

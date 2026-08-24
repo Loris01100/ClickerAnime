@@ -1,6 +1,6 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
 import { achievementContributions } from "./achievements";
-import { computeEffectiveStat, pruneExpired, replaceModifiersByTarget } from "./modifiers";
+import { computeEffectiveStat, pruneExpired, replaceModifiersBySource } from "./modifiers";
 import {
   applyPrestige,
   PRESTIGE_SCALE,
@@ -18,8 +18,8 @@ import {
   crossoverSynergyConfig,
   isMixedTeam,
 } from "./crossover";
-import { abilitiesShareType, abilityTargets, cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
-import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
+import { cooldownRemaining, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
@@ -237,6 +237,9 @@ export function createGameStore(data: GameData) {
   const saved = readSave();
 
   const [now, setNow] = createSignal(Date.now());
+  // When the last autosave landed, so the topbar can say so — a silent autosave is indistinguishable
+  // from a broken one. 0 until the first write; `save()` is the only thing that sets it.
+  const [lastSavedAt, setLastSavedAt] = createSignal(0);
   const [currency, setCurrency] = createSignal(saved?.currency ?? 0);
   const [lifetimeEarned, setLifetimeEarned] = createSignal(saved?.lifetimeEarned ?? 0);
   const [ownedCharacterIds, setOwnedCharacterIds] = createSignal<string[]>(saved?.ownedCharacterIds ?? []);
@@ -288,8 +291,6 @@ export function createGameStore(data: GameData) {
   );
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
-  // Same-stat abilities can't fire while another's buff on that stat is still up — see activateAbility.
-  const [abilityBlockedUntil, setAbilityBlockedUntil] = createSignal<Record<string, number>>({});
 
   // Transient feed of "you just gained something" events — the HUD pops them up (see ui/Notices.tsx)
   // because a drop, a recruit or a cleared arc otherwise happen in complete silence. Pruned by the
@@ -789,13 +790,10 @@ export function createGameStore(data: GameData) {
 
     const freeTriggerLevel = nodeLevelOf("narratorClick", 5);
     if (freeTriggerLevel > 0 && Math.random() < scaledChance(FREE_ABILITY_TRIGGER_CHANCE, freeTriggerLevel)) {
-      // Only abilities whose stats are free right now: `triggerAbilityEffects` goes through
-      // `replaceModifiersByTarget`, so firing one over a running buff on the same stat *replaces*
-      // it — a random weak proc could cut a x3 combo short. A perk must never make the player weaker.
-      const busy = new Set(pruneExpired(temporaryModifiers(), Date.now()).map((m) => m.target));
-      const candidates = unlockedAbilities().filter((u) =>
-        abilityTargets(u.ability).every((target) => !busy.has(target))
-      );
+      // Any unlocked ability will do. This used to have to skip abilities whose stat was already
+      // buffed, because a proc replaced the running buff and could cut a x3 combo short; buffs now
+      // stack with diminishing returns, so the worst a proc can do is add a small bonus.
+      const candidates = unlockedAbilities();
       if (candidates.length > 0) {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
         triggerAbilityEffects(pick.ability);
@@ -823,6 +821,47 @@ export function createGameStore(data: GameData) {
     setLastTimeout(nowMs);
     spawnNext();
   }
+
+  /** Time the team needs to fell the enemy in front of it right now — `Infinity` at 0 dps. */
+  const timeToKill = createMemo(() => timeToKillMs(enemyHpLeft(), teamDps()));
+
+  /**
+   * Whether this arc's boss is beatable yet, and how comfortably. `winnable` compares the team's
+   * time-to-kill against the boss's own clock (stretched by "DPS Équipe" node 5, exactly as
+   * `spawnNext` stretches it), which is the only thing that can actually stop a run — nothing else
+   * in the game can lose a fight. This is what tells the player an arc has become worth entering.
+   */
+  function bossOutlookOf(arc: Arc) {
+    const timerLevel = nodeLevelOf("teamDps", 5);
+    const base = arc.boss.timerMs;
+    const timerMs = base && timerLevel > 0 ? base * (1 + BOSS_TIMER_BOOST * timerLevel) : base;
+    // The boss's hp at that world's frozen difficulty, and the dps the team would deal *there* —
+    // not here: synergy makes those two very different numbers once the arc isn't the active one.
+    const config = activeSynergyConfig();
+    const dps = ownedCharacters().reduce(
+      (sum, c) =>
+        sum +
+        c.baseDps * damageGrowthOf(c.id) * synergyMultiplier(c, arc, config, isEvolved(c)),
+      0
+    );
+    const ttkMs = timeToKillMs(enemyHp(arc.boss, difficultyOf(arc.animeId)), dps);
+    return { ttkMs, timerMs: timerMs ?? null, winnable: timerMs ? ttkMs <= timerMs : Number.isFinite(ttkMs) };
+  }
+
+  /**
+   * True when spending crystals right now would actually pay: the player is fighting somewhere at
+   * least one team member is at the steep other-anime malus — typically back in an old world to farm
+   * its common. The stock otherwise just sits there, since nothing ever suggests using it.
+   */
+  const crossoverAdvised = createMemo(() => {
+    if (crossoverActive() || crossoverCrystals() < CROSSOVER_COST) return false;
+    const arc = activeArc();
+    if (!arc) return false;
+    const config = activeSynergyConfig();
+    return ownedCharacters().some(
+      (c) => synergyMultiplier(c, arc, config, isEvolved(c)) <= config.otherAnimeMalus
+    );
+  });
 
   const timerRemaining = createMemo(() => {
     const deadline = timerDeadline();
@@ -1036,41 +1075,37 @@ export function createGameStore(data: GameData) {
 
   /** Applies an ability's effects without touching its cooldown — the "Clic du Narrateur" tier 5 freebie. */
   function triggerAbilityEffects(ability: AbilityDefinition) {
-    setTemporaryModifiers((existing) => replaceModifiersByTarget(existing, buildAbilityModifiers(ability)));
+    setTemporaryModifiers((existing) => replaceModifiersBySource(existing, buildAbilityModifiers(ability)));
   }
 
+  /**
+   * Abilities no longer lock each other out: overlapping buffs on one stat diminish instead (see
+   * `STACK_FALLOFF`), so an ability's own cooldown is the only gate left. That is what turns a bar
+   * of 35 permanently-greyed buttons back into 35 usable ones.
+   */
   function activateAbility(abilityId: string) {
     const unlocked = unlockedAbilities().find((u) => u.ability.id === abilityId);
     if (!unlocked) return false;
 
     const nowMs = Date.now();
     if (!isAbilityReady(abilityLastUsed()[abilityId], unlocked.ability.cooldownMs, nowMs)) return false;
-    if ((abilityBlockedUntil()[abilityId] ?? 0) > nowMs) return false;
 
     triggerAbilityEffects(unlocked.ability);
     setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
-    // Abilities that touch the same stat can't be fired while this one's buff is still up: activating
-    // one would immediately cut the other's effect short anyway (`replaceModifiersByTarget`), so lock
-    // them for the buff's duration — not its cooldown, which keeps running on its own, untouched.
-    const lockedUntil = nowMs + unlocked.ability.durationMs;
-    const sameType = unlockedAbilities().filter(
-      (u) => u.ability.id !== abilityId && abilitiesShareType(u.ability, unlocked.ability)
-    );
-    setAbilityBlockedUntil((blocked) => {
-      const next = { ...blocked };
-      for (const u of sameType) next[u.ability.id] = lockedUntil;
-      return next;
-    });
     bumpAchievement("abilitiesUsed");
     return true;
   }
 
   function abilityCooldownRemaining(abilityId: string): number {
     const cooldownMs = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability.cooldownMs ?? 0;
-    const cd = cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
-    const blockedFor = Math.max(0, (abilityBlockedUntil()[abilityId] ?? 0) - now());
-    return Math.max(cd, blockedFor);
+    return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
   }
+
+  /** Buffs running right now, strongest first — what the ability bar shows as the live stack. */
+  const activeBuffs = createMemo(() => {
+    const live = pruneExpired(temporaryModifiers(), now());
+    return [...new Set(live.map((m) => m.sourceId))];
+  });
 
   /**
    * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared, items and
@@ -1089,7 +1124,6 @@ export function createGameStore(data: GameData) {
     setCharacterXp({});
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
-    setAbilityBlockedUntil({});
     setItemCounts({});
     setPassiveRanks({});
     setArcKills({});
@@ -1132,6 +1166,7 @@ export function createGameStore(data: GameData) {
   function save() {
     if (typeof localStorage === "undefined") return;
     localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveFile()));
+    setLastSavedAt(Date.now());
   }
 
   /** A portable blob the player can download and hand back later — same shape `readSave` already trusts. */
@@ -1163,7 +1198,6 @@ export function createGameStore(data: GameData) {
     setOwnedCharacterIds([]);
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
-    setAbilityBlockedUntil({});
     setPrestige(createInitialPrestigeState());
     setCharacterXp({});
     setItemCounts({});
@@ -1288,8 +1322,10 @@ export function createGameStore(data: GameData) {
     crossoverActive,
     crossoverRemaining,
     teamIsMixed,
+    crossoverAdvised,
     activateCrossover,
     unlockedAbilities,
+    activeBuffs,
     synergyOf,
     achievementCounts,
     // HUD notices
@@ -1305,6 +1341,8 @@ export function createGameStore(data: GameData) {
     enemy,
     enemyHpLeft,
     enemyMaxHp,
+    timeToKill,
+    bossOutlookOf,
     timerRemaining,
     timerTotal,
     lastTimeout,
@@ -1336,6 +1374,7 @@ export function createGameStore(data: GameData) {
     abilityCooldownRemaining,
     prestigeReset,
     save,
+    lastSavedAt,
     exportSave,
     importSave,
     hardReset,

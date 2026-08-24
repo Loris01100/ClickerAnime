@@ -1462,3 +1462,41 @@ button.danger {
     animation: none;
   }
 }
+
+/* --- lisibilité de la progression --- */
+/* Un arc ouvert dont le boss dépasse son propre chrono : « reviens plus tard », sans survol. */
+.arc-hard {
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  background: var(--bad);
+  color: var(--panel);
+  font-size: 0.7rem;
+}
+/* Une capacité dont le buff tourne encore — elle se cumule désormais, elle n'est plus bloquée. */
+.ability.running {
+  border-color: var(--good);
+}
+.ability.running .ability-cd {
+  color: var(--good);
+}
+/* Le nudge du crossover : la tuile pulse quand dépenser des cristaux paierait vraiment. */
+.currency.advised {
+  border-color: var(--blue);
+  animation: advised 1.8s ease-in-out infinite;
+}
+@keyframes advised {
+  50% {
+    border-color: var(--accent);
+  }
+}
+.save-state {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currency.advised {
+    animation: none;
+  }
+}

@@ -1,7 +1,7 @@
 import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
-import { fmt } from "./format";
+import { fmt, seconds } from "./format";
 import { IconCheck, IconLock, IconSparkle } from "./icons";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
@@ -44,11 +44,21 @@ export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: 
                 const open = () => props.game.arcOpen(arc);
                 const cleared = () => props.game.arcCleared(arc);
                 const kills = () => Math.min(props.game.killsIn(arc), arc.mobsToBoss);
+                const outlook = () => props.game.bossOutlookOf(arc);
+                /** Ce que l'équipe vaut face au boss de cet arc — le seul mur du jeu. */
+                const outlookLabel = () => {
+                  const { ttkMs, timerMs, winnable } = outlook();
+                  if (!Number.isFinite(ttkMs)) return "Boss : aucun DPS pour l'instant";
+                  const base = `Boss : ${seconds(ttkMs)} pour l'abattre`;
+                  if (!timerMs) return base;
+                  return `${base} · limite ${seconds(timerMs)}${winnable ? "" : " — trop dur pour l'instant"}`;
+                };
                 return (
                   <button
                     class="arc"
                     classList={{ active: props.game.activeArc()?.id === arc.id, cleared: cleared() }}
                     disabled={!open()}
+                    title={outlookLabel()}
                     onClick={() => props.game.setActiveArc(arc.id)}
                   >
                     <span class="arc-name">
@@ -56,6 +66,13 @@ export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: 
                         <IconLock />{" "}
                       </Show>
                       {arc.name}
+                      {/* Un arc ouvert mais dont le boss est hors de portée doit se voir sans
+                          survoler : c'est l'info qui dit « reviens plus tard ». */}
+                      <Show when={open() && !cleared() && !outlook().winnable}>
+                        <small class="arc-hard" title={outlookLabel()}>
+                          trop dur
+                        </small>
+                      </Show>
                     </span>
                     <div class="bar arc-bar">
                       <div

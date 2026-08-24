@@ -9,11 +9,19 @@ import {
   achievementTierBonus,
   achievementTiersCompleted,
 } from "./achievements";
-import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
+import { computeEffectiveStat, replaceModifiersBySource, STACK_FALLOFF } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
-import { crossoverSynergyConfig, isMixedTeam } from "./crossover";
-import { applyPrestige, canUnlockAnime, createInitialPrestigeState, unlockAnime } from "./prestige";
-import { abilitiesShareType, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { CROSSOVER_COST, crossoverSynergyConfig, isMixedTeam } from "./crossover";
+import {
+  applyPrestige,
+  canUnlockAnime,
+  COMPLETION_GAIN_BONUS,
+  createInitialPrestigeState,
+  PRESTIGE_EXPONENT,
+  PRESTIGE_SCALE,
+  unlockAnime,
+} from "./prestige";
+import { getUnlockedAbilities, isAbilityReady } from "./abilities";
 import {
   animeTier,
   arcsOfAnime,
@@ -22,7 +30,7 @@ import {
   isAnimeComplete,
   isArcUnlocked,
 } from "./progression";
-import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop } from "./combat";
+import { encounterPool, enemyHp, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST } from "./packs";
 import {
@@ -102,20 +110,20 @@ describe("computeEffectiveStat", () => {
   });
 });
 
-describe("replaceModifiersByTarget", () => {
-  it("cuts short whatever else was boosting the same stat instead of stacking with it", () => {
+describe("replaceModifiersBySource", () => {
+  it("refreshes an ability's own buff and leaves every other ability's alone", () => {
     const existing: ActiveModifier[] = [
       { sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 9_000 },
-      { sourceId: "ability-a", target: "clickPower", kind: "percent", value: 0.5, expiresAt: 9_000 },
+      { sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 9_000 },
     ];
     const incoming: ActiveModifier[] = [
-      { sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 20_000 },
+      { sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 20_000 },
     ];
-    const result = replaceModifiersByTarget(existing, incoming);
-    // the old teamDps buff is gone, the unrelated clickPower one survives, the new one is in
-    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "teamDps")).toBeUndefined();
-    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "clickPower")).toBeDefined();
-    expect(result.find((m) => m.sourceId === "ability-b")).toBeDefined();
+    const result = replaceModifiersBySource(existing, incoming);
+    // A appears once, refreshed; B — a different ability on the same stat — survives untouched.
+    expect(result.filter((m) => m.sourceId === "ability-a")).toHaveLength(1);
+    expect(result.find((m) => m.sourceId === "ability-a")?.expiresAt).toBe(20_000);
+    expect(result.find((m) => m.sourceId === "ability-b")?.expiresAt).toBe(9_000);
   });
 });
 
@@ -171,27 +179,46 @@ describe("synergyMultiplier", () => {
 });
 
 describe("prestige", () => {
+  const curve = (lifetime: number, completion = 0) =>
+    (lifetime / PRESTIGE_SCALE) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion);
+
   it("computes no gain below the scale threshold", () => {
-    expect(applyPrestige(createInitialPrestigeState(), 99_999).prestigePoints).toBe(0);
+    expect(applyPrestige(createInitialPrestigeState(), PRESTIGE_SCALE - 1).prestigePoints).toBe(0);
   });
 
   it("computes diminishing-returns gain above the scale threshold", () => {
-    // (12_800_000 / 100_000) ^ 0.65 = 128 ^ 0.65 = 23.4
-    expect(applyPrestige(createInitialPrestigeState(), 12_800_000).prestigePoints).toBe(23);
+    expect(applyPrestige(createInitialPrestigeState(), 12_800_000).prestigePoints).toBe(
+      Math.floor(curve(12_800_000))
+    );
   });
 
   it("scales the gain with run completion", () => {
     const st = createInitialPrestigeState();
-    // 23.4 x (1 + 3 * completion)
-    expect(applyPrestige(st, 12_800_000, undefined, 0.5).prestigePoints).toBe(58);
-    expect(applyPrestige(st, 12_800_000, undefined, 1).prestigePoints).toBe(93);
+    expect(applyPrestige(st, 12_800_000, undefined, 0.5).prestigePoints).toBe(Math.floor(curve(12_800_000, 0.5)));
+    expect(applyPrestige(st, 12_800_000, undefined, 1).prestigePoints).toBe(Math.floor(curve(12_800_000, 1)));
     // completion alone never conjures points out of nothing
-    expect(applyPrestige(st, 99_999, undefined, 1).prestigePoints).toBe(0);
+    expect(applyPrestige(st, PRESTIGE_SCALE - 1, undefined, 1).prestigePoints).toBe(0);
+  });
+
+  /**
+   * The curve is what stops the tree from being bought outright the first time it is reachable:
+   * a full run of the whole game earns on the order of 9e9, and must bank a few hundred points
+   * against a 775-point tree — not thousands. Guards the exponent/scale/bonus trio together.
+   */
+  it("un run complet du jeu banque quelques centaines de points, pas des milliers", () => {
+    const fullRun = applyPrestige(createInitialPrestigeState(), 8.9e9, undefined, 1).prestigePoints;
+    expect(fullRun).toBeGreaterThan(100);
+    expect(fullRun).toBeLessThan(400);
+    // And farming one arc forever must not substitute for clearing more of them: 10x the earnings
+    // at the same completion is worth far less than the completion bonus itself.
+    expect(applyPrestige(createInitialPrestigeState(), 8.9e10, undefined, 1).prestigePoints).toBeLessThan(
+      fullRun * 2
+    );
   });
 
   it("sends the player back to square one: the worlds entered are wiped", () => {
     const after = applyPrestige({ prestigePoints: 1, unlockedAnimeIds: ["anime-a"] }, 12_800_000);
-    expect(after).toEqual({ prestigePoints: 24, unlockedAnimeIds: [] });
+    expect(after).toEqual({ prestigePoints: 1 + Math.floor(curve(12_800_000)), unlockedAnimeIds: [] });
   });
 
   it("lets the player unlock any anime they can afford, in any order", () => {
@@ -616,7 +643,7 @@ describe("store boot", () => {
     }
   });
 
-  it("does not stack two abilities boosting the same stat: the second is locked out while the first's buff is up", () => {
+  it("deux capacités sur la même stat se cumulent, la plus faible avec un rendement décroissant", () => {
     const testData = {
       animes: [],
       arcs: [],
@@ -687,17 +714,20 @@ describe("store boot", () => {
       expect(game.teamDps()).toBe(10); // base dps only, no ability active yet
       game.activateAbility("ability-a");
       expect(game.teamDps()).toBeCloseTo(20); // 10 * (1 + 1.0)
-      // ability-b touches the same stat and is locked out for the rest of ability-a's buff: it can't
-      // fire yet, so its effect never applies (10 * (1 + 2.0) = 30 would mean it slipped through).
-      expect(game.activateAbility("ability-b")).toBe(false);
-      expect(game.teamDps()).toBeCloseTo(20);
+      // B used to be refused outright for the rest of A's buff. It now fires and stacks: the
+      // stronger +200% counts in full, the weaker +100% at STACK_FALLOFF — 10 * (1 + 2 + 0.4).
+      expect(game.activateAbility("ability-b")).toBe(true);
+      expect(game.teamDps()).toBeCloseTo(10 * (1 + 2 + 1 * STACK_FALLOFF));
+      expect(game.activeBuffs()).toEqual(["ability-a", "ability-b"]);
+      // Raw stacking would have been 10 * (1 + 3) = 40: the falloff is what keeps it bounded.
+      expect(game.teamDps()).toBeLessThan(40);
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
     }
   });
 
-  it("the free ability trigger never overwrites a stronger buff already running on that stat", () => {
+  it("le proc gratuit s'ajoute au buff en cours au lieu de l'écraser", () => {
     const ability = (id: string, value: number) => ({
       id,
       name: id,
@@ -766,10 +796,12 @@ describe("store boot", () => {
 
       game.activateAbility("ability-strong");
       expect(game.teamDps()).toBeCloseTo(30); // 10 * (1 + 2.0)
-      // The proc fires on this click. It must find no candidate — the weak ability targets the same
-      // stat, and `replaceModifiersByTarget` would swap the x3 out for it (10 * (1 + 1.0) = 20).
+      // The proc fires on this click and picks the weak ability. It used to be filtered out, since
+      // replacing by target would have swapped the +200% for its +100%. It now stacks, diminished:
+      // +200% at full strength plus +100% * STACK_FALLOFF.
       game.click();
-      expect(game.teamDps()).toBeCloseTo(30);
+      expect(game.teamDps()).toBeCloseTo(10 * (1 + 2 + 1 * STACK_FALLOFF));
+      expect(game.teamDps()).toBeGreaterThan(30); // the perk can still never make the player weaker
     } finally {
       randomSpy.mockRestore();
       disposeRoot();
@@ -825,241 +857,25 @@ describe("store boot", () => {
     }
   });
 
-  it("abilitiesShareType: true when effects touch a common stat, false otherwise", () => {
-    const dps: import("./types").AbilityDefinition = {
-      id: "dps",
-      name: "dps",
-      cooldownMs: 0,
-      durationMs: 0,
-      effects: [{ target: "teamDps", kind: "percent", value: 1 }],
-    };
-    const dpsToo: import("./types").AbilityDefinition = {
-      id: "dpsToo",
-      name: "dpsToo",
-      cooldownMs: 0,
-      durationMs: 0,
-      effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
-    };
-    const click: import("./types").AbilityDefinition = {
-      id: "click",
-      name: "click",
-      cooldownMs: 0,
-      durationMs: 0,
-      effects: [{ target: "clickPower", kind: "percent", value: 1 }],
-    };
-    const both: import("./types").AbilityDefinition = {
-      id: "both",
-      name: "both",
-      cooldownMs: 0,
-      durationMs: 0,
-      effects: [
-        { target: "teamDps", kind: "percent", value: 1 },
-        { target: "clickPower", kind: "percent", value: 1 },
-      ],
-    };
-    expect(abilitiesShareType(dps, dpsToo)).toBe(true);
-    expect(abilitiesShareType(dps, click)).toBe(false);
-    expect(abilitiesShareType(both, dps)).toBe(true);
-    expect(abilitiesShareType(both, click)).toBe(true);
+  it("l'ordre d'activation ne change pas le total : le plus fort compte toujours à plein", () => {
+    const mods = (values: number[]): ActiveModifier[] =>
+      values.map((value, i) => ({
+        sourceId: `a${i}`,
+        target: "teamDps" as const,
+        kind: "multiplier" as const,
+        value,
+        expiresAt: 9_000,
+      }));
+    const expected = 10 * 3 * (1 + 1 * STACK_FALLOFF) * (1 + 0.5 * STACK_FALLOFF ** 2);
+    expect(computeEffectiveStat(10, "teamDps", mods([3, 2, 1.5]), 0)).toBeCloseTo(expected);
+    expect(computeEffectiveStat(10, "teamDps", mods([1.5, 3, 2]), 0)).toBeCloseTo(expected);
+    // Permanent modifiers never diminish, whatever temporaries are running alongside them.
+    const permanent: ActiveModifier = { sourceId: "item", target: "teamDps", kind: "multiplier", value: 2 };
+    expect(computeEffectiveStat(10, "teamDps", [permanent, ...mods([3, 2])], 0)).toBeCloseTo(
+      10 * 2 * 3 * (1 + 1 * STACK_FALLOFF)
+    );
   });
 
-  it("activating an ability also starts the cooldown of other abilities touching the same stat", () => {
-    const testData = {
-      animes: [],
-      arcs: [],
-      characters: [
-        {
-          id: "ca",
-          name: "A",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 10,
-          ability: {
-            id: "ability-a",
-            name: "A",
-            cooldownMs: 30_000,
-            durationMs: 10_000,
-            effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
-          },
-        },
-        {
-          id: "cb",
-          name: "B",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 0,
-          ability: {
-            id: "ability-b",
-            name: "B",
-            cooldownMs: 30_000,
-            durationMs: 10_000,
-            // same stat as ability-a: must go on cooldown too, even though never activated
-            effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
-          },
-        },
-        {
-          id: "cc",
-          name: "C",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 5,
-          baseDps: 0,
-          ability: {
-            id: "ability-c",
-            name: "C",
-            cooldownMs: 30_000,
-            durationMs: 10_000,
-            // different stat: must stay ready
-            effects: [{ id: "c-eff", target: "clickPower" as const, kind: "percent" as const, value: 1 }],
-          },
-        },
-      ],
-      combos: [],
-      items: [],
-    };
-    const save = {
-      currency: 0,
-      lifetimeEarned: 0,
-      ownedCharacterIds: ["ca", "cb", "cc"],
-      activeArcId: null,
-      prestigePoints: 0,
-      unlockedAnimeIds: [],
-      arcKills: {},
-      clearedArcIds: [],
-      characterXp: {},
-      itemCounts: {},
-      passiveRanks: {},
-    };
-    const original = (globalThis as { localStorage?: unknown }).localStorage;
-    (globalThis as { localStorage?: unknown }).localStorage = {
-      getItem: () => JSON.stringify(save),
-      setItem: () => {},
-      removeItem: () => {},
-    };
-
-    let disposeRoot!: () => void;
-    try {
-      const game = createRoot((dispose) => {
-        disposeRoot = dispose;
-        return createGameStore(testData);
-      });
-
-      game.activateAbility("ability-a");
-      expect(game.abilityCooldownRemaining("ability-b")).toBeGreaterThan(0);
-      expect(game.abilityCooldownRemaining("ability-c")).toBe(0);
-      expect(game.activateAbility("ability-b")).toBe(false);
-    } finally {
-      disposeRoot();
-      (globalThis as { localStorage?: unknown }).localStorage = original;
-    }
-  });
-
-  it("same-stat abilities are locked for the just-activated ability's buff duration, not its cooldown", () => {
-    const testData = {
-      animes: [],
-      arcs: [],
-      characters: [
-        {
-          id: "ca",
-          name: "A",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 10,
-          ability: {
-            id: "ability-a",
-            name: "A",
-            cooldownMs: 30_000,
-            durationMs: 20_000,
-            effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
-          },
-        },
-        {
-          id: "cb",
-          name: "B",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 0,
-          ability: {
-            id: "ability-b",
-            name: "B",
-            cooldownMs: 5_000,
-            durationMs: 10_000,
-            // shorter cooldown than A, same stat: must still be locked for A's whole 20s buff
-            effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
-          },
-        },
-        {
-          id: "cc",
-          name: "C",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 0,
-          ability: {
-            id: "ability-c",
-            name: "C",
-            cooldownMs: 5_000,
-            durationMs: 10_000,
-            // different stat: never locked by A
-            effects: [{ id: "c-eff", target: "clickPower" as const, kind: "percent" as const, value: 3 }],
-          },
-        },
-      ],
-      combos: [],
-      items: [],
-    };
-    const save = {
-      currency: 0,
-      lifetimeEarned: 0,
-      ownedCharacterIds: ["ca", "cb", "cc"],
-      activeArcId: null,
-      prestigePoints: 0,
-      unlockedAnimeIds: [],
-      arcKills: {},
-      clearedArcIds: [],
-      characterXp: {},
-      itemCounts: {},
-      passiveRanks: {},
-    };
-    const original = (globalThis as { localStorage?: unknown }).localStorage;
-    (globalThis as { localStorage?: unknown }).localStorage = {
-      getItem: () => JSON.stringify(save),
-      setItem: () => {},
-      removeItem: () => {},
-    };
-
-    let disposeRoot!: () => void;
-    try {
-      const game = createRoot((dispose) => {
-        disposeRoot = dispose;
-        return createGameStore(testData);
-      });
-
-      game.activateAbility("ability-a");
-      // A's own cooldown is unaffected by this feature: still running its normal 30s.
-      expect(game.abilityCooldownRemaining("ability-a")).toBeGreaterThan(20_000);
-      // B is locked for A's 20s buff duration, well past B's own 5s cooldown.
-      const bRemaining = game.abilityCooldownRemaining("ability-b");
-      expect(bRemaining).toBeGreaterThan(15_000);
-      expect(bRemaining).toBeLessThanOrEqual(20_000);
-      expect(game.activateAbility("ability-b")).toBe(false);
-      // C touches a different stat: never locked, ready throughout.
-      expect(game.abilityCooldownRemaining("ability-c")).toBe(0);
-    } finally {
-      disposeRoot();
-      (globalThis as { localStorage?: unknown }).localStorage = original;
-    }
-  });
 
   it("never blocks on a boss: a timeout falls back to farming, until the player rematches it", () => {
     const testData = {
@@ -1334,6 +1150,40 @@ describe("game data", () => {
   });
 });
 
+/** Boots a store from a chosen save blob; the returned function puts localStorage back. */
+function baseSave(overrides: Record<string, unknown> = {}) {
+  return {
+    currency: 0,
+    lifetimeEarned: 0,
+    ownedCharacterIds: ["ca"],
+    activeArcId: "ta-arc",
+    prestigePoints: 0,
+    unlockedAnimeIds: ["ta"],
+    arcKills: {},
+    clearedArcIds: [],
+    characterXp: {},
+    itemCounts: {},
+    passiveRanks: {},
+    evolvedCharacterIds: [],
+    achievementCounts: {},
+    prestigeTreeRanks: {},
+    ...overrides,
+  };
+}
+
+/** Boots a store from that save blob; the returned function puts localStorage back. */
+function installSave(save: unknown): () => void {
+  const original = (globalThis as { localStorage?: unknown }).localStorage;
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: () => JSON.stringify(save),
+    setItem: () => {},
+    removeItem: () => {},
+  };
+  return () => {
+    (globalThis as { localStorage?: unknown }).localStorage = original;
+  };
+}
+
 describe("universe order", () => {
   const animes: Anime[] = [
     { id: "w1", name: "W1", unlockCost: 1 },
@@ -1513,37 +1363,6 @@ describe("prestige tree — wired into gameState", () => {
     };
   }
 
-  function baseSave(overrides: Record<string, unknown> = {}) {
-    return {
-      currency: 0,
-      lifetimeEarned: 0,
-      ownedCharacterIds: ["ca"],
-      activeArcId: "ta-arc",
-      prestigePoints: 0,
-      unlockedAnimeIds: ["ta"],
-      arcKills: {},
-      clearedArcIds: [],
-      characterXp: {},
-      itemCounts: {},
-      passiveRanks: {},
-      evolvedCharacterIds: [],
-      achievementCounts: {},
-      prestigeTreeRanks: {},
-      ...overrides,
-    };
-  }
-
-  function installSave(save: unknown): () => void {
-    const original = (globalThis as { localStorage?: unknown }).localStorage;
-    (globalThis as { localStorage?: unknown }).localStorage = {
-      getItem: () => JSON.stringify(save),
-      setItem: () => {},
-      removeItem: () => {},
-    };
-    return () => {
-      (globalThis as { localStorage?: unknown }).localStorage = original;
-    };
-  }
 
   it("Clic du Narrateur node 2 fires an automatic click every AUTOCLICK_INTERVAL_MS", () => {
     const testData = makeTestData({ mobBaseHp: 1_000_000 });
@@ -2123,6 +1942,102 @@ describe("tick delta clamp et notices du HUD", () => {
     } finally {
       disposeRoot();
       vi.useRealTimers();
+    }
+  });
+});
+
+describe("lisibilité de la progression", () => {
+  function outlookData(bossHp: number, timerMs?: number) {
+    return {
+      animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 1_000,
+          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1_000_000, reward: 1 }],
+          boss: { id: "ta-boss", name: "Boss", baseHp: bossHp, reward: 1, ...(timerMs ? { timerMs } : {}) },
+        },
+      ],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["ta-arc"],
+          baseClickPower: 0,
+          baseDps: 100,
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+  }
+
+  it("timeToKillMs : le temps réel, et l'infini sans DPS", () => {
+    expect(timeToKillMs(500, 100)).toBe(5_000);
+    expect(timeToKillMs(500, 0)).toBe(Infinity);
+  });
+
+  it("bossOutlookOf compare le temps de mise à mort au chrono du boss", () => {
+    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    let disposeRoot!: () => void;
+    try {
+      // 1000 pv à 100 dps = 10s, sous un chrono de 30s : gagnable.
+      const easy = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(outlookData(1_000, 30_000));
+      });
+      const arc = easy.data.arcs[0];
+      expect(easy.bossOutlookOf(arc).ttkMs).toBeCloseTo(10_000);
+      expect(easy.bossOutlookOf(arc).winnable).toBe(true);
+      disposeRoot();
+
+      // Même équipe, boss 100x plus gros : 1000s pour 30s de chrono — l'arc dit « trop dur ».
+      const hard = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(outlookData(100_000, 30_000));
+      });
+      expect(hard.bossOutlookOf(hard.data.arcs[0]).winnable).toBe(false);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("crossoverAdvised ne se déclenche que hors du monde d'origine, cristaux en poche", () => {
+    const data = outlookData(1_000, 30_000);
+    // Un second monde, où le personnage de "ta" subit le malus other-anime.
+    data.animes.push({ id: "tb", name: "TB", unlockCost: 0 });
+    data.arcs.push({ ...data.arcs[0], id: "tb-arc", animeId: "tb", name: "Arc B" });
+
+    const restore = installSave({
+      ...baseSave(),
+      ownedCharacterIds: ["ca"],
+      unlockedAnimeIds: ["ta", "tb"],
+      crossoverCrystals: CROSSOVER_COST,
+    });
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+
+      game.setActiveArc("ta-arc"); // chez lui : rien à gagner
+      expect(game.crossoverAdvised()).toBe(false);
+
+      game.setActiveArc("tb-arc"); // autre monde : le malus mord, le conseil s'allume
+      expect(game.crossoverAdvised()).toBe(true);
+
+      game.activateCrossover(); // déjà actif : plus rien à conseiller
+      expect(game.crossoverAdvised()).toBe(false);
+    } finally {
+      disposeRoot();
+      restore();
     }
   });
 });
