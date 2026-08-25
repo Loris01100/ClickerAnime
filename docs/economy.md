@@ -121,10 +121,9 @@ can never stop being geometric:
   shaves time off every unlocked ability's cooldown on each click, scaled by level — only those
   still on cooldown, so a ready ability's timestamp never drifts without bound (node 4); a
   chance to fire a random unlocked ability for free, via `triggerAbilityEffects` (node 5, shared
-  with abilities' normal activation path). Node 5 draws **only** from abilities whose every
-  `ModifierTarget` is currently unbuffed: `triggerAbilityEffects` goes through
-  `replaceModifiersByTarget`, so a proc over a running buff on the same stat would replace it — a
-  bought perk must never make the player weaker.
+  with abilities' normal activation path). Node 5 draws from any ability that isn't
+  already running: buffs are scoped and stack freely, so the only pick that would waste the proc is
+  one whose buff the player already has.
 - **DPS Équipe** — teamDps percent (node 1); boosts an activated ability's percent/multiplier
   effects, via `buildAbilityModifiers` (node 2); softens the active arc's synergy malus further per
   level, via `softenedSynergyConfig` wrapping `defaultSynergyConfig` (node 3); stretches an

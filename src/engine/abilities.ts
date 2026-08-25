@@ -1,9 +1,11 @@
-import type { AbilityDefinition, Character, ComboDefinition, ModifierTarget } from "./types";
+import type { AbilityDefinition, Character, ComboDefinition } from "./types";
 
 export interface UnlockedAbility {
   ability: AbilityDefinition;
   /** characterId that grants it alone, or comboId if it comes from a combo */
   sourceId: string;
+  /** who the buff applies to: the character alone, or every member of the combo */
+  characterIds: string[];
 }
 
 /**
@@ -24,12 +26,12 @@ export function getUnlockedAbilities(
   for (const character of characters) {
     if (!owned.has(character.id)) continue;
     const ability = (evolved.has(character.id) && character.evolution?.ability) || character.ability;
-    if (ability) result.push({ ability, sourceId: character.id });
+    if (ability) result.push({ ability, sourceId: character.id, characterIds: [character.id] });
   }
 
   for (const combo of combos) {
     if (combo.requiredCharacterIds.length > 0 && combo.requiredCharacterIds.every((id) => owned.has(id))) {
-      result.push({ ability: combo.ability, sourceId: combo.id });
+      result.push({ ability: combo.ability, sourceId: combo.id, characterIds: combo.requiredCharacterIds });
     }
   }
 
@@ -37,21 +39,17 @@ export function getUnlockedAbilities(
 }
 
 /**
- * An ability's "type" (DPS boost, click boost, ...) isn't a stored field — it's just the set of
- * stats its effects touch, the same `ModifierTarget`s `replaceModifiersByTarget` already keys off.
+ * How much a scoped percent/multiplier buff is worth over its printed value. A buff only boosts the
+ * characters it comes from (`computeScopedStat`), so the same number moves the team far less than it
+ * did back when one buff lifted everyone — by exactly its share of the team, and by how little of
+ * the time it is up. The duty cycle is the part the data knows: an ability up 10s out of a 80s
+ * cooldown is worth an eighth of what a permanent buff would be, so it hits eight times as hard
+ * while it lasts. Team share is left alone on purpose — that share *is* the design: a buff is worth
+ * what the allies it names are worth. Checked with `npm run sim` (docs/simulator.md).
  */
-export function abilityTargets(ability: AbilityDefinition): ModifierTarget[] {
-  return [...new Set(ability.effects.map((effect) => effect.target))];
-}
-
-/**
- * True when two abilities touch at least one common stat. Activating one would cut the other's
- * buff short on that stat (`replaceModifiersByTarget`), so they must share a cooldown too — otherwise
- * the player could fire the second one for an effect it won't actually get to keep.
- */
-export function abilitiesShareType(a: AbilityDefinition, b: AbilityDefinition): boolean {
-  const targets = new Set(abilityTargets(a));
-  return abilityTargets(b).some((target) => targets.has(target));
+export function scopedMagnitude(ability: AbilityDefinition): number {
+  if (ability.durationMs <= 0) return 1;
+  return Math.max(1, ability.cooldownMs / ability.durationMs);
 }
 
 export function isAbilityReady(lastActivatedAt: number | undefined, cooldownMs: number, now: number): boolean {

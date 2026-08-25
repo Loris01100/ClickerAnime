@@ -39,7 +39,8 @@ describe("describeModifier", () => {
       durationMs: 5_000,
       effects: [{ target: "clickPower", kind: "multiplier", value: 3 }],
     });
-    expect(text).toContain("x3 au clic");
+    // Scaled by the duty cycle before it lands: up 5s out of 30, so x3 reads as x13 (1 + 2 * 6).
+    expect(text).toContain("x13 au clic");
     expect(text).toContain("5.0s");
     expect(text).toContain("30s");
   });

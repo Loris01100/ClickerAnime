@@ -9,7 +9,7 @@ import {
   achievementTierBonus,
   achievementTiersCompleted,
 } from "./achievements";
-import { computeEffectiveStat, replaceModifiersByTarget } from "./modifiers";
+import { computeEffectiveStat, computeScopedStat } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { CROSSOVER_COST, crossoverSynergyConfig, isMixedTeam } from "./crossover";
 import {
@@ -21,7 +21,7 @@ import {
   PRESTIGE_SCALE,
   unlockAnime,
 } from "./prestige";
-import { abilitiesShareType, getUnlockedAbilities, isAbilityReady } from "./abilities";
+import { getUnlockedAbilities, isAbilityReady } from "./abilities";
 import {
   animeTier,
   arcsOfAnime,
@@ -122,41 +122,30 @@ describe("computeEffectiveStat", () => {
   });
 });
 
-describe("abilitiesShareType", () => {
-  const make = (id: string, targets: Array<"teamDps" | "clickPower">) => ({
-    id,
-    name: id,
-    cooldownMs: 0,
-    durationMs: 0,
-    effects: targets.map((target) => ({ target, kind: "percent" as const, value: 1 })),
+describe("computeScopedStat", () => {
+  const flat = (scope: string, value: number): ActiveModifier => ({
+    sourceId: scope,
+    scope,
+    target: "teamDps",
+    kind: "flat",
+    value,
   });
 
-  it("is true exactly when two abilities touch a common stat", () => {
-    const dps = make("dps", ["teamDps"]);
-    const dpsToo = make("dpsToo", ["teamDps"]);
-    const click = make("click", ["clickPower"]);
-    const both = make("both", ["teamDps", "clickPower"]);
-    expect(abilitiesShareType(dps, dpsToo)).toBe(true);
-    expect(abilitiesShareType(dps, click)).toBe(false);
-    expect(abilitiesShareType(both, dps)).toBe(true);
-    expect(abilitiesShareType(both, click)).toBe(true);
+  it("matches computeEffectiveStat while nothing is scoped to a single character", () => {
+    const modifiers: ActiveModifier[] = [flat("ca", 10), flat("cb", 30), { sourceId: "p", target: "teamDps", kind: "percent", value: 0.5 }];
+    expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(60); // (10 + 30) * 1.5
+    expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(computeEffectiveStat(0, "teamDps", modifiers, 0));
   });
-});
 
-describe("replaceModifiersByTarget", () => {
-  it("cuts short whatever else was boosting the same stat instead of stacking with it", () => {
-    const existing: ActiveModifier[] = [
-      { sourceId: "ability-a", target: "teamDps", kind: "multiplier", value: 2, expiresAt: 9_000 },
-      { sourceId: "ability-a", target: "clickPower", kind: "percent", value: 0.5, expiresAt: 9_000 },
+  it("applies a scoped buff to its own character only, and counts team-wide flats once", () => {
+    const modifiers: ActiveModifier[] = [
+      flat("ca", 10),
+      flat("cb", 30),
+      { sourceId: "tree", target: "teamDps", kind: "flat", value: 5 },
+      { sourceId: "ability", scope: "ca", target: "teamDps", kind: "percent", value: 1 },
     ];
-    const incoming: ActiveModifier[] = [
-      { sourceId: "ability-b", target: "teamDps", kind: "multiplier", value: 3, expiresAt: 20_000 },
-    ];
-    const result = replaceModifiersByTarget(existing, incoming);
-    // the old teamDps buff is gone, the unrelated clickPower one survives, the new one is in
-    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "teamDps")).toBeUndefined();
-    expect(result.find((m) => m.sourceId === "ability-a" && m.target === "clickPower")).toBeDefined();
-    expect(result.find((m) => m.sourceId === "ability-b")).toBeDefined();
+    // 5 team-wide + 10 * (1 + 1) + 30, the buff never touching cb
+    expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(55);
   });
 });
 
@@ -693,45 +682,36 @@ describe("store boot", () => {
     }
   });
 
-  it("deux capacités sur la même stat ne se cumulent pas : la seconde est verrouillée, et dit par qui", () => {
+  it("une capacité ne booste que ses propres personnages, et toutes tournent en même temps", () => {
+    const ability = (id: string, kind: "percent" | "multiplier", value: number) => ({
+      id,
+      name: id,
+      cooldownMs: 0,
+      durationMs: 10_000,
+      effects: [{ target: "teamDps" as const, kind, value }],
+    });
+    const member = (id: string, own: ReturnType<typeof ability>) => ({
+      id,
+      name: id,
+      animeId: "ta",
+      rarity: "secondary" as const,
+      arcIds: [],
+      baseClickPower: 0,
+      baseDps: 10,
+      ability: own,
+    });
     const testData = {
       animes: [],
       arcs: [],
-      characters: [
+      characters: [member("ca", ability("ability-a", "percent", 1)), member("cb", ability("ability-b", "percent", 2))],
+      combos: [
         {
-          id: "ca",
-          name: "A",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 10,
-          ability: {
-            id: "ability-a",
-            name: "A",
-            cooldownMs: 0,
-            durationMs: 10_000,
-            effects: [{ id: "a-eff", target: "teamDps" as const, kind: "percent" as const, value: 1 }],
-          },
-        },
-        {
-          id: "cb",
-          name: "B",
-          animeId: "ta",
-          rarity: "secondary" as const,
-          arcIds: [],
-          baseClickPower: 0,
-          baseDps: 0,
-          ability: {
-            id: "ability-b",
-            name: "B",
-            cooldownMs: 0,
-            durationMs: 10_000,
-            effects: [{ id: "b-eff", target: "teamDps" as const, kind: "percent" as const, value: 2 }],
-          },
+          id: "combo",
+          name: "Combo",
+          requiredCharacterIds: ["ca", "cb"],
+          ability: ability("ability-combo", "multiplier", 2),
         },
       ],
-      combos: [],
       items: [],
     };
     const save = {
@@ -761,25 +741,24 @@ describe("store boot", () => {
         return createGameStore(testData);
       });
 
-      expect(game.teamDps()).toBe(10); // base dps only, no ability active yet
-      game.activateAbility("ability-a");
-      expect(game.teamDps()).toBeCloseTo(20); // 10 * (1 + 1.0)
-      expect(game.activeBuffs()).toEqual(["ability-a"]);
-      // ability-b touches the same stat and is locked out for the rest of ability-a's buff: it can't
-      // fire yet, so its effect never applies (10 * (1 + 2.0) = 30 would mean it slipped through).
-      expect(game.activateAbility("ability-b")).toBe(false);
-      expect(game.teamDps()).toBeCloseTo(20);
-      // And the bar can say why rather than greying the button out silently.
-      expect(game.abilityBlockedBy("ability-b")).toBe("A");
-      expect(game.abilityBlockRemaining("ability-b")).toBeGreaterThan(0);
-      expect(game.abilityBlockedBy("ability-a")).toBeNull();
+      expect(game.teamDps()).toBe(20); // 10 + 10, no buff yet
+      // A's buff lands on A alone: 10 * (1 + 1) + 10.
+      expect(game.activateAbility("ability-a")).toBe(true);
+      expect(game.teamDps()).toBeCloseTo(30);
+      // B's buff targets the same stat and still fires — it only boosts B: 20 + 10 * (1 + 2).
+      expect(game.activateAbility("ability-b")).toBe(true);
+      expect(game.teamDps()).toBeCloseTo(50);
+      // The combo boosts both members, on top of their own running buffs: 20 * 2 + 30 * 2.
+      expect(game.activateAbility("ability-combo")).toBe(true);
+      expect(game.teamDps()).toBeCloseTo(100);
+      expect(game.activeBuffs().sort()).toEqual(["ability-a", "ability-b", "ability-combo"]);
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
     }
   });
 
-  it("the free ability trigger never overwrites a stronger buff already running on that stat", () => {
+  it("the free ability trigger adds to the running buffs instead of cutting one short", () => {
     const ability = (id: string, value: number) => ({
       id,
       name: id,
@@ -799,7 +778,7 @@ describe("store boot", () => {
           arcIds: [],
           baseClickPower: 0,
           baseDps: 10,
-          ability: ability("ability-weak", 1),
+          ability: ability("ability-strong", 2),
         },
         {
           id: "cb",
@@ -808,8 +787,8 @@ describe("store boot", () => {
           rarity: "secondary" as const,
           arcIds: [],
           baseClickPower: 0,
-          baseDps: 0,
-          ability: ability("ability-strong", 2),
+          baseDps: 5,
+          ability: ability("ability-weak", 1),
         },
       ],
       combos: [],
@@ -847,11 +826,12 @@ describe("store boot", () => {
       });
 
       game.activateAbility("ability-strong");
-      expect(game.teamDps()).toBeCloseTo(30); // 10 * (1 + 2.0)
-      // The proc fires on this click. It must find no candidate — the weak ability targets the same
-      // stat, and `replaceModifiersByTarget` would swap the x3 out for it (10 * (1 + 1.0) = 20).
+      expect(game.teamDps()).toBeCloseTo(35); // 10 * (1 + 2) + 5
+      // The proc fires on this click. The only candidate left is the weak one, and it lands on B —
+      // A's x3 is untouched: 30 + 5 * (1 + 1).
       game.click();
-      expect(game.teamDps()).toBeCloseTo(30);
+      expect(game.teamDps()).toBeCloseTo(40);
+      expect(game.activeBuffs().sort()).toEqual(["ability-strong", "ability-weak"]);
     } finally {
       randomSpy.mockRestore();
       disposeRoot();

@@ -12,6 +12,12 @@ export interface ModifierTemplate {
 
 export interface ActiveModifier extends ModifierTemplate {
   sourceId: string;
+  /**
+   * The character this modifier applies to, if it isn't team-wide: a character's own base damage,
+   * and any ability buff, which only ever boosts the characters it comes from (see
+   * `computeScopedStat`). Absent = team-wide, applied to everyone.
+   */
+  scope?: string;
   /** epoch ms; undefined = lasts as long as its source is active (e.g. an owned character's passive) */
   expiresAt?: number;
 }

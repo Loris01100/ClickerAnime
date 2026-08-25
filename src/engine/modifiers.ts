@@ -31,17 +31,36 @@ export function pruneExpired(modifiers: ActiveModifier[], now: number): ActiveMo
 }
 
 /**
- * Abilities of the same type don't stack: activating one cuts short whatever else was already
- * boosting the same stat, rather than adding on top of it. Diminishing returns were tried as a way
- * to let them overlap (so no ability button would ever be greyed out) and rejected: firing several
- * at once still stacked into far too much damage, and a bounded-but-large burst is worse for
- * balance than a simple "one buff per stat" rule. `activateAbility` pairs this with a lock, so the
- * player is never allowed to waste an ability on a buff that would be replaced immediately.
+ * The team's stat, buff by buff, character by character. A modifier carrying a `scope` only applies
+ * to that character: their own base damage, and every ability buff, which boosts only the characters
+ * it comes from. That is what lets every ability and combo run at once without stacking into an
+ * unbounded burst — a buff can never be worth more than its owners' share of the team.
+ *
+ * Each scoped group is folded on its own through the usual pipeline, with the team-wide *scaling*
+ * (percents and multipliers: passives, evolutions, achievements, the tree) applied to it as well;
+ * `base` and the team-wide flats are folded once, on their own, so nothing flat is counted twice.
+ * With no scoped buff running this is exactly `computeEffectiveStat`, since a percent over a sum of
+ * flats is the same as that percent over each flat.
  */
-export function replaceModifiersByTarget(
-  existing: ActiveModifier[],
-  incoming: ActiveModifier[]
-): ActiveModifier[] {
-  const targets = new Set(incoming.map((m) => m.target));
-  return [...existing.filter((m) => !targets.has(m.target)), ...incoming];
+export function computeScopedStat(
+  base: number,
+  target: ModifierTarget,
+  modifiers: ActiveModifier[],
+  now: number
+): number {
+  const global = modifiers.filter((m) => m.scope === undefined);
+  const scaling = global.filter((m) => m.kind !== "flat");
+  const byScope = new Map<string, ActiveModifier[]>();
+  for (const mod of modifiers) {
+    if (mod.scope === undefined) continue;
+    const group = byScope.get(mod.scope);
+    if (group) group.push(mod);
+    else byScope.set(mod.scope, [mod]);
+  }
+
+  let total = computeEffectiveStat(base, target, global, now);
+  for (const group of byScope.values()) {
+    total += computeEffectiveStat(0, target, [...scaling, ...group], now);
+  }
+  return total;
 }

@@ -204,12 +204,11 @@ Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
 - **État de la sauvegarde** dans la topbar (`.save-state`) : un autosave silencieux est
   indiscernable d'un autosave cassé.
 
-Et la barre de capacités distingue enfin trois états au lieu d'un seul gris : `actif`
-(`.ability.running`, bordure `--good`), `bloquée Ns` (`.ability.blocked`, bordure tiretée, texte
-`--bad`) et la recharge normale. Deux capacités ne peuvent pas booster la même statistique en même
-temps — c'est voulu, le cumul a été essayé et rejeté comme trop puissant — donc le `title` nomme la
-coupable : « Bloquée par « X » (12s) ». Le tri « prêtes d'abord » est **binaire** et pas par temps
-restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
+Et la barre de capacités distingue `actif` (`.ability.running`, bordure `--good`) de la recharge
+normale. Plus rien ne bloque une capacité : un buff ne booste que les personnages dont il vient, donc
+capacités et combos tournent tous en même temps, et le `title` nomme les alliés visés
+(« Cible : Naruto, Sasuke ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
+et pas par temps restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
 
 Ce qu'on **n'ajoute pas** : rien qui bloque l'input (pas d'animation qui empêche d'enchaîner les
 clics), rien qui ralentisse la boucle de tick 200ms (`gameState.ts`), pas de dépendance externe —

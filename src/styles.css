@@ -1651,13 +1651,6 @@ button.danger {
 }
 
 /* Verrouillée par le buff d'une autre capacité sur la même stat — distinct d'une simple recharge. */
-.ability.blocked {
-  border-style: dashed;
-}
-.ability.blocked .ability-cd {
-  color: var(--bad);
-}
-
 /*
  * Un dégât d'auto-clic (arbre de prestige) : même animation que le clic manuel, mais plus discret,
  * pour qu'on distingue au premier regard ce qu'on a frappé de ce que le perk a frappé.

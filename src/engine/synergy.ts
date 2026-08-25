@@ -57,14 +57,17 @@ export function characterContributions(
   const passiveScale = passiveGrowth(passiveRank);
 
   const contributions: ActiveModifier[] = [
+    // Scoped to this character: their own damage is what their (and their combos') buffs boost.
     {
       sourceId: character.id,
+      scope: character.id,
       target: "clickPower",
       kind: "flat",
       value: character.baseClickPower * damageGrowth * synergy,
     },
     {
       sourceId: character.id,
+      scope: character.id,
       target: "teamDps",
       kind: "flat",
       value: character.baseDps * damageGrowth * synergy,

@@ -69,8 +69,10 @@ These outrank convenience, and several were learned the hard way. Don't break on
 
 - The modifier fold order is `(base + flats) * (1 + Σpercents) * Πmultipliers`. Changing it
   rebalances the whole game.
-- **One buff per stat.** Diminishing-returns stacking was tried and rejected; don't reintroduce a
-  `STACK_FALLOFF`. The fix for a greyed-out ability bar is the tooltip, not stacking.
+- **A buff is scoped to the characters it comes from.** An ability boosts its own character, a
+  combo boosts its members, and nothing else — which is what lets every ability and combo run at
+  once without stacking into an unbounded burst. Don't make a buff team-wide again, and don't
+  reintroduce a `STACK_FALLOFF`: the bound is the owners' share of the team, not a falloff curve.
 - A `ModifierTemplate` carries **no id of its own**. Don't reintroduce a per-effect `id`.
 - **A chance node must still be a chance at level 5.** `scaledChance` clamps at 1; a base at or
   above 1/5 silently becomes a guarantee. `engine.test.ts` guards every chance constant.

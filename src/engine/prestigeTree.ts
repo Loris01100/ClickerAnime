@@ -1,9 +1,6 @@
 import type { ActiveModifier, SynergyConfig } from "./types";
 
-/**
- * Five independent chains the prestige points feed — the limit `replaceModifiersByTarget` mentions
- * is a separate, still-open idea; this sticks to the five branches as designed.
- */
+/** Five independent chains the prestige points feed. */
 export type PrestigeTreeCategoryId = "narratorClick" | "teamDps" | "xp" | "items" | "destin";
 
 export interface PrestigeTreeNode {

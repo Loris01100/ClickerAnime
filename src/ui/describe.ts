@@ -1,3 +1,4 @@
+import { scopedMagnitude } from "../engine/abilities";
 import type { AbilityDefinition, EquippableBy, Item, ModifierTemplate } from "../engine/types";
 import { fmt, seconds } from "./format";
 
@@ -40,7 +41,23 @@ export function describeItem(item: Item): string {
   return lines.join("\n");
 }
 
+/**
+ * The numbers a buff actually applies, not the ones printed in the data: a percent/multiplier effect
+ * is scaled by the ability's duty cycle before it lands (`scopedMagnitude`), so showing the raw
+ * value would understate every ability in the game by that same factor.
+ */
 export function describeAbility(ability: AbilityDefinition): string {
-  const effects = ability.effects.map(describeModifier).join(", ");
+  const magnitude = scopedMagnitude(ability);
+  const effects = ability.effects
+    .map((effect) =>
+      describeModifier(
+        effect.kind === "percent"
+          ? { ...effect, value: effect.value * magnitude }
+          : effect.kind === "multiplier"
+            ? { ...effect, value: Math.round((1 + (effect.value - 1) * magnitude) * 10) / 10 }
+            : effect
+      )
+    )
+    .join(", ");
   return `${effects} pendant ${seconds(ability.durationMs)} · recharge ${seconds(ability.cooldownMs)}`;
 }
