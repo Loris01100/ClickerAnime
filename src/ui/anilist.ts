@@ -38,15 +38,24 @@ const NAME_OVERRIDES: [from: string, to: string][] = [
   ["Ay, le Quatrième Raikage", "A"],
   ["Nagato", "Pain"],
   ["Sarada Uchiwa", "Sarada Uchiha"],
+  // After the pair above, so "Obito Uchiwa" is already "Tobi" and never rewritten twice; this one
+  // catches the boss card that names him without a surname ("Obito — Jinchûriki de Dix-Queues").
+  ["Obito", "Tobi"],
 ];
 
 // Checked against the live cast of every show the game ships (172 characters for Boruto), with this
 // file's own `normalize`/`matchScore`: every name resolves except **Isshiki Ôtsutsuki**, who has no
 // card on AniList at all — not under that name, not as an alternative, not anywhere in the database.
-// He is left to resolve to `null`, i.e. `Sprite`'s placeholder. The tempting fix is an override onto
+// He is left to resolve to `null`, i.e. `Sprite`'s silhouette. The tempting fix is an override onto
 // "Jigen", his vessel and the same person — the `Nagato` → `Pain` trick above — but Jigen is a
 // separate roster entry standing in the very same arc, so the two Codex cards would wear one face
 // and read as a bug. A known blank beats a confusing duplicate.
+//
+// The *enemies* are a different story: checked the same way, ~50 of the 191 arc mobs resolve to
+// nothing, and almost all of them are anonymous by design ("Garde de Kiri", "Serpent gardien",
+// "Voie de l'Insecte", "Les Cinq Kage Ressuscités") — AniList has no card for them and never will,
+// so no override can fix those. That is what `Sprite`'s silhouette placeholder is for; only names
+// AniList lists under a different spelling or alias belong in the table above.
 
 function applyNameOverrides(name: string): string {
   let result = name;
@@ -76,6 +85,15 @@ const ANIME_ID_OVERRIDES: Record<string, number> = {
 // cast lookup at the right title instead of the `anime` prop passed by the caller.
 const CHARACTER_ANIME_OVERRIDES: Record<string, string> = {
   "Toneri Ôtsutsuki": "The Last: Naruto the Movie",
+};
+
+// Fallback art for a name AniList genuinely has no card for. Keys are the in-game name exactly as
+// written in `src/data/`; values are paths under `public/` (`/portraits/x.png` → `public/portraits/
+// x.png`), so any png/svg/webp dropped there works with no build step. Checked before the network,
+// and never cached in `localStorage` — swapping the file out is enough to change the art.
+// Everything not listed falls through to AniList and then to `Sprite`'s silhouette.
+export const LOCAL_PORTRAITS: Record<string, string> = {
+  // "Garde de Kiri": "/portraits/garde-de-kiri.png",
 };
 
 interface CastMember {
@@ -283,6 +301,8 @@ function lookup(key: string, fetcher: () => Promise<string | null>): Promise<str
 
 /** Best-effort AniList portrait URL for a character or anime name; `null` on any miss or failure. */
 export function portraitUrl(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
+  const local = LOCAL_PORTRAITS[name];
+  if (local) return Promise.resolve(local);
   return lookup(cacheKey(name, kind, context), () => fetchPortrait(name, kind, context));
 }
 

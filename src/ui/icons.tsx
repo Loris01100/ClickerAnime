@@ -182,3 +182,14 @@ export const IconPack = icon("0 0 24 24", () => (
     <path d="M3 7l9 4 9-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6" />
   </>
 ));
+
+/**
+ * Generic bust silhouette, used by `Sprite` when a lookup resolves to nothing — most anonymous mobs
+ * ("Garde de Kiri", "Serpent gardien") have no AniList card at all, and never will.
+ */
+export const IconSilhouette = icon("0 0 24 24", () => (
+  <>
+    <circle cx="12" cy="8" r="4.2" fill="currentColor" />
+    <path d="M3.5 23a8.5 8.5 0 0 1 17 0z" fill="currentColor" />
+  </>
+));

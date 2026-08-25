@@ -62,8 +62,14 @@ plain `--stage-bg` gradient.
 
 `ui/Sprite.tsx` wraps portraits in a `createResource` keyed on `kind:name`; `<Show>` renders the
 resolved `<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or
-once resolved to nothing, an empty `.sprite-empty` placeholder of the same size — never a layout
-shift, never a broken image.
+once resolved to nothing, a `.sprite-empty` box of the same size holding `IconSilhouette` tinted with
+`--world-hue` — never a layout shift, never a broken image, and never a blank hole. The placeholder
+carries a silhouette rather than nothing because a good ~quarter of the arc enemies are anonymous by
+design ("Garde de Kiri", "Voie de l'Insecte"): AniList has no card for them, so no `NAME_OVERRIDES`
+entry can ever fill those boxes. Pour en habiller un à la main : `LOCAL_PORTRAITS` dans
+`anilist.ts` associe un nom de `src/data/` à un fichier sous `public/portraits/` (png, svg, webp —
+aucune étape de build), consulté avant le réseau et jamais mis en cache, donc remplacer le fichier
+suffit à changer l'art.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.

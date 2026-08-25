@@ -397,7 +397,10 @@ personnage ne change pas, donc pas d'expiration). C'est délibérément un renve
 « pas de dépendance réseau au runtime » tenu ailleurs dans ce document (§4) — accepté ici en échange
 de portraits réels sans travail de contenu par personnage, et rendu supportable par le fait que
 `Sprite.tsx` dégrade toujours proprement (`.sprite-empty`, jamais un layout cassé ni une exception)
-si AniList est indisponible ou ne trouve rien.
+si AniList est indisponible ou ne trouve rien. Ce repli n'est pas une case vide : il porte une
+silhouette (`IconSilhouette`) teintée en `--world-hue`, parce qu'un bon quart des ennemis d'arc sont
+anonymes par construction (« Garde de Kiri », « Voie de l'Insecte ») et n'auront jamais de fiche
+AniList — une ombre générique se lit comme un figurant, un carré gris se lit comme un bug.
 
 **La bannière d'un monde, en plus des portraits.** `bannerUrl(nomDeLAnime)` récupère la clé d'art
 large d'un show (`Media.bannerImage`) et sert de décor à la scène de combat — l'équivalent de la vue

@@ -441,9 +441,14 @@ small {
 .sprite {
   flex: none;
 }
+/* No portrait: a silhouette in the world's own hue rather than an empty grey box. */
 .sprite-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--panel-2);
   border-radius: 4px;
+  color: hsl(var(--world-hue) 45% 55% / 0.5);
 }
 .sprite.dim {
   opacity: 0.25;

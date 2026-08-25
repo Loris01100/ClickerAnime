@@ -1,5 +1,6 @@
 import { Show, createResource } from "solid-js";
 import { portraitUrl, type PortraitKind } from "./anilist";
+import { IconSilhouette } from "./icons";
 
 const BOX_COLS = 7;
 const BOX_ROWS = 8;
@@ -7,7 +8,8 @@ const BOX_ROWS = 8;
 /**
  * Renders a portrait fetched live from AniList by name (see `anilist.ts`), scaled with
  * `object-fit: contain` into a box sized by `px`. While the lookup is pending, or once it resolves
- * to nothing, an empty `.sprite-empty` placeholder fills the same box — no layout shift either way.
+ * to nothing, a `.sprite-empty` box of the same size holds a generic silhouette — no layout shift
+ * either way, and no blank hole for the many anonymous mobs AniList has no card for.
  * For `kind="character"`, pass `anime` (the show's name) so the lookup searches that show's cast
  * instead of AniList's whole character database — without it, a common name (e.g. "Chiyo") can
  * resolve to an unrelated character from a different anime entirely.
@@ -31,7 +33,9 @@ export default function Sprite(props: { name: string; kind: PortraitKind; anime?
           classList={{ dim: props.dim }}
           style={{ width: `${width()}px`, height: `${height()}px` }}
           aria-hidden="true"
-        />
+        >
+          <IconSilhouette size="60%" />
+        </div>
       }
     >
       {(src) => (
