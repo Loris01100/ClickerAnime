@@ -18,7 +18,7 @@ import type { ActiveModifier, ModifierTemplate } from "./types";
  *   once, at the end. That is what lets the goal be counted in plain cleared arcs.
  */
 export interface ChallengeRules {
-  /** Le Clic du Narrateur n'inflige plus rien — l'autoclic non plus. */
+  /** Le Clic du Narrateur n'inflige plus rien — l'autoclic non plus. Voir `clickIsMuted`. */
   noClick?: boolean;
   /** Aucune capacité ne se débloque, ni individuelle ni de combo. */
   noAbilities?: boolean;
@@ -55,7 +55,9 @@ export const CHALLENGES: ChallengeDefinition[] = [
   {
     id: "defi-muet",
     name: "Le Narrateur muet",
-    constraint: "Le Clic du Narrateur n'inflige aucun dégât — l'autoclic non plus. L'équipe se débrouille seule.",
+    constraint:
+      "Le Clic du Narrateur se tait dès que l'équipe compte un personnage : le temps d'en recruter " +
+      "un premier, et puis plus rien — l'autoclic non plus. L'équipe se débrouille seule.",
     rules: { noClick: true },
     goal: 10,
     reward: [{ target: "clickPower", kind: "percent", value: 0.2 }],
@@ -109,6 +111,20 @@ export interface ChallengeProgress {
  */
 export function challengeProgress(challenge: ChallengeDefinition, clearedCount: number): ChallengeProgress {
   return { cleared: Math.min(clearedCount, challenge.goal), goal: challenge.goal, done: clearedCount >= challenge.goal };
+}
+
+/**
+ * Whether the narrator's click must land for nothing right now.
+ *
+ * The rule has exactly one exception, and it is not a softening: **with no team at all, the click is
+ * the only damage in the game**. An absolute version makes its own run unstartable — the first
+ * encounter can't be beaten, so the first character never joins, so nothing ever deals damage again,
+ * and the run sits at ∞ time-to-kill forever. The narrator sets the scene, then goes quiet. Anything
+ * else that ever mutes the click has to keep this floor: a challenge takes a *source* of damage
+ * away, it must never take the last one.
+ */
+export function clickIsMuted(rules: ChallengeRules, teamSize: number): boolean {
+  return !!rules.noClick && teamSize > 0;
 }
 
 /** True while the team may still take one more member under this rule. */

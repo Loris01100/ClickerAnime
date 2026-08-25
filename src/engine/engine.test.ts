@@ -52,6 +52,7 @@ import { layoutArcs, MAP_COLS } from "./mapLayout";
 import {
   canRecruitUnder,
   challengeById,
+  clickIsMuted,
   challengeContributions,
   challengeProgress,
   CHALLENGES,
@@ -2774,6 +2775,27 @@ describe("défis de run", () => {
       const hpBefore = game.enemyHpLeft();
       expect(game.click().damage).toBeGreaterThan(0);
       expect(game.enemyHpLeft()).toBeLessThan(hpBefore);
+    });
+  });
+
+  it("un défi ne peut pas retirer la dernière source de dégâts du jeu", () => {
+    // Le run part sans équipe : à ce moment-là le clic est le *seul* dégât du jeu, et un « muet »
+    // absolu rendait son propre défi injouable — première rencontre imbattable, donc jamais de
+    // premier personnage, donc plus jamais un seul dégât. Le narrateur pose le décor, puis se tait.
+    expect(clickIsMuted({ noClick: true }, 0)).toBe(false);
+    expect(clickIsMuted({ noClick: true }, 1)).toBe(true);
+    expect(clickIsMuted({}, 0)).toBe(false);
+
+    withStore(challengeSave({ activeChallengeId: "defi-muet", ownedCharacterIds: [] }), (game) => {
+      expect(game.teamDps()).toBe(0); // rien d'autre ne frappe
+      const hpBefore = game.enemyHpLeft();
+      expect(game.click().damage).toBeGreaterThan(0);
+      expect(game.enemyHpLeft()).toBeLessThan(hpBefore); // le run peut démarrer
+    });
+
+    // Et dès le premier personnage recruté, la règle mord.
+    withStore(challengeSave({ activeChallengeId: "defi-muet", ownedCharacterIds: ["c0"] }), (game) => {
+      expect(game.click()).toEqual({ damage: 0, crit: false });
     });
   });
 

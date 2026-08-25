@@ -36,6 +36,7 @@ import {
 import {
   canRecruitUnder,
   challengeById,
+  clickIsMuted,
   challengeContributions,
   challengeProgress,
   type ChallengeRules,
@@ -934,9 +935,10 @@ export function createGameStore(data: GameData) {
    * for free (node 5).
    */
   function click() {
-    // "Le Narrateur muet": the click stops dealing damage entirely — and stops counting as one, or
-    // the achievement ladder would fill up on clicks that did nothing.
-    if (challengeRules().noClick) return { damage: 0, crit: false };
+    // "Le Narrateur muet": the click stops dealing damage — and stops counting as one, or the
+    // achievement ladder would fill up on clicks that did nothing. It keeps landing while the team
+    // is empty, which is the one thing that makes the challenge startable at all: see `clickIsMuted`.
+    if (clickIsMuted(challengeRules(), ownedCharacterIds().length)) return { damage: 0, crit: false };
     bumpAchievement("clicks");
     const critLevel = nodeLevelOf("narratorClick", 3);
     const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
@@ -1577,7 +1579,7 @@ export function createGameStore(data: GameData) {
     checkTimer(nowMs);
 
     const autoClickLevel = nodeLevelOf("narratorClick", 2);
-    if (autoClickLevel > 0 && autoClickEnabled() && !challengeRules().noClick) {
+    if (autoClickLevel > 0 && autoClickEnabled() && !clickIsMuted(challengeRules(), ownedCharacterIds().length)) {
       // Levels buy cadence, not strength: every automatic click lands at full click power, they
       // just come closer together — see `autoClickIntervalMs`.
       const interval = autoClickInterval();

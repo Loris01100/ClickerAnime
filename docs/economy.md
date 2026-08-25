@@ -210,6 +210,12 @@ nues"). Each names a `goal` in arcs cleared and a `reward` of `ModifierTemplate`
   is the mildest of the four — it is a *trigger, not a damage source* (`CLAUDE.md`) — so it asks for
   the longest run at 10 arcs; losing items costs passive ranks, uniques *and* the farming loop at
   once, so it asks for 6.
+- **A challenge takes a source of damage away, never the last one.** "Le Narrateur muet" shipped
+  absolute and was unplayable: a run starts with an empty roster, so `teamDps` is 0 and the click is
+  the only damage in the game — the first encounter couldn't be beaten, the first character never
+  joined, and the run sat at ∞ time-to-kill forever. `clickIsMuted` keeps the click alive while the
+  team is empty (the narrator sets the scene, then goes quiet), which is the whole of the exception.
+  Any future rule that touches damage has to keep that floor.
 - **The rules are enforced at the source**, never watched: `click` returns zero damage (and doesn't
   count as a click for the achievement ladder), `unlockedAbilities` returns an empty list — combos
   included, since they come through it too — `maybeDropItem` returns before rolling anything, and
