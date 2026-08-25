@@ -32,9 +32,14 @@ export default function ItemCodex(props: { game: GameStore }) {
     return null;
   }
 
-  /** Commons only: the characters whose passive this item ranks up (the cast of its own arc). */
+  /**
+   * Commons only: the characters whose passive this item ranks up (the cast of its own arc).
+   * `passive` is optional, so the arc's cast is filtered on actually having one — otherwise the
+   * panel offered a rank-up on a character with nothing to rank (Naruto, whose kit is an ability
+   * and an evolution).
+   */
   const rankedUpBy = (item: Item) =>
-    props.game.data.characters.filter((c) => props.game.passiveItemOf(c)?.id === item.id);
+    props.game.data.characters.filter((c) => c.passive && props.game.passiveItemOf(c)?.id === item.id);
 
   /** Uniques only: who is wearing it right now, if anyone. */
   const wornBy = (item: Item) => {

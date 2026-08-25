@@ -978,9 +978,12 @@ export function createGameStore(data: GameData) {
   /**
    * Spends the origin item to buy the next rank of a character's passive. Refuses on a character
    * who isn't in the team: `characterContributions` only ever runs on owned characters, so the
-   * copies would be burnt for nothing (the item Codex lists the whole cast, met or not).
+   * copies would be burnt for nothing (the item Codex lists the whole cast, met or not). Refuses
+   * the same way on a character with no `passive` at all — a rank on nothing is copies burnt for
+   * nothing too, and `passive` is optional (Naruto has an ability and an evolution instead).
    */
   function rankUpPassive(character: Character): boolean {
+    if (!character.passive) return false;
     if (!ownedCharacterIds().includes(character.id)) return false;
     const item = passiveItemOf(character);
     const upgrade = passiveUpgradeOf(character);

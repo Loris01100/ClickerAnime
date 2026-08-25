@@ -629,6 +629,45 @@ describe("store boot", () => {
     }
   });
 
+  it("refuses a passive rank on a character who has no passive", () => {
+    // Naruto is met in the same arc as Kakashi, so the arc's common lists him next to the others —
+    // but his kit is an ability and an evolution, he has no `passive`. Ranking one up would burn
+    // the copies for a bonus `characterContributions` never reads.
+    const restore = installSave({
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["naruto-uzumaki", "kakashi-hatake"],
+      activeArcId: "naruto-vagues",
+      prestigePoints: 0,
+      unlockedAnimeIds: ["naruto"],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: { "item-shuriken": 999 },
+      passiveRanks: {},
+      evolvedCharacterIds: [],
+      achievementCounts: {},
+      prestigeTreeRanks: {},
+    });
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(gameData);
+        dispose();
+        return store;
+      });
+      const naruto = game.ownedCharacters().find((c) => c.id === "naruto-uzumaki")!;
+      const kakashi = game.ownedCharacters().find((c) => c.id === "kakashi-hatake")!;
+      expect(naruto.passive).toBeUndefined();
+      expect(game.rankUpPassive(naruto)).toBe(false);
+      expect(game.passiveRankOf(naruto)).toBe(0);
+      expect(game.countOf("item-shuriken")).toBe(999);
+      // …while the same item still ranks up someone who does have one.
+      expect(game.rankUpPassive(kakashi)).toBe(true);
+    } finally {
+      restore();
+    }
+  });
+
   it("carries overkill over to the next enemy instead of dropping it", () => {
     const testData = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],

@@ -25,7 +25,9 @@ cost, copies held, affordable; `passiveGrowth(rank)` is the one place the "rank 
 rank past it adds a `LEVEL_DAMAGE_STEP`" rule lives, shared by the pipeline and by the two screens
 that preview a passive at rank 1 and at its cap. `rankUpPassive` refuses a character who isn't in the team: only
 owned characters reach `characterContributions`, so the copies would be burnt for nothing (the item
-Codex lists the whole cast, met or not). Rank 0 means the passive is **locked** and contributes nothing, rank 1
+Codex lists the whole cast, met or not). It refuses on the same grounds a character with **no
+`passive` at all** — `Character.passive` is optional (Naruto's kit is an ability plus an evolution),
+and the item Codex used to offer a rank-up on the whole cast of the arc, passive or not. Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
 Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
 
