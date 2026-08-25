@@ -27,3 +27,9 @@ the off-set rather than the on-set precisely so an absent entry, which is every 
 the branch existed, reads as "on" like the autoclicker's `autoClickEnabled`. `autoRankCharacterIds`
 holds the characters handed to "Intendance"; it names characters, so `prestigeReset` empties it
 along with the roster while the switches, being a preference rather than progress, survive.
+
+Two more carry the run challenges (`docs/economy.md`), and neither needed a bump either.
+`activeChallengeId` is the challenge being played — it deliberately **survives** `prestigeReset`,
+which restarts the challenge's progress rather than ending it, since progress is counted as the
+run's cleared arcs. `completedChallengeIds` is meta-progression like `achievementCounts`: its
+rewards are permanent, so only `hardReset` clears it.

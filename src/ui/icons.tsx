@@ -132,6 +132,15 @@ export const IconSparkle = icon("0 0 24 24", () => (
   <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" fill="currentColor" />
 ));
 
+/** Défis de run — a target: the constraint you aim a whole run at. */
+export const IconTarget = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.9">
+    <circle cx="12" cy="12" r="8.5" />
+    <circle cx="12" cy="12" r="4.5" />
+    <circle cx="12" cy="12" r="1" fill="currentColor" />
+  </g>
+));
+
 /** Automatisation — a cog: the branch and every switch it unlocks share this glyph. */
 export const IconGear = icon("0 0 24 24", () => (
   <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">

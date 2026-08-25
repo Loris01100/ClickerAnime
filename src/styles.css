@@ -1708,6 +1708,52 @@ button.danger {
 
 /* Interrupteur de l'auto-clic, dans le panel-head du Combat. */
 /*
+ * Le bandeau de défi, au-dessus de la bande d'automatisation : la contrainte se lit là où elle
+ * mord, pendant le combat, et pas seulement dans le panneau qui l'a lancée. Teinte `--boss`, la
+ * même que l'automatisation, parce que les deux parlent du cadre de la run et non de son contenu.
+ */
+.challenge-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--boss);
+  font-size: 0.72rem;
+  background: color-mix(in srgb, var(--boss) 8%, transparent);
+}
+.challenge-banner span {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.challenge-banner small {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Une carte de défi dans son panneau : relevée = discrète, en cours = soulignée par la teinte. */
+.codex-block.challenge.done {
+  opacity: 0.75;
+}
+.codex-block.challenge.running {
+  border-left: 3px solid var(--boss);
+}
+.challenge-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--boss);
+}
+.challenge-flag.done {
+  color: var(--good);
+}
+
+/*
  * La bande d'automatisation, sous le sélecteur d'arc : une puce par automatisation *achetée*
  * (branche « Automatisation » de l'arbre), donc une bande qui n'existe pas tant que rien n'est
  * acheté. Elle défile horizontalement plutôt que de repousser le combat vers le bas.

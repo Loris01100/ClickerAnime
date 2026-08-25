@@ -366,8 +366,9 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
         position: 4,
         label: "Second souffle",
         description:
-          `Relance le boss ${secs(AUTO_REMATCH_DELAY_MS)} après un échec au chrono — ` +
-          `${secs(AUTO_REMATCH_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoRematchDelayMs(LEVELS_PER_NODE))}`,
+          `Après un échec au chrono, retente le boss dès que l'équipe peut le battre — vérifié ` +
+          `toutes les ${secs(AUTO_REMATCH_DELAY_MS)}, ${secs(AUTO_REMATCH_REDUCTION_MS)} de moins ` +
+          `par niveau, jusqu'à ${secs(autoRematchDelayMs(LEVELS_PER_NODE))}`,
       },
       {
         position: 5,

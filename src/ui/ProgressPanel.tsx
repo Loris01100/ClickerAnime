@@ -2,12 +2,16 @@ import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt, seconds } from "./format";
-import { IconCheck, IconChevronRight, IconLock, IconSparkle } from "./icons";
+import { IconCheck, IconChevronRight, IconLock, IconSparkle, IconTarget } from "./icons";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
 /** Right column: the arc list per world, travel, and the prestige track. */
-export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: () => void }) {
+export default function ProgressPanel(props: {
+  game: GameStore;
+  onOpenPrestige: () => void;
+  onOpenChallenges: () => void;
+}) {
   const [openAnimes, setOpenAnimes] = createSignal<Record<string, boolean>>({});
   const [travelOpen, setTravelOpen] = createSignal(true);
   const [prestigeOpen, setPrestigeOpen] = createSignal(true);
@@ -157,6 +161,21 @@ export default function ProgressPanel(props: { game: GameStore; onOpenPrestige: 
           <button class="tree-open" onClick={props.onOpenPrestige}>
             <IconSparkle />
             Arbre de prestige
+            <IconChevronRight class="tree-open-go" />
+          </button>
+          {/* Même famille que le bouton de l'arbre — une vue qu'on ouvre, pas une action qui
+              s'exécute — parce qu'un défi part lui aussi d'une réinitialisation : sa place est ici,
+              contre le CTA de prestige, et nulle part ailleurs. */}
+          <button class="tree-open" onClick={props.onOpenChallenges}>
+            <IconTarget />
+            Défis de run
+            <Show when={props.game.activeChallenge()}>
+              {(challenge) => (
+                <small class="muted">
+                  {challenge().name} · {props.game.challengeProgressOf()?.cleared ?? 0}/{challenge().goal}
+                </small>
+              )}
+            </Show>
             <IconChevronRight class="tree-open-go" />
           </button>
           <p class="muted small">

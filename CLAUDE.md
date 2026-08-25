@@ -90,6 +90,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.
 - Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance).
+- **A challenge constraint is enforced, never watched.** Every rule in `challenges.ts` is something
+  the engine *refuses to do* — no click damage, no ability, no drop, no recruit past the cap — and
+  never a condition checked after the fact. There is no "challenge failed" state, and nothing to
+  detect: a run under a rule cannot break it. Starting or abandoning a challenge goes through
+  `prestigeReset`, so a run played under a rule never survives the rule being dropped.
 
 **Progression**
 
@@ -125,7 +130,7 @@ One file per area under `docs/`. Each carries the full rationale and the tuning 
 |---|---|---|
 | Combat | `docs/combat.md` | The arc loop, overkill carry-over, `MAX_KILLS_PER_SECOND`, boss timers, how steep a world's hp table has to be, the narrator's click |
 | Progression | `docs/progression.md` | Levels and xp, world/arc unlocking and tiers, synergy, evolutions |
-| Economy | `docs/economy.md` | Items and passive ranks, prestige, the 30-node prestige tree (automation included), crossover crystals, packs and duplicates, achievements, the shop |
+| Economy | `docs/economy.md` | Items and passive ranks, prestige, the 30-node prestige tree (automation included), run challenges, crossover crystals, packs and duplicates, achievements, the shop |
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
 | UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |

@@ -34,6 +34,15 @@ import {
   xpProgress,
 } from "./growth";
 import {
+  canRecruitUnder,
+  challengeById,
+  challengeContributions,
+  challengeProgress,
+  type ChallengeRules,
+  CHALLENGES,
+  NO_CHALLENGE_RULES,
+} from "./challenges";
+import {
   animeTier,
   arcsOfAnime,
   canEnterNewAnime,
@@ -196,6 +205,10 @@ interface SaveFile {
   automationOff?: Record<string, boolean>;
   /** characters handed to the "Intendance" node; run-scoped like the roster, defaults to [] */
   autoRankCharacterIds?: string[];
+  /** the challenge being played right now, if any; absent on an older save, defaults to none */
+  activeChallengeId?: string | null;
+  /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
+  completedChallengeIds?: string[];
 }
 
 const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
@@ -243,6 +256,8 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.autoClickEnabled, (v) => typeof v === "boolean") &&
     opt(c.automationOff, (v) => isRecordOf(v, (on) => typeof on === "boolean")) &&
     opt(c.autoRankCharacterIds, isStringArray) &&
+    opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
+    opt(c.completedChallengeIds, isStringArray) &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
     opt(c.prestigeTreeRanks, (v) =>
       isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
@@ -336,6 +351,20 @@ export function createGameStore(data: GameData) {
   const [autoRematchAt, setAutoRematchAt] = createSignal<number | null>(null);
   /** Sub-tick accumulator for the "Réflexe" node, like `autoClickAccumMs`. Transient. */
   const [autoAbilityAccumMs, setAutoAbilityAccumMs] = createSignal(0);
+  /**
+   * Défis de run (`challenges.ts`): the challenge being played, and the ones already cleared. The
+   * active one survives `prestigeReset` — a prestige mid-challenge restarts its progress, since the
+   * goal counts the *run's* cleared arcs, and that is the honest reading of "play a run under this
+   * rule". The cleared list is meta-progression like the achievement counts: only `hardReset` wipes
+   * it, because its rewards are permanent.
+   */
+  const [activeChallengeId, setActiveChallengeId] = createSignal<string | null>(saved?.activeChallengeId ?? null);
+  const [completedChallengeIds, setCompletedChallengeIds] = createSignal<string[]>(
+    saved?.completedChallengeIds ?? []
+  );
+  const activeChallenge = createMemo(() => challengeById(activeChallengeId()));
+  /** The rules in force right now — `NO_CHALLENGE_RULES` rather than null, so no caller branches. */
+  const challengeRules = createMemo<ChallengeRules>(() => activeChallenge()?.rules ?? NO_CHALLENGE_RULES);
   // Kills `dealDamage` may still resolve, refilled by the tick at MAX_KILLS_PER_SECOND and capped
   // there so an idle stretch banks no burst. Transient like the rest of combat state.
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
@@ -568,6 +597,7 @@ export function createGameStore(data: GameData) {
       ...fromCharacters,
       ...achievementContributions(achievementCounts()),
       ...prestigeTreeContributions(prestigeTreeRanks()),
+      ...challengeContributions(completedChallengeIds()),
     ];
   }
 
@@ -616,7 +646,11 @@ export function createGameStore(data: GameData) {
   const teamDps = createMemo(() => computeScopedStat(0, "teamDps", allModifiers(), now()));
 
   const unlockedAbilities = createMemo(() =>
-    getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos, evolvedCharacterIds())
+    // "Le Silence des héros" takes every ability away at the source: nothing to activate, nothing
+    // for the "Réflexe" automation to fire, and no combo either — they come through here too.
+    challengeRules().noAbilities
+      ? []
+      : getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos, evolvedCharacterIds())
   );
 
   /** Currency threshold worth one prestige point on reset — kept at the default scale. */
@@ -740,7 +774,12 @@ export function createGameStore(data: GameData) {
     // Pack points are per world and flat: one per fight won, wherever it was won.
     setWorldPoints((points) => ({ ...points, [arc.animeId]: (points[arc.animeId] ?? 0) + POINTS_PER_KILL }));
 
-    const isNewRecruit = !!target.characterId && !ownedCharacterIds().includes(target.characterId);
+    // "En petit comité": a full team simply doesn't take the recruit. The encounter stays in the
+    // arc's pool as an ordinary fight, which is exactly what "reste sur le carreau" means.
+    const isNewRecruit =
+      !!target.characterId &&
+      !ownedCharacterIds().includes(target.characterId) &&
+      canRecruitUnder(challengeRules(), ownedCharacterIds().length);
     if (isNewRecruit) {
       setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
       bumpAchievement("charactersRecruited");
@@ -777,6 +816,7 @@ export function createGameStore(data: GameData) {
         bumpAchievement("arcsCleared");
         pushNotice("arc", `${arc.name} terminé`);
         armAutoAdvance();
+        maybeCompleteChallenge();
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
       bumpAchievement("bossesKilled");
@@ -802,6 +842,8 @@ export function createGameStore(data: GameData) {
    * still hand over the arc's common at low odds (node 5).
    */
   function maybeDropItem(target: Enemy, arc: Arc) {
+    // "À mains nues": no drop of any kind, which also dries up passive ranks and uniques.
+    if (challengeRules().noItems) return;
     const dropChanceLevel = nodeLevelOf("items", 1);
     const doubleDropLevel = nodeLevelOf("items", 3);
     const auspiceLevel = nodeLevelOf("destin", 3);
@@ -892,6 +934,9 @@ export function createGameStore(data: GameData) {
    * for free (node 5).
    */
   function click() {
+    // "Le Narrateur muet": the click stops dealing damage entirely — and stops counting as one, or
+    // the achievement ladder would fill up on clicks that did nothing.
+    if (challengeRules().noClick) return { damage: 0, crit: false };
     bumpAchievement("clicks");
     const critLevel = nodeLevelOf("narratorClick", 3);
     const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
@@ -1106,6 +1151,9 @@ export function createGameStore(data: GameData) {
     const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
     const cost = discountedShopCost(offer, shopDiscount);
     if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds(), shopDiscount)) return false;
+
+    // The shop is the other way into the roster, and the cap has to hold on it too.
+    if (offer.kind === "character" && !canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
 
     setCurrency((c) => c - cost);
     if (offer.kind === "item") {
@@ -1324,6 +1372,53 @@ export function createGameStore(data: GameData) {
     return [...new Set(live.map((m) => m.sourceId))];
   });
 
+  // --- défis de run (`challenges.ts`) ---
+
+  const isChallengeDone = (id: string) => completedChallengeIds().includes(id);
+
+  /** Where the current run stands against the challenge it is being played under, if any. */
+  const challengeProgressOf = createMemo(() => {
+    const challenge = activeChallenge();
+    return challenge ? challengeProgress(challenge, clearedArcIds().length) : null;
+  });
+
+  /**
+   * Banks the reward the moment the goal is met, and lifts the rule with it: the constraint bought
+   * what it was there to buy, and leaving it on would only tax a run the player has already won.
+   */
+  function maybeCompleteChallenge() {
+    const challenge = activeChallenge();
+    if (!challenge || !challengeProgress(challenge, clearedArcIds().length).done) return;
+    setCompletedChallengeIds((ids) => (ids.includes(challenge.id) ? ids : [...ids, challenge.id]));
+    setActiveChallengeId(null);
+    pushNotice("arc", `Défi relevé : ${challenge.name}`);
+  }
+
+  /**
+   * Starts a challenge, which *is* a reset — the goal counts the run's own cleared arcs, so a run
+   * in progress would already be most of the way there. It goes through `prestigeReset` rather than
+   * around it, so the points the run had earned are banked instead of thrown away.
+   */
+  function startChallenge(id: string): boolean {
+    const challenge = challengeById(id);
+    if (!challenge || activeChallengeId() || isChallengeDone(id)) return false;
+    prestigeReset();
+    setActiveChallengeId(id);
+    return true;
+  }
+
+  /**
+   * Gives up. Also a reset, and for the same reason the start is one: a run played under a rule
+   * must not survive the rule being dropped, or every challenge would be worth taking and quitting
+   * one arc from the goal.
+   */
+  function abandonChallenge(): boolean {
+    if (!activeChallengeId()) return false;
+    setActiveChallengeId(null);
+    prestigeReset();
+    return true;
+  }
+
   /**
    * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared, items and
    * passive ranks all go. Only the prestige points survive — plus the meta-progression the run
@@ -1387,6 +1482,8 @@ export function createGameStore(data: GameData) {
       autoClickEnabled: autoClickEnabled(),
       automationOff: automationOff(),
       autoRankCharacterIds: autoRankCharacterIds(),
+      activeChallengeId: activeChallengeId(),
+      completedChallengeIds: completedChallengeIds(),
     };
   }
 
@@ -1442,6 +1539,8 @@ export function createGameStore(data: GameData) {
     setAutoRankCharacterIds([]);
     setAutoAbilityAccumMs(0);
     setAutomationOff({});
+    setActiveChallengeId(null);
+    setCompletedChallengeIds([]);
     cancelPendingAutomation();
     setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
@@ -1478,7 +1577,7 @@ export function createGameStore(data: GameData) {
     checkTimer(nowMs);
 
     const autoClickLevel = nodeLevelOf("narratorClick", 2);
-    if (autoClickLevel > 0 && autoClickEnabled()) {
+    if (autoClickLevel > 0 && autoClickEnabled() && !challengeRules().noClick) {
       // Levels buy cadence, not strength: every automatic click lands at full click power, they
       // just come closer together — see `autoClickIntervalMs`.
       const interval = autoClickInterval();
@@ -1511,9 +1610,19 @@ export function createGameStore(data: GameData) {
 
     const rematchAt = autoRematchAt();
     if (rematchAt !== null && nowMs >= rematchAt) {
-      setAutoRematchAt(null);
-      if (automationRuns("rematch") && challengeBoss()) {
-        pushNotice("arc", "Second souffle : nouvel assaut sur le boss");
+      const arc = activeArc();
+      // Only once the boss is actually within reach. Retrying one the team cannot fell yet trades
+      // the farming that would *make* it fellable for a fight that ends the same way — and, from the
+      // stage, a boss that comes back at full hp every timer looks like a fight restarting on its
+      // own. The test is `bossOutlookOf`'s, the same one the arc list turns into its "trop dur"
+      // marker, so the automation and the UI agree on what "too hard" means.
+      if (arc && automationRuns("rematch") && !bossOutlookOf(arc).winnable) {
+        setAutoRematchAt(nowMs + autoRematchDelay()); // on farme, on redemandera plus tard
+      } else {
+        setAutoRematchAt(null);
+        if (automationRuns("rematch") && challengeBoss()) {
+          pushNotice("arc", "Second souffle : nouvel assaut sur le boss");
+        }
       }
     }
 
@@ -1656,6 +1765,15 @@ export function createGameStore(data: GameData) {
     autoRankCharacterIds,
     isAutoRanked,
     toggleAutoRank,
+    // défis de run
+    challenges: CHALLENGES,
+    activeChallenge,
+    challengeRules,
+    challengeProgressOf,
+    completedChallengeIds,
+    isChallengeDone,
+    startChallenge,
+    abandonChallenge,
     enemy,
     enemyHpLeft,
     enemyMaxHp,

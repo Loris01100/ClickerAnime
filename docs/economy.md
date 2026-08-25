@@ -152,7 +152,8 @@ can never stop being geometric:
   clears the one it's in (node 1); "Réflexe" fires every ability that is off cooldown, exactly what
   `activateReadyAbilities` already does from the roster's button (node 2); "Intendance" buys passive
   ranks for the characters the player hands it (node 3); "Second souffle" asks for the boss rematch
-  after a timeout, through `challengeBoss` (node 4); "Instinct de crossover" opens a window as soon
+  after a timeout, through `challengeBoss`, **and only once `bossOutlookOf(arc).winnable` says the
+  boss is actually within reach** (node 4); "Instinct de crossover" opens a window as soon
   as `crossoverAdvised` says one would pay (node 5).
 
   Three things make the branch behave:
@@ -165,6 +166,13 @@ can never stop being geometric:
     "Intendance" scales by scope instead (`autoRankSlots`: one character per level), and "Instinct
     de crossover" by how much of the crystal stock it refuses to touch (`autoCrossoverReserve`:
     four activations held back at level 1, none at level 5).
+  - **"Second souffle" waits for the team, not for the clock.** Its first version simply re-challenged
+    after the delay, which turned a boss the team could not fell into a treadmill: timeout, a few
+    seconds of mobs, the boss back at full hp, forever — and from the stage that reads as a fight
+    restarting on its own, which is exactly how it was reported. It now re-checks every delay and
+    only fires once `bossOutlookOf` calls the boss winnable, the same test the arc list turns into
+    its "trop dur" marker, so the automation and the UI agree on what "too hard" means. The waiting
+    is the point: the mobs it farms in the meantime are what makes the boss beatable.
   - **The two timed ones are armed by an event, never derived from state.** "Relève" is armed by
     the kill that *clears* an arc and "Second souffle" by the boss timing out; both are cleared by
     any manual arc change (`cancelPendingAutomation`). Deriving "Relève" from "this arc is cleared"
@@ -187,6 +195,46 @@ prestige.
 evaluated once at module load is one shared node that only the last simultaneous on-screen instance
 keeps (30 nodes reusing 6 icons made this obvious, but any icon rendered more than once at a time,
 e.g. `IconLock` on several locked map nodes, was equally affected).
+
+## Défis de run (`challenges.ts`)
+
+A challenge is the same game with a rule taken away. It is deliberately **not** new content: the
+roster, the arcs and the balance are untouched, and what changes is only what the run is allowed to
+lean on — which is what makes the whole existing game worth replaying without writing a world.
+
+Four constraints, one per thing the game leans on: the click ("Le Narrateur muet"), the abilities
+("Le Silence des héros"), the roster size ("En petit comité", capped at 6) and the items ("À mains
+nues"). Each names a `goal` in arcs cleared and a `reward` of `ModifierTemplate`s.
+
+- **Goals are sized by how much the rule actually hurts**, not by a round number. Losing the click
+  is the mildest of the four — it is a *trigger, not a damage source* (`CLAUDE.md`) — so it asks for
+  the longest run at 10 arcs; losing items costs passive ranks, uniques *and* the farming loop at
+  once, so it asks for 6.
+- **The rules are enforced at the source**, never watched: `click` returns zero damage (and doesn't
+  count as a click for the achievement ladder), `unlockedAbilities` returns an empty list — combos
+  included, since they come through it too — `maybeDropItem` returns before rolling anything, and
+  `canRecruitUnder` gates both ways into the roster (the kill in `defeat` and the shop's character
+  offers). See the invariant in `CLAUDE.md`. A refused recruit stays in the arc's pool as an
+  ordinary fight, which is exactly what "reste sur le carreau" means.
+- **Starting and abandoning both go through `prestigeReset`.** Starting must, because the goal
+  counts the *run's own* cleared arcs and a run in progress would already be most of the way there;
+  abandoning must, or every challenge would be worth taking and dropping one arc from the goal.
+  Starting resets rather than refusing when points are pending: the reset banks them like any other.
+- **Completion pays and lifts the rule** (`maybeCompleteChallenge`, called from the kill that clears
+  an arc): the reward joins `completedChallengeIds`, the challenge stops being active, and the run
+  carries on unconstrained. The constraint bought what it was there to buy; keeping it on would only
+  tax a run already won.
+- A `prestigeReset` **during** a challenge keeps it active and restarts its progress, since progress
+  is the run's cleared arcs. That is the honest reading of "play a run under this rule", and it needs
+  no special code.
+
+`challengeContributions` folds a cleared challenge's reward into `permanentModifiersFor` next to
+`achievementContributions` — same shape, same pipeline, one `sourceId` per effect
+(`challenge:<id>:<index>`) so two effects of one challenge can't overwrite each other. The four
+rewards together are worth +37% teamDps and +30% clickPower, in the register of a few prestige-tree
+nodes, for four full runs played handicapped. They are the one part of the system that touches
+balance, so they are percents on the two existing `ModifierTarget`s and nothing more exotic;
+`npm run sim` is unchanged, since a simulated run clears no challenge.
 
 ## Crossover crystals (`crossover.ts`)
 

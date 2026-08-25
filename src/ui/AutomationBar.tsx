@@ -26,7 +26,7 @@ function detailOf(game: GameStore, key: AutomationKey): string {
     case "rank":
       return `Monte les passifs confiés à l'intendance — ${game.autoRankCharacterIds().length}/${game.autoRankCapacity()} personnage(s), à désigner dans l'équipe.`;
     case "rematch":
-      return `Relance le boss ${seconds(game.autoRematchDelay())} après un échec au chrono.`;
+      return `Après un échec au chrono, retente le boss dès qu'il est à portée — vérifié toutes les ${seconds(game.autoRematchDelay())}.`;
     case "crossover":
       return "Ouvre une fenêtre de crossover dès qu'elle est conseillée, en gardant sa réserve de cristaux.";
   }

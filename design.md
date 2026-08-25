@@ -723,3 +723,25 @@ toutes tokenisées, lui donnent le poids d'une case de manga sans toucher à la 
 
 Ne pas étendre les trames aux corps de panneau ni aux tableaux : elles rendraient illisibles les
 chiffres alignés qui font tout l'intérêt de §1.
+
+## 14. Les défis de run (overlay + bandeau)
+
+Un défi, c'est la même partie avec une règle en moins (`docs/economy.md`). Deux surfaces, et leur
+partage est délibéré :
+
+- **`ChallengePanel.tsx`**, l'overlay, suit le squelette de §8 (`.overlay` > `.modal`, en-tête
+  `.panel-head`, contenu qui défile). Son entrée est dans le panneau Prestige, **sous le bouton de
+  l'arbre et dans la même famille visuelle** (`.tree-open`, bouton à contour) : un défi part d'une
+  réinitialisation, exactement comme le prestige, donc il se range contre le CTA destructeur et
+  jamais dans la barre du haut. L'icône est `IconTarget` (une cible), la seule chose qu'un défi
+  demande vraiment : viser un quota. Une carte relevée s'efface (`opacity`), une carte en cours
+  prend un liseré `--boss`.
+- **Le bandeau `.challenge-banner`**, dans le panneau Combat, au-dessus de la bande
+  d'automatisation. Il existe pour une raison précise : sous « Le Narrateur muet », le clic — le
+  geste central du jeu — n'inflige plus rien, et un jeu qui cesse de répondre sans rien dire est
+  indiscernable d'un jeu cassé. Le bandeau nomme le défi, rappelle la règle en toutes lettres et
+  affiche le quota (`3/6 arcs`). Même teinte `--boss` que l'automatisation, parce que les deux
+  parlent du **cadre** de la run et non de son contenu.
+
+Les récompenses sont écrites par `describeModifier` comme n'importe quel effet d'objet : l'arbre, le
+codex et les défis ne doivent jamais inventer une deuxième façon de décrire un même bonus.

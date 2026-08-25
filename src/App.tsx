@@ -5,6 +5,7 @@ import { gameData } from "./data";
 import AchievementsPanel from "./ui/AchievementsPanel";
 import ClickStage from "./ui/ClickStage";
 import Codex from "./ui/Codex";
+import ChallengePanel from "./ui/ChallengePanel";
 import PrestigeTree from "./ui/PrestigeTree";
 import WorldMap from "./ui/WorldMap";
 import WorldPortal from "./ui/WorldPortal";
@@ -28,6 +29,7 @@ export default function App() {
   const [portalOpen, setPortalOpen] = createSignal(false);
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
   const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
+  const [challengesOpen, setChallengesOpen] = createSignal(false);
   const [shopOpen, setShopOpen] = createSignal(false);
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   const [packsOpen, setPacksOpen] = createSignal(false);
@@ -145,7 +147,11 @@ export default function App() {
             <ClickStage game={game} />
             <WorldMap game={game} />
           </div>
-          <ProgressPanel game={game} onOpenPrestige={() => setPrestigeTreeOpen(true)} />
+          <ProgressPanel
+            game={game}
+            onOpenPrestige={() => setPrestigeTreeOpen(true)}
+            onOpenChallenges={() => setChallengesOpen(true)}
+          />
         </main>
       </Show>
 
@@ -175,6 +181,10 @@ export default function App() {
 
       <Show when={prestigeTreeOpen()}>
         <PrestigeTree game={game} onClose={() => setPrestigeTreeOpen(false)} />
+      </Show>
+
+      <Show when={challengesOpen()}>
+        <ChallengePanel game={game} onClose={() => setChallengesOpen(false)} />
       </Show>
 
       <Notices game={game} />

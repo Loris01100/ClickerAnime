@@ -5,7 +5,7 @@ import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
-import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconSparkle, IconStar } from "./icons";
+import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconSparkle, IconStar, IconTarget } from "./icons";
 
 interface Pop {
   id: number;
@@ -156,6 +156,21 @@ export default function ClickStage(props: { game: GameStore }) {
           {neighbour(1)?.name ?? "—"} <IconChevronRight />
         </button>
       </div>
+
+      {/* Une contrainte de défi se voit là où elle mord : un clic qui n'inflige plus rien, dans un
+          jeu dont c'est le geste central, doit dire pourquoi sans qu'on aille ouvrir un panneau. */}
+      <Show when={props.game.activeChallenge()}>
+        {(challenge) => (
+          <div class="challenge-banner" title={challenge().constraint}>
+            <IconTarget />
+            <strong>{challenge().name}</strong>
+            <span class="muted">{challenge().constraint}</span>
+            <small>
+              {props.game.challengeProgressOf()?.cleared ?? 0}/{challenge().goal} arcs
+            </small>
+          </div>
+        )}
+      </Show>
 
       <AutomationBar game={props.game} />
 

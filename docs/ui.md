@@ -71,6 +71,14 @@ know *whose* passive to rank: `RosterPanel` grows an `.auto-rank` cog next to ea
 rank-up button, and `toggleAutoRank` refuses past `autoRankCapacity()` (one slot per node level)
 rather than accepting a character it would silently never get to.
 
+`ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
+section — next to the tree button, because a challenge starts from a reset just like a prestige
+does, and both `confirm()` say so. It renders each challenge's rule, goal, reward (through
+`describeModifier`, so a reward is worded exactly like an item's effect) and state. The constraint
+itself also shows **during the fight**: `ClickStage` draws a `.challenge-banner` above the
+automation strip, because a click that suddenly deals nothing — in a game whose central gesture it
+is — has to say why without the player going looking for a panel.
+
 `ui/Sprite.tsx` wraps portraits in a `createResource` keyed on `kind:name`; its `SCALE` constant
 multiplies every call site's `px`, so the whole game's portraits are resized from one number; `<Show>` renders the
 resolved `<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or
