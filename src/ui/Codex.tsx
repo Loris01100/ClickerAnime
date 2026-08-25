@@ -1,8 +1,7 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
-import { passiveGrowth } from "../engine/growth";
-import { defaultSynergyConfig } from "../engine/synergy";
+import { LEVEL_DAMAGE_STEP, passiveGrowth } from "../engine/growth";
 import { DUPLICATE_DAMAGE_STEP } from "../engine/packs";
 import ItemCodex from "./ItemCodex";
 import Sprite from "./Sprite";
@@ -137,8 +136,11 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                   </div>
                   <div class="codex-row">
                     <span class="muted">Gain par niveau</span>
+                    {/* Un niveau vaut LEVEL_DAMAGE_STEP fois la stat de base, pas la stat entière —
+                        c'est `levelGrowth` qui fait foi. Affiché en dur, ça surestimait de 67 %. */}
                     <strong>
-                      +{fmt(character().baseClickPower)} clic / +{fmt(character().baseDps)} dps
+                      +{fmt(character().baseClickPower * LEVEL_DAMAGE_STEP)} clic /{" "}
+                      +{fmt(character().baseDps * LEVEL_DAMAGE_STEP)} dps
                     </strong>
                   </div>
                   <Show when={props.game.duplicatesOf(character().id) > 0}>
@@ -219,7 +221,10 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                   {(ability) => (
                     <div class="codex-block">
                       <h4>Capacité — {ability().name}</h4>
-                      <p class="small">{describeAbility(ability())}</p>
+                      {/* Même magnitude que la barre de capacités : un buff est mis à l'échelle
+                          avant d'atterrir, donc la valeur brute de la donnée sous-estime — et le
+                          Codex et la barre annonçaient deux chiffres pour la même capacité. */}
+                      <p class="small">{describeAbility(ability(), props.game.abilityMagnitudeOf(ability()))}</p>
                       <Show when={props.game.isEvolved(character()) && character().evolution?.ability}>
                         <p class="muted small">Version évoluée ({character().evolution?.label}).</p>
                       </Show>
@@ -266,7 +271,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                               .map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id)
                               .join(", ")}
                           </p>
-                          <p class="small">{describeAbility(combo.ability)}</p>
+                          <p class="small">
+                            {describeAbility(combo.ability, props.game.abilityMagnitudeOf(combo.ability))}
+                          </p>
                         </div>
                       )}
                     </For>
@@ -275,10 +282,15 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
 
                 <div class="codex-block">
                   <h4>Synergie</h4>
+                  {/* Les malus en vigueur, pas ceux de la donnée : « Cohésion inter-mondes » les
+                      adoucit et un crossover les annule, et le Codex affichait 85 % / 50 % quoi
+                      qu'il arrive. */}
                   <p class="muted small">
                     Fort dans : {arcNames(character()).join(", ") || "aucun arc"}. Ailleurs dans{" "}
-                    {animeName(character().animeId)} ses stats tombent à {Math.round(defaultSynergyConfig.sameAnimeMalus * 100)}{" "}
-                    %, et dans un autre anime à {Math.round(defaultSynergyConfig.otherAnimeMalus * 100)} %.
+                    {animeName(character().animeId)} ses stats tombent à{" "}
+                    {Math.round(props.game.synergyConfig().sameAnimeMalus * 100)} %, et dans un autre anime à{" "}
+                    {Math.round(props.game.synergyConfig().otherAnimeMalus * 100)} %.
+                    <Show when={props.game.crossoverActive()}> Crossover actif : les malus sont annulés.</Show>
                   </p>
                 </div>
               </div>

@@ -609,6 +609,11 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
   sprite ou `IconBookmark` à gauche, coût à droite dans un `<button>` (`{cout} <IconDiamond
   class="coin gold" />`), ou un `<IconLock />` + le nom du monde requis quand l'offre est encore
   verrouillée — même widget que les nœuds d'arc verrouillés de `ProgressPanel`/`WorldMap`.
+- **Le prix affiché est le prix prélevé.** C'est `entry.cost` (déjà remisé par `shopOffers`), jamais
+  `offer.cost` : avec « Relations » acheté, la boutique annonçait un prix et en prenait un autre, et
+  `affordable` — qui a toujours compté la remise — pouvait allumer un bouton à côté d'un prix hors
+  de portée. Quand une remise court, le prix de base la précède barré (`<s class="muted">`), pour que
+  le nœud se voie agir plutôt que de simplement faire baisser un chiffre.
 - **Rien à vendre = une ligne muette** dans l'overlay : un tiroir ouvert exprès par le joueur ne
   doit jamais être vide sans explication (contrairement à l'ancienne version en colonne, qui se
   cachait entièrement).

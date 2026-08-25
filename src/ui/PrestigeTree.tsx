@@ -61,8 +61,8 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
           </div>
 
           <p class="muted small">
-            Chaque arc terminé rapporte 1 point de prestige, en plus du gain versé à la
-            réinitialisation. Six branches indépendantes ; un seul niveau dans un nœud suffit à
+            Les points de prestige sont versés à la réinitialisation : plus la complétion du run est
+            haute, plus elle en rapporte. Six branches indépendantes ; un seul niveau dans un nœud suffit à
             débloquer le suivant, et chaque nœud se rachète jusqu'à 5 fois pour le même effet à
             chaque niveau. La progression de l'arbre est permanente, elle survit à la
             réinitialisation.

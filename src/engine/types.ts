@@ -122,9 +122,9 @@ export interface Character {
   rarity: Rarity;
   /** arcs (within its own anime) this character is strong in */
   arcIds: string[];
-  /** click damage at level 0; every level adds this much again */
+  /** click damage at level 0; every level adds `LEVEL_DAMAGE_STEP` times this much again */
   baseClickPower: number;
-  /** dps at level 0; every level adds this much again */
+  /** dps at level 0; every level adds `LEVEL_DAMAGE_STEP` times this much again */
   baseDps: number;
   /** flavor tags used for equipment restrictions (clan, affiliation, role, etc.) */
   tags?: CharacterTag[];

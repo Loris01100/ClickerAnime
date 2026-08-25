@@ -16,11 +16,22 @@ Enemies carrying an `itemId` may hand it over — see the narrator's click below
 farm an old zone, which the passive-item design explicitly asks for, resolved hundreds of fights a
 second. Every per-kill reward rides on that rate: item drops, currency, xp, pack points. Rather than
 capping each of them, `MAX_KILLS_PER_SECOND` (5) caps the thing they all derive from, spent from a
-`killBudget` the tick refills and never lets bank above the cap. `dealDamage` always resolves at
-least one kill whatever the budget, so a fight can never stall at 0 hp; surplus overkill past the
-budget is discarded. It never touches a boss (one enemy, one kill) and never bites during normal
-progress, only when the team outguns a zone by more than ~5x. `MAX_KILLS_PER_HIT` stays what it
-was: a loop safety net against a data mistake, not a knob.
+`killBudget` the tick refills and never lets bank above the cap. Surplus overkill past the budget is
+discarded. It never touches a boss (one enemy, one kill) and never bites during normal progress, only
+when the team outguns a zone by more than ~5x. `MAX_KILLS_PER_HIT` stays what it was: a loop safety
+net against a data mistake, not a knob.
+
+**The budget is spent strictly, and that took a fix.** `dealDamage` used to resolve at least one kill
+whatever the budget held, on the theory that a fight could otherwise stall at 0 hp waiting for the
+refill. But the tick, the autoclicker and *every single manual click* are separate calls to it, so
+each collected that free kill: the measured rate was `MAX_KILLS_PER_SECOND` **plus the click rate** —
+20 kills/s at 20 clicks/s, four times the cap, with every per-kill reward riding along — and the
+budget went unboundedly negative with nothing flooring the debt, so after a few minutes of clicking
+the overkill burst never fired again. Spending no more than the budget holds fixes both at once. The
+stall is handled by construction instead: what the budget caps is *kills*, not damage, so leftover
+damage still chips the enemy in front of the team. It can leave one on nothing for a fraction of a
+second — the budget refills a kill every tick — and the next call fells it. `engine.test.ts` guards
+this with a 40-clicks/s run that must stay inside the cap.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data

@@ -1912,6 +1912,11 @@ describe("packs", () => {
       items: [],
     };
 
+    // `dealDamage` spends the kill budget strictly, so 250 fights cost real time however hard the
+    // click hits: the tick has to run for the budget to refill at MAX_KILLS_PER_SECOND. Clicking in
+    // a tight loop on a frozen clock used to fell one mob per click regardless — which is exactly
+    // the leak the budget is there to close.
+    vi.useFakeTimers();
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
@@ -1923,7 +1928,10 @@ describe("packs", () => {
       expect(game.openPack("ta", "secondary")).toBeNull(); // no points yet
       // Clicking until the pack is affordable rather than a fixed count: one click can fell several
       // 1-hp mobs once an achievement tier has lifted the click's damage (overkill carries over).
-      while (game.worldPointsOf("ta") < PACK_COST.secondary) game.click();
+      while (game.worldPointsOf("ta") < PACK_COST.secondary) {
+        game.click();
+        vi.advanceTimersByTime(200);
+      }
       const banked = game.worldPointsOf("ta");
       expect(banked).toBeGreaterThanOrEqual(PACK_COST.secondary);
       // No main-rarity character in this world: that pack can't be drawn at all.
@@ -1938,6 +1946,7 @@ describe("packs", () => {
       expect(game.duplicatesOf("s1")).toBe(1);
     } finally {
       disposeRoot();
+      vi.useRealTimers();
     }
   });
 });
@@ -2267,6 +2276,47 @@ describe("plafond de kills par seconde", () => {
       game.setActiveArc("ta-arc");
       vi.advanceTimersByTime(200); // un seul tick
       expect(game.arcCleared(game.data.arcs[0])).toBe(true);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+
+  /**
+   * Le trou que le plafond avait : `dealDamage` accordait un kill garanti **par appel**, et le tick,
+   * l'autoclic et chaque clic manuel sont des appels distincts. Le taux réel était donc
+   * `MAX_KILLS_PER_SECOND` + la cadence de clic — 20 kills/s mesurés à 20 clics/s — et tout ce qui
+   * se gagne par kill suivait. Le budget partait aussi en négatif sans plancher, donc le burst
+   * d'overkill ne se déclenchait plus jamais après quelques minutes.
+   *
+   * Cliquer plus vite doit gagner du temps sur un ennemi qu'on n'abat pas encore d'un coup, jamais
+   * lever le plafond : ici les mobs ont 1 PV, donc rien n'est laissé au clic que le plafond.
+   */
+  it("cliquer comme un forcené ne desserre pas le plafond", () => {
+    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      // 0 dps : tous les kills viennent des clics, donc on mesure le plafond et rien d'autre.
+      const data = farmData(0);
+      data.characters[0].baseClickPower = 1e9;
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      game.setActiveArc("ta-arc");
+
+      const seconds = 10;
+      for (let tick = 0; tick < seconds * 5; tick++) {
+        for (let click = 0; click < 8; click++) game.click(); // 40 clics/s
+        vi.advanceTimersByTime(200);
+      }
+
+      const arc = game.activeArc()!;
+      // Le budget plein du départ en plus des dix secondes de recharge, et pas un kill de plus.
+      expect(game.killsIn(arc)).toBeLessThanOrEqual(MAX_KILLS_PER_SECOND * (seconds + 1));
+      expect(game.killsIn(arc)).toBeGreaterThan(MAX_KILLS_PER_SECOND * (seconds - 1));
     } finally {
       disposeRoot();
       vi.useRealTimers();

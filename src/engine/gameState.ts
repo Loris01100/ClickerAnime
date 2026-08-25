@@ -905,26 +905,43 @@ export function createGameStore(data: GameData) {
    * that always respawns) from locking the tick in an endless loop.
    *
    * What *is* balance is `MAX_KILLS_PER_SECOND`, spent from `killBudget` here: past it the surplus
-   * overkill is simply discarded rather than felling more enemies. One kill is always allowed
-   * whatever the budget, so a fight can never stall at 0 hp waiting for it to refill.
+   * overkill is simply discarded rather than felling more enemies.
+   *
+   * The budget is spent **strictly**, and that is load-bearing. A guaranteed kill per call used to
+   * sit in `allowance`, on the theory that a fight could otherwise stall at 0 hp waiting for the
+   * refill — but the tick, the autoclicker and *every single manual click* are separate calls, so
+   * each of them collected that free kill and the real rate was `MAX_KILLS_PER_SECOND` plus the
+   * click rate: 20 kills/s measured at 20 clicks/s, four times the cap, with every per-kill reward
+   * (drops, currency, xp, pack points) riding along. It also drove `killBudget` unboundedly
+   * negative, since nothing floored the debt, so after a few minutes of clicking the overkill burst
+   * this function exists for never fired again. Spending no more than the budget holds fixes both:
+   * the balance is honest, and the budget can no longer go below zero.
+   *
+   * The stall it was guarding against is handled below instead, and by construction rather than by
+   * a free kill: what the budget caps is *kills*, not damage, so leftover damage still chips the
+   * enemy in front of us. It can leave one on nothing for a fraction of a second — the budget
+   * refills a kill every tick — and the next call fells it.
    */
   function dealDamage(amount: number) {
     if (!enemy() || amount <= 0) return 0;
     let remaining = amount;
-    const allowance = Math.min(MAX_KILLS_PER_HIT, Math.max(1, Math.floor(killBudget())));
+    const allowance = Math.min(MAX_KILLS_PER_HIT, Math.floor(killBudget()));
     let spent = 0;
-    for (let i = 0; i < allowance; i++) {
+    while (spent < allowance) {
       const target = enemy();
       if (!target || remaining <= 0) break;
       const left = enemyHpLeft() - remaining;
       if (left > 0) {
         setEnemyHpLeft(left);
+        remaining = 0;
         break;
       }
       remaining = -left;
       spent++;
       defeat(target);
     }
+    // Damage still in hand once the budget is out — it lands, it just can't fell anything.
+    if (remaining > 0 && enemy()) setEnemyHpLeft(Math.max(0, enemyHpLeft() - remaining));
     if (spent > 0) setKillBudget((budget) => budget - spent);
     return amount;
   }
@@ -1132,12 +1149,22 @@ export function createGameStore(data: GameData) {
     return drawn;
   }
 
-  /** Every shop offer with the display state (locked/owned/affordable) the panel needs. */
+  /**
+   * Every shop offer with the display state (price/locked/owned/affordable) the panel needs.
+   *
+   * `cost` is the discounted one — what `buyShopOffer` actually charges. The panel used to print
+   * `offer.cost` straight from the data while the purchase went through `discountedShopCost`, so
+   * with "Relations" bought the shop announced one price and took another, and `affordable` (which
+   * has always counted the discount) could light a button up next to a price the player couldn't
+   * meet. One number, computed once, here.
+   */
   function shopOffers() {
     const clearedIds = clearedAnimes().map((a) => a.id);
     const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
     return (data.shop ?? []).map((offer) => ({
       offer,
+      cost: discountedShopCost(offer, shopDiscount),
+      discounted: shopDiscount > 0,
       item: offer.kind === "item" ? data.items.find((i) => i.id === offer.targetId) : undefined,
       character: offer.kind === "character" ? data.characters.find((c) => c.id === offer.targetId) : undefined,
       owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
@@ -1740,6 +1767,10 @@ export function createGameStore(data: GameData) {
     activeBuffs,
     readyAbilities,
     synergyOf,
+    // The malus tiers in force right now, "DPS Équipe" node 3 included — anything printing them
+    // must read these rather than `defaultSynergyConfig`, or it goes stale the moment that node is
+    // bought.
+    synergyConfig: activeSynergyConfig,
     achievementCounts,
     // HUD notices
     notices,

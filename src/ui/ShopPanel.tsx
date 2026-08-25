@@ -57,8 +57,18 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
                     </small>
                   }
                 >
-                  <button disabled={!entry.affordable} onClick={() => props.game.buyShopOffer(entry.offer.id)}>
-                    {entry.offer.cost} <IconDiamond class="coin gold" />
+                  {/* `entry.cost` is the discounted price, i.e. the one actually charged — see
+                      gameState's shopOffers. The old price is struck through next to it so the
+                      "Relations" node can be seen doing something. */}
+                  <button
+                    disabled={!entry.affordable}
+                    title={entry.discounted ? `Prix de base ${fmt(entry.offer.cost)} — remise « Relations »` : undefined}
+                    onClick={() => props.game.buyShopOffer(entry.offer.id)}
+                  >
+                    <Show when={entry.discounted}>
+                      <s class="muted">{fmt(entry.offer.cost)}</s>{" "}
+                    </Show>
+                    {fmt(entry.cost)} <IconDiamond class="coin gold" />
                   </button>
                 </Show>
               </div>
