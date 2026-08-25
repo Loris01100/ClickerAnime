@@ -249,7 +249,7 @@ dépensent » soit visible sans le lire — et à droite un chevron, qui signale
 non une action qui s'exécute. Même logique que les tuiles de `CurrencyBar` : aucun compteur n'est un
 cul-de-sac.
 
-### 5.1 Cinq branches, pas une par personnage
+### 5.1 Six branches, pas une par personnage
 
 Une branche par cible de progression, chacune avec sa teinte propre (dérivée de la palette
 fonctionnelle, pas de la DA par anime — l'arbre de prestige est un système méta, hors monde) :
@@ -261,6 +261,17 @@ fonctionnelle, pas de la DA par anime — l'arbre de prestige est un système m�
 | **XP** | étoile/livre | or (`--gold`) | gain d'xp, courbe de niveau, bonus de recrutement |
 | **Objets** | coffre/marque-page | bleu (`--blue`) | drop d'objets, coût des rangs de passif, pity timer |
 | **Ressource** | pièce/balance | vert (`--good`) | monnaie gagnée, palier de prestige, coût de déblocage d'anime |
+| **Automatisation** | engrenage (`IconGear`) | orange (`--boss`) | ce que le jeu joue à votre place : relève d'arc, capacités prêtes, rangs de passif, revanche de boss, fenêtre de crossover |
+
+La branche Automatisation ne donne **rien** — aucun dégât, aucune monnaie, aucun xp : chacun de ses
+nœuds rejoue un geste déjà à portée de main, et ses niveaux achètent une *cadence* ou une *portée*,
+jamais une puissance (voir l'invariant dans `CLAUDE.md` et `docs/economy.md`). C'est ce qui lui
+permet d'exister sans rejouer l'équilibrage. Chacune de ses automatisations se coupe
+individuellement : la bande `.auto-strip` sous le sélecteur d'arc n'affiche une puce que pour un
+nœud **acheté** — un interrupteur pour quelque chose qu'on ne possède pas est du bruit, la même
+règle que l'interrupteur de l'autoclic — et « Intendance » se désigne personnage par personnage
+depuis l'équipe (`.auto-rank`, l'engrenage à côté du bouton de rang, allumé quand le passif est
+confié).
 
 Chaque branche a son propre en-tête façon `.panel-head` : nom, icône, et le total de niveaux
 achetés sur 25 (`branchLevelsOf`, affichage seulement — 5 nœuds × 5 niveaux, voir §5.2). La liste
@@ -317,8 +328,8 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
   rare) : chaque nœud a ses 5 niveaux à `2, 3, 5, 8, 13` points — même ratio de croissance (~×1.6)
   que `passiveRankCost`, mais réutilisé identiquement à l'intérieur de *chaque* nœud plutôt qu'une
   seule fois pour toute la branche. Un nœud entièrement maxé coûte 31 points ; une branche entière
-  (5 nœuds), 155 ; les 5 branches, 775 — un objectif de très nombreux cycles de prestige, pas d'un
-  seul run.
+  (5 nœuds), 155 ; les 6 branches, 930 (775 avant l'arrivée d'« Automatisation ») — un objectif de
+  très nombreux cycles de prestige, pas d'un seul run.
 - **Le contenu de `.prestige-tree` défile dans son propre scroll** (`overflow-y: auto`,
   `max-height: 78vh`, sous le `.panel-head` fixe de la modale) : avec le déblocage à 1 niveau, une
   branche peut avoir jusqu'à 5 nœuds actifs à la fois, donc jusqu'à 5 lignes de légende empilées
@@ -328,7 +339,7 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 ### 5.4 Ce que ça implique côté moteur (fait)
 
 - `ModifierTarget` (`types.ts:4`) est resté `"clickPower" | "teamDps"` — **non élargi**. Sur les
-  25 nœuds de l'arbre, seuls deux (le nœud 1 de Clic du Narrateur et de DPS Équipe, un simple
+  30 nœuds de l'arbre, seuls deux (le nœud 1 de Clic du Narrateur et de DPS Équipe, un simple
   pourcentage permanent qui se multiplie par le niveau atteint) passent par `computeEffectiveStat`
   via `prestigeTreeContributions`, exactement comme `achievementContributions`. Le reste
   (autoclicker, critique, réduction de cooldown au clic, actif gratuit, adoucissement de synergie,
@@ -359,7 +370,7 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
   sauvegarde mal réinterpréter des valeurs qui ne veulent plus dire la même chose.
 - **Piège trouvé en construisant la vue** : `icons.tsx`'s `icon()` évaluait son JSX une seule fois
   au chargement du module — en SolidJS ça matérialise un vrai nœud DOM partagé, donc afficher la
-  même icône à plusieurs endroits en même temps (25 nœuds réutilisant 5 icônes) ne montrait que la
+  même icône à plusieurs endroits en même temps (30 nœuds réutilisant 6 icônes) ne montrait que la
   dernière instance montée. Corrigé en passant `body` comme fabrique (`() => JSX.Element`) appelée
   à chaque rendu plutôt qu'une valeur JSX capturée une fois — vaut pour toute future icône.
 

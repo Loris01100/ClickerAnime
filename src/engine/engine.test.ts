@@ -51,9 +51,20 @@ import type { ActiveModifier, Anime, Arc, Character, ComboDefinition, Enemy, Sho
 import { layoutArcs, MAP_COLS } from "./mapLayout";
 import {
   AUSPICE_DOUBLE_DROP_CHANCE,
+  AUTO_ABILITY_INTERVAL_MS,
+  AUTO_ABILITY_REDUCTION_MS,
+  AUTO_ADVANCE_DELAY_MS,
+  AUTO_ADVANCE_REDUCTION_MS,
+  AUTO_REMATCH_DELAY_MS,
+  AUTO_REMATCH_REDUCTION_MS,
+  autoAbilityIntervalMs,
+  autoAdvanceDelayMs,
   AUTOCLICK_INTERVAL_MS,
   AUTOCLICK_INTERVAL_REDUCTION_MS,
   autoClickIntervalMs,
+  autoCrossoverReserve,
+  autoRankSlots,
+  autoRematchDelayMs,
   canPurchaseNodeLevel,
   CRIT_CHANCE,
   CURRENCY_GAIN_PERCENT,
@@ -2338,5 +2349,239 @@ describe("le simulateur de run", () => {
     expect(Date.now).toBe(before.now);
     expect(Math.random).toBe(before.random);
     expect("localStorage" in globalThis).toBe(before.storage);
+  });
+});
+
+describe("automatisation", () => {
+  /**
+   * Un monde à deux arcs, pour que « Relève » ait quelque part où aller : l'arc 2 ne s'ouvre qu'une
+   * fois l'arc 1 terminé, exactement comme dans le vrai contenu.
+   */
+  function automationData(opts: { bossHp?: number; bossTimerMs?: number } = {}) {
+    const common = { id: "aa-item", name: "Parchemin", kind: "common" as const };
+    // dropChance 0 : les copies d'objets ne tombent que par le save, pour que l'intendance dépense
+    // un stock connu plutôt qu'un stock au hasard.
+    const mob = (id: string): Enemy => ({ id, name: id, baseHp: 10, reward: 1, itemId: common.id, dropChance: 0 });
+    const passive = { target: "teamDps" as const, kind: "percent" as const, value: 0.1 };
+    return {
+      animes: [{ id: "aa", name: "AA", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "aa-arc",
+          animeId: "aa",
+          name: "Arc 1",
+          order: 0,
+          mobsToBoss: 1,
+          mobs: [
+            mob("aa-mob"),
+            { id: "aa-rec-1", name: "Rencontre 1", baseHp: 10, reward: 1, characterId: "cauto" },
+            { id: "aa-rec-2", name: "Rencontre 2", baseHp: 10, reward: 1, characterId: "cauto2" },
+          ],
+          boss: {
+            id: "aa-boss",
+            name: "Boss",
+            baseHp: opts.bossHp ?? 50,
+            reward: 5,
+            ...(opts.bossTimerMs ? { timerMs: opts.bossTimerMs } : {}),
+          },
+        },
+        {
+          id: "aa-arc-2",
+          animeId: "aa",
+          name: "Arc 2",
+          order: 1,
+          mobsToBoss: 1_000,
+          mobs: [mob("aa-mob-2")],
+          boss: { id: "aa-boss-2", name: "Boss 2", baseHp: 1_000_000, reward: 5 },
+        },
+      ],
+      characters: [
+        {
+          id: "cauto",
+          name: "Auto",
+          animeId: "aa",
+          rarity: "secondary" as const,
+          arcIds: ["aa-arc"],
+          baseClickPower: 1,
+          baseDps: 100,
+          passive,
+          ability: {
+            id: "ab-auto",
+            name: "Souffle",
+            cooldownMs: 30_000,
+            durationMs: 60_000,
+            effects: [{ target: "teamDps" as const, kind: "percent" as const, value: 0.5 }],
+          },
+        },
+        {
+          id: "cauto2",
+          name: "Auto 2",
+          animeId: "aa",
+          rarity: "secondary" as const,
+          arcIds: ["aa-arc"],
+          baseClickPower: 1,
+          baseDps: 0,
+          passive,
+        },
+      ],
+      combos: [],
+      items: [common],
+    };
+  }
+
+  const automationSave = (overrides: Record<string, unknown> = {}) =>
+    baseSave({
+      ownedCharacterIds: ["cauto", "cauto2"],
+      activeArcId: "aa-arc",
+      unlockedAnimeIds: ["aa"],
+      ...overrides,
+    });
+
+  /** Boots a store on that save under fake timers, runs `body`, then puts everything back. */
+  function withStore(
+    save: Record<string, unknown>,
+    body: (game: ReturnType<typeof createGameStore>) => void,
+    data = automationData()
+  ) {
+    const restore = installSave(save);
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      body(game);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  }
+
+  it("aucune cadence d'automatisation ne tombe à zéro au niveau max", () => {
+    const cadences: [string, (level: number) => number, number, number][] = [
+      ["Relève", autoAdvanceDelayMs, AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS],
+      ["Réflexe", autoAbilityIntervalMs, AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS],
+      ["Second souffle", autoRematchDelayMs, AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS],
+    ];
+    for (const [name, fn, base, reduction] of cadences) {
+      expect(fn(0), name).toBe(0); // nœud non acheté
+      expect(fn(1), name).toBe(base);
+      // Même piège que scaledChance : une réduction qui mangerait toute la base ferait tirer le
+      // nœud maxé à chaque tick.
+      expect(fn(LEVELS_PER_NODE), name).toBeGreaterThan(0);
+      expect(reduction * (LEVELS_PER_NODE - 1), name).toBeLessThan(base);
+    }
+  });
+
+  it("l'intendance ouvre une place par niveau, la réserve du crossover en libère une", () => {
+    expect(autoRankSlots(0)).toBe(0);
+    expect([1, 2, 3, 4, 5].map(autoRankSlots)).toEqual([1, 2, 3, 4, 5]);
+    // Niveau 1 : quatre activations gardées de côté ; niveau 5 : plus rien de bloqué.
+    expect(autoCrossoverReserve(1, 12)).toBe(48);
+    expect(autoCrossoverReserve(LEVELS_PER_NODE, 12)).toBe(0);
+  });
+
+  it("« Relève » enchaîne sur l'arc suivant après avoir terminé le sien, pas avant", () => {
+    withStore(automationSave({ prestigeTreeRanks: { automation: [1, 0, 0, 0, 0] } }), (game) => {
+      vi.advanceTimersByTime(2_000);
+      expect(game.arcCleared(game.data.arcs[0])).toBe(true);
+      // Le délai du nœud court encore : on reste sur place.
+      expect(game.activeArc()?.id).toBe("aa-arc");
+
+      vi.advanceTimersByTime(AUTO_ADVANCE_DELAY_MS);
+      expect(game.activeArc()?.id).toBe("aa-arc-2");
+    });
+  });
+
+  it("« Relève » ne déloge pas d'un arc déjà terminé où l'on est revenu farmer", () => {
+    // Le save arrive avec l'arc 1 déjà terminé : la relève s'arme sur le kill qui termine un arc,
+    // et il n'y en a plus ici — c'est ce qui protège la boucle de farm des objets communs.
+    withStore(
+      automationSave({ clearedArcIds: ["aa-arc"], prestigeTreeRanks: { automation: [5, 0, 0, 0, 0] } }),
+      (game) => {
+        vi.advanceTimersByTime(AUTO_ADVANCE_DELAY_MS * 3);
+        expect(game.activeArc()?.id).toBe("aa-arc");
+      }
+    );
+  });
+
+  it("une automatisation coupée reste achetée mais ne joue plus", () => {
+    withStore(
+      automationSave({
+        prestigeTreeRanks: { automation: [1, 0, 0, 0, 0] },
+        automationOff: { advance: true },
+      }),
+      (game) => {
+        expect(game.automationLevelOf("advance")).toBe(1); // le nœud est bien acheté
+        expect(game.automationEnabled("advance")).toBe(false);
+
+        vi.advanceTimersByTime(2_000 + AUTO_ADVANCE_DELAY_MS * 2);
+        expect(game.arcCleared(game.data.arcs[0])).toBe(true);
+        expect(game.activeArc()?.id).toBe("aa-arc"); // personne ne nous a déplacés
+
+        // Rebranchée, elle reprend au prochain arc terminé — pas rétroactivement sur celui-ci.
+        game.setAutomationEnabled("advance", true);
+        expect(game.automationEnabled("advance")).toBe(true);
+        vi.advanceTimersByTime(AUTO_ADVANCE_DELAY_MS * 2);
+        expect(game.activeArc()?.id).toBe("aa-arc");
+      }
+    );
+  });
+
+  it("« Réflexe » déclenche seul les capacités prêtes", () => {
+    const ranks = { automation: [1, 1, 0, 0, 0] };
+    withStore(automationSave({ prestigeTreeRanks: ranks }), (game) => {
+      expect(game.activeBuffs()).toEqual([]);
+      vi.advanceTimersByTime(AUTO_ABILITY_INTERVAL_MS);
+      expect(game.activeBuffs()).toContain("ab-auto");
+    });
+
+    // Coupé, rien ne part tout seul : la capacité reste au chaud.
+    withStore(automationSave({ prestigeTreeRanks: ranks, automationOff: { ability: true } }), (game) => {
+      vi.advanceTimersByTime(AUTO_ABILITY_INTERVAL_MS * 2);
+      expect(game.activeBuffs()).toEqual([]);
+    });
+  });
+
+  it("« Intendance » monte le passif des personnages confiés, dans la limite de ses places", () => {
+    const cost = passiveRankCost(1);
+    withStore(
+      automationSave({
+        prestigeTreeRanks: { automation: [1, 1, 1, 0, 0] },
+        itemCounts: { "aa-item": cost },
+        autoRankCharacterIds: ["cauto"],
+      }),
+      (game) => {
+        expect(game.autoRankCapacity()).toBe(1);
+        vi.advanceTimersByTime(1_000);
+        expect(game.passiveRankOf(game.data.characters[0])).toBe(1);
+        expect(game.countOf("aa-item")).toBe(0); // les copies ont bien été dépensées
+
+        // Une place, une seule : le deuxième personnage est refusé tant que la première est prise.
+        expect(game.toggleAutoRank("cauto2")).toBe(false);
+        expect(game.isAutoRanked("cauto2")).toBe(false);
+        expect(game.toggleAutoRank("cauto")).toBe(true); // rendu à la main
+        expect(game.toggleAutoRank("cauto2")).toBe(true);
+      }
+    );
+  });
+
+  it("« Second souffle » relance le boss après un échec au chrono", () => {
+    withStore(
+      automationSave({ prestigeTreeRanks: { automation: [1, 1, 1, 1, 0] } }),
+      (game) => {
+        const arc = game.data.arcs[0];
+        vi.advanceTimersByTime(2_000); // le mob tombe, le boss arrive, son chrono expire
+        expect(game.hasRetreatedFromBoss(arc)).toBe(true);
+        expect(game.enemy()?.id).not.toBe("aa-boss");
+
+        vi.advanceTimersByTime(AUTO_REMATCH_DELAY_MS);
+        expect(game.hasRetreatedFromBoss(arc)).toBe(false);
+        expect(game.enemy()?.id).toBe("aa-boss");
+      },
+      automationData({ bossHp: 10_000_000, bossTimerMs: 1_000 })
+    );
   });
 });

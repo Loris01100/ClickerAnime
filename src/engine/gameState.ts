@@ -46,7 +46,14 @@ import {
   ABILITY_DAMAGE_BOOST,
   ABILITY_DURATION_BOOST,
   AUSPICE_DOUBLE_DROP_CHANCE,
+  autoAbilityIntervalMs,
+  autoAdvanceDelayMs,
   autoClickIntervalMs,
+  autoCrossoverReserve,
+  type AutomationKey,
+  AUTOMATION_POSITIONS,
+  autoRankSlots,
+  autoRematchDelayMs,
   BOSS_TIMER_BOOST,
   BOSS_XP_BOOST,
   CLICK_COOLDOWN_REDUCTION_MS,
@@ -181,6 +188,14 @@ interface SaveFile {
   characterDuplicates?: Record<string, number>;
   /** whether the bought autoclicker runs; absent on an older save, defaults to on */
   autoClickEnabled?: boolean;
+  /**
+   * Automations the player has switched **off**, by `AutomationKey`. Stored as the off-set rather
+   * than the on-set so an absent entry — every save written before the branch existed — reads as
+   * "on", the same default the autoclicker gets.
+   */
+  automationOff?: Record<string, boolean>;
+  /** characters handed to the "Intendance" node; run-scoped like the roster, defaults to [] */
+  autoRankCharacterIds?: string[];
 }
 
 const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
@@ -226,6 +241,8 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.worldPoints, (v) => isRecordOf(v, isNumber)) &&
     opt(c.characterDuplicates, (v) => isRecordOf(v, isNumber)) &&
     opt(c.autoClickEnabled, (v) => typeof v === "boolean") &&
+    opt(c.automationOff, (v) => isRecordOf(v, (on) => typeof on === "boolean")) &&
+    opt(c.autoRankCharacterIds, isStringArray) &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
     opt(c.prestigeTreeRanks, (v) =>
       isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
@@ -298,6 +315,27 @@ export function createGameStore(data: GameData) {
   const autoClickLevel = () => nodeLevelOf("narratorClick", 2);
   /** Milliseconds between two automatic clicks at the level currently bought; 0 when unbought. */
   const autoClickInterval = () => autoClickIntervalMs(autoClickLevel());
+  /**
+   * The "Automatisation" branch's five switches, keyed by `AutomationKey` and holding the ones
+   * turned **off** — see `SaveFile.automationOff`. Every one of them automates something already
+   * reachable by hand, so switching one off is a real choice, not a downgrade: "Relève" would drag
+   * a player out of the cleared arc they came back to farm the common of.
+   */
+  const [automationOff, setAutomationOff] = createSignal<Record<string, boolean>>(saved?.automationOff ?? {});
+  /** Characters the "Intendance" node ranks up on its own. Run-scoped: the roster goes on prestige. */
+  const [autoRankCharacterIds, setAutoRankCharacterIds] = createSignal<string[]>(
+    saved?.autoRankCharacterIds ?? []
+  );
+  /**
+   * When "Relève" walks on to the next arc, and when "Second souffle" asks for the rematch — both
+   * armed by the event that makes them possible (the kill that clears the arc, the boss timing out)
+   * rather than derived from the state, so neither can fire on an arc the player *chose* to return
+   * to. Transient, and cleared by any manual arc change.
+   */
+  const [autoAdvanceAt, setAutoAdvanceAt] = createSignal<number | null>(null);
+  const [autoRematchAt, setAutoRematchAt] = createSignal<number | null>(null);
+  /** Sub-tick accumulator for the "Réflexe" node, like `autoClickAccumMs`. Transient. */
+  const [autoAbilityAccumMs, setAutoAbilityAccumMs] = createSignal(0);
   // Kills `dealDamage` may still resolve, refilled by the tick at MAX_KILLS_PER_SECOND and capped
   // there so an idle stretch banks no burst. Transient like the rest of combat state.
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
@@ -367,6 +405,23 @@ export function createGameStore(data: GameData) {
   /** What the next level of a specific node costs, or null if it's locked or already maxed. */
   const nodeCostOf = (categoryId: string, position: number) =>
     nodeCost(nodeLevels(prestigeTreeRanks(), categoryId), position);
+
+  // --- automation: one node of the "Automatisation" branch behind each switch ---
+
+  /** Level of the node behind one automation — 0 means unbought, and the UI hides its switch. */
+  const automationLevelOf = (key: AutomationKey) => nodeLevelOf("automation", AUTOMATION_POSITIONS[key]);
+  /** The player's switch alone, ignoring whether the node is bought — what the toggle renders. */
+  const automationEnabled = (key: AutomationKey) => !automationOff()[key];
+  /** Bought *and* switched on: the single condition every automation below is gated behind. */
+  const automationRuns = (key: AutomationKey) => automationLevelOf(key) > 0 && automationEnabled(key);
+  function setAutomationEnabled(key: AutomationKey, on: boolean) {
+    setAutomationOff((off) => ({ ...off, [key]: !on }));
+  }
+  const autoAdvanceDelay = () => autoAdvanceDelayMs(automationLevelOf("advance"));
+  const autoAbilityInterval = () => autoAbilityIntervalMs(automationLevelOf("ability"));
+  const autoRematchDelay = () => autoRematchDelayMs(automationLevelOf("rematch"));
+  /** How many characters the intendance may look after right now — one slot per level of its node. */
+  const autoRankCapacity = () => autoRankSlots(automationLevelOf("rank"));
 
   const effectiveXpGrowth = createMemo(() => {
     const level = nodeLevelOf("xp", 3);
@@ -721,6 +776,7 @@ export function createGameStore(data: GameData) {
         setClearedArcIds((ids) => [...ids, arc.id]);
         bumpAchievement("arcsCleared");
         pushNotice("arc", `${arc.name} terminé`);
+        armAutoAdvance();
       }
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
       bumpAchievement("bossesKilled");
@@ -888,6 +944,7 @@ export function createGameStore(data: GameData) {
     const target = enemy();
     if (arc && target && target.id === arc.boss.id) {
       setBossRetreatArcIds((ids) => (ids.includes(arc.id) ? ids : [...ids, arc.id]));
+      armAutoRematch();
     }
     setLastTimeout(nowMs);
     spawnNext();
@@ -1072,9 +1129,53 @@ export function createGameStore(data: GameData) {
     if (!arc || !prestige().unlockedAnimeIds.includes(arc.animeId)) return false;
     if (!arcOpen(arc)) return false;
     setActiveArcId(arcId);
+    // Both pending automations belonged to the arc being left: a "Relève" armed on the arc just
+    // cleared must not yank the player out of the zone they deliberately walked into instead.
+    cancelPendingAutomation();
     spawnNext();
     return true;
   }
+
+  /** Drops whatever "Relève" or "Second souffle" had queued — any manual move outranks them. */
+  function cancelPendingAutomation() {
+    setAutoAdvanceAt(null);
+    setAutoRematchAt(null);
+  }
+
+  /**
+   * Arms "Relève". Called from the kill that *clears* an arc — the one moment it can fire, which is
+   * what keeps it off a cleared arc the player came back to farm (`defeat` only calls it on the
+   * first clear, and returning here later never re-arms it).
+   */
+  function armAutoAdvance() {
+    if (!automationRuns("advance")) return;
+    setAutoAdvanceAt(Date.now() + autoAdvanceDelay());
+  }
+
+  /** Arms "Second souffle", from the boss timeout that just sent the team packing. */
+  function armAutoRematch() {
+    if (!automationRuns("rematch")) return;
+    setAutoRematchAt(Date.now() + autoRematchDelay());
+  }
+
+  /**
+   * Hands a character's passive to the intendance, or takes it back. Refuses a character over
+   * capacity rather than accepting one the node would silently never get to — and refuses one whose
+   * passive can't be ranked at all (`rankUpPassive`'s own two rules), so a slot is never wasted.
+   */
+  function toggleAutoRank(characterId: string): boolean {
+    if (autoRankCharacterIds().includes(characterId)) {
+      setAutoRankCharacterIds((ids) => ids.filter((id) => id !== characterId));
+      return true;
+    }
+    if (autoRankCharacterIds().length >= autoRankCapacity()) return false;
+    const character = data.characters.find((c) => c.id === characterId);
+    if (!character?.passive || !ownedCharacterIds().includes(characterId)) return false;
+    setAutoRankCharacterIds((ids) => [...ids, characterId]);
+    return true;
+  }
+
+  const isAutoRanked = (characterId: string) => autoRankCharacterIds().includes(characterId);
 
   /** True once a rematch against this arc's boss is on offer: the player retreated from it before. */
   const bossChallengeable = (arc: Arc) => !arcCleared(arc) && hasRetreatedFromBoss(arc);
@@ -1106,6 +1207,7 @@ export function createGameStore(data: GameData) {
     if (!canTravel()) return false;
     setPrestige((p) => ({ ...p, unlockedAnimeIds: [...p.unlockedAnimeIds, animeId] }));
     setActiveArcId(arcsOf(animeId)[0]?.id ?? null);
+    cancelPendingAutomation();
     spawnNext();
     return true;
   }
@@ -1120,6 +1222,7 @@ export function createGameStore(data: GameData) {
     // Same landing as `travelTo`: paying to enter a world puts the player *in* it, rather than
     // leaving them in the old arc wondering what the points bought.
     setActiveArcId(arcsOf(animeId)[0]?.id ?? null);
+    cancelPendingAutomation();
     spawnNext();
     return true;
   }
@@ -1249,6 +1352,11 @@ export function createGameStore(data: GameData) {
     setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
+    // The intendance's list names characters the run no longer has; the switches themselves are a
+    // preference, not progress, so they stay — like `autoClickEnabled`.
+    setAutoRankCharacterIds([]);
+    setAutoAbilityAccumMs(0);
+    cancelPendingAutomation();
     setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
@@ -1277,6 +1385,8 @@ export function createGameStore(data: GameData) {
       worldPoints: worldPoints(),
       characterDuplicates: characterDuplicates(),
       autoClickEnabled: autoClickEnabled(),
+      automationOff: automationOff(),
+      autoRankCharacterIds: autoRankCharacterIds(),
     };
   }
 
@@ -1329,6 +1439,10 @@ export function createGameStore(data: GameData) {
     setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
+    setAutoRankCharacterIds([]);
+    setAutoAbilityAccumMs(0);
+    setAutomationOff({});
+    cancelPendingAutomation();
     setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
@@ -1380,6 +1494,64 @@ export function createGameStore(data: GameData) {
       } else {
         setAutoClickAccumMs(accumMs);
       }
+    }
+
+    // --- "Automatisation": each node plays a move the player could have played by hand ---
+    // None of them grants anything on its own; every reward still comes from the kill it leads to,
+    // which is what keeps the branch out of the balance.
+    const advanceAt = autoAdvanceAt();
+    if (advanceAt !== null && nowMs >= advanceAt) {
+      setAutoAdvanceAt(null);
+      // `stepArc` walks `playableArcs`; at the end of a world there is nothing to step to, and the
+      // next world stays the player's call — it costs prestige points, or the run itself.
+      if (automationRuns("advance") && stepArc(1)) {
+        pushNotice("arc", `Relève : direction ${activeArc()?.name ?? "?"}`);
+      }
+    }
+
+    const rematchAt = autoRematchAt();
+    if (rematchAt !== null && nowMs >= rematchAt) {
+      setAutoRematchAt(null);
+      if (automationRuns("rematch") && challengeBoss()) {
+        pushNotice("arc", "Second souffle : nouvel assaut sur le boss");
+      }
+    }
+
+    if (automationRuns("ability")) {
+      // Same shape as the autoclicker: levels buy how *soon* a ready ability goes off, never what
+      // it is worth. Silent on purpose — the buff bar already shows what is running, and a notice
+      // per ability would bury every other one.
+      const interval = autoAbilityInterval();
+      const accumMs = autoAbilityAccumMs() + deltaMs;
+      if (accumMs >= interval) {
+        activateReadyAbilities();
+        setAutoAbilityAccumMs(accumMs % interval);
+      } else {
+        setAutoAbilityAccumMs(accumMs);
+      }
+    }
+
+    if (automationRuns("rank")) {
+      // One rank per character per tick — a trickle rather than a burst, and no unbounded loop on a
+      // deep stack of copies. `rankUpPassive` re-checks affordability, ownership and the cap, so a
+      // character who can't be ranked right now is simply skipped.
+      for (const id of autoRankCharacterIds().slice(0, autoRankCapacity())) {
+        const character = data.characters.find((c) => c.id === id);
+        if (character) rankUpPassive(character);
+      }
+    }
+
+    const autoCrossoverLevel = automationLevelOf("crossover");
+    if (
+      autoCrossoverLevel > 0 &&
+      automationEnabled("crossover") &&
+      crossoverAdvised() &&
+      crossoverCrystals() >= CROSSOVER_COST + autoCrossoverReserve(autoCrossoverLevel, CROSSOVER_COST)
+    ) {
+      // `crossoverAdvised` is the same "would this actually pay right now?" test the HUD hint uses:
+      // someone in the team is at the steep other-anime malus. The reserve above is what stops the
+      // node from spending a stock the player was saving for a window of their own.
+      if (activateCrossover()) pushNotice("arc", "Instinct de crossover : fenêtre ouverte");
     }
 
     const xpTrickleLevel = nodeLevelOf("xp", 2);
@@ -1473,6 +1645,17 @@ export function createGameStore(data: GameData) {
     setAutoClickEnabled,
     autoClickLevel,
     autoClickInterval,
+    // automation
+    automationLevelOf,
+    automationEnabled,
+    setAutomationEnabled,
+    autoAdvanceDelay,
+    autoAbilityInterval,
+    autoRematchDelay,
+    autoRankCapacity,
+    autoRankCharacterIds,
+    isAutoRanked,
+    toggleAutoRank,
     enemy,
     enemyHpLeft,
     enemyMaxHp,

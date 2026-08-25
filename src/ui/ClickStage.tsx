@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createResource, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { bannerUrl } from "./anilist";
+import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
@@ -155,6 +156,8 @@ export default function ClickStage(props: { game: GameStore }) {
           {neighbour(1)?.name ?? "—"} <IconChevronRight />
         </button>
       </div>
+
+      <AutomationBar game={props.game} />
 
       <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour combattre.</div>}>
         {(current) => (

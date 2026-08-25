@@ -1,7 +1,7 @@
 import type { ActiveModifier, SynergyConfig } from "./types";
 
-/** Five independent chains the prestige points feed. */
-export type PrestigeTreeCategoryId = "narratorClick" | "teamDps" | "xp" | "items" | "destin";
+/** Six independent chains the prestige points feed. */
+export type PrestigeTreeCategoryId = "narratorClick" | "teamDps" | "xp" | "items" | "destin" | "automation";
 
 export interface PrestigeTreeNode {
   /** 1-indexed position of this node within its branch's chain */
@@ -44,9 +44,20 @@ export const NARRATOR_CLICK_PERCENT = 0.08;
 export const AUTOCLICK_INTERVAL_MS = 2_000;
 export const AUTOCLICK_INTERVAL_REDUCTION_MS = 300;
 
+/**
+ * The curve every "it happens by itself, this often" node shares: `baseMs` at level 1, shortened by
+ * `reductionMs` per level above, 0 when the node isn't bought at all. Same class of trap as
+ * `scaledChance`: a reduction big enough to eat the whole base would make a maxed node fire at 0ms
+ * — i.e. every tick — so `reductionMs * (LEVELS_PER_NODE - 1)` must stay under `baseMs`, which
+ * `engine.test.ts` asserts for every pair below.
+ */
+function cadenceMs(baseMs: number, reductionMs: number, level: number): number {
+  return level <= 0 ? 0 : baseMs - reductionMs * (level - 1);
+}
+
 /** Milliseconds between two automatic clicks at this node level; 0 when the node isn't bought. */
 export function autoClickIntervalMs(level: number): number {
-  return level <= 0 ? 0 : AUTOCLICK_INTERVAL_MS - AUTOCLICK_INTERVAL_REDUCTION_MS * (level - 1);
+  return cadenceMs(AUTOCLICK_INTERVAL_MS, AUTOCLICK_INTERVAL_REDUCTION_MS, level);
 }
 export const CRIT_CHANCE = 0.15;
 export const CRIT_MULTIPLIER = 3;
@@ -90,6 +101,65 @@ export const AUSPICE_DOUBLE_DROP_CHANCE = 0.05;
 export const SHOP_COST_DISCOUNT = 0.06;
 /** Under 1/5 like every chance constant: 0.2 made a maxed node double *every* prestige. */
 export const DOUBLE_PRESTIGE_CHANCE = 0.1;
+
+// --- "Automatisation": the branch that plays the parts of the loop that aren't decisions ---
+//
+// Every node here automates something the player can already do by hand, and **only** that: not one
+// of them grants damage, currency or xp, so the branch moves no balance constant. What its levels
+// buy is either *cadence* (how long the game waits before doing it for you, like the autoclicker's)
+// or *scope* (how many characters the intendance looks after) — never strength.
+
+export const AUTO_ADVANCE_DELAY_MS = 10_000;
+export const AUTO_ADVANCE_REDUCTION_MS = 2_000;
+export const AUTO_ABILITY_INTERVAL_MS = 10_000;
+export const AUTO_ABILITY_REDUCTION_MS = 2_000;
+export const AUTO_REMATCH_DELAY_MS = 15_000;
+export const AUTO_REMATCH_REDUCTION_MS = 3_000;
+/** Characters the intendance can look after per level — one more passive ranked for you each time. */
+export const AUTO_RANK_SLOTS_PER_LEVEL = 1;
+
+/** How long after clearing an arc the team walks on to the next one; 0 when the node isn't bought. */
+export function autoAdvanceDelayMs(level: number): number {
+  return cadenceMs(AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS, level);
+}
+
+/** How often ready abilities are fired for the player; 0 when the node isn't bought. */
+export function autoAbilityIntervalMs(level: number): number {
+  return cadenceMs(AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS, level);
+}
+
+/** How long after a boss timeout the rematch is asked for; 0 when the node isn't bought. */
+export function autoRematchDelayMs(level: number): number {
+  return cadenceMs(AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS, level);
+}
+
+/** How many characters may be handed to the intendance at once; 0 when the node isn't bought. */
+export function autoRankSlots(level: number): number {
+  return Math.max(0, level) * AUTO_RANK_SLOTS_PER_LEVEL;
+}
+
+/**
+ * Crystals the automatic crossover refuses to dip into, so a bought-and-forgotten node can't drain
+ * a stock the player was saving for a deliberate window. Level 1 holds back four activations' worth
+ * and each level frees one, down to nothing at level 5 — the reserve *is* this node's level effect.
+ */
+export function autoCrossoverReserve(level: number, cost: number): number {
+  return Math.max(0, LEVELS_PER_NODE - level) * cost;
+}
+
+/** The five automations, each reading the level of its own node in the "Automatisation" branch. */
+export type AutomationKey = "advance" | "ability" | "rank" | "rematch" | "crossover";
+
+/** Position of each automation's node — the toggles and the tick read the same level as the tree. */
+export const AUTOMATION_POSITIONS: Record<AutomationKey, number> = {
+  advance: 1,
+  ability: 2,
+  rank: 3,
+  rematch: 4,
+  crossover: 5,
+};
+
+export const AUTOMATION_KEYS = Object.keys(AUTOMATION_POSITIONS) as AutomationKey[];
 
 /** Shared by every chance-based effect so `base * level` can never exceed certainty. */
 export function scaledChance(base: number, level: number): number {
@@ -264,6 +334,47 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
         position: 5,
         label: "Faveur du destin",
         description: `+${pct(DOUBLE_PRESTIGE_CHANCE)} de chance de doubler les points de prestige gagnés à la réinitialisation`,
+      },
+    ],
+  },
+  {
+    id: "automation",
+    label: "Automatisation",
+    nodes: [
+      {
+        position: 1,
+        label: "Relève",
+        description:
+          `L'équipe enchaîne sur l'arc suivant ${secs(AUTO_ADVANCE_DELAY_MS)} après avoir terminé le sien — ` +
+          `${secs(AUTO_ADVANCE_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoAdvanceDelayMs(LEVELS_PER_NODE))}`,
+      },
+      {
+        position: 2,
+        label: "Réflexe",
+        description:
+          `Déclenche seul les capacités prêtes, toutes les ${secs(AUTO_ABILITY_INTERVAL_MS)} — ` +
+          `${secs(AUTO_ABILITY_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoAbilityIntervalMs(LEVELS_PER_NODE))}`,
+      },
+      {
+        position: 3,
+        label: "Intendance",
+        description:
+          `Monte tout seul le passif d'un personnage confié à l'intendance — ` +
+          `+${AUTO_RANK_SLOTS_PER_LEVEL} personnage par niveau, jusqu'à ${autoRankSlots(LEVELS_PER_NODE)}`,
+      },
+      {
+        position: 4,
+        label: "Second souffle",
+        description:
+          `Relance le boss ${secs(AUTO_REMATCH_DELAY_MS)} après un échec au chrono — ` +
+          `${secs(AUTO_REMATCH_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoRematchDelayMs(LEVELS_PER_NODE))}`,
+      },
+      {
+        position: 5,
+        label: "Instinct de crossover",
+        description:
+          `Active un crossover dès qu'il est conseillé, en gardant ${LEVELS_PER_NODE - 1} activations ` +
+          `de réserve — 1 de moins par niveau, jusqu'à 0`,
       },
     ],
   },

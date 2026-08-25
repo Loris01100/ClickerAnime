@@ -77,6 +77,13 @@ These outrank convenience, and several were learned the hard way. Don't break on
   it, and re-run `npm run sim` whenever it or either compensation (`scopedMagnitude`,
   `dutyMagnitude`) changes.
 - A `ModifierTemplate` carries **no id of its own**. Don't reintroduce a per-effect `id`.
+- **The "Automatisation" branch automates, it never grants.** Every one of its nodes plays a move
+  the player could play by hand — walk to the next arc, fire a ready ability, buy a passive rank,
+  re-challenge a boss, open a crossover window — and not one of them hands out damage, currency or
+  xp. That is what keeps it out of the balance: the rewards still come from the kills it leads to,
+  under the same `MAX_KILLS_PER_SECOND` cap. Its levels buy **cadence or scope, never strength**.
+  An automation that granted anything would have to be re-simulated; these don't (`npm run sim` is
+  unchanged by the whole branch).
 - **A chance node must still be a chance at level 5.** `scaledChance` clamps at 1; a base at or
   above 1/5 silently becomes a guarantee. `engine.test.ts` guards every chance constant.
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
@@ -118,7 +125,7 @@ One file per area under `docs/`. Each carries the full rationale and the tuning 
 |---|---|---|
 | Combat | `docs/combat.md` | The arc loop, overkill carry-over, `MAX_KILLS_PER_SECOND`, boss timers, how steep a world's hp table has to be, the narrator's click |
 | Progression | `docs/progression.md` | Levels and xp, world/arc unlocking and tiers, synergy, evolutions |
-| Economy | `docs/economy.md` | Items and passive ranks, prestige, the 25-node prestige tree, crossover crystals, packs and duplicates, achievements, the shop |
+| Economy | `docs/economy.md` | Items and passive ranks, prestige, the 30-node prestige tree (automation included), crossover crystals, packs and duplicates, achievements, the shop |
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
 | UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |

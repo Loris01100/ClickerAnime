@@ -1,7 +1,7 @@
 import { For, Show, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { LEVELS_PER_BRANCH, LEVELS_PER_NODE, PRESTIGE_TREE_CATEGORIES, type PrestigeTreeCategoryId } from "../engine/prestigeTree";
-import { IconBolt, IconBook, IconBookmark, IconCursor, IconDestiny, IconLock, IconStar } from "./icons";
+import { IconBolt, IconBook, IconBookmark, IconCursor, IconDestiny, IconGear, IconLock, IconStar } from "./icons";
 
 const BRANCH_ICON: Record<PrestigeTreeCategoryId, typeof IconStar> = {
   narratorClick: IconCursor,
@@ -9,6 +9,7 @@ const BRANCH_ICON: Record<PrestigeTreeCategoryId, typeof IconStar> = {
   xp: IconBook,
   items: IconBookmark,
   destin: IconDestiny,
+  automation: IconGear,
 };
 
 /** Existing theme tokens only — the tree is a meta system, its tints borrow from the functional palette. */
@@ -18,12 +19,13 @@ const BRANCH_TINT: Record<PrestigeTreeCategoryId, string> = {
   xp: "var(--gold)",
   items: "var(--blue)",
   destin: "var(--good)",
+  automation: "var(--boss)",
 };
 
 const nodeY = (index: number) => ((index + 0.5) / LEVELS_PER_NODE) * 100;
 
 /**
- * Five independent chains, one column per branch — see design.md §5. Each of the 5 nodes holds up
+ * Six independent chains, one column per branch — see design.md §5. Each of the 5 nodes holds up
  * to 5 levels of the same repeating effect (`nodeLevelOf`); a node unlocks as soon as its
  * predecessor has just one level bought (`isNodeUnlockedFor`), not once it's maxed, so several
  * nodes of a branch are often purchasable — and levelling — at the same time.
@@ -60,7 +62,7 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
 
           <p class="muted small">
             Chaque arc terminé rapporte 1 point de prestige, en plus du gain versé à la
-            réinitialisation. Cinq branches indépendantes ; un seul niveau dans un nœud suffit à
+            réinitialisation. Six branches indépendantes ; un seul niveau dans un nœud suffit à
             débloquer le suivant, et chaque nœud se rachète jusqu'à 5 fois pour le même effet à
             chaque niveau. La progression de l'arbre est permanente, elle survit à la
             réinitialisation.

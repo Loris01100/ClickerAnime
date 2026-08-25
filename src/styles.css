@@ -939,6 +939,20 @@ small {
   padding: 0.1rem 0.4rem;
   font-variant-numeric: tabular-nums;
 }
+/* Confie ce passif à l'intendance (nœud « Intendance ») : allumé = pris en charge tout seul. */
+.auto-rank {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.3rem;
+  margin-left: auto;
+  opacity: 0.5;
+}
+.auto-rank.on {
+  border-color: var(--boss);
+  color: var(--boss);
+  opacity: 1;
+}
 
 /* --- unique equipment slot on each character row --- */
 .equip-row {
@@ -1693,6 +1707,32 @@ button.danger {
 }
 
 /* Interrupteur de l'auto-clic, dans le panel-head du Combat. */
+/*
+ * La bande d'automatisation, sous le sélecteur d'arc : une puce par automatisation *achetée*
+ * (branche « Automatisation » de l'arbre), donc une bande qui n'existe pas tant que rien n'est
+ * acheté. Elle défile horizontalement plutôt que de repousser le combat vers le bas.
+ */
+.auto-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.auto-strip-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.auto-strip .auto-toggle {
+  margin-left: 0;
+  white-space: nowrap;
+}
+
 .auto-toggle {
   display: inline-flex;
   align-items: center;

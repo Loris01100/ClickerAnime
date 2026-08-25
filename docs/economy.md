@@ -76,16 +76,18 @@ is permanent.
 
 ## The prestige tree (`prestigeTree.ts`)
 
-Five independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Destin — each a column of
-5 nodes, and **each node is rebuyable up to 5 levels**, every level repeating the exact same effect
+Six independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Destin, Automatisation —
+each a column of 5 nodes, and **each node is rebuyable up to 5 levels**, every level repeating the exact same effect
 (e.g. node 1's "+8% click damage" stacks to +40% at level 5). A node unlocks as soon as its
 predecessor has **just one level** bought (`isNodeUnlocked`), not once it's maxed — so several
 nodes of a branch are often purchasable, and levelling, at the same time; only a node's own 5
 levels are strictly sequential (`purchaseNodeLevel` refuses to skip one). Every level, of every
 node, costs `2, 3, 5, 8, 13` prestige points depending only on its position *within its node*
 (~×1.6 growth, the same ratio as `passiveRankCost` but reset at the start of each node rather than
-escalating across the whole branch) — a maxed node costs 31 points, a maxed branch 155, all five
-775.
+escalating across the whole branch) — a maxed node costs 31 points, a maxed branch 155, all six
+**930** (it was 775 before "Automatisation" landed). The extra 155 is a sink, not a payout: nothing
+in that branch multiplies anything, so it changes what points are *spent on*, never what a run
+earns — `PRESTIGE_EXPONENT` and its arithmetic above are untouched.
 
 `gameState` keeps one 5-entry level array per branch in `prestigeTreeRanks`
 (`Record<categoryId, number[]>`, index = position - 1) — a signal of its own, not a field on
@@ -97,7 +99,7 @@ wrapper over it, `isNodeUnlockedFor`/`nodeCostOf` the equivalents for a node's u
 next-level price. `prestigeTreeRanks` survives `prestigeReset` exactly like `achievementCounts`
 does, wiped only by `hardReset`.
 
-Only two of the 25 nodes are `ActiveModifier`s: node 1 of Clic du Narrateur and of DPS Équipe, a
+Only two of the 30 nodes are `ActiveModifier`s: node 1 of Clic du Narrateur and of DPS Équipe, a
 flat `clickPower`/`teamDps` percent multiplied by the node's level, folded into `allModifiers` via
 `prestigeTreeContributions` next to `achievementContributions`. Every other node is read directly
 at its point of use, its magnitude scaled by `nodeLevelOf(...)` — `ModifierTarget` was deliberately
@@ -145,6 +147,35 @@ can never stop being geometric:
   outright (node 2); a chance at a bonus copy of a common drop (node 3); a shop discount (node 4);
   a chance to double the points a `prestigeReset` banks, rolled in `gameState` and passed as
   `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays free of randomness (node 5).
+- **Automatisation** — the branch that plays the parts of the loop that aren't decisions, and
+  **only** those: see the invariant in `CLAUDE.md`. "Relève" walks the team to the next arc once it
+  clears the one it's in (node 1); "Réflexe" fires every ability that is off cooldown, exactly what
+  `activateReadyAbilities` already does from the roster's button (node 2); "Intendance" buys passive
+  ranks for the characters the player hands it (node 3); "Second souffle" asks for the boss rematch
+  after a timeout, through `challengeBoss` (node 4); "Instinct de crossover" opens a window as soon
+  as `crossoverAdvised` says one would pay (node 5).
+
+  Three things make the branch behave:
+
+  - **Levels buy cadence or scope.** `autoAdvanceDelayMs`, `autoAbilityIntervalMs` and
+    `autoRematchDelayMs` all share `cadenceMs(base, reduction, level)` with the autoclicker — the
+    same trap applies, a reduction that ate the whole base would make a maxed node fire *every
+    tick*, so `reduction * (LEVELS_PER_NODE - 1)` must stay under `base` and `engine.test.ts`
+    asserts it for all of them, the way it asserts `scaledChance` for every chance constant.
+    "Intendance" scales by scope instead (`autoRankSlots`: one character per level), and "Instinct
+    de crossover" by how much of the crystal stock it refuses to touch (`autoCrossoverReserve`:
+    four activations held back at level 1, none at level 5).
+  - **The two timed ones are armed by an event, never derived from state.** "Relève" is armed by
+    the kill that *clears* an arc and "Second souffle" by the boss timing out; both are cleared by
+    any manual arc change (`cancelPendingAutomation`). Deriving "Relève" from "this arc is cleared"
+    instead would have dragged the player straight back out of a cleared arc they deliberately
+    returned to — which is exactly the common-farming loop the passive-item design asks for.
+  - **Each one has its own off switch**, saved in `automationOff` (the *off* set, so an absent
+    entry — every older save — reads as on). Switching one off is a real choice, not a downgrade,
+    and the UI only offers the switch for a node actually bought, like the autoclicker's.
+
+  `autoRankCharacterIds` is the one piece of automation state that is run-scoped: it names
+  characters, so `prestigeReset` empties it while the switches, a preference, survive.
 
 Prestige points are **only** banked by `prestigeReset` (plus the "Destin" node 2 chance, itself
 bought with points): clearing an arc grants none, so a player has zero points until their first
@@ -154,7 +185,7 @@ prestige.
 `icon()` helper in `ui/icons.tsx` needed a fix while building it: `body` must be a factory
 (`() => JSX.Element`), not a materialized JSX value — Solid's JSX makes real DOM nodes, so a value
 evaluated once at module load is one shared node that only the last simultaneous on-screen instance
-keeps (25 nodes reusing 5 icons made this obvious, but any icon rendered more than once at a time,
+keeps (30 nodes reusing 6 icons made this obvious, but any icon rendered more than once at a time,
 e.g. `IconLock` on several locked map nodes, was equally affected).
 
 ## Crossover crystals (`crossover.ts`)

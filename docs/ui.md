@@ -60,6 +60,17 @@ enough to matter), `runQuery`, the `inFlight` dedupe and the same `localStorage`
 all, so `ClickStage` renders the element only when the URL exists and otherwise falls through to the
 plain `--stage-bg` gradient.
 
+`AutomationBar.tsx` is the strip of switches under `ClickStage`'s arc stepper, one per node of the
+prestige tree's "Automatisation" branch that is actually **bought** — an off switch for something
+you don't own is noise, the same rule the autoclicker's toggle in the Combat panel head follows.
+Each chip reads its label straight out of `PRESTIGE_TREE_CATEGORIES` so a switch and its tree node
+can't drift apart, and its tooltip states what the automation is doing *at the level bought right
+now* (`autoAdvanceDelay()`, `autoAbilityInterval()`, …) rather than repeating the node's generic
+per-level wording. The one automation that needs more than a switch is "Intendance", which has to
+know *whose* passive to rank: `RosterPanel` grows an `.auto-rank` cog next to each character's
+rank-up button, and `toggleAutoRank` refuses past `autoRankCapacity()` (one slot per node level)
+rather than accepting a character it would silently never get to.
+
 `ui/Sprite.tsx` wraps portraits in a `createResource` keyed on `kind:name`; its `SCALE` constant
 multiplies every call site's `px`, so the whole game's portraits are resized from one number; `<Show>` renders the
 resolved `<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or

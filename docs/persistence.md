@@ -20,3 +20,10 @@ same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.t
 `importSave` decodes and shape-checks it exactly like `readSave`, then writes straight to
 `localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
 a setter per field. There is no offline-progress catch-up.
+
+Two optional fields carry the prestige tree's "Automatisation" branch, and neither needed a key
+bump. `automationOff` holds the automations the player switched **off**, keyed by `AutomationKey` —
+the off-set rather than the on-set precisely so an absent entry, which is every save written before
+the branch existed, reads as "on" like the autoclicker's `autoClickEnabled`. `autoRankCharacterIds`
+holds the characters handed to "Intendance"; it names characters, so `prestigeReset` empties it
+along with the roster while the switches, being a preference rather than progress, survive.

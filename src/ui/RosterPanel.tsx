@@ -5,7 +5,7 @@ import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { describeAbility, describeItem } from "./describe";
 import { fmt, seconds } from "./format";
-import { IconBookmark, IconStar, IconStarOutline, IconTrophy } from "./icons";
+import { IconBookmark, IconGear, IconStar, IconStarOutline, IconTrophy } from "./icons";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
 
@@ -218,6 +218,22 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                       <small classList={{ muted: !passive().maxed, capped: passive().maxed }}>
                         Passif {passive().rank}/{props.game.passiveCapOf(character)}
                       </small>
+                      {/* Only once "Intendance" is bought: a slot the tree hasn't opened is noise. */}
+                      <Show when={props.game.autoRankCapacity() > 0 && !passive().maxed}>
+                        <button
+                          class="auto-rank"
+                          classList={{ on: props.game.isAutoRanked(character.id) }}
+                          aria-pressed={props.game.isAutoRanked(character.id)}
+                          title={
+                            props.game.isAutoRanked(character.id)
+                              ? "Passif confié à l'intendance — cliquez pour le reprendre en main."
+                              : `Confier ce passif à l'intendance (${props.game.autoRankCharacterIds().length}/${props.game.autoRankCapacity()} places).`
+                          }
+                          onClick={() => props.game.toggleAutoRank(character.id)}
+                        >
+                          <IconGear />
+                        </button>
+                      </Show>
                       <Show
                         when={!passive().maxed}
                         fallback={

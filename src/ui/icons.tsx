@@ -132,6 +132,14 @@ export const IconSparkle = icon("0 0 24 24", () => (
   <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" fill="currentColor" />
 ));
 
+/** Automatisation — a cog: the branch and every switch it unlocks share this glyph. */
+export const IconGear = icon("0 0 24 24", () => (
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M12 2.6l1.7 2.3 2.8-.6.5 2.8 2.6 1.2-1.3 2.5 1.3 2.5-2.6 1.2-.5 2.8-2.8-.6L12 21.4l-1.7-2.3-2.8.6-.5-2.8-2.6-1.2 1.3-2.5-1.3-2.5 2.6-1.2.5-2.8 2.8.6z" />
+  </g>
+));
+
 /** Rarity — filled for "main" (pairs with the existing filled IconStar), outline for "secondary". */
 export const IconStarOutline = icon("0 0 24 24", () => (
   <path
