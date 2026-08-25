@@ -93,7 +93,37 @@ const CHARACTER_ANIME_OVERRIDES: Record<string, string> = {
 // and never cached in `localStorage` — swapping the file out is enough to change the art.
 // Everything not listed falls through to AniList and then to `Sprite`'s silhouette.
 export const LOCAL_PORTRAITS: Record<string, string> = {
-  // "Garde de Kiri": "/portraits/garde-de-kiri.png",
+  "Garde de Kiri": "/portraits/garde-de-kiri.webp",
+  "Ninja de Suna sous contrôle": "/portraits/ninja-de-suna-sous-controle.jpg",
+  "Serpent gardien": "/portraits/serpent-gardien.webp",
+  "Garde du repaire du Nord": "/portraits/garde-du-repaire-nord.jpg",
+  "Masque à cœur": "/portraits/masque-a-coeur.jpg",
+  "Moine du Temple du Feu corrompu": "/portraits/moine-du-temple-du-feu-corrompu.webp",
+  "Éclaireur de l'Akatsuki": "/portraits/eclaireur-de-l-akatsuki.webp",
+  "Prison d'eau": "/portraits/prison-d-eau.webp",
+  "Déserteur recruté par Taka": "/portraits/deserteur-recrute-par-taka.webp",
+  "Voie de l'Animal — invocation": "/portraits/voie-de-l-animal.webp",
+  "Sentinelle de la pluie": "/portraits/sentinelle-de-la-pluie.webp",
+  "Ninja d'Ame": "/portraits/ninja-ame.webp",
+  "Corbeau de genjutsu": "/portraits/corbeau-genjutsu.webp",
+  "Garde du repaire Uchiwa": "/portraits/garde-uchiwa.webp",
+  "Flamme d'Amaterasu": "/portraits/flamme-d-amaterasu.webp",
+  "Voie de l'Humain": "/portraits/voie-de-l-humain.webp",
+  "Voie de l'Insecte": "/portraits/voie-de-l-insecte.webp",
+  "Garde du Pays du Fer": "/portraits/garde-pays-du-fer.webp",
+  "Samouraï en armure": "/portraits/samourai-en-armure.webp",
+  "Ninja ressuscité": "/portraits/ninja-ressuscite.webp",
+  "Éclaireur de l'Alliance": "/portraits/ninja-alliance.jpg",
+  "Épéiste de la Brume ressuscité": "/portraits/epeiste-de-la-brume-ressuscite.webp",
+  "Division d'assaut Zetsu": "/portraits/division-assaut-zetsu.webp",
+  "Clone de bois de Madara": "/portraits/clone-de-bois-de-madara.webp",
+  "Tentacule de la Statue Démoniaque": "/portraits/tentacule-de-la-statue-demoniaque.webp",
+  "Titan de bois": "/portraits/titan-de-bois.webp",
+  "Racine du Shinjû": "/portraits/racine-de-shinju.webp",
+  "Bombe-boule de Dix-Queues": "/portraits/bombe-boule-dix-queues.jpg",
+  "Anbu de la Racine": "/portraits/anbu-de-la-racine.jpeg",
+  "Police militaire Uchiwa": "/portraits/police-militaire-uchiwa.webp",
+  "Espion de Danzô": "/portraits/espion-de-danzo.webp",
 };
 
 interface CastMember {

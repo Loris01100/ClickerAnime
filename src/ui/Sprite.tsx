@@ -4,6 +4,8 @@ import { IconSilhouette } from "./icons";
 
 const BOX_COLS = 7;
 const BOX_ROWS = 8;
+/** Global size knob: every call site's `px` goes through it, so portraits grow everywhere at once. */
+const SCALE = 1.3;
 
 /**
  * Renders a portrait fetched live from AniList by name (see `anilist.ts`), scaled with
@@ -15,7 +17,7 @@ const BOX_ROWS = 8;
  * resolve to an unrelated character from a different anime entirely.
  */
 export default function Sprite(props: { name: string; kind: PortraitKind; anime?: string; px?: number; dim?: boolean }) {
-  const px = () => props.px ?? 4;
+  const px = () => (props.px ?? 4) * SCALE;
   const width = () => BOX_COLS * px();
   const height = () => BOX_ROWS * px();
 
@@ -41,11 +43,10 @@ export default function Sprite(props: { name: string; kind: PortraitKind; anime?
       {(src) => (
         <img
           class="sprite"
-          classList={{ dim: props.dim }}
+          classList={{ dim: props.dim, local: src().startsWith("/") }}
           src={src()}
           width={width()}
           height={height()}
-          style={{ "object-fit": "contain" }}
           alt=""
         />
       )}
