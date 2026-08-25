@@ -200,18 +200,32 @@ select {
   border-radius: 7px;
   padding: 0.25rem 0.5rem;
   cursor: pointer;
-  transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: translate 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 /* Un bouton se soulève au survol et s'enfonce au clic : le geste doit se voir, pas juste changer
  * de teinte (design.md §4). */
+/* `translate` et non `transform` : un bouton qui se place lui-même (`.map-node`, centré par
+ * `transform: translate(-50%, -50%)`) verrait sinon son transform écrasé au survol — il sautait
+ * d'un demi-bouton, sortait de sous le curseur, et clignotait. Les deux propriétés se composent. */
 button:hover:not(:disabled) {
   border-color: var(--accent);
-  transform: translateY(-1px);
+  translate: 0 -1px;
   box-shadow: 0 0 0 2px var(--active-tint);
 }
 button:active:not(:disabled) {
-  transform: translateY(1px);
+  translate: 0 1px;
   box-shadow: none;
+}
+/* Le soulèvement déplace aussi la zone cliquable : au pixel du bord, le curseur sortait du bouton,
+ * qui redescendait, le re-survolait… et clignotait. Ce calque déborde de 1px en haut et en bas pour
+ * que la zone survolée reste immobile quel que soit l'état. */
+button {
+  position: relative;
+}
+button::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
 }
 button:disabled {
   opacity: 0.35;
