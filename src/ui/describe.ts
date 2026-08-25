@@ -1,4 +1,3 @@
-import { scopedMagnitude } from "../engine/abilities";
 import type { AbilityDefinition, EquippableBy, Item, ModifierTemplate } from "../engine/types";
 import { fmt, seconds } from "./format";
 
@@ -42,12 +41,10 @@ export function describeItem(item: Item): string {
 }
 
 /**
- * The numbers a buff actually applies, not the ones printed in the data: a percent/multiplier effect
- * is scaled by the ability's duty cycle before it lands (`scopedMagnitude`), so showing the raw
- * value would understate every ability in the game by that same factor.
+ * `magnitude` is what the buff is really worth right now (`abilityMagnitudeOf`): a scoped buff is
+ * scaled before it lands, so printing the raw data value would understate every ability in the game.
  */
-export function describeAbility(ability: AbilityDefinition): string {
-  const magnitude = scopedMagnitude(ability);
+export function describeAbility(ability: AbilityDefinition, magnitude = 1): string {
   const effects = ability.effects
     .map((effect) =>
       describeModifier(

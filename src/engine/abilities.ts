@@ -39,15 +39,31 @@ export function getUnlockedAbilities(
 }
 
 /**
- * How much a scoped percent/multiplier buff is worth over its printed value. A buff only boosts the
- * characters it comes from (`computeScopedStat`), so the same number moves the team far less than it
- * did back when one buff lifted everyone — by exactly its share of the team, and by how little of
- * the time it is up. The duty cycle is the part the data knows: an ability up 10s out of a 80s
- * cooldown is worth an eighth of what a permanent buff would be, so it hits eight times as hard
- * while it lasts. Team share is left alone on purpose — that share *is* the design: a buff is worth
- * what the allies it names are worth. Checked with `npm run sim` (docs/simulator.md).
+ * How much a scoped percent/multiplier buff is worth over its printed value: the roster over the
+ * part of it any ability can reach.
+ *
+ * A buff only boosts the characters it comes from (`computeScopedStat`), so what it does to the team
+ * is its printed value times the share of the team it names. Once the roster is grown and nearly
+ * everyone is in some combo, that share is already the whole team and this is ~1 — the printed value
+ * is what lands, which is the balance the game was tuned on. Early, three characters with abilities
+ * out of fifteen owned would make every buff worth a fifth of what it reads, so the same climb that
+ * used to be carried by one team-wide buff would stall; the ratio hands that back.
+ *
+ * Half of the compensation; `dutyMagnitude` is the other half, and `SCOPED_BUFF_CAP` is what stops
+ * the two from running away once a dozen buffs land on the same character.
  */
-export function scopedMagnitude(ability: AbilityDefinition): number {
+export function scopedMagnitude(ownedCount: number, coveredCount: number): number {
+  if (coveredCount <= 0) return 1;
+  return Math.max(1, ownedCount / coveredCount);
+}
+
+/**
+ * The second half of it: how little of the time the ability is actually up. A buff up 10s out of an
+ * 80s cooldown is worth an eighth of a permanent one, so it hits eight times as hard while it lasts
+ * — otherwise a scoped buff, on a couple of allies for a few seconds, is noise. What keeps this from
+ * running away when a dozen of them land on the same character is `SCOPED_BUFF_CAP`, not a cap here.
+ */
+export function dutyMagnitude(ability: AbilityDefinition): number {
   if (ability.durationMs <= 0) return 1;
   return Math.max(1, ability.cooldownMs / ability.durationMs);
 }

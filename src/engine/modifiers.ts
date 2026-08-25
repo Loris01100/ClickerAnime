@@ -31,6 +31,15 @@ export function pruneExpired(modifiers: ActiveModifier[], now: number): ActiveMo
 }
 
 /**
+ * How far a character's own damage can be lifted by the buffs running on them, all sources together.
+ * Combos are multipliers and a grown roster is covered by a dozen of them at once, so their product
+ * ran to thousands of times the enemy's hp — every fight an overkill. The ceiling is deliberately
+ * near what a single team-wide buff used to be worth back when only one could run: stacking now buys
+ * you *reaching* the ceiling faster and on more characters, not passing it.
+ */
+export const SCOPED_BUFF_CAP = 50;
+
+/**
  * The team's stat, buff by buff, character by character. A modifier carrying a `scope` only applies
  * to that character: their own base damage, and every ability buff, which boosts only the characters
  * it comes from. That is what lets every ability and combo run at once without stacking into an
@@ -60,7 +69,9 @@ export function computeScopedStat(
 
   let total = computeEffectiveStat(base, target, global, now);
   for (const group of byScope.values()) {
-    total += computeEffectiveStat(0, target, [...scaling, ...group], now);
+    const buffed = computeEffectiveStat(0, target, [...scaling, ...group], now);
+    const bare = computeEffectiveStat(0, target, [...scaling, ...group.filter((m) => m.expiresAt === undefined)], now);
+    total += Math.min(buffed, bare * SCOPED_BUFF_CAP);
   }
   return total;
 }

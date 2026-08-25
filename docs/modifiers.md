@@ -25,13 +25,24 @@ can never be worth more than the share of the team it names. Two earlier attempt
 a `STACK_FALLOFF` on overlapping team-wide temporaries (still far too much damage), and going back
 to team-wide buffs at all.
 
-Being worth a share of the team also makes the printed value worth far less than it used to be, so
-`scopedMagnitude` scales percent and multiplier effects by the ability's duty cycle
-(`cooldownMs / durationMs`): up an eighth of the time, it hits eight times as hard while it lasts.
-Team share is deliberately *not* compensated — that share is the design. Flats are left alone by
-both this and the tree's node 2, since a flat lands whole on its character either way. The pacing
-was re-measured with `npm run sim`: a full run comes out around a quarter faster than under the old
-one-buff rule, which is the power the feature was meant to add.
+Being worth a share of the team also makes the printed value worth far less than it used to be, so a
+percent or multiplier effect is scaled twice before it lands (flats never are — a flat bump lands
+whole on its character either way, and so does the tree's node 2):
+
+- `scopedMagnitude(owned, covered)` — the roster over the part of it any ability reaches. ~1 on a
+  grown roster where everyone is in some combo; early, where three characters out of fifteen have an
+  ability, it hands back the climb a single team-wide buff used to carry.
+- `dutyMagnitude(ability)` — `cooldownMs / durationMs`. Up an eighth of the time, it hits eight times
+  as hard while it lasts; without it a buff on two allies for six seconds is noise.
+
+**`SCOPED_BUFF_CAP` (50) is the ceiling those two are allowed to reach**, applied per character in
+`computeScopedStat`: whatever lands on one character can never lift their own damage past 50x. It is
+not decoration — the first cut shipped without it and a grown save hit ~4.5 Qa against 3T-hp enemies,
+because combos are *all* multipliers (22 of 22) and a dozen of them on the same character multiply,
+compensation included. Stacking buys you *reaching* the ceiling faster and on more allies, never
+passing it. Re-measured with `npm run sim` after every change to any of the three: a full run lands
+at 74-84 min against the old one-buff rule's 81-90, and the endgame dps within a few times the old
+one instead of two hundred.
 
 A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
 of its own**: nothing in the pipeline keys off one (`computeEffectiveStat` keys on

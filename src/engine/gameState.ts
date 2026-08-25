@@ -18,7 +18,7 @@ import {
   crossoverSynergyConfig,
   isMixedTeam,
 } from "./crossover";
-import { cooldownRemaining, getUnlockedAbilities, isAbilityReady, scopedMagnitude } from "./abilities";
+import { cooldownRemaining, dutyMagnitude, getUnlockedAbilities, isAbilityReady, scopedMagnitude } from "./abilities";
 import type { UnlockedAbility } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
@@ -1147,14 +1147,14 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * A percent or multiplier buff used to lift the whole team and now lifts its own characters only,
-   * which is worth a fraction of the same number on a grown roster — `scopedMagnitude` puts the
-   * printed value back where the pacing was tuned. Flats are untouched by both: a flat bump lands
-   * whole on its character either way, and node 2 deliberately reads as a percent.
+   * A percent or multiplier buff lifts its own characters only, so it is worth its printed value
+   * times the share of the team it names — `scopedMagnitude` normalises that share against how much
+   * of the roster any ability reaches at all (see there). Flats are untouched by both: a flat bump
+   * lands whole on its character either way, and node 2 deliberately reads as a percent.
    */
-  function boostedAbilityValue(effect: ModifierTemplate, ability: AbilityDefinition, level: number): number {
+  function boostedAbilityValue(effect: ModifierTemplate, ab: AbilityDefinition, level: number): number {
     if (effect.kind === "flat") return effect.value;
-    const magnitude = scopedMagnitude(ability) * (1 + ABILITY_DAMAGE_BOOST * level);
+    const magnitude = abilityCoverage() * dutyMagnitude(ab) * (1 + ABILITY_DAMAGE_BOOST * level);
     if (effect.kind === "percent") return effect.value * magnitude;
     return 1 + (effect.value - 1) * magnitude;
   }
@@ -1185,6 +1185,17 @@ export function createGameStore(data: GameData) {
   function abilityCooldownRemaining(abilityId: string): number {
     const cooldownMs = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability.cooldownMs ?? 0;
     return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
+  }
+
+  /** How much a scoped buff is worth over its printed value right now — see `scopedMagnitude`. */
+  const abilityCoverage = createMemo(() => {
+    const covered = new Set(unlockedAbilities().flatMap((u) => u.characterIds));
+    return scopedMagnitude(ownedCharacterIds().length, covered.size);
+  });
+
+  /** What a buff's printed percent/multiplier is really worth right now — for the tooltips. */
+  function abilityMagnitudeOf(ability: AbilityDefinition): number {
+    return abilityCoverage() * dutyMagnitude(ability);
   }
 
   /** Abilities off cooldown right now — the bar's count, and what `activateReadyAbilities` fires. */
@@ -1493,6 +1504,7 @@ export function createGameStore(data: GameData) {
     unlockAnime,
     activateAbility,
     activateReadyAbilities,
+    abilityMagnitudeOf,
     abilityCooldownRemaining,
     prestigeReset,
     save,

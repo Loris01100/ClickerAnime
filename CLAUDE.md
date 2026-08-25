@@ -71,8 +71,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
   rebalances the whole game.
 - **A buff is scoped to the characters it comes from.** An ability boosts its own character, a
   combo boosts its members, and nothing else — which is what lets every ability and combo run at
-  once without stacking into an unbounded burst. Don't make a buff team-wide again, and don't
-  reintroduce a `STACK_FALLOFF`: the bound is the owners' share of the team, not a falloff curve.
+  once. Don't make a buff team-wide again, and don't reintroduce a `STACK_FALLOFF`.
+- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth.** Combos are all
+  multipliers, so a dozen landing on the same character multiply into an overkill without it. Keep
+  it, and re-run `npm run sim` whenever it or either compensation (`scopedMagnitude`,
+  `dutyMagnitude`) changes.
 - A `ModifierTemplate` carries **no id of its own**. Don't reintroduce a per-effect `id`.
 - **A chance node must still be a chance at level 5.** `scaledChance` clamps at 1; a base at or
   above 1/5 silently becomes a guarantee. `engine.test.ts` guards every chance constant.

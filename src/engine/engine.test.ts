@@ -9,7 +9,7 @@ import {
   achievementTierBonus,
   achievementTiersCompleted,
 } from "./achievements";
-import { computeEffectiveStat, computeScopedStat } from "./modifiers";
+import { computeEffectiveStat, computeScopedStat, SCOPED_BUFF_CAP } from "./modifiers";
 import { characterContributions, synergyMultiplier, defaultSynergyConfig } from "./synergy";
 import { CROSSOVER_COST, crossoverSynergyConfig, isMixedTeam } from "./crossover";
 import {
@@ -146,6 +146,22 @@ describe("computeScopedStat", () => {
     ];
     // 5 team-wide + 10 * (1 + 1) + 30, the buff never touching cb
     expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(55);
+  });
+
+  it("caps what the buffs on one character can be worth, however many of them land", () => {
+    const buff = (id: string, value: number): ActiveModifier => ({
+      sourceId: id,
+      scope: "ca",
+      target: "teamDps",
+      kind: "multiplier",
+      value,
+      expiresAt: 10_000,
+    });
+    // Four combos on the same character would be x10 * x10 * x10 * x10 = x10000 of their own damage.
+    const modifiers = [flat("ca", 10), buff("c1", 10), buff("c2", 10), buff("c3", 10), buff("c4", 10)];
+    expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(10 * SCOPED_BUFF_CAP);
+    // Under the cap, the stack applies in full: x10 alone is worth exactly that.
+    expect(computeScopedStat(0, "teamDps", [flat("ca", 10), buff("c1", 10)], 0)).toBeCloseTo(100);
   });
 });
 

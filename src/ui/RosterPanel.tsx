@@ -119,7 +119,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                     .map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id)
                     .join(", ");
                 const tooltip = () =>
-                  [unlocked.ability.name, describeAbility(unlocked.ability), `Cible : ${targets()}`].join("\n");
+                  [unlocked.ability.name, describeAbility(unlocked.ability, props.game.abilityMagnitudeOf(unlocked.ability)), `Cible : ${targets()}`].join("\n");
                 return (
                   <button
                     class="ability"
