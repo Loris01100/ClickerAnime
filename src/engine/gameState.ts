@@ -1187,6 +1187,20 @@ export function createGameStore(data: GameData) {
     return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
   }
 
+  /** Abilities off cooldown right now — the bar's count, and what `activateReadyAbilities` fires. */
+  const readyAbilities = createMemo(() =>
+    unlockedAbilities().filter((u) => isAbilityReady(abilityLastUsed()[u.ability.id], u.ability.cooldownMs, now()))
+  );
+
+  /**
+   * Fires every ability that is off cooldown, and returns how many went off. Buffs stack now, so
+   * firing them all is simply the best play — that used to be impossible (they locked each other
+   * out), and clicking through forty buttons to do it by hand is not a decision, it's chores.
+   */
+  function activateReadyAbilities(): number {
+    return readyAbilities().filter((u) => activateAbility(u.ability.id)).length;
+  }
+
   /** Buffs running right now, strongest first — what the ability bar shows as the live stack. */
   const activeBuffs = createMemo(() => {
     const live = pruneExpired(temporaryModifiers(), now());
@@ -1427,6 +1441,7 @@ export function createGameStore(data: GameData) {
     activateCrossover,
     unlockedAbilities,
     activeBuffs,
+    readyAbilities,
     synergyOf,
     achievementCounts,
     // HUD notices
@@ -1477,6 +1492,7 @@ export function createGameStore(data: GameData) {
     setActiveArc,
     unlockAnime,
     activateAbility,
+    activateReadyAbilities,
     abilityCooldownRemaining,
     prestigeReset,
     save,

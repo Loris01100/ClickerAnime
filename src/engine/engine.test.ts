@@ -742,6 +742,8 @@ describe("store boot", () => {
       });
 
       expect(game.teamDps()).toBe(20); // 10 + 10, no buff yet
+      // Nothing blocks anything any more: the whole bar is firable, which is what "Tout lancer" does.
+      expect(game.readyAbilities().length).toBe(3);
       // A's buff lands on A alone: 10 * (1 + 1) + 10.
       expect(game.activateAbility("ability-a")).toBe(true);
       expect(game.teamDps()).toBeCloseTo(30);

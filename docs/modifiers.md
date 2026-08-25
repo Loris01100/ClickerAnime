@@ -58,6 +58,9 @@ buff lands on — which is the character alone, or every member of the combo. Co
 last-used timestamps in a record, not as counters, and they are now the **only** gate: nothing locks
 an ability out any more, so the bar's tooltip names the allies a buff will land on instead of the
 ability blocking it. The "Clic du Narrateur" free trigger picks any ability that isn't already
-running — re-firing one would only refresh a buff the player already has. `activeBuffs` lists which abilities are still running, so the bar can mark them; `RosterPanel` sorts
+running — re-firing one would only refresh a buff the player already has. `readyAbilities` lists
+what is off cooldown and `activateReadyAbilities` fires all of it, which is the bar's « Tout lancer »
+button: with buffs stacking, firing everything is simply the best play, and doing it by hand across
+forty buttons is chores, not a decision. `activeBuffs` lists which abilities are still running, so the bar can mark them; `RosterPanel` sorts
 ready-first on a deliberately *binary* key, since sorting by exact cooldown left would reshuffle the
 bar under the cursor every tick.

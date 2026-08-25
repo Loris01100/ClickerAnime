@@ -94,7 +94,14 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
           <PanelTitle open={abilitiesOpen()} onToggle={() => setAbilitiesOpen(!abilitiesOpen())}>
             Capacités
           </PanelTitle>
-          <small class="muted">{props.game.unlockedAbilities().length}</small>
+          <button
+            class="fire-all"
+            disabled={props.game.readyAbilities().length === 0}
+            title="Lance toutes les capacités prêtes — elles se cumulent, chacune sur ses propres personnages."
+            onClick={() => props.game.activateReadyAbilities()}
+          >
+            Tout lancer {props.game.readyAbilities().length}/{props.game.unlockedAbilities().length}
+          </button>
         </header>
         <Show when={abilitiesOpen()}>
           <div class="ability-bar">

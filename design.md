@@ -210,6 +210,14 @@ capacités et combos tournent tous en même temps, et le `title` nomme les alli�
 (« Cible : Naruto, Sasuke ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
 et pas par temps restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
 
+Comme tout se cumule, la barre finit à une quarantaine de boutons : elle est donc une **grille dense**
+(`repeat(auto-fill, minmax(6.5rem, 1fr))`, noms tronqués sur une ligne) à **hauteur plafonnée** avec
+son propre ascenseur — sinon le panneau pousse l'équipe et les objets hors de l'écran. Et puisque
+tout lancer est simplement le meilleur coup, le panel-head porte **« Tout lancer N/M »**
+(`.fire-all` → `activateReadyAbilities`) : le geste principal en un clic, la grille restant là pour
+en lancer une seule. Le compte remplace le total qui était affiché là avant — il dit la même chose
+et en plus ce qui est prêt.
+
 Ce qu'on **n'ajoute pas** : rien qui bloque l'input (pas d'animation qui empêche d'enchaîner les
 clics), rien qui ralentisse la boucle de tick 200ms (`gameState.ts`), pas de dépendance externe —
 tout en CSS/`@keyframes` ou signaux Solid, comme l'existant.
