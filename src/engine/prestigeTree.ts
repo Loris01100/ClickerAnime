@@ -71,11 +71,11 @@ export const SYNERGY_MALUS_SOFTEN = 0.3;
 export const ABILITY_DURATION_BOOST = 0.25;
 export const BOSS_TIMER_BOOST = 0.3;
 
-export const XP_GAIN_PERCENT = 0.15;
+export const XP_GAIN_PERCENT = 0.10;
 export const XP_PASSIVE_PER_SECOND = 1;
-export const XP_GROWTH_REDUCTION = 0.03;
-export const RECRUIT_XP_BONUS = 500;
-export const BOSS_XP_BOOST = 0.5;
+export const XP_GROWTH_REDUCTION = 0.01;
+export const RECRUIT_XP_BONUS = 250;
+export const BOSS_XP_BOOST = 0.2;
 
 export const DROP_CHANCE_BOOST = 0.2;
 export const PASSIVE_RANK_DISCOUNT = 0.15;
