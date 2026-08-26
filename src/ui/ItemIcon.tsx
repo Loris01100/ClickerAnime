@@ -4,8 +4,10 @@ const ITEM_ART: Record<string, string> = {
   "item-argile": "item-argile.png",
   "item-barre": "item-barre.png",
   "item-bandeau": "item-bandeau.png",
+  "item-bras-delta": "item-bras-delta.png",
   "item-bras": "item-bras.png",
   "item-carte-chunin": "item-carte-chunin.png",
+  "item-carbone-pur": "item-carbone-pur.png",
   "item-collier": "item-collier.png",
   "item-coeur": "item-coeur.png",
   "item-ecaille": "item-ecaille.png",
@@ -48,6 +50,12 @@ const ITEM_ART: Record<string, string> = {
   "item-tenseigan": "item-tenseigan.png",
   "item-kubikiri": "item-kubikiri.png",
   "item-fruit": "item-fruit.png",
+  "item-fruit-chakra": "item-fruit-chakra.png",
+  "item-noyau-akuta": "item-noyau-akuta.png",
+  "item-regeneration-boro": "item-regeneration-boro.png",
+  "item-sceau-nue": "item-sceau-nue.png",
+  "item-sceptre-isshiki": "item-sceptre-isshiki.png",
+  "item-sept-lames": "item-sept-lames.png",
   "item-susanoo": "item-susanoo.png",
 };
 

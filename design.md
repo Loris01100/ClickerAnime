@@ -403,11 +403,12 @@ lisibles ; les clés de voûte le sont davantage encore.
 
 Les objets peuvent recevoir une illustration locale dans `public/items/`, sélectionnée par leur
 `item.id` dans `ItemIcon.tsx`. Les objets sans illustration dédiée conservent automatiquement la
-marque générique commune ou unique. Les dix objets de Naruto, les quinze objets communs de
-Naruto Shippūden, les quinze objets uniques de Shippūden et les huit objets communs de Boruto ont
-désormais leur propre asset. Les uniques reprennent leur silhouette canonique quand elle existe
-(Samehada, Gunbai, masque spiralé, Tenseigan) et interprètent les objets abstraits dans le même rendu
-d'inventaire semi-réaliste.
+marque générique commune ou unique. Les dix objets de Naruto, les quinze objets communs et les
+quinze objets uniques de Naruto Shippūden, ainsi que les seize objets de Boruto ont désormais leur
+propre asset. Les uniques reprennent leur silhouette canonique quand elle existe (Samehada, Gunbai,
+masque spiralé, Tenseigan, Hiramekarei) et interprètent les objets abstraits dans le même rendu
+d'inventaire semi-réaliste. Les uniques de Boruto ajoutent à ce langage les matières et mécanismes
+de l'ère scientifique ninja : céramique blanche, noyaux artificiels, carbone et capsules biologiques.
 
 Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
 `ui/Sprite.tsx`, voir `docs/ui.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
