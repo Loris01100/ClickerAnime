@@ -3,7 +3,8 @@ import type { GameStore } from "../engine/gameState";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
 import Coin from "./Coin";
-import { IconBookmark, IconLock, IconShop } from "./icons";
+import ItemIcon from "./ItemIcon";
+import { IconLock, IconShop } from "./icons";
 
 /**
  * The shop, an overlay like the world portal rather than a column panel: currency purchases — item
@@ -40,7 +41,7 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
             {(entry) => (
               <div class="row">
                 <span class="name">
-                  <Show when={entry.character} fallback={<IconBookmark class="blue" />}>
+                  <Show when={entry.character} fallback={<ItemIcon kind={entry.item?.kind ?? "common"} px={30} />}>
                     {(character) => (
                       <Sprite name={character().name} kind="character" anime={animeNameOf(character().animeId)} px={5} />
                     )}

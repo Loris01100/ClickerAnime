@@ -2,7 +2,7 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Arc, Enemy, Item } from "../engine/types";
 import { describeModifier } from "./describe";
-import { IconBookmark, IconStar } from "./icons";
+import ItemIcon from "./ItemIcon";
 
 const KIND_LABEL: Record<Item["kind"], string> = {
   common: "Objet commun",
@@ -68,9 +68,8 @@ export default function ItemCodex(props: { game: GameStore }) {
     return [...byAnime.entries()].sort((a, b) => (a[0] === "" ? 1 : b[0] === "" ? -1 : 0));
   });
 
-  /** Items have no portrait to fetch — a glyph stands in, sized up for the detail pane's hero. */
-  const iconOf = (item: Item, size?: number) =>
-    item.kind === "unique" ? <IconStar class="gold" size={size} /> : <IconBookmark class="blue" size={size} />;
+  /** Items have no portrait to fetch — leur marque tient lieu de portrait, agrandie pour la fiche. */
+  const iconOf = (item: Item, px?: number) => <ItemIcon kind={item.kind} px={px} />;
 
   return (
     <>

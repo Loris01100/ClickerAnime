@@ -623,6 +623,8 @@ small {
  * Les soldes (barre de ressources, tête de l'arbre) forcent des pixels : là, la pastille est le
  * sujet et non l'annotation d'un nombre.
  */
+/* Marque d'un objet (`ItemIcon.tsx`) — mêmes règles que `.coin`, voir le bloc suivant. */
+.item-icon,
 .coin {
   height: 1.35em;
   width: auto;

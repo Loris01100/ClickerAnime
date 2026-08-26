@@ -166,3 +166,11 @@ spending. `IconDiamond`, `IconCrystal` and `IconPack` were deleted with the last
 
 `.coin` sizes in `em` so the mark follows the price it annotates; the three balances where the mark
 is the subject rather than an annotation pass `px` instead.
+
+`ItemIcon.tsx` is the same idea for items, split on the only thing that separates two of them at a
+glance — common (a passive to stack) or unique (an equippable) — and drawn from `public/items/`. It
+covers `ItemCodex` (list and detail hero), `RosterPanel`'s item rows and `ShopPanel`'s item offers.
+`Notices.tsx` keeps its SVG: a `Notice` carries a kind (`item`/`recruit`/`arc`) but no item, so the
+pop-up cannot know whether the drop was common or unique, and showing the wrong one of the two marks
+would be worse than a neutral glyph. So does `PrestigeTree`'s "Objets" branch, whose icon belongs to
+a set of six branch glyphs rather than to the items themselves.

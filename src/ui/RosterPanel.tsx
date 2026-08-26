@@ -5,7 +5,8 @@ import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { describeAbility, describeItem } from "./describe";
 import { fmt, seconds } from "./format";
-import { IconBookmark, IconGear, IconStar, IconStarOutline, IconTrophy } from "./icons";
+import ItemIcon from "./ItemIcon";
+import { IconGear, IconStar, IconStarOutline } from "./icons";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
 
@@ -325,7 +326,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
             {(item) => (
               <div class="item-grid item-row" title={describeItem(item)}>
                 <span class="name">
-                  {item.kind === "unique" ? <IconTrophy class="gold" /> : <IconBookmark class="blue" />} {item.name}
+                  <ItemIcon kind={item.kind} /> {item.name}
                 </span>
                 <span classList={{ unique: item.kind === "unique" }}>
                   {item.kind === "unique" ? "unique" : "commun"}
