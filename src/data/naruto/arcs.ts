@@ -1,6 +1,6 @@
 import type { GameData } from "../../engine/gameState";
 
-const BOSS_TIMER_MS = 60_000;
+const BOSS_TIMER_MS = 45_000;
 
 export const narutoArcs: GameData["arcs"] = [
   {
@@ -102,6 +102,6 @@ export const narutoArcs: GameData["arcs"] = [
       { id: "sasuke-kiba", name: "Kiba Inuzuka", baseHp: 690_000, reward: 5_600, characterId: "kiba-inuzuka" },
       { id: "sasuke-kimimaro", name: "Kimimaro", baseHp: 1_380_000, reward: 12_000, characterId: "kimimaro" },
     ],
-    boss: { id: "sasuke-vallee", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 5_120_000, reward: 90_000, timerMs: 90_000 },
+    boss: { id: "sasuke-vallee", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 5_120_000, reward: 90_000, timerMs: 75_000 },
   },
 ];

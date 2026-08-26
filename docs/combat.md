@@ -95,12 +95,26 @@ last few recruits, how fast the team's dps grows stops depending on how deep the
 stops depending on which world you are standing in. A fourth world can start from these numbers
 rather than measuring a third pair from scratch; the arc-0 allowance below still has to be measured.
 
-Boss timers were widened again alongside the catch-up retune, to hold every fight at a margin of at
-least ~2.5x (rounded to 15s steps, and kept non-decreasing across a world). The result, on seeds 1,
-2, 3 and 7 at 4 clicks/s: **28/28 arcs cleared in 81-85 minutes with no boss timeout anywhere**,
-Shippūden's arcs averaging a rise of 1.4 → 4.6 minutes and Boruto's 2.8 → 7.4, and the same 3.21T
-earned and the same 256 prestige points banked at every seed — the proof the economy really is
-untouched by an hp-only change.
+Boss timers are fit last, from the `avgDps` the `--json` report carries per arc, at a margin of
+**~1.5x** over the worst time-to-kill across seeds 1, 2, 3 and 7 — rounded up to 15s steps, kept
+non-decreasing across a world, and floored at 45s so the opening arcs stay forgiving. The result, at
+4 clicks/s: **28/28 arcs cleared in 81-86 minutes with no boss timeout anywhere**, Shippūden's arcs
+averaging a rise of 1.4 → 4.6 minutes and Boruto's 2.8 → 7.4, and the same 3.21T earned and the same
+256 prestige points banked at every seed — the proof the economy is untouched by a change that moves
+hp or the clock alone.
+
+**Why 1.5x, where this table used to carry 2.5x.** The margin is what makes "Siège prolongé" — the
+"DPS Équipe" tree's node 5, `BOSS_TIMER_BOOST` = +30% of the base clock per level — worth a point.
+At 2.5x the base clock already felled every boss with time to spare, so the node bought nothing: at
+5/5 a fight ran 6.25x its own time-to-kill, and the only real wall in the game had stopped being
+one. At 1.5x the bare run is tight, 2/5 restores roughly the old comfort (~2.4x) and 5/5 is
+genuinely safe (~3.8x) — the node now buys the margin instead of the base clock handing it over.
+**The node itself was not touched**; the base timers were. Two things keep that from being harsh:
+the simulator measures a *first* run, which has no tree at all, so 1.5x is the floor case and every
+later run walks in with more dps than this; and `avgDps` is the mean over a whole arc while the boss
+is fought at its end, so the margin a player actually feels is wider than the number here. A timeout
+is soft anyway — the boss respawns, the team keeps farming levels, items and passives until it
+falls.
 
 Two things the retune fixed, both of which had drifted since the tables were last measured:
 
