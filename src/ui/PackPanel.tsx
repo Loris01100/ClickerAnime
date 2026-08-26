@@ -4,7 +4,7 @@ import type { Character } from "../engine/types";
 import { PACK_COST, DUPLICATE_DAMAGE_STEP } from "../engine/packs";
 import Sprite from "./Sprite";
 import { themeOf } from "./hue";
-import { IconPack } from "./icons";
+import Coin from "./Coin";
 
 /**
  * Packs, an overlay like the shop: one bucket of points per world, spent on a random draw from
@@ -43,7 +43,7 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
       <div class="modal" role="dialog" aria-modal="true" aria-label="Packs" onClick={(e) => e.stopPropagation()}>
         <header class="panel-head">
           <span>
-            <IconPack /> Packs
+            <Coin kind="pack" /> Packs
           </span>
           <button onClick={props.onClose} aria-label="Fermer">
             ✕
@@ -75,7 +75,7 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
               <div class="row">
                 <span class="name">{anime.name}</span>
                 <span class="muted small">
-                  {props.game.worldPointsOf(anime.id)} <IconPack />
+                  {props.game.worldPointsOf(anime.id)} <Coin kind="pack" />
                 </span>
                 <For each={["main", "secondary"] as const}>
                   {(rarity) => (

@@ -1,6 +1,7 @@
 import { For, Show, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { LEVELS_PER_BRANCH, LEVELS_PER_NODE, PRESTIGE_TREE_CATEGORIES, type PrestigeTreeCategoryId } from "../engine/prestigeTree";
+import Coin from "./Coin";
 import { IconBolt, IconBook, IconBookmark, IconCursor, IconDestiny, IconGear, IconLock, IconStar } from "./icons";
 
 const BRANCH_ICON: Record<PrestigeTreeCategoryId, typeof IconStar> = {
@@ -55,7 +56,7 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
 
         <div class="prestige-tree pad">
           <div class="prestige-tree-balance">
-            <IconStar />
+            <Coin kind="prestige" px={26} />
             <strong>{props.game.prestige().prestigePoints}</strong>
             <span class="muted">point{props.game.prestige().prestigePoints === 1 ? "" : "s"} de prestige</span>
           </div>

@@ -616,28 +616,19 @@ small {
   border-right: none;
 }
 /*
- * Pastille d'une ressource en image (`public/resources/`) plutôt qu'en SVG : ces quatre-là sont les
- * seuls objets du jeu qu'on regarde en permanence, ils méritent leur propre dessin. Hauteur fixe et
- * largeur libre — les quatre fichiers n'ont pas exactement le même ratio, et c'est la hauteur qui
- * doit s'aligner sur le chiffre voisin.
+ * Pastille d'une monnaie en image (`public/resources/`, composant `Coin.tsx`) plutôt qu'en SVG : ces
+ * quatre-là sont les seuls objets du jeu qu'on regarde en permanence, ils méritent leur propre
+ * dessin. Hauteur en `em` pour suivre le texte du prix qu'elle accompagne, largeur libre — les
+ * quatre fichiers n'ont pas le même ratio, et c'est la hauteur qui doit s'aligner sur le chiffre.
+ * Les soldes (barre de ressources, tête de l'arbre) forcent des pixels : là, la pastille est le
+ * sujet et non l'annotation d'un nombre.
  */
-img.coin {
-  height: 1.5rem;
+.coin {
+  height: 1.35em;
   width: auto;
   object-fit: contain;
   flex: none;
-}
-.coin.gold {
-  color: var(--gold);
-}
-.coin.violet {
-  color: var(--accent);
-}
-.coin.blue {
-  color: var(--blue);
-}
-.coin.green {
-  color: var(--good);
+  vertical-align: -0.3em;
 }
 
 /* Three-column variant of .codex-row: label / value / action, so the values line up down the

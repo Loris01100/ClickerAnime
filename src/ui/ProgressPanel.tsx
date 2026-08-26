@@ -2,7 +2,8 @@ import { For, Show, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt, seconds } from "./format";
-import { IconCheck, IconChevronRight, IconLock, IconSparkle, IconTarget } from "./icons";
+import Coin from "./Coin";
+import { IconCheck, IconChevronRight, IconLock, IconTarget } from "./icons";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -125,7 +126,7 @@ export default function ProgressPanel(props: {
                       title="Raccourci payant : entrer sans avoir fini le monde en cours"
                       onClick={() => props.game.unlockAnime(anime.id)}
                     >
-                      {anime.unlockCost} <IconSparkle class="coin violet" />
+                      {anime.unlockCost} <Coin kind="prestige" />
                     </button>
                   }
                 >
@@ -143,7 +144,7 @@ export default function ProgressPanel(props: {
           <PanelTitle open={prestigeOpen()} onToggle={() => setPrestigeOpen(!prestigeOpen())}>
             Prestige
           </PanelTitle>
-          <small class="muted">{props.game.prestige().prestigePoints} <IconSparkle class="coin violet" /></small>
+          <small class="muted">{props.game.prestige().prestigePoints} <Coin kind="prestige" /></small>
         </header>
         <Show when={prestigeOpen()}>
         <div class="pad">
@@ -159,7 +160,7 @@ export default function ProgressPanel(props: {
               est celle des points de prestige (même glyphe que le compteur au-dessus), pour qu'on
               voie d'un coup d'œil où ils se dépensent ; le chevron dit que ça ouvre une vue. */}
           <button class="tree-open" onClick={props.onOpenPrestige}>
-            <IconSparkle />
+            <Coin kind="prestige" />
             Arbre de prestige
             <IconChevronRight class="tree-open-go" />
           </button>

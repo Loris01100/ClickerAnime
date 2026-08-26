@@ -6,7 +6,7 @@ import {
   CROSSOVER_DURATION_MS,
   CROSSOVER_MOB_CHANCE,
 } from "../engine/crossover";
-import { IconCrystal } from "./icons";
+import Coin from "./Coin";
 
 /**
  * Cristaux de crossover: the inter-anime resource. Shows the stock, which worlds the team spans
@@ -38,7 +38,7 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
       <div class="modal" role="dialog" aria-modal="true" aria-label="Crossover" onClick={(e) => e.stopPropagation()}>
         <header class="panel-head">
           <span>
-            <IconCrystal /> Cristaux de crossover
+            <Coin kind="crystal" /> Cristaux de crossover
           </span>
           <button onClick={props.onClose} aria-label="Fermer">
             ✕
@@ -50,7 +50,7 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
             <div class="codex-row">
               <span class="muted">En réserve</span>
               <strong>
-                {props.game.crossoverCrystals()} <IconCrystal class="coin blue" />
+                {props.game.crossoverCrystals()} <Coin kind="crystal" />
               </strong>
             </div>
             <p class="muted small">
@@ -91,7 +91,7 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
                 disabled={props.game.crossoverCrystals() < CROSSOVER_COST}
                 onClick={() => props.game.activateCrossover()}
               >
-                Activer ({CROSSOVER_COST} <IconCrystal />)
+                Activer ({CROSSOVER_COST} <Coin kind="crystal" />)
               </button>
             </Show>
           </div>

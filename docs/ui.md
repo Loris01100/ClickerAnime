@@ -154,7 +154,15 @@ CSS and static imports, but never a string built at runtime, so the `BASE_URL` p
 explicit. The three call sites are `Sprite.tsx` (local portrait overrides only — an AniList URL is
 already absolute), `WorldMap.tsx`'s `mapImage` and `CurrencyBar.tsx`'s four coins.
 
-`CurrencyBar`'s four totals use PNGs from `public/resources/` rather than the SVG icons of
-`icons.tsx` — they are the only objects on screen at all times. The `.coin` colour variants stay for
-every other icon-sized use (`ShopPanel`, `ProgressPanel`, `CrossoverPanel`, `WorldPortal`), where the
-mark is an SVG tinted by a token.
+## Coins
+
+The four currencies are drawn by `Coin.tsx` — a PNG from `public/resources/`, not an SVG from
+`icons.tsx` — and **every** place a currency is named goes through it: `CurrencyBar`'s totals, a
+shop price, an unlock cost in `ProgressPanel` and `WorldPortal`, the balances at the head of
+`PrestigeTree`, `CrossoverPanel` and `PackPanel`. One component rather than a `<img>` per call site
+because a currency has to be recognisable by the same drawing everywhere; a price marked with a
+different glyph than the counter it draws from is how a player loses track of what they are
+spending. `IconDiamond`, `IconCrystal` and `IconPack` were deleted with the last of their uses.
+
+`.coin` sizes in `em` so the mark follows the price it annotates; the three balances where the mark
+is the subject rather than an annotation pass `px` instead.

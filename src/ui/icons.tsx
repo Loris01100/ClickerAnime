@@ -124,9 +124,6 @@ export const IconDestiny = icon("0 0 24 24", () => (
   </g>
 ));
 
-/** Main currency (the "argent" gagné en combat) — a cut gem, distinct from prestige's sparkle. */
-export const IconDiamond = icon("0 0 24 24", () => <path d="M12 2 22 12 12 22 2 12z" fill="currentColor" />);
-
 /** Prestige points — a four-point sparkle, distinct from the five-point rarity star. */
 export const IconSparkle = icon("0 0 24 24", () => (
   <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" fill="currentColor" />
@@ -187,17 +184,6 @@ export const IconShop = icon("0 0 24 24", () => (
     <path d="M5 9v10h14V9" />
     <path d="M10 19v-5h4v5" />
   </g>
-));
-
-export const IconCrystal = icon("0 0 24 24", () => (
-  <path d="M12 2 20 9l-8 13L4 9l8-7zm0 3.2L7 9h10l-5-3.8z" fill="currentColor" />
-));
-
-export const IconPack = icon("0 0 24 24", () => (
-  <>
-    <path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" fill="none" stroke="currentColor" stroke-width="1.6" />
-    <path d="M3 7l9 4 9-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6" />
-  </>
 ));
 
 /**

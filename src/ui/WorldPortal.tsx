@@ -6,7 +6,8 @@ import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import { describeModifier } from "./describe";
 import { fmt } from "./format";
-import { IconLock, IconSparkle } from "./icons";
+import Coin from "./Coin";
+import { IconLock } from "./icons";
 
 type Status = "cleared" | "current" | "available" | "locked";
 
@@ -111,7 +112,7 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
             when={props.game.canTravel()}
             fallback={
               <>
-                Débloquer ({props.anime.unlockCost} <IconSparkle class="coin violet" />)
+                Débloquer ({props.anime.unlockCost} <Coin kind="prestige" />)
               </>
             }
           >

@@ -2,7 +2,8 @@ import { For, Show, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
-import { IconBookmark, IconDiamond, IconLock, IconShop } from "./icons";
+import Coin from "./Coin";
+import { IconBookmark, IconLock, IconShop } from "./icons";
 
 /**
  * The shop, an overlay like the world portal rather than a column panel: currency purchases — item
@@ -27,7 +28,7 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
             <IconShop /> Boutique
           </span>
           <span class="muted">
-            {fmt(props.game.currency())} <IconDiamond class="coin gold" />
+            {fmt(props.game.currency())} <Coin kind="gold" />
             <button onClick={props.onClose} aria-label="Fermer">
               ✕
             </button>
@@ -68,7 +69,7 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
                     <Show when={entry.discounted}>
                       <s class="muted">{fmt(entry.offer.cost)}</s>{" "}
                     </Show>
-                    {fmt(entry.cost)} <IconDiamond class="coin gold" />
+                    {fmt(entry.cost)} <Coin kind="gold" />
                   </button>
                 </Show>
               </div>
