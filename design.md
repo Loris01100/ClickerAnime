@@ -390,8 +390,8 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 
 Les objets peuvent recevoir une illustration locale dans `public/items/`, sélectionnée par leur
 `item.id` dans `ItemIcon.tsx`. Les objets sans illustration dédiée conservent automatiquement la
-marque générique commune ou unique. Les dix objets de Naruto et les quinze objets communs de
-Naruto Shippūden ont désormais leur propre asset.
+marque générique commune ou unique. Les dix objets de Naruto, les quinze objets communs de
+Naruto Shippūden et les huit objets communs de Boruto ont désormais leur propre asset.
 
 Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
 `ui/Sprite.tsx`, voir `docs/ui.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
