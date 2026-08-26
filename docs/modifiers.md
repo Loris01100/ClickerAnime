@@ -55,8 +55,10 @@ sources, merged in `allModifiers`:
    with the active arc.
 2. **Activated abilities** → temporary modifiers stamped with `expiresAt` and one `scope` per
    character the ability covers, pruned on every tick.
-3. **Equipped unique items** → permanent modifiers contributed by `characterContributions`; the
-   equipment mapping lives in `gameState` (`equipItem`, `unequipItem`, `equippedItemOf`).
+3. **Equipped unique items** → permanent modifiers contributed by `characterContributions`, carrying
+   the wearer's id as their `scope`: a unique buffs the character wearing it and nobody else, the
+   same rule as an ability's buff. The equipment mapping lives in `gameState` (`equipItem`,
+   `unequipItem`, `equippedItemOf`).
 
 Expiry is checked both in `pruneExpired` and again inside `computeEffectiveStat`, so a stale list
 can never inflate a stat.

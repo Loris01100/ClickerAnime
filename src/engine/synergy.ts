@@ -88,12 +88,14 @@ export function characterContributions(
     }
   }
 
-  // Equipped unique items are scaled by synergy like the character's own stats.
+  // Equipped unique items are scaled by synergy like the character's own stats, and scoped to the
+  // character wearing them: a unique buffs its bearer, never the rest of the team.
   for (const item of equipmentItems) {
     for (const effect of item.effects ?? []) {
       contributions.push({
         ...effect,
         sourceId: `${character.id}:equip:${item.id}`,
+        scope: character.id,
         value: effect.value * synergy,
       });
     }

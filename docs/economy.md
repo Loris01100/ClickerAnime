@@ -15,7 +15,8 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
 - **unique** — carried by bosses, guaranteed, one copy only. Each owned unique can be equipped on
   one character at a time (`characterEquipment` in the save). Equipped uniques grant permanent
   `ModifierTemplate` effects (`Item.effects`) that are merged into `characterContributions` and scaled
-  by synergy just like base stats and passives. An item may restrict who can wear it via
+  by synergy just like base stats and passives. They are **scoped to the wearer**: a unique's percent
+  or multiplier lifts that character's own damage only, never the rest of the team. An item may restrict who can wear it via
   `Item.equippableBy` (character ids, anime ids, or character tags).
 
 Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`

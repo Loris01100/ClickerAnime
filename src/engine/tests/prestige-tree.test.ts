@@ -545,7 +545,7 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
-  it("equipping a unique item boosts the matching stat", () => {
+  it("equipping a unique item boosts only its bearer's share of the stat", () => {
     const testData = {
       ...makeTestData(),
       items: [
@@ -567,7 +567,8 @@ describe("prestige tree — wired into gameState", () => {
       const character = testData.characters[0];
       const baseClick = game.clickPower();
       expect(game.equipItem(character.id, "unique-click")).toBe(true);
-      expect(game.clickPower()).toBeCloseTo(baseClick * 2);
+      // The x2 is scoped to the wearer: their own flat 10 doubles, the narrator's base 2 doesn't.
+      expect(game.clickPower()).toBeCloseTo(baseClick + 10);
       expect(game.equippedItemOf(character)?.id).toBe("unique-click");
     } finally {
       disposeRoot();
