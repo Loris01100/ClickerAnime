@@ -201,7 +201,7 @@ Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
   seule chose qui mérite un avertissement. Voir `bossOutlookOf` dans `docs/combat.md`.
 - **Tuile de crossover qui pulse** (`.currency.advised`) quand dépenser des cristaux paierait
   vraiment — l'équipe combat hors de son monde. Sans ça le stock ne bougeait jamais.
-- **État de la sauvegarde** dans la topbar (`.save-state`) : un autosave silencieux est
+- **État de la sauvegarde** en bas du menu de la topbar (`.save-state`) : un autosave silencieux est
   indiscernable d'un autosave cassé.
 
 Et la barre de capacités distingue `actif` (`.ability.running`, bordure `--good`) de la recharge
@@ -562,10 +562,16 @@ densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent mêm
   abandonnée trop tôt. Passer de 5 à 13 échelles n'a rien changé à l'écran : la liste vient de
   `ACHIEVEMENT_CATEGORIES` et la ligne de palier lit `category.target` pour dire quelle stat le
   bonus alimente (clic ou dps d'équipe), via `describeModifier` — aucun style par catégorie.
-- **Le bouton `Succès` de la topbar** utilise `IconTrophy` (déjà dans `icons.tsx`, jusque-là
-  inutilisé) — même gabarit que les boutons `Codex`/`Mondes` voisins, aucun style de bouton dédié.
-- **Exporter/Importer** sont des boutons texte sans icône ni mise en avant particulière dans la
-  topbar, comme leurs voisins — l'export d'une sauvegarde n'est pas une action plus "importante"
+- **Le bouton `Succès` du menu** utilise `IconTrophy` (déjà dans `icons.tsx`, jusque-là
+  inutilisé) — même gabarit que les entrées `Codex`/`Mondes` voisines, aucun style de bouton dédié.
+- **La topbar est un titre centré et un menu unique** (`.startmenu`), sur le modèle du StartMenu de
+  PokéClicker : la rangée de boutons grandissait d'un cran à chaque panneau ajouté et finissait par
+  toucher le titre. Un `<details>` natif, pas de librairie ni d'état de dropdown ; le panneau
+  (`.startmenu-items`) réutilise `--panel`, `--line` et `--ink-shadow`, ses entrées sont les mêmes
+  `<button>` que partout, seulement alignées à gauche et sans bordure. L'état de la sauvegarde et le
+  « Tout effacer » ont suivi les autres entrées dans le menu.
+- **Exporter/Importer** sont des boutons texte sans icône ni mise en avant particulière dans le menu,
+  comme leurs voisins — l'export d'une sauvegarde n'est pas une action plus "importante"
   visuellement, seulement plus rare. L'input de fichier caché derrière `Importer` n'a pas de style
   propre (`display: none`), le `<button>` visible est ce qui capte le clic. La topbar n'a plus de
   bouton `Sauvegarder`/`Réinitialiser` : l'autosave (`gameState`, toutes les 5s) rend le premier

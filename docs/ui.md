@@ -128,3 +128,17 @@ réimporter. C'est la seule raison pour laquelle `SAVE_KEY` est exporté par `ga
 
 Le build de prod émet des sourcemaps (`build.sourcemap` dans `vite.config.ts`), sans quoi cette pile
 pointerait sur du JS minifié.
+
+## The topbar's start menu
+
+The topbar is a centred title plus, anchored right, the theme toggle and one `<details class="startmenu">`
+holding every entry point — Codex, Mondes, Boutique, Packs, Crossover, Défis, Succès, Prestige, then
+Exporter / Importer / Tout effacer and the autosave line. It replaced a row of buttons that grew by one
+every time a panel was added, and would eventually have collided with the title; PokéClicker's StartMenu
+is the model.
+
+It is a native `<details>` on purpose: open/close, keyboard and screen-reader semantics come for free, so
+there is no dropdown state in `App.tsx` beyond the two lines that close it — `runFromMenu` (an entry that
+opens a modal must not leave the menu open underneath it) and `onMenuFocusOut` (`<details>` does not close
+on an outside click by itself). The world-dependent entries stay behind the same
+`game.unlockedAnimes().length > 0` guard they had in the old bar.

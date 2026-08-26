@@ -34,12 +34,25 @@ export default function App() {
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   const [packsOpen, setPacksOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
+  let menu: HTMLDetailsElement | undefined;
+
+  /** Toute entrée du menu le referme derriere elle — sinon il reste ouvert sous la modale. */
+  function runFromMenu(action: () => void) {
+    if (menu) menu.open = false;
+    action();
+  }
+
+  /** Fermeture au clic (ou au tab) hors du menu : `<details>` ne le fait pas tout seul. */
+  function onMenuFocusOut(event: FocusEvent) {
+    const next = event.relatedTarget as Node | null;
+    if (menu && (!next || !menu.contains(next))) menu.open = false;
+  }
 
   /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
   const activeAnime = () => game.data.animes.find((a) => a.id === game.activeArc()?.animeId);
 
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
-  function openCodexOn(characterId: string) {
+  function openCodexOn(characterId?: string) {
     setCodexFocusId(characterId);
     setCodexOpen(true);
   }
@@ -79,12 +92,6 @@ export default function App() {
     <>
       <header class="topbar">
         <h1>ClickerAnime</h1>
-        {/* A silent autosave is indistinguishable from a broken one — say when the last one landed. */}
-        <small class="save-state muted" title="Sauvegarde automatique toutes les 5s">
-          <Show when={game.lastSavedAt() > 0} fallback="pas encore sauvegardé">
-            sauvegardé il y a {Math.max(0, Math.round((game.now() - game.lastSavedAt()) / 1000))}s
-          </Show>
-        </small>
         <div class="topbar-actions">
           <button
             class="theme-toggle"
@@ -93,30 +100,46 @@ export default function App() {
           >
             <Dynamic component={THEME_ICON[theme()]} />
           </button>
-          <Show when={game.unlockedAnimes().length > 0}>
-            <button onClick={() => setPortalOpen(true)}>
-              <IconGlobe /> Mondes
-            </button>
-            <button onClick={() => setShopOpen(true)}>
-              <IconShop /> Boutique
-            </button>
-          </Show>
-          <button
-            onClick={() => {
-              setCodexFocusId(undefined);
-              setCodexOpen(true);
-            }}
-          >
-            Codex
-          </button>
-          <button onClick={() => setAchievementsOpen(true)}>
-            <IconTrophy /> Succès
-          </button>
-          <button onClick={() => setPrestigeTreeOpen(true)}>
-            <IconCrown /> Prestige
-          </button>
-          <button onClick={exportSave}>Exporter</button>
-          <button onClick={() => importInput?.click()}>Importer</button>
+          {/*
+            Menu unique façon PokéClicker plutôt qu'une rangée de boutons : la barre ne grandit plus
+            à chaque panneau ajouté. `<details>` fait tout le travail d'ouverture ; `onFocusOut` le
+            referme quand le focus quitte le menu, et chaque entrée le referme en se déclenchant.
+          */}
+          <details ref={menu} class="startmenu" onFocusOut={onMenuFocusOut}>
+            <summary>Menu</summary>
+            <div class="startmenu-items">
+              <button onClick={() => runFromMenu(() => openCodexOn(undefined))}>Codex</button>
+              <Show when={game.unlockedAnimes().length > 0}>
+                <button onClick={() => runFromMenu(() => setPortalOpen(true))}>
+                  <IconGlobe /> Mondes
+                </button>
+                <button onClick={() => runFromMenu(() => setShopOpen(true))}>
+                  <IconShop /> Boutique
+                </button>
+                <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
+                <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
+                <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
+              </Show>
+              <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>
+                <IconTrophy /> Succès
+              </button>
+              <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>
+                <IconCrown /> Prestige
+              </button>
+              <hr />
+              <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
+              <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
+              <button class="danger" onClick={() => runFromMenu(onHardReset)}>
+                Tout effacer
+              </button>
+              {/* Une sauvegarde automatique silencieuse ne se distingue pas d'une sauvegarde cassée. */}
+              <small class="save-state muted" title="Sauvegarde automatique toutes les 5s">
+                <Show when={game.lastSavedAt() > 0} fallback="pas encore sauvegardé">
+                  sauvegardé il y a {Math.max(0, Math.round((game.now() - game.lastSavedAt()) / 1000))}s
+                </Show>
+              </small>
+            </div>
+          </details>
           <input
             ref={importInput}
             type="file"
@@ -124,9 +147,6 @@ export default function App() {
             style={{ display: "none" }}
             onChange={onImportFile}
           />
-          <button class="danger" onClick={onHardReset}>
-            Tout effacer
-          </button>
         </div>
       </header>
 

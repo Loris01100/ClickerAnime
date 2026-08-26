@@ -279,6 +279,8 @@ button.tree-open:hover:not(:disabled) {
 .topbar {
   display: flex;
   align-items: center;
+  /* Titre centré sur toute la barre, actions ancrées à droite — d'où le `position: absolute`. */
+  justify-content: center;
   gap: 1rem;
   padding: 0.5rem 1rem;
   border-bottom: 2px solid var(--line);
@@ -301,8 +303,70 @@ button.tree-open:hover:not(:disabled) {
 }
 .topbar-actions {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
-  margin-left: auto;
+  position: absolute;
+  right: 1rem;
+}
+
+/* Menu unique de la topbar — un `<details>` natif, pas de librairie de dropdown. */
+.startmenu {
+  position: relative;
+}
+.startmenu > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font-weight: 700;
+  user-select: none;
+}
+.startmenu > summary::-webkit-details-marker {
+  display: none;
+}
+.startmenu > summary::after {
+  content: " ▾";
+  color: var(--muted);
+}
+.startmenu[open] > summary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.startmenu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 12rem;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--ink-shadow);
+}
+.startmenu-items button {
+  justify-content: flex-start;
+  width: 100%;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+.startmenu-items button:hover {
+  background: var(--panel-2);
+}
+.startmenu-items hr {
+  width: 100%;
+  margin: 0.2rem 0;
+  border: none;
+  border-top: 1px solid var(--line);
+}
+.startmenu-items .save-state {
+  padding: 0.15rem 0.5rem;
 }
 
 /* --- layout --- */
