@@ -1793,3 +1793,30 @@ button.danger {
   color: var(--blue);
   opacity: 1;
 }
+
+/* Écran de secours de l'`ErrorBoundary` (src/index.tsx) : lisible même si tout le reste a sauté. */
+.crash {
+  max-width: 46rem;
+  margin: 3rem auto;
+  padding: 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+}
+.crash pre,
+.crash textarea {
+  width: 100%;
+  overflow: auto;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+.crash pre {
+  color: var(--bad);
+  white-space: pre-wrap;
+}

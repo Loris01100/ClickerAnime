@@ -159,7 +159,7 @@ const MAX_KILLS_PER_HIT = 100;
  */
 export const MAX_KILLS_PER_SECOND = 5;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
-const SAVE_KEY = "clicker-anime:save:v10";
+export const SAVE_KEY = "clicker-anime:save:v10";
 /** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
 const SAVE_VERSION = 10;
 

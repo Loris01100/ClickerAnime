@@ -117,3 +117,14 @@ have to flip. Never hard-code a colour in a rule. Components must never compute 
 the engine and gets exposed on the store (that is why `synergyOf`, `costOf`, `damageGrowthOf` and
 `pendingPrestigeGain` exist — `damageGrowthOf` in particular is what stops the roster and the Codex
 from printing two different damage numbers for the same character). Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+
+## L'écran de secours
+
+`src/index.tsx` enveloppe `<App />` dans un `<ErrorBoundary>` de `solid-js`. Une exception dans un
+composant donnait sinon une page blanche : plus de jeu, et surtout aucun moyen de sortir la
+sauvegarde. Le fallback (`.crash` dans `styles.css`) affiche la pile et le contenu brut de
+`localStorage[SAVE_KEY]` dans un `<textarea>` en lecture seule — le joueur copie, recharge, et peut
+réimporter. C'est la seule raison pour laquelle `SAVE_KEY` est exporté par `gameState.ts`.
+
+Le build de prod émet des sourcemaps (`build.sourcemap` dans `vite.config.ts`), sans quoi cette pile
+pointerait sur du JS minifié.
