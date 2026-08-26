@@ -12,6 +12,7 @@ import { IconCheck, IconLock, IconPin } from "./icons";
 export default function WorldMap(props: { game: GameStore }) {
   const [pinned, setPinned] = createSignal<string | null>(null);
   const [open, setOpen] = createSignal(true);
+  const [expanded, setExpanded] = createSignal(false);
 
   // Follows the arc being fought unless the player has explicitly picked another world's map.
   const shown = createMemo(() => {
@@ -36,6 +37,13 @@ export default function WorldMap(props: { game: GameStore }) {
             <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
               Carte — {anime().name}
             </PanelTitle>
+            <button
+              class="map-size-toggle"
+              aria-pressed={expanded()}
+              onClick={() => setExpanded(!expanded())}
+            >
+              {expanded() ? "Réduire" : "Agrandir"}
+            </button>
             <small class="muted">difficulté x{fmt(props.game.difficultyOf(anime().id))}</small>
           </header>
 
@@ -59,11 +67,12 @@ export default function WorldMap(props: { game: GameStore }) {
           <div class="map-canvas-wrap">
             <div
               class="map-canvas"
+              classList={{ compact: !expanded() }}
               style={{
                 // With a map image the canvas takes the image's own ratio; without one it takes the
                 // generated grid's.
                 "aspect-ratio": anime().mapImage ? undefined : `${layout().cols} / ${layout().rows}`,
-                "max-width": anime().mapImage ? "48rem" : `calc(${layout().cols} * 9rem)`,
+                "--map-max-width": anime().mapImage ? "48rem" : `calc(${layout().cols} * 9rem)`,
                 // The pinned tab can show a different world than the one being fought, so the map
                 // carries its own hue rather than inheriting the shell's.
                 "--world-hue": themeOf(anime()),

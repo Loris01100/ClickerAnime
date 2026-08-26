@@ -139,6 +139,7 @@ export interface Notice {
   id: number;
   kind: "item" | "recruit" | "arc";
   text: string;
+  count: number;
   expiresAt: number;
 }
 
@@ -402,9 +403,16 @@ export function createGameStore(data: GameData) {
   const [notices, setNotices] = createSignal<Notice[]>([]);
   let noticeId = 0;
   function pushNotice(kind: Notice["kind"], text: string) {
-    setNotices((list) =>
-      [...list, { id: noticeId++, kind, text, expiresAt: Date.now() + NOTICE_MS }].slice(-MAX_NOTICES)
-    );
+    setNotices((list) => {
+      const expiresAt = Date.now() + NOTICE_MS;
+      const duplicate = list.find((notice) => notice.kind === kind && notice.text === text);
+      if (duplicate) {
+        return list.map((notice) =>
+          notice.id === duplicate.id ? { ...notice, count: notice.count + 1, expiresAt } : notice
+        );
+      }
+      return [...list, { id: noticeId++, kind, text, count: 1, expiresAt }].slice(-MAX_NOTICES);
+    });
   }
   const dismissNotice = (id: number) => setNotices((list) => list.filter((n) => n.id !== id));
 

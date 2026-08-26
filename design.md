@@ -180,7 +180,8 @@ La file vit dans le store (`gameState`'s `notices`), pas dans le composant, parc
 événements naissent dans le moteur (`grantItem`, `defeat`) et qu'un composant n'a aucun moyen de
 les observer autrement. Elle est **purgée par le tick 200ms existant**, pas par un `setTimeout` par
 notice — aucun timer ne peut survivre au store — et plafonnée à `MAX_NOTICES` (4), la plus vieille
-tombant en premier. Un clic sur une notice la retire tout de suite (`dismissNotice`).
+tombant en premier. Deux événements de même type et de même texte fusionnent dans la notice déjà
+visible (`×N`) et repoussent son expiration ; un clic la retire tout de suite (`dismissNotice`).
 
 Le clavier compte aussi : `.stage` porte `role="button"` + `tabindex="0"` et répond à espace/entrée
 (`ClickStage`'s `handleKey`), le Clic du Narrateur étant le verbe central du jeu. Le pop naît alors

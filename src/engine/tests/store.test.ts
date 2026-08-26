@@ -448,4 +448,32 @@ describe("tick delta clamp et notices du HUD", () => {
       vi.useRealTimers();
     }
   });
+
+  it("regroupe les notices identiques et prolonge leur durée", () => {
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const data = sleepData(0);
+      data.arcs[0].mobsToBoss = 3;
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      game.travelTo("ta");
+      game.click();
+      vi.advanceTimersByTime(1_000);
+      game.click();
+      game.click();
+
+      expect(game.notices()).toHaveLength(1);
+      expect(game.notices()[0]).toMatchObject({ kind: "item", text: "Item +1", count: 3 });
+      vi.advanceTimersByTime(3_200);
+      expect(game.notices()).toHaveLength(1);
+      vi.advanceTimersByTime(1_000);
+      expect(game.notices()).toEqual([]);
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+    }
+  });
 });

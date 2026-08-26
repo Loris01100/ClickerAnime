@@ -41,6 +41,9 @@ its own. Naruto and Shippûden share `public/naruto-map.jpg` — one ninja world
 both is placed on it. The coordinates are eyeballed from the named villages and landmarks and are
 meant to be tuned by hand; the Fourth War arcs are spread along the northern band rather than
 stacked on the one battlefield, since a node is a labelled card and they would cover each other.
+Maps start at 80% of their full width so combat remains the main visual mass; the panel header's
+`Agrandir` button restores the full map without cropping or moving its percentage-based markers.
+The toggle disappears below 700px, where the map already uses the available mobile width.
 
 **Portraits are fetched live from AniList, in the player's own browser.** `ui/anilist.ts` is a
 small best-effort client: `portraitUrl(name, kind)` queries `graphql.anilist.co` by character or
@@ -180,3 +183,5 @@ covers `ItemCodex` (list and detail hero), `RosterPanel`'s item rows and `ShopPa
 pop-up cannot know whether the drop was common or unique, and showing the wrong one of the two marks
 would be worse than a neutral glyph. So does `PrestigeTree`'s "Objets" branch, whose icon belongs to
 a set of six branch glyphs rather than to the items themselves.
+Identical notices share one queue entry with a `count`; each repeat refreshes its expiry and the HUD
+adds `×N`, preventing rapid farming from filling the entire stack with the same drop.

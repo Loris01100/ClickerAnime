@@ -1337,6 +1337,7 @@ small {
 .map-canvas {
   position: relative;
   width: 100%;
+  max-width: var(--map-max-width);
   border-radius: 8px;
   overflow: hidden;
   background: radial-gradient(
@@ -1345,6 +1346,10 @@ small {
       transparent 70%
     ),
     var(--panel-2);
+  transition: max-width 0.2s ease;
+}
+.map-canvas.compact {
+  max-width: calc(var(--map-max-width) * 0.8);
 }
 .map-bg {
   display: block;
@@ -1625,6 +1630,14 @@ small {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+@media (max-width: 700px) {
+  .map-size-toggle {
+    display: none;
+  }
+  .map-canvas.compact {
+    max-width: var(--map-max-width);
+  }
 }
 .prestige-link-line {
   stroke: var(--line);

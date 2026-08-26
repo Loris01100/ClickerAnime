@@ -1,4 +1,4 @@
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import type { GameStore } from "../engine/gameState";
 import { IconBookmark, IconCheck, IconStar } from "./icons";
@@ -18,6 +18,7 @@ export default function Notices(props: { game: GameStore }) {
           <button class={`notice notice-${notice.kind}`} onClick={() => props.game.dismissNotice(notice.id)}>
             <Dynamic component={NOTICE_ICON[notice.kind]} />
             <span>{notice.text}</span>
+            <Show when={notice.count > 1}><strong>×{notice.count}</strong></Show>
           </button>
         )}
       </For>
