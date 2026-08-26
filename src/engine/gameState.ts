@@ -509,6 +509,12 @@ export function createGameStore(data: GameData) {
     return item && item.kind === "unique" ? item : null;
   }
 
+  /** The character currently wearing this unique, if any — uniques are single-copy. */
+  function wearerOf(itemId: string): Character | null {
+    const characterId = Object.keys(characterEquipment()).find((id) => characterEquipment()[id] === itemId);
+    return characterId ? data.characters.find((c) => c.id === characterId) ?? null : null;
+  }
+
   /** Whether this item can be equipped on this character (ownership and restriction checks). */
   function canEquipItem(character: Character, itemId: string): boolean {
     const item = data.items.find((i) => i.id === itemId);
@@ -1781,6 +1787,7 @@ export function createGameStore(data: GameData) {
     rankUpPassive,
     characterEquipment,
     equippedItemOf,
+    wearerOf,
     canEquipItem,
     characterStatOf,
     equipItem,

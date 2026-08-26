@@ -390,7 +390,13 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                   {item.kind === "unique" ? "unique" : "commun"}
                 </span>
                 <span>{props.game.countOf(item.id)}</span>
-                <span class="muted">{item.kind === "unique" ? "équipable" : "passifs"}</span>
+                <span class="muted">
+                  {item.kind !== "unique"
+                    ? "passifs"
+                    : props.game.wearerOf(item.id)
+                      ? `équipé : ${props.game.wearerOf(item.id)!.name}`
+                      : "équipable"}
+                </span>
               </div>
             )}
           </For>
