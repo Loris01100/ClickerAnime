@@ -4,6 +4,9 @@ Document de référence pour le design visuel et interactif de ClickerAnime. Il 
 `CLAUDE.md` (qui décrit l'architecture technique) sur tout ce qui touche à l'UI/UX : direction
 artistique, système de composants visuels, animations, et l'arbre de prestige.
 
+L'icône de marque est un curseur blanc déclenchant un impact manga sur un badge violet-rose : elle
+exprime le clic sans emprunter le symbole d'une licence et reste lisible au format favicon.
+
 **Règle de maintenance : dès qu'une modification touche au design (nouveau panel, nouvelle
 palette, nouvelle interaction, refonte de l'arbre de prestige, sourcing d'images...), ce fichier
 doit être relu et mis à jour en conséquence.** Un design.md qui ment est pire que pas de

@@ -45,6 +45,10 @@ Maps start at 80% of their full width so combat remains the main visual mass; th
 `Agrandir` button restores the full map without cropping or moving its percentage-based markers.
 The toggle disappears below 700px, where the map already uses the available mobile width.
 
+The site icon lives in `public/`: `favicon.png` is the lightweight 64px browser-tab asset and
+`site-icon.png` is its 512px source for home-screen shortcuts. `index.html` references both with
+relative paths so the GitHub Pages subdirectory deployment keeps working.
+
 **Portraits are fetched live from AniList, in the player's own browser.** `ui/anilist.ts` is a
 small best-effort client: `portraitUrl(name, kind)` queries `graphql.anilist.co` by character or
 anime *name* (not id — every `Character`/`Enemy`/`Anime` already carries a human-readable `.name`,
