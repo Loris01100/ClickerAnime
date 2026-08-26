@@ -18,7 +18,8 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
   onMount(() => document.addEventListener("keydown", onKeyDown));
   onCleanup(() => document.removeEventListener("keydown", onKeyDown));
 
-  const [drawn, setDrawn] = createSignal<Character | null>(null);
+  const [drawn, setDrawn] = createSignal<Character[]>([]);
+  const [qty, setQty] = createSignal(1);
 
   const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
 
@@ -33,9 +34,15 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
       .filter((c) => props.game.duplicatesOf(c.id) > 0)
       .sort((a, b) => props.game.duplicatesOf(b.id) - props.game.duplicatesOf(a.id));
 
+  /** Achète jusqu'à `qty` packs d'affilée ; `openPack` s'arrête de lui-même quand les points manquent. */
   function buy(animeId: string, rarity: "main" | "secondary") {
-    const character = props.game.openPack(animeId, rarity);
-    if (character) setDrawn(character);
+    const results: Character[] = [];
+    for (let i = 0; i < qty(); i++) {
+      const character = props.game.openPack(animeId, rarity);
+      if (!character) break;
+      results.push(character);
+    }
+    if (results.length > 0) setDrawn(results);
   }
 
   return (
@@ -56,19 +63,26 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
             {Math.round(DUPLICATE_DAMAGE_STEP * 100)}% des dégâts de base du personnage — clic et DPS, sans limite.
           </p>
 
-          <Show when={drawn()}>
+          <div class="row">
+            <span class="name">Packs par achat</span>
+            <select value={qty()} title="Nombre de packs par achat" onChange={(e) => setQty(Number(e.currentTarget.value))}>
+              <For each={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}>{(n) => <option value={n}>x{n}</option>}</For>
+            </select>
+          </div>
+
+          <For each={drawn()}>
             {(character) => (
-              <div class="pack-result" style={{ "--world-hue": themeOf(props.game.data.animes.find((a) => a.id === character().animeId)) }}>
-                <Sprite name={character().name} kind="character" anime={animeNameOf(character().animeId)} px={9} />
+              <div class="pack-result" style={{ "--world-hue": themeOf(props.game.data.animes.find((a) => a.id === character.animeId)) }}>
+                <Sprite name={character.name} kind="character" anime={animeNameOf(character.animeId)} px={9} />
                 <div>
-                  <strong>{character().name}</strong>
+                  <strong>{character.name}</strong>
                   <div class="muted small">
-                    x{props.game.duplicatesOf(character().id)} — {animeNameOf(character().animeId)}
+                    x{props.game.duplicatesOf(character.id)} — {animeNameOf(character.animeId)}
                   </div>
                 </div>
               </div>
             )}
-          </Show>
+          </For>
 
           <For each={worlds()}>
             {(anime) => (
@@ -84,7 +98,7 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
                         disabled={props.game.worldPointsOf(anime.id) < PACK_COST[rarity]}
                         onClick={() => buy(anime.id, rarity)}
                       >
-                        {rarity === "main" ? "Principaux" : "Secondaires"} — {PACK_COST[rarity]}
+                        {rarity === "main" ? "Principaux" : "Secondaires"} — {PACK_COST[rarity] * qty()}
                       </button>
                     </Show>
                   )}
