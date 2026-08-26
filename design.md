@@ -538,11 +538,19 @@ code écrit à la main.
   confirmation** : le prestige (`ProgressPanel`) comme le « Tout effacer » de la topbar. Le second
   vit dans la topbar plutôt que dans un panel parce qu'il est aussi la sortie de secours d'une save
   cassée, et la topbar est le seul élément affiché dans tous les états, portail des mondes compris.
-- **Une préférence d'affichage ne va pas dans la save.** Le tri et le filtre par monde de l'équipe
-  vivent sous leur propre clé `localStorage` (`clicker-anime:roster-view:v1`, lecture et écriture
-  dans un `try`), pas dans `SaveFile` : elles survivent au rechargement et au prestige sans imposer
-  un champ de plus au format de sauvegarde, et une valeur illisible retombe simplement sur le
-  défaut.
+- **Une préférence d'affichage ne va pas dans la save.** Le tri et le filtre par monde de l'équipe,
+  comme le tri et le filtre par type de la collection d'objets, vivent sous leur propre clé
+  `localStorage` (`clicker-anime:roster-view:v1`, lecture et écriture dans un `try`), pas dans
+  `SaveFile` : elles survivent au rechargement et au prestige sans imposer un champ de plus au
+  format de sauvegarde, et une valeur illisible retombe simplement sur le défaut. Les préférences
+  ajoutées après coup (celles des objets) retombent **champ par champ** sur leur défaut, sinon la
+  première lecture d'une valeur déjà écrite jetterait aussi celles de l'équipe.
+- **Le panneau `Objets` a les mêmes deux `<select>` que le panneau `Équipe`**, au même endroit de
+  l'en-tête et sans style dédié : filtre à gauche, tri à droite, et le titre affiche
+  « (montrés/total) » dès qu'un filtre est actif. Une collection qui dépasse la trentaine d'entrées
+  pose exactement le problème que le roster posait à 60 personnages ; elle mérite la même réponse,
+  pas une nouvelle. Le tri par défaut est le nom, parce que c'est le seul ordre stable — trier par
+  quantité fait remonter un objet dès qu'il tombe, sous le curseur.
 - **Le texte visible est en français**, y compris les nouveaux tooltips/labels de l'arbre de
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
 

@@ -17,6 +17,22 @@ const SORTS: Record<SortKey, { label: string; value: (game: GameStore, c: Charac
   synergy: { label: "Synergie", value: (game, c) => game.synergyOf(c) },
 };
 
+type ItemSortKey = "name" | "count" | "kind";
+
+/**
+ * Tri de la collection d'objets. Comparateurs plutôt que la table `value`/`sort` de l'équipe :
+ * ce qu'on trie ici n'est pas toujours un nombre, et « uniques d'abord » se départage ensuite par
+ * nom — un tri sur un seul booléen laisserait la liste se réordonner au gré des trouvailles.
+ */
+const ITEM_SORTS: Record<ItemSortKey, { label: string; compare: (game: GameStore, a: Item, b: Item) => number }> = {
+  name: { label: "Nom", compare: (_, a, b) => a.name.localeCompare(b.name, "fr") },
+  count: { label: "Qté", compare: (game, a, b) => game.countOf(b.id) - game.countOf(a.id) || a.name.localeCompare(b.name, "fr") },
+  kind: {
+    label: "Type",
+    compare: (_, a, b) => Number(b.kind === "unique") - Number(a.kind === "unique") || a.name.localeCompare(b.name, "fr"),
+  },
+};
+
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
 /**
@@ -25,16 +41,24 @@ const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / ne
  * field to `SaveFile`. A missing or unreadable value just falls back to the default.
  */
 const VIEW_KEY = "clicker-anime:roster-view:v1";
-function readView(): { sort: SortKey; world: string } {
+function readView(): { sort: SortKey; world: string; itemSort: ItemSortKey; itemKind: string } {
+  const fallback = { sort: "level" as SortKey, world: "", itemSort: "name" as ItemSortKey, itemKind: "" };
   try {
     const parsed = JSON.parse(localStorage.getItem(VIEW_KEY) ?? "null");
     if (parsed && typeof parsed.sort === "string" && typeof parsed.world === "string") {
-      return { sort: parsed.sort in SORTS ? parsed.sort : "level", world: parsed.world };
+      // Chaque champ retombe seul sur son défaut : une préférence ajoutée après coup est absente
+      // des valeurs déjà écrites, et ne doit pas invalider celles qui s'y trouvent.
+      return {
+        sort: parsed.sort in SORTS ? parsed.sort : fallback.sort,
+        world: parsed.world,
+        itemSort: parsed.itemSort in ITEM_SORTS ? parsed.itemSort : fallback.itemSort,
+        itemKind: parsed.itemKind === "unique" || parsed.itemKind === "common" ? parsed.itemKind : "",
+      };
     }
   } catch {
     /* private mode, blocked storage, malformed value — the default is always fine */
   }
-  return { sort: "level", world: "" };
+  return fallback;
 }
 
 /** Left column: abilities, the sortable team list, and the item collection. */
@@ -43,10 +67,16 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
   const [sortKey, setSortKey] = createSignal<SortKey>(view.sort);
   /** "" = tous les mondes. Le filtre devient indispensable à 60+ personnages. */
   const [worldFilter, setWorldFilter] = createSignal(view.world);
+  const [itemSortKey, setItemSortKey] = createSignal<ItemSortKey>(view.itemSort);
+  /** "" = les deux types. */
+  const [itemKindFilter, setItemKindFilter] = createSignal(view.itemKind);
 
   function persistView() {
     try {
-      localStorage.setItem(VIEW_KEY, JSON.stringify({ sort: sortKey(), world: worldFilter() }));
+      localStorage.setItem(
+        VIEW_KEY,
+        JSON.stringify({ sort: sortKey(), world: worldFilter(), itemSort: itemSortKey(), itemKind: itemKindFilter() })
+      );
     } catch {
       /* storage full or blocked: the preference simply isn't remembered */
     }
@@ -82,6 +112,13 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
     const ready = (u: { ability: { id: string } }) => (props.game.abilityCooldownRemaining(u.ability.id) > 0 ? 1 : 0);
     return [...props.game.unlockedAbilities()].sort((a, b) => ready(a) - ready(b));
   });
+
+  const shownItems = createMemo(() =>
+    props.game
+      .foundItems()
+      .filter((item) => !itemKindFilter() || item.kind === itemKindFilter())
+      .sort((a, b) => ITEM_SORTS[itemSortKey()].compare(props.game, a, b))
+  );
 
   const equippableUniques = (character: Character): Item[] =>
     props.game
@@ -310,9 +347,31 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
       <section class="panel">
         <header class="panel-head">
           <PanelTitle open={itemsOpen()} onToggle={() => setItemsOpen(!itemsOpen())}>
-            Objets
+            Objets ({shownItems().length}
+            <Show when={itemKindFilter()}>/{props.game.foundItems().length}</Show>)
           </PanelTitle>
-          <small class="muted">{props.game.foundItems().length}</small>
+          <select
+            value={itemKindFilter()}
+            title="Filtrer par type"
+            onChange={(e) => {
+              setItemKindFilter(e.currentTarget.value);
+              persistView();
+            }}
+          >
+            <option value="">Tous</option>
+            <option value="unique">Uniques</option>
+            <option value="common">Communs</option>
+          </select>
+          <select
+            value={itemSortKey()}
+            title="Trier les objets"
+            onChange={(e) => {
+              setItemSortKey(e.currentTarget.value as ItemSortKey);
+              persistView();
+            }}
+          >
+            <For each={Object.entries(ITEM_SORTS)}>{([key, sort]) => <option value={key}>{sort.label}</option>}</For>
+          </select>
         </header>
         <Show when={itemsOpen()}>
         <div class="table-head item-grid">
@@ -322,7 +381,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
           <span>Effet</span>
         </div>
         <div class="scroll">
-          <For each={props.game.foundItems()}>
+          <For each={shownItems()}>
             {(item) => (
               <div class="item-grid item-row" title={describeItem(item)}>
                 <span class="name">
@@ -336,10 +395,15 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
               </div>
             )}
           </For>
-          <Show when={props.game.foundItems().length === 0}>
+          <Show when={shownItems().length === 0}>
             <p class="muted pad">
-              Aucun objet trouvé. Les communs d'un arc font monter les passifs des personnages rencontrés là-bas ;
-              les uniques des boss s'équipent sur les personnages de l'équipe.
+              <Show
+                when={props.game.foundItems().length === 0}
+                fallback="Aucun objet de ce type pour l'instant."
+              >
+                Aucun objet trouvé. Les communs d'un arc font monter les passifs des personnages rencontrés là-bas ;
+                les uniques des boss s'équipent sur les personnages de l'équipe.
+              </Show>
             </p>
           </Show>
         </div>
