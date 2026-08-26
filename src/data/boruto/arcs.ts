@@ -4,8 +4,8 @@ import type { GameData } from "../../engine/gameState";
 export const borutoArcs: GameData["arcs"] = [
   {
     id: "boruto-academie",
-    mapX: 0.155,
-    mapY: 0.3,
+    mapX: 0.512,
+    mapY: 0.414,
     animeId: "boruto",
     name: "L'Académie de Konoha",
     order: 0,
@@ -30,8 +30,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-chunin",
-    mapX: 0.21,
-    mapY: 0.47,
+    mapX: 0.556,
+    mapY: 0.44,
     animeId: "boruto",
     name: "L'Examen Chûnin",
     order: 1,
@@ -58,8 +58,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-mitsuki",
-    mapX: 0.33,
-    mapY: 0.7,
+    mapX: 0.397,
+    mapY: 0.222,
     animeId: "boruto",
     name: "La Disparition de Mitsuki",
     order: 2,
@@ -84,8 +84,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-brume",
-    mapX: 0.45,
-    mapY: 0.66,
+    mapX: 0.863,
+    mapY: 0.451,
     animeId: "boruto",
     name: "Le Village de la Brume Sanglante",
     order: 3,
@@ -109,8 +109,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-kara",
-    mapX: 0.58,
-    mapY: 0.62,
+    mapX: 0.30,
+    mapY: 0.33,
     animeId: "boruto",
     name: "L'Éveil de Kara",
     order: 4,
@@ -135,8 +135,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-vase",
-    mapX: 0.72,
-    mapY: 0.55,
+    mapX: 0.478,
+    mapY: 0.462,
     animeId: "boruto",
     name: "Le Vase et Kawaki",
     order: 5,
@@ -161,8 +161,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-assaut",
-    mapX: 0.8,
-    mapY: 0.4,
+    mapX: 0.70,
+    mapY: 0.27,
     animeId: "boruto",
     name: "L'Assaut de Kara",
     order: 6,
@@ -186,8 +186,8 @@ export const borutoArcs: GameData["arcs"] = [
   },
   {
     id: "boruto-isshiki",
-    mapX: 0.885,
-    mapY: 0.52,
+    mapX: 0.93,
+    mapY: 0.85,
     animeId: "boruto",
     name: "Isshiki Ôtsutsuki",
     order: 7,
