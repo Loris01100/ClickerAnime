@@ -32,8 +32,14 @@ whole on its character either way, and so does the tree's node 2):
 - `scopedMagnitude(owned, covered)` — the roster over the part of it any ability reaches. ~1 on a
   grown roster where everyone is in some combo; early, where three characters out of fifteen have an
   ability, it hands back the climb a single team-wide buff used to carry.
-- `dutyMagnitude(ability)` — `cooldownMs / durationMs`. Up an eighth of the time, it hits eight times
+- `dutyMagnitude(ability)` — `cooldownMs / durationMs`, sur la recharge **imprimée**. Up an eighth of the time, it hits eight times
   as hard while it lasts; without it a buff on two allies for six seconds is noise.
+
+`ABILITY_COOLDOWN_SCALE` (1.5) étire toute recharge avant que le store ne teste la disponibilité —
+et **n'entre pas** dans `dutyMagnitude`, sinon l'attente rallongée rendrait chaque activation
+proportionnellement plus forte et le dps moyen ne bougerait pas : le nerf serait un simple
+regroupement en pics. C'est bien de l'uptime en moins (`npm run sim` : 76 → 95 min pour les mêmes
+17 arcs).
 
 **`SCOPED_BUFF_CAP` (50) is the ceiling those two are allowed to reach**, applied per character in
 `computeScopedStat`: whatever lands on one character can never lift their own damage past 50x. It is

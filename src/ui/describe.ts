@@ -1,3 +1,4 @@
+import { cooldownOf } from "../engine/abilities";
 import type { AbilityDefinition, EquippableBy, Item, ModifierTemplate } from "../engine/types";
 import { fmt, seconds } from "./format";
 
@@ -56,5 +57,5 @@ export function describeAbility(ability: AbilityDefinition, magnitude = 1): stri
       )
     )
     .join(", ");
-  return `${effects} pendant ${seconds(ability.durationMs)} · recharge ${seconds(ability.cooldownMs)}`;
+  return `${effects} pendant ${seconds(ability.durationMs)} · recharge ${seconds(cooldownOf(ability))}`;
 }

@@ -41,6 +41,7 @@ describe("describeModifier", () => {
     });
     expect(text).toContain("x3 au clic");
     expect(text).toContain("5.0s");
-    expect(text).toContain("30s");
+    // La recharge affichée est celle réellement appliquée : 30s x ABILITY_COOLDOWN_SCALE.
+    expect(text).toContain("45s");
   });
 });

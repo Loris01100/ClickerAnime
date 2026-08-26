@@ -18,7 +18,7 @@ import {
   crossoverSynergyConfig,
   isMixedTeam,
 } from "./crossover";
-import { cooldownRemaining, dutyMagnitude, getUnlockedAbilities, isAbilityReady, scopedMagnitude } from "./abilities";
+import { cooldownOf, cooldownRemaining, dutyMagnitude, getUnlockedAbilities, isAbilityReady, scopedMagnitude } from "./abilities";
 import type { UnlockedAbility } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
@@ -981,7 +981,7 @@ export function createGameStore(data: GameData) {
         const next = { ...used };
         for (const unlocked of unlockedAbilities()) {
           const at = next[unlocked.ability.id];
-          if (at !== undefined && nowMs - at < unlocked.ability.cooldownMs) {
+          if (at !== undefined && nowMs - at < cooldownOf(unlocked.ability)) {
             next[unlocked.ability.id] = at - reduction;
           }
         }
@@ -1379,7 +1379,7 @@ export function createGameStore(data: GameData) {
     if (!unlocked) return false;
 
     const nowMs = Date.now();
-    if (!isAbilityReady(abilityLastUsed()[abilityId], unlocked.ability.cooldownMs, nowMs)) return false;
+    if (!isAbilityReady(abilityLastUsed()[abilityId], cooldownOf(unlocked.ability), nowMs)) return false;
 
     triggerAbilityEffects(unlocked);
     setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
@@ -1388,7 +1388,8 @@ export function createGameStore(data: GameData) {
   }
 
   function abilityCooldownRemaining(abilityId: string): number {
-    const cooldownMs = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability.cooldownMs ?? 0;
+    const ability = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability;
+    const cooldownMs = ability ? cooldownOf(ability) : 0;
     return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
   }
 
@@ -1405,7 +1406,7 @@ export function createGameStore(data: GameData) {
 
   /** Abilities off cooldown right now — the bar's count, and what `activateReadyAbilities` fires. */
   const readyAbilities = createMemo(() =>
-    unlockedAbilities().filter((u) => isAbilityReady(abilityLastUsed()[u.ability.id], u.ability.cooldownMs, now()))
+    unlockedAbilities().filter((u) => isAbilityReady(abilityLastUsed()[u.ability.id], cooldownOf(u.ability), now()))
   );
 
   /**

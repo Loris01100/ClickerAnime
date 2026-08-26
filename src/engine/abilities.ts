@@ -68,6 +68,19 @@ export function dutyMagnitude(ability: AbilityDefinition): number {
   return Math.max(1, ability.cooldownMs / ability.durationMs);
 }
 
+/**
+ * Global nerf on how often an ability comes back: every printed `cooldownMs` is stretched by this
+ * before the store checks readiness. Deliberately *not* folded into `dutyMagnitude` — that keeps a
+ * buff's magnitude on its printed duty cycle, so the longer wait is a real loss of uptime rather
+ * than the same average dps in bigger spikes.
+ */
+export const ABILITY_COOLDOWN_SCALE = 1.5;
+
+/** The cooldown actually enforced: the printed one, stretched by the global nerf. */
+export function cooldownOf(ability: AbilityDefinition): number {
+  return ability.cooldownMs * ABILITY_COOLDOWN_SCALE;
+}
+
 export function isAbilityReady(lastActivatedAt: number | undefined, cooldownMs: number, now: number): boolean {
   return lastActivatedAt === undefined || now - lastActivatedAt >= cooldownMs;
 }

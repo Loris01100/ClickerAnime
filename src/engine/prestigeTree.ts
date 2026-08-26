@@ -61,7 +61,7 @@ export function autoClickIntervalMs(level: number): number {
 }
 export const CRIT_CHANCE = 0.15;
 export const CRIT_MULTIPLIER = 3;
-export const CLICK_COOLDOWN_REDUCTION_MS = 300;
+export const CLICK_COOLDOWN_REDUCTION_MS = 100;
 export const FREE_ABILITY_TRIGGER_CHANCE = 0.05;
 
 export const TEAM_DPS_PERCENT = 0.08;
