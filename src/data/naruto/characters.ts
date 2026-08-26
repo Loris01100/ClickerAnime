@@ -38,7 +38,7 @@ export const narutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["naruto-vagues", "naruto-chunin"],
     baseClickPower: 1,
-    baseDps: 2,
+    baseDps: 4,
     passive: { target: "clickPower", kind: "percent", value: 0.08 },
     evolution: {
       animeId: "shippuden",
@@ -116,7 +116,7 @@ export const narutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["naruto-chunin", "naruto-sasuke"],
     baseClickPower: 1,
-    baseDps: 6,
+    baseDps: 8,
     passive: { target: "teamDps", kind: "percent", value: 0.12 },
   },
   {
@@ -127,7 +127,7 @@ export const narutoCharacters: GameData["characters"] = [
     tags: ["hyuga"],
     arcIds: ["naruto-chunin"],
     baseClickPower: 1,
-    baseDps: 5,
+    baseDps: 8,
     passive: { target: "clickPower", kind: "percent", value: 0.1 },
   },
   {
@@ -190,7 +190,7 @@ export const narutoCharacters: GameData["characters"] = [
     tags: ["suna"],
     arcIds: ["naruto-konoha", "naruto-sasuke"],
     baseClickPower: 2,
-    baseDps: 13,
+    baseDps: 16,
     passive: { target: "teamDps", kind: "percent", value: 0.15 },
   },
   {
@@ -201,7 +201,7 @@ export const narutoCharacters: GameData["characters"] = [
     tags: ["suna"],
     arcIds: ["naruto-konoha", "naruto-sasuke"],
     baseClickPower: 2,
-    baseDps: 12,
+    baseDps: 16,
     passive: { target: "teamDps", kind: "percent", value: 0.12 },
   },
   {
@@ -241,7 +241,7 @@ export const narutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["naruto-tsunade"],
     baseClickPower: 3,
-    baseDps: 20,
+    baseDps: 33,
     passive: { target: "teamDps", kind: "percent", value: 0.1 },
   },
   {
@@ -309,7 +309,7 @@ export const narutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["naruto-sasuke"],
     baseClickPower: 7,
-    baseDps: 35,
+    baseDps: 47,
     passive: { target: "teamDps", kind: "percent", value: 0.15 },
   },
   {
@@ -319,7 +319,7 @@ export const narutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["naruto-sasuke"],
     baseClickPower: 6,
-    baseDps: 31,
+    baseDps: 47,
     passive: { target: "teamDps", kind: "percent", value: 0.15 },
   },
   {

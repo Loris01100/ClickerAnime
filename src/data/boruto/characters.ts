@@ -71,7 +71,7 @@ export const borutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["boruto-chunin", "boruto-mitsuki"],
     baseClickPower: 222_000,
-    baseDps: 1_150_000,
+    baseDps: 1_450_000,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
   },
   {
@@ -81,7 +81,7 @@ export const borutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["boruto-chunin", "boruto-mitsuki"],
     baseClickPower: 222_000,
-    baseDps: 1_150_000,
+    baseDps: 1_450_000,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
   },
   {
@@ -91,7 +91,7 @@ export const borutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["boruto-chunin", "boruto-mitsuki"],
     baseClickPower: 222_000,
-    baseDps: 1_150_000,
+    baseDps: 1_450_000,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
   },
   {
@@ -101,7 +101,7 @@ export const borutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["boruto-chunin", "boruto-mitsuki"],
     baseClickPower: 222_000,
-    baseDps: 1_150_000,
+    baseDps: 1_450_000,
     passive: { target: "teamDps", kind: "percent", value: 0.25 },
   },
   {
@@ -142,7 +142,7 @@ export const borutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["boruto-mitsuki", "boruto-brume"],
     baseClickPower: 411_000,
-    baseDps: 2_140_000,
+    baseDps: 2_670_000,
     passive: { target: "teamDps", kind: "percent", value: 0.25 },
   },
   {
@@ -152,7 +152,7 @@ export const borutoCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["boruto-mitsuki", "boruto-brume"],
     baseClickPower: 411_000,
-    baseDps: 2_140_000,
+    baseDps: 2_670_000,
     passive: { target: "teamDps", kind: "percent", value: 0.25 },
   },
   {
@@ -204,7 +204,7 @@ export const borutoCharacters: GameData["characters"] = [
     tags: ["swordsman"],
     arcIds: ["boruto-brume", "boruto-kara"],
     baseClickPower: 760_000,
-    baseDps: 3_950_000,
+    baseDps: 4_940_000,
     passive: { target: "teamDps", kind: "percent", value: 0.25 },
   },
   {
@@ -256,7 +256,7 @@ export const borutoCharacters: GameData["characters"] = [
     tags: ["kara"],
     arcIds: ["boruto-kara", "boruto-vase"],
     baseClickPower: 1_410_000,
-    baseDps: 7_310_000,
+    baseDps: 9_120_000,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
   },
   {
@@ -318,7 +318,7 @@ export const borutoCharacters: GameData["characters"] = [
     tags: ["kara"],
     arcIds: ["boruto-vase", "boruto-assaut"],
     baseClickPower: 2_600_000,
-    baseDps: 13_500_000,
+    baseDps: 16_900_000,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
   },
   {
@@ -351,7 +351,7 @@ export const borutoCharacters: GameData["characters"] = [
     tags: ["kara"],
     arcIds: ["boruto-assaut", "boruto-isshiki"],
     baseClickPower: 4_810_000,
-    baseDps: 25_000_000,
+    baseDps: 31_300_000,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
   },
   {

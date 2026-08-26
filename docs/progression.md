@@ -48,20 +48,47 @@ by how strong the character is" part of the design survives intact. `CATCH_UP` i
 0 restores the old behaviour, 1 puts every recruit exactly on the current rung, and anything between
 leaves the veterans a fixed distance behind.
 
-**Tuned at 0.75** with `npm run sim`. What the sweep showed (seed 1, 4 clics/s):
+**Tuned at 0.85** with `npm run sim`. What the sweep showed (seed 1, 4 clics/s, on the hp tables of
+the time — the `run` column is what each value did *before* the tables were refit for it):
 
 | `CATCH_UP` | run | veteran gap at the last arc |
 |---|---|---|
 | 0 (old) | **walls** in Shippūden, never finishes | 4 000 000x |
 | 0.55 | 52 min | ~2 900x |
 | 0.65 | 39 min | ~550x |
-| **0.75** | **35 min** | **~105x** |
-| 0.85 | 22 min | ~20x |
+| 0.75 | 35 min | ~105x |
+| **0.85** | **22 min** | **~20x** |
 
 The run time barely moves between 0.65 and 0.85 because kills are capped by `MAX_KILLS_PER_SECOND`
 (`docs/combat.md`): past the point where the team out-damages the hp, extra dps buys nothing. That
 is what makes a high `CATCH_UP` nearly free — the relevance is bought, the pacing is not spent.
 Re-run `npm run sim` if it changes.
+
+**Why it moved from 0.75 to 0.85.** At 0.75 a veteran was left `(reached/debut)^0.25` behind, which
+over the full 28 arcs is **61x** — so the entire Naruto part 1 cast, eighteen characters, was worth
+**1.4%** of the team's dps. The comment on `catchUpGrowth` promises a recruit never becomes dead
+weight; at 1.4% it plainly had. 0.85 cuts the exponent to 0.15: the roster-wide spread falls from
+**213x to 20.6x** and part 1 lands at **4.6%** (Shippūden 33.7%, Boruto 61.8%). It costs ~1.58x team
+dps, which is why **both generated hp tables were refit against it** — see `docs/combat.md`. It stays
+below 1 for the reason below, and moving it again means paying that refit again.
+
+## The cohort floor on `baseDps`
+
+`CATCH_UP` only compresses the gap *between* debut arcs. The gap *inside* one is the raw
+`baseDps / arcPower[debut]` ratio, preserved forever by design — and it had drifted far: the opening
+arc ran Sakura at 2 against Kakashi's 7, a permanent **3.5x** between two characters recruited in the
+same five minutes, and every world had `secondary` recruits sitting at half their cohort's lead.
+
+So the data now holds one rule: **no character sits below 0.6 of the strongest `baseDps` debuting in
+their arc.** Thirty characters were raised to it, every one of them `rarity: "secondary"` — the floor
+never touched a `main`, which is what keeps it a floor rather than a flattening. The opening trio is
+now 1.00 / 0.57 / 0.57 instead of 1.00 / 0.57 / 0.29.
+
+It is deliberately cheap: raising the *minimum* of a cohort never moves `arcPowerTable`, which reads
+the **maximum**, so no `debutPower` moves, no catch-up exponent moves, and team dps rises only ~4%.
+Keep new content on the same floor — and if you add a character stronger than their cohort's current
+lead, remember that they redefine `arcPower` for that arc and quietly demote everyone debuting
+beside them.
 
 Algebraically the inflation is bounded and does **not** grow with roster size: summing
 `D^(1-CATCH_UP)` over a geometric ramp converges for any `CATCH_UP < 1`, at roughly 3.3x the old

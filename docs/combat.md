@@ -71,10 +71,11 @@ A world's arcs are generated from a table that ramps every number by a fixed fac
 factor is not free: **it has to match the rate the team's own dps ramps**, or the world's pace drifts
 one way or the other for the whole of its length, compounding.
 
-`npm run sim --json` measures that rate, and it is much steeper than it looks. Across Shippūden the
-team's dps grows by a geometric mean of **2.53x per arc** — recruits whose own stats ramp, their
-passives stacking additively as the roster deepens, levels, duplicates, achievements and the tree,
-all multiplying together. Shippūden's table originally ramped everything by 1.85x, tuned when the
+`npm run sim --json` measures that rate, and it is much steeper than it looks. Both generated worlds
+now grow the team's dps by a geometric mean of **2.12x per arc** (it was 2.53x before `CATCH_UP` rose
+to 0.85, which flattened the curve by lifting the whole roster instead of the last few recruits) —
+recruits whose own stats ramp, their passives stacking additively as the roster deepens, levels,
+duplicates, achievements and the tree, all multiplying together. Shippūden's table originally ramped everything by 1.85x, tuned when the
 roster was small. The gap of 1.37x per arc compounded over fifteen arcs: the first arcs took ~3
 minutes and the last ones **0.3** — bottomed out on `MAX_KILLS_PER_SECOND`, not on enemy hp at all.
 The climax was the fastest part of the game, and the boss clock — the only thing that can stop a run
@@ -85,8 +86,8 @@ Both generated worlds are now tuned on three ramps rather than one, all verified
 
 | What | Shippūden | Boruto | Why |
 |---|---|---|---|
-| Boss `baseHp` | **2.29x** | **2.30x** | Matches the dps ramp, so the boss keeps the same pressure at every arc |
-| Mob `baseHp` | **2.14x** | **2.17x** | Slightly under, so the grind rises gently instead of turning the climax into a slog |
+| Boss `baseHp` | **2.34x** | **2.31x** | Just above the dps ramp, so the boss keeps the same pressure at every arc |
+| Mob `baseHp` | **2.18x** | **2.17x** | Under the boss ramp, so the grind rises gently instead of turning the climax into a slog |
 | `reward`, recruit stats | 1.85x | 1.85x | **Untouched, in every world** — currency comes from kills, and kills per arc are fixed by `mobsToBoss`, so an hp-only change moves the clock without touching the economy at all |
 
 **The two worlds now sit on the same ramps**, where Boruto used to need the steeper table. That is
@@ -95,13 +96,21 @@ last few recruits, how fast the team's dps grows stops depending on how deep the
 stops depending on which world you are standing in. A fourth world can start from these numbers
 rather than measuring a third pair from scratch; the arc-0 allowance below still has to be measured.
 
+**These four ramps were refit whole when `CATCH_UP` went 0.75 → 0.85** (`docs/progression.md`), which
+handed the team ~1.58x more dps. The loop below converged in five passes, and the pacing it converged
+*to* was deliberately not the old per-arc table: the old one had spikes (Shippūden's "L'Assaut de
+Pain" fell in 0.44 min, "Confrontation" took 3.66) that were artifacts of a recruit landing at the
+right arc — exactly the unevenness a higher `CATCH_UP` removes. The target is the log-linear fit
+through the old curve, rescaled to preserve each world's **total** minutes. Reproducing the old
+spikes would have meant re-introducing them by hand into the hp table.
+
 Boss timers are fit last, from the `avgDps` the `--json` report carries per arc, at a margin of
 **~1.5x** over the worst time-to-kill across seeds 1, 2, 3 and 7 — rounded up to 15s steps, kept
 non-decreasing across a world, and floored at 45s so the opening arcs stay forgiving. The result, at
-4 clicks/s: **28/28 arcs cleared in 81-86 minutes with no boss timeout anywhere**, Shippūden's arcs
-averaging a rise of 1.4 → 4.6 minutes and Boruto's 2.8 → 7.4, and the same 3.21T earned and the same
-256 prestige points banked at every seed — the proof the economy is untouched by a change that moves
-hp or the clock alone.
+4 clicks/s: **28/28 arcs cleared in 80-92 minutes with no boss timeout anywhere**, every arc's margin
+landing between 1.5x and 4.2x, Shippūden rising 1.4 → 4.0 minutes an arc and Boruto 3.5 → 7.6, and
+the same 3.21T earned and the same 256 prestige points banked at every seed — the proof the economy
+is untouched by a change that moves hp, the clock or `baseDps` alone.
 
 **Why 1.5x, where this table used to carry 2.5x.** The margin is what makes "Siège prolongé" — the
 "DPS Équipe" tree's node 5, `BOSS_TIMER_BOOST` = +30% of the base clock per level — worth a point.
@@ -129,6 +138,18 @@ target, fold the ratios into one `base x ramp^arc` fit per world (never per arc 
 holds the tables geometric), apply, repeat. It converges in about five passes. Fit the boss timers
 last, from the `avgDps` the JSON report carries per arc.
 
+Three practical notes, each learned by getting it wrong:
+
+- **Refit the boss timers mid-loop, not only at the end.** A boss that times out re-farms its whole
+  arc, which lands in that arc's minutes as a 2x outlier and poisons the fit for every pass after.
+  When one arc times out on all four seeds, fix the clock before reading the ramps again.
+- **Naruto part 1 is corrected arc by arc, and damped.** It is hand-written, so `data.test.ts` does
+  not hold it geometric — but its arcs respond *superlinearly* to hp (roughly time ∝ hp^1.45),
+  because the team is still forming and a longer arc also means more recruits and levels. Applying
+  the raw ratio makes it oscillate with growing amplitude; `ratio ** 0.7` converges in two passes.
+- **Update `data.test.ts`'s expected ramps in the same commit.** They are measurements, not targets,
+  and a corrective ramp of even 1.5%/arc compounds them past the test's ±0.05 tolerance.
+
 ### Where a new world's arc 0 starts — not where you would think
 
 **Adding a world means measuring this again, not copying a ramp.** The dps ramp is a property of how
@@ -141,8 +162,12 @@ was first sized against Shippūden's closing 61.8B dps, and the world walled on 
 Crossing into a new world does two things at once to a team built over sixty recruits:
 `synergyMultiplier` drops every one of them to `otherAnimeMalus` (half damage), and
 `characterContributions` **shuts their passives off entirely** — and by then those additive percents
-are most of what the team's dps is. Measured, the crossing cost 61.8B → **1.95B, a 32x cliff**, and
-it gets steeper with every world added because the roster carried across keeps growing.
+are most of what the team's dps is. Measured at the time, the crossing cost 61.8B → **1.95B, a 32x
+cliff**, and it gets steeper with every world added because the roster carried across keeps growing.
+**Those two figures predate `CATCH_UP` 0.85 and the `baseDps` cohort floor — re-measure the cliff
+before sizing a fourth world on it.** The mechanism is what matters here and is unchanged; the
+magnitude is not, since both changes altered how much of a team's dps comes from characters whose
+passives the crossing switches off.
 
 So a world's arc 0 is sized against the dps the team has **once it is standing there**, which is far
 below where the previous world left off. The cliff closes fast — Boruto's own recruits bring their

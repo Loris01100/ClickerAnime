@@ -120,7 +120,7 @@ export const shippudenCharacters: GameData["characters"] = [
     tags: ["swordsman"],
     arcIds: ["shippuden-traque-itachi", "shippuden-jiraya"],
     baseClickPower: 76,
-    baseDps: 412,
+    baseDps: 494,
     passive: { target: "teamDps", kind: "percent", value: 0.15 },
   },
   {
@@ -130,7 +130,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-traque-itachi", "shippuden-jiraya"],
     baseClickPower: 76,
-    baseDps: 412,
+    baseDps: 494,
     passive: { target: "clickPower", kind: "percent", value: 0.2 },
   },
   {
@@ -140,7 +140,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-traque-itachi", "shippuden-jiraya"],
     baseClickPower: 76,
-    baseDps: 412,
+    baseDps: 494,
     passive: { target: "teamDps", kind: "percent", value: 0.18 },
   },
   {
@@ -183,7 +183,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-freres", "shippuden-pain"],
     baseClickPower: 260,
-    baseDps: 1_410,
+    baseDps: 1_690,
     passive: { target: "teamDps", kind: "percent", value: 0.12 },
   },
   {
@@ -291,7 +291,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-sommet", "shippuden-compte-a-rebours"],
     baseClickPower: 890,
-    baseDps: 4_820,
+    baseDps: 5_780,
     passive: { target: "teamDps", kind: "percent", value: 0.18 },
   },
   {
@@ -301,7 +301,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-sommet", "shippuden-compte-a-rebours"],
     baseClickPower: 890,
-    baseDps: 4_820,
+    baseDps: 5_780,
     passive: { target: "teamDps", kind: "percent", value: 0.18 },
   },
   {
@@ -311,7 +311,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-sommet", "shippuden-compte-a-rebours"],
     baseClickPower: 890,
-    baseDps: 4_820,
+    baseDps: 5_780,
     passive: { target: "clickPower", kind: "percent", value: 0.25 },
   },
   {
@@ -352,7 +352,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-compte-a-rebours", "shippuden-confrontation"],
     baseClickPower: 1_650,
-    baseDps: 8_920,
+    baseDps: 10_700,
     passive: { target: "teamDps", kind: "percent", value: 0.15 },
   },
   {
@@ -362,7 +362,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-compte-a-rebours", "shippuden-confrontation"],
     baseClickPower: 1_650,
-    baseDps: 8_920,
+    baseDps: 10_700,
     passive: { target: "teamDps", kind: "percent", value: 0.18 },
   },
   {
@@ -532,7 +532,7 @@ export const shippudenCharacters: GameData["characters"] = [
     tags: ["uchiwa"],
     arcIds: ["shippuden-histoire-itachi", "shippuden-kaguya"],
     baseClickPower: 19_300,
-    baseDps: 104_000,
+    baseDps: 125_000,
     passive: { target: "teamDps", kind: "percent", value: 0.15 },
   },
   {
@@ -562,7 +562,7 @@ export const shippudenCharacters: GameData["characters"] = [
     rarity: "secondary",
     arcIds: ["shippuden-kaguya", "shippuden-the-last"],
     baseClickPower: 35_700,
-    baseDps: 193_000,
+    baseDps: 232_000,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
   },
   {
@@ -573,7 +573,7 @@ export const shippudenCharacters: GameData["characters"] = [
     tags: ["hyuga"],
     arcIds: ["shippuden-the-last"],
     baseClickPower: 66_000,
-    baseDps: 358_000,
+    baseDps: 429_000,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
   },
   {
