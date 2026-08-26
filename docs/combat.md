@@ -86,8 +86,8 @@ Both generated worlds are now tuned on three ramps rather than one, all verified
 
 | What | Shippūden | Boruto | Why |
 |---|---|---|---|
-| Boss `baseHp` | **2.34x** | **2.31x** | Just above the dps ramp, so the boss keeps the same pressure at every arc |
-| Mob `baseHp` | **2.18x** | **2.17x** | Under the boss ramp, so the grind rises gently instead of turning the climax into a slog |
+| Boss `baseHp` | **2.37x** | **2.39x** | Just above the dps ramp, so the boss keeps the same pressure at every arc |
+| Mob `baseHp` | **2.21x** | **2.25x** | Under the boss ramp, so the grind rises gently instead of turning the climax into a slog |
 | `reward`, recruit stats | 1.85x | 1.85x | **Untouched, in every world** — currency comes from kills, and kills per arc are fixed by `mobsToBoss`, so an hp-only change moves the clock without touching the economy at all |
 
 **The two worlds now sit on the same ramps**, where Boruto used to need the steeper table. That is
@@ -96,8 +96,11 @@ last few recruits, how fast the team's dps grows stops depending on how deep the
 stops depending on which world you are standing in. A fourth world can start from these numbers
 rather than measuring a third pair from scratch; the arc-0 allowance below still has to be measured.
 
-**These four ramps were refit whole when `CATCH_UP` went 0.75 → 0.85** (`docs/progression.md`), which
-handed the team ~1.58x more dps. The loop below converged in five passes, and the pacing it converged
+**These four ramps have been refit whole twice**: when `CATCH_UP` went 0.75 → 0.85
+(`docs/progression.md`), which handed the team ~1.58x more dps, and again when
+`SCOPED_BUFF_CAP` became a ramp (`docs/modifiers.md`), which took ~1.2x of it back and took it back
+*unevenly* — hardest on the early arcs, not at all on the last three. That second refit is why the
+tables are steeper than the dps ramp: the ability nerf is front-loaded, so the hp cut had to be too. The loop below converged in five passes, and the pacing it converged
 *to* was deliberately not the old per-arc table: the old one had spikes (Shippūden's "L'Assaut de
 Pain" fell in 0.44 min, "Confrontation" took 3.66) that were artifacts of a recruit landing at the
 right arc — exactly the unevenness a higher `CATCH_UP` removes. The target is the log-linear fit
@@ -107,10 +110,10 @@ spikes would have meant re-introducing them by hand into the hp table.
 Boss timers are fit last, from the `avgDps` the `--json` report carries per arc, at a margin of
 **~1.5x** over the worst time-to-kill across seeds 1, 2, 3 and 7 — rounded up to 15s steps, kept
 non-decreasing across a world, and floored at 45s so the opening arcs stay forgiving. The result, at
-4 clicks/s: **28/28 arcs cleared in 80-92 minutes with no boss timeout anywhere**, every arc's margin
-landing between 1.5x and 4.2x, Shippūden rising 1.4 → 4.0 minutes an arc and Boruto 3.5 → 7.6, and
+4 clicks/s: **28/28 arcs cleared in 84-87 minutes with no boss timeout anywhere**, every arc's margin
+landing between 1.5x and 5.3x, Shippūden rising 1.5 → 3.9 minutes an arc and Boruto 3.6 → 7.6, and
 the same 3.21T earned and the same 256 prestige points banked at every seed — the proof the economy
-is untouched by a change that moves hp, the clock or `baseDps` alone.
+is untouched by a change that moves hp, the clock, `baseDps` or the buff cap alone.
 
 **Why 1.5x, where this table used to carry 2.5x.** The margin is what makes "Siège prolongé" — the
 "DPS Équipe" tree's node 5, `BOSS_TIMER_BOOST` = +30% of the base clock per level — worth a point.

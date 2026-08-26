@@ -93,8 +93,8 @@ describe("game data", () => {
    * opening world is where the team is still forming and its pacing is not a clean geometric ramp.
    */
   it.each([
-    { animeId: "shippuden", arcCount: 15, mobRamp: 2.18, bossRamp: 2.34 },
-    { animeId: "boruto", arcCount: 8, mobRamp: 2.17, bossRamp: 2.31 },
+    { animeId: "shippuden", arcCount: 15, mobRamp: 2.21, bossRamp: 2.37 },
+    { animeId: "boruto", arcCount: 8, mobRamp: 2.25, bossRamp: 2.39 },
   ])("tient les trois rampes de la table de $animeId", ({ animeId, arcCount, mobRamp, bossRamp }) => {
     const arcs = gameData.arcs.filter((arc) => arc.animeId === animeId).sort((a, b) => a.order - b.order);
     expect(arcs).toHaveLength(arcCount);

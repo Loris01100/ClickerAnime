@@ -749,6 +749,19 @@ small {
   font-size: 0.7rem;
   padding: 0.15rem 0.4rem;
 }
+/* The maitrise ceiling, printed next to "Tout lancer": it climbs arc by arc, so it has to be
+   visible or the ramp reads as abilities being randomly weak early. */
+.buff-cap {
+  margin-left: auto;
+  margin-right: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+  cursor: help;
+}
 .ability-bar > .muted.pad {
   grid-column: 1 / -1;
 }

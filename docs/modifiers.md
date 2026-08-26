@@ -46,9 +46,36 @@ regroupement en pics. C'est bien de l'uptime en moins (`npm run sim` : 76 → 95
 not decoration — the first cut shipped without it and a grown save hit ~4.5 Qa against 3T-hp enemies,
 because combos are *all* multipliers (22 of 22) and a dozen of them on the same character multiply,
 compensation included. Stacking buys you *reaching* the ceiling faster and on more allies, never
-passing it. Re-measured with `npm run sim` after every change to any of the three: a full run lands
-at 74-84 min against the old one-buff rule's 81-90, and the endgame dps within a few times the old
-one instead of two hundred.
+passing it.
+
+### The ceiling is a ramp, not a number
+
+That ceiling **is** an ability's strength, for almost the whole game. Measured with `npm run sim`:
+switch the cap off and the run drops from 80 to 32 minutes, and the per-arc ratios show it binding
+from **arc 2 onward and never letting go**. So from the third fight of a fresh run, a buffed
+character dealt exactly `bare * 50` whatever the buff printed — an opening combo and an Ôtsutsuki
+combo were worth the same thing, and the whole ladder the ability data describes was invisible.
+
+So the cap climbs with the run: `scopedBuffCap(progress)` interpolates geometrically from
+**`SCOPED_BUFF_CAP_FLOOR` (12)** on the first arc to the full 50 on the last, `progress` being
+cleared arcs over `arcs.length - 1` (the store's `buffCap` memo — the ceiling should be reached *on*
+the final arc, not one clear after the game ends). Two things fall out of it:
+
+- **Abilities are weaker early and grow through the run**, which is the point. Under the floor the
+  cap stops binding at all, so `computeEffectiveStat` decides again and the printed values on the
+  early abilities go back to meaning something different from each other.
+- **The ceiling itself never moves.** 50 is what stops the runaway above; raising it re-opens exactly
+  that. The ramp only ever lowers the early game — `src/engine/tests/` guards that no `progress`,
+  including a `NaN` one, can put the cap outside `[floor, 50]`, and that it climbs monotonically so
+  clearing an arc can never weaken a buff.
+
+Because the cap is the strength knob, moving the floor **rebalances the whole first two thirds of the
+game**: both generated hp tables were refit against 12 (three passes, `docs/combat.md`). The store
+prints the live value in the "Capacités" header ("Maîtrise x12") and in every ability's tooltip —
+an invisible ramp would just read as abilities being randomly weak early.
+
+Re-measured with `npm run sim` after every change to any of these: a full run lands at 84-87 min,
+and the endgame dps within a few times the old one-buff rule instead of two hundred.
 
 A `ModifierTemplate` is just `target`/`kind`/`value` — it carries **no id
 of its own**: nothing in the pipeline keys off one (`computeEffectiveStat` keys on

@@ -228,6 +228,15 @@ tout lancer est simplement le meilleur coup, le panel-head porte **« Tout lance
 en lancer une seule. Le compte remplace le total qui était affiché là avant — il dit la même chose
 et en plus ce qui est prêt.
 
+À sa gauche, un badge discret : **« Maîtrise xN »** (`.buff-cap`, pilule `--muted` sur `--line`,
+`cursor: help`). C'est le plafond qu'un buff peut atteindre sur un personnage, et il **monte à chaque
+arc terminé** — de x12 au premier arc à x50 au dernier (`docs/modifiers.md`). Il est affiché parce
+qu'une rampe invisible se lit comme « mes capacités sont bizarrement faibles au début » : le badge en
+fait une progression qu'on voit grimper, et le `title` de chaque capacité redit le plafond du moment,
+puisque ce qui atterrit vraiment est souvent moins que la valeur imprimée juste au-dessus. Le badge
+est **du texte, pas une barre** — il change quelques fois par heure, une jauge à cette cadence serait
+du bruit dans un panneau déjà dense.
+
 Ce qu'on **n'ajoute pas** : rien qui bloque l'input (pas d'animation qui empêche d'enchaîner les
 clics), rien qui ralentisse la boucle de tick 200ms (`gameState.ts`), pas de dépendance externe —
 tout en CSS/`@keyframes` ou signaux Solid, comme l'existant.

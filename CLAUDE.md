@@ -72,10 +72,14 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - **A buff is scoped to the characters it comes from.** An ability boosts its own character, a
   combo boosts its members, and nothing else — which is what lets every ability and combo run at
   once. Don't make a buff team-wide again, and don't reintroduce a `STACK_FALLOFF`.
-- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth.** Combos are all
-  multipliers, so a dozen landing on the same character multiply into an overkill without it. Keep
-  it, and re-run `npm run sim` whenever it or either compensation (`scopedMagnitude`,
-  `dutyMagnitude`) changes.
+- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth, and it ramps.** Combos are
+  all multipliers, so a dozen landing on the same character multiply into an overkill without it —
+  and because it binds from arc 2 onward it *is* an ability's strength, not a safety net.
+  `scopedBuffCap` climbs it from `SCOPED_BUFF_CAP_FLOOR` (12) on the first arc to the full 50 on the
+  last, which is what makes abilities grow over a run instead of arriving at full power. **The
+  ceiling stays 50** — raising it re-opens the overkill it exists to stop; the ramp only lowers the
+  early game. Moving the floor rebalances the first two thirds of the game: re-run `npm run sim` and
+  refit both hp tables (`docs/modifiers.md`).
 - A `ModifierTemplate` carries **no id of its own**. Don't reintroduce a per-effect `id`.
 - **The "Automatisation" branch automates, it never grants.** Every one of its nodes plays a move
   the player could play by hand — walk to the next arc, fire a ready ability, buy a passive rank,
