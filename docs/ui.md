@@ -143,3 +143,18 @@ there is no dropdown state in `App.tsx` beyond the two lines that close it — `
 opens a modal must not leave the menu open underneath it) and `onMenuFocusOut` (`<details>` does not close
 on an outside click by itself). The world-dependent entries stay behind the same
 `game.unlockedAnimes().length > 0` guard they had in the old bar.
+
+## Paths into `public/`
+
+Anything under `public/` is referenced by an absolute path in the source (`/portraits/x.webp`,
+`/naruto-map.jpg`, `/resources/currency-gold.png`) and must go through `ui/asset.ts`'s `asset()`
+before it reaches an `src`. The site is served from a sub-directory on GitHub Pages
+(`/ClickerAnime/`), where a leading `/` points at the domain root instead; Vite rewrites `url()` in
+CSS and static imports, but never a string built at runtime, so the `BASE_URL` prefix has to be
+explicit. The three call sites are `Sprite.tsx` (local portrait overrides only — an AniList URL is
+already absolute), `WorldMap.tsx`'s `mapImage` and `CurrencyBar.tsx`'s four coins.
+
+`CurrencyBar`'s four totals use PNGs from `public/resources/` rather than the SVG icons of
+`icons.tsx` — they are the only objects on screen at all times. The `.coin` colour variants stay for
+every other icon-sized use (`ShopPanel`, `ProgressPanel`, `CrossoverPanel`, `WorldPortal`), where the
+mark is an SVG tinted by a token.

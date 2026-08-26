@@ -1,8 +1,8 @@
 import { createSignal, Show } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
+import { asset } from "./asset";
 import { fmt } from "./format";
-import { IconCrystal, IconDiamond, IconPack, IconSparkle } from "./icons";
 
 /**
  * The row of running totals at the top of the middle column. Each total is a shortcut to where that
@@ -28,11 +28,11 @@ export default function CurrencyBar(props: {
       <Show when={open()}>
       <div class="currency-row">
         <button class="currency" title="Dépenser à la boutique" onClick={props.onOpenShop}>
-          <span class="coin gold"><IconDiamond /></span>
+          <img class="coin" src={asset("/resources/currency-gold.png")} alt="" />
           <strong>{fmt(props.game.currency())}</strong>
         </button>
         <button class="currency" title="Dépenser dans l'arbre de prestige" onClick={props.onOpenPrestige}>
-          <span class="coin violet"><IconSparkle /></span>
+          <img class="coin" src={asset("/resources/prestige.png")} alt="" />
           <strong>{props.game.prestige().prestigePoints}</strong>
         </button>
         {/*
@@ -50,7 +50,7 @@ export default function CurrencyBar(props: {
           }
           onClick={props.onOpenCrossover}
         >
-          <span class="coin blue"><IconCrystal /></span>
+          <img class="coin" src={asset("/resources/crossover-crystal.png")} alt="" />
           <strong>{props.game.crossoverCrystals()}</strong>
         </button>
         <button
@@ -58,7 +58,7 @@ export default function CurrencyBar(props: {
           title={`Points de pack — ${currentAnime()?.name ?? "aucun monde"}`}
           onClick={props.onOpenPacks}
         >
-          <span class="coin green"><IconPack /></span>
+          <img class="coin" src={asset("/resources/pack-points.png")} alt="" />
           <strong>{fmt(props.game.worldPointsOf(currentAnime()?.id ?? ""))}</strong>
         </button>
       </div>

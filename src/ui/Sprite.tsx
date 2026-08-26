@@ -1,5 +1,6 @@
 import { Show, createResource } from "solid-js";
 import { portraitUrl, type PortraitKind } from "./anilist";
+import { asset } from "./asset";
 import { IconSilhouette } from "./icons";
 
 const BOX_COLS = 7;
@@ -44,7 +45,7 @@ export default function Sprite(props: { name: string; kind: PortraitKind; anime?
         <img
           class="sprite"
           classList={{ dim: props.dim, local: src().startsWith("/") }}
-          src={src()}
+          src={src().startsWith("/") ? asset(src()) : src()}
           width={width()}
           height={height()}
           alt=""

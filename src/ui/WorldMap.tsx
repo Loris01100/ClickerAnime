@@ -4,6 +4,7 @@ import { layoutArcs, type MapNode } from "../engine/mapLayout";
 import { themeOf } from "./hue";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
+import { asset } from "./asset";
 import { fmt } from "./format";
 import { IconCheck, IconLock, IconPin } from "./icons";
 
@@ -69,7 +70,7 @@ export default function WorldMap(props: { game: GameStore }) {
               }}
             >
               <Show when={anime().mapImage}>
-                {(src) => <img class="map-bg" src={src()} alt="" />}
+                {(src) => <img class="map-bg" src={asset(src())} alt="" />}
               </Show>
 
               <svg class="map-links" viewBox="0 0 100 100" preserveAspectRatio="none">

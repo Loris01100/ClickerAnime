@@ -615,6 +615,18 @@ small {
 .currency:last-child {
   border-right: none;
 }
+/*
+ * Pastille d'une ressource en image (`public/resources/`) plutôt qu'en SVG : ces quatre-là sont les
+ * seuls objets du jeu qu'on regarde en permanence, ils méritent leur propre dessin. Hauteur fixe et
+ * largeur libre — les quatre fichiers n'ont pas exactement le même ratio, et c'est la hauteur qui
+ * doit s'aligner sur le chiffre voisin.
+ */
+img.coin {
+  height: 1.5rem;
+  width: auto;
+  object-fit: contain;
+  flex: none;
+}
 .coin.gold {
   color: var(--gold);
 }
