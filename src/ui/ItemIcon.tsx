@@ -1,6 +1,10 @@
 import { asset } from "./asset";
 
 const ITEM_ART: Record<string, string> = {
+  "item-bandeau": "item-bandeau.png",
+  "item-collier": "item-collier.png",
+  "item-kusanagi": "item-kusanagi.png",
+  "item-lunettes": "item-lunettes.png",
   "item-shuriken": "item-shuriken.png",
   "item-kubikiri": "item-kubikiri.png",
 };
