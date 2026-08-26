@@ -28,6 +28,12 @@ The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: Ga
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
 
+The three-column shell grows up to 1800px: flexible side columns leave most extra room to combat,
+then stack below 1200px with the middle column first. The combat stage scales from 320px to 430px
+high and uses larger enemy portraits. In `ProgressPanel`, cleared worlds start collapsed; cleared
+arcs in the current world remain selectable but lose their full progress bar and render as compact,
+muted rows. Manually reopening or collapsing a world still wins for the rest of the session.
+
 **A world can carry a real map.** `Anime.mapImage` names art under `public/`, and each arc places
 itself on it with `Arc.mapX`/`mapY` (0..1 fractions of the image). `layoutArcs` falls back to the
 generated snake cell per arc, so a world with no art — or an arc not yet placed — still lays out on

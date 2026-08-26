@@ -403,11 +403,11 @@ button.tree-open:hover:not(:disabled) {
 /* --- layout --- */
 .game {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(270px, 0.8fr) minmax(600px, 2.4fr) minmax(280px, 0.8fr);
   gap: 0.75rem;
   padding: 0.75rem;
   align-items: start;
-  max-width: 1500px;
+  max-width: 1800px;
   margin: 0 auto;
 }
 .column {
@@ -415,7 +415,7 @@ button.tree-open:hover:not(:disabled) {
   flex-direction: column;
   gap: 0.75rem;
 }
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .game {
     grid-template-columns: 1fr;
   }
@@ -781,7 +781,7 @@ small {
 
 .stage {
   position: relative;
-  min-height: 300px;
+  min-height: clamp(320px, 30vw, 430px);
   /* The world's hue washes over the base gradient — what's left showing when AniList has no banner. */
   background: radial-gradient(
       ellipse 85% 65% at 50% 12%,
@@ -1002,7 +1002,10 @@ small {
   text-shadow: var(--label-shadow);
 }
 .hp-bar {
-  height: 22px;
+  height: 26px;
+}
+.hp-bar .bar-label {
+  font-size: 0.78rem;
 }
 .hp-bar .bar-fill {
   background: linear-gradient(90deg, #e0483f, #ff7a45);
@@ -1136,6 +1139,32 @@ small {
 }
 .arc.cleared .arc-bar .bar-fill {
   background: linear-gradient(90deg, #2f9e5f, var(--good));
+}
+.arc.cleared:not(.active) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.25rem;
+  opacity: 0.62;
+}
+.arc.cleared:not(.active) .arc-name {
+  flex: 1;
+  margin: 0;
+}
+.arc.cleared:not(.active) .arc-bar {
+  width: 3.6rem;
+  height: auto;
+  overflow: visible;
+  background: none;
+}
+.arc.cleared:not(.active) .arc-bar .bar-fill {
+  display: none;
+}
+.arc.cleared:not(.active) .arc-bar .bar-label {
+  position: static;
+  justify-content: flex-end;
+  color: var(--good);
+  text-shadow: none;
 }
 .arc-bar .bar-label {
   font-size: 0.62rem;

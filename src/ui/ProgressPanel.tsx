@@ -16,7 +16,7 @@ export default function ProgressPanel(props: {
   const [openAnimes, setOpenAnimes] = createSignal<Record<string, boolean>>({});
   const [travelOpen, setTravelOpen] = createSignal(true);
   const [prestigeOpen, setPrestigeOpen] = createSignal(true);
-  const isAnimeOpen = (id: string) => openAnimes()[id] ?? true;
+  const isAnimeOpen = (id: string) => openAnimes()[id] ?? !props.game.animeCleared(id);
   const toggleAnime = (id: string) => setOpenAnimes((o) => ({ ...o, [id]: !isAnimeOpen(id) }));
   /** Le prestige efface tout le run : un clic accidentel coûtait des heures, d'où la confirmation. */
   function confirmPrestige() {

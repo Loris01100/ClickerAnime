@@ -27,6 +27,11 @@ un onglet si elle peut tenir sur l'écran. Conséquences concrètes déjà en pl
 - **Rien n'est jamais gratuitement gros.** Une icône, un chiffre, une barre — le seul élément qui
   a le droit à une grande taille visuelle est l'ennemi combattu (`.stage`), parce que c'est
   l'unique zone d'interaction directe (clic).
+- **La largeur disponible sert d'abord au combat.** Jusqu'à 1800px, les colonnes latérales restent
+  flexibles mais la colonne centrale reçoit trois fois leur part d'espace ; la scène monte de 320 à
+  430px et le portrait de l'ennemi suit. Les mondes entièrement terminés sont repliés par défaut et
+  leurs arcs, lorsqu'on les rouvre, deviennent des lignes muettes compactes plutôt qu'un mur de
+  barres vertes.
 - **Densité mais pas de bruit** : chaque panel a un `.panel-head` (titre à gauche, compteur/chip/
   select à droite) qui donne un point d'ancrage visuel constant, quelle que soit la richesse du
   contenu en dessous.
@@ -529,7 +534,7 @@ code écrit à la main.
   jamais tronquer, parce qu'aucun nom de monde n'est trop long. Un futur monde au titre à rallonge
   se règle pareil, dans les données, pas dans la mise en page.
 - **Toute animation respecte `prefers-reduced-motion`.**
-- **En dessous de 1100px les trois colonnes s'empilent, et le combat passe en premier.**
+- **En dessous de 1200px les trois colonnes s'empilent, et le combat passe en premier.**
   `.game > .column:nth-child(2) { order: -1 }` : dans l'ordre du DOM, la colonne du milieu arrive
   après tout le roster (capacités + tableau d'équipe + objets), ce qui enterrerait la seule chose
   que le joueur regarde. Une colonne ajoutée un jour doit reprendre cet arbitrage, pas l'ordre du

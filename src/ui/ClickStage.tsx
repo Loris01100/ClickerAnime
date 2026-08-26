@@ -207,7 +207,7 @@ export default function ClickStage(props: { game: GameStore }) {
                   if (event.animationName === "enemy-spawn") setSpawning(false);
                 }}
               >
-                <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 14 : 11} />
+                <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 20 : 17} />
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
                 <Show when={isBoss()}>
