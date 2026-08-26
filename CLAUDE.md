@@ -86,6 +86,12 @@ These outrank convenience, and several were learned the hard way. Don't break on
   unchanged by the whole branch).
 - **A chance node must still be a chance at level 5.** `scaledChance` clamps at 1; a base at or
   above 1/5 silently becomes a guarantee. `src/engine/tests/` guards every chance constant.
+- **A character's `baseDps` is a ramp times a strength, and only the strength is a design
+  statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
+  the arc the player has reached, so an early recruit never becomes dead weight. Two characters
+  debuting in the same arc keep their exact ratio forever — that ratio is the only thing the data
+  really says. `CATCH_UP` must stay **below 1**: at 1 the team's dps grows with roster size instead
+  of converging. Re-run `npm run sim` whenever it moves (`docs/progression.md`).
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.

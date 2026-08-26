@@ -7,6 +7,9 @@ evolutions, and the tier that freezes a world's difficulty at entry.
 
 Two knobs, deliberately decoupled — this is the main/secondary distinction:
 
+- **The catch-up ramp** rescales the printed base damage by how far the story has moved since the
+  character debuted — see below. It is a common factor on both damage stats, so it never changes two
+  characters' relative strength within an arc.
 - **Level is uncapped** and every level grants the *same* flat damage as the one before
   (`levelGrowth(level) = 1 + level * LEVEL_DAMAGE_STEP` applied to `baseClickPower` and `baseDps`).
   Linear on purpose; `LEVEL_DAMAGE_STEP` is the pacing knob for how fast damage outruns enemy hp.
@@ -20,6 +23,50 @@ the xp curve (`XP_BASE`/`XP_GROWTH` in `growth.ts`) after a few dozen levels, st
 and leaving a character's level worth nothing next to their ability. Only the xp total is stored —
 `levelOf` derives the level from it via `levelFromXp`, so level and xp cannot drift apart. Xp dies
 with the team on `prestigeReset`.
+
+## The catch-up ramp (`CATCH_UP`)
+
+A character's printed `baseDps` used to say two things at once: how strong the story is at that
+point, and how strong that character is next to the ones they debut alongside. The first is a
+generated ramp (~1.85x per arc, uniform across all 28 arcs — measured, not assumed), the second is
+the only one that is a design statement. Conflated, the ramp won: arc 1's Naruto at 4 dps against
+Isshiki at 15 200 000 is a 4-million-fold gap, and `levelGrowth` is linear, so nothing ever closes
+it. Every recruit was dead weight two arcs after joining.
+
+So the ramp is divided back out and re-applied where the player actually stands:
+
+- `arcPowerTable` reads the ramp off the cast itself — each arc's power is the strongest `baseDps`
+  debuting there. No new data, and it tracks the tables automatically when a world is added.
+- `reachedArcPower` is the deepest rung the run has stood on (monotone: travelling back never nerfs
+  anyone — the synergy malus already handles being away from home).
+- `catchUpGrowth` multiplies the printed base damage by `(reached / debut) ** CATCH_UP`, folded into
+  `damageGrowth` alongside levels and duplicates.
+
+The ratio `baseDps / arcPower[debut arc]` is untouched by all of this, which is the whole point: two
+characters debuting in the same arc keep their exact relative strength forever, and the "accentuate
+by how strong the character is" part of the design survives intact. `CATCH_UP` is the single knob —
+0 restores the old behaviour, 1 puts every recruit exactly on the current rung, and anything between
+leaves the veterans a fixed distance behind.
+
+**Tuned at 0.75** with `npm run sim`. What the sweep showed (seed 1, 4 clics/s):
+
+| `CATCH_UP` | run | veteran gap at the last arc |
+|---|---|---|
+| 0 (old) | **walls** in Shippūden, never finishes | 4 000 000x |
+| 0.55 | 52 min | ~2 900x |
+| 0.65 | 39 min | ~550x |
+| **0.75** | **35 min** | **~105x** |
+| 0.85 | 22 min | ~20x |
+
+The run time barely moves between 0.65 and 0.85 because kills are capped by `MAX_KILLS_PER_SECOND`
+(`docs/combat.md`): past the point where the team out-damages the hp, extra dps buys nothing. That
+is what makes a high `CATCH_UP` nearly free — the relevance is bought, the pacing is not spent.
+Re-run `npm run sim` if it changes.
+
+Algebraically the inflation is bounded and does **not** grow with roster size: summing
+`D^(1-CATCH_UP)` over a geometric ramp converges for any `CATCH_UP < 1`, at roughly 3.3x the old
+sum here. Do not set it to 1 — there the sum is linear in the number of characters owned, and a
+90-character roster runs away.
 
 ## World progression
 

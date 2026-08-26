@@ -24,8 +24,11 @@ import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKill
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
+  arcPowerTable,
+  catchUpGrowth,
   levelFromXp,
   levelGrowth,
+  reachedArcPower,
   narratorClickPower,
   passiveUpgrade,
   PASSIVE_LEVEL_CAP,
@@ -490,6 +493,15 @@ export function createGameStore(data: GameData) {
 
   const activeArc = createMemo<Arc | null>(() => data.arcs.find((a) => a.id === activeArcId()) ?? null);
 
+  /**
+   * The story's power ramp, read off the cast once (the data never changes at runtime), and how far
+   * up it this run has climbed. Feeds `catchUpGrowth`, which is what keeps an early recruit from
+   * falling millions of dps behind the ramp baked into later worlds' `baseDps` — see growth.ts.
+   */
+  const arcPower = arcPowerTable(data.characters);
+  const reachedPower = createMemo(() => reachedArcPower(arcPower, [activeArcId(), ...clearedArcIds()]));
+  const catchUpOf = (character: Character) => catchUpGrowth(arcPower, character, reachedPower());
+
   const unlockedAnimes = createMemo(() => data.animes.filter((a) => prestige().unlockedAnimeIds.includes(a.id)));
 
   const ownedCharacters = createMemo(() => data.characters.filter((c) => ownedCharacterIds().includes(c.id)));
@@ -609,7 +621,8 @@ export function createGameStore(data: GameData) {
         passiveRankOf(c),
         isEvolved(c),
         equipmentOf(c),
-        duplicatesOf(c.id)
+        duplicatesOf(c.id),
+        catchUpOf(c)
       )
     );
     return [
@@ -1141,12 +1154,18 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * What multiplies a character's printed base damage right now: levels and pack duplicates,
-   * stacked exactly as `characterContributions` does it. Lives here rather than in a component so
-   * the roster and the Codex can never print two different numbers for the same character.
+   * What multiplies a character's printed base damage right now: levels, pack duplicates and the
+   * catch-up ramp, stacked exactly as `characterContributions` does it. Lives here rather than in a
+   * component so the roster and the Codex can never print two different numbers for the same
+   * character.
    */
   function damageGrowthOf(characterId: string): number {
-    return levelGrowth(levelOf(characterId)) * duplicateGrowth(duplicatesOf(characterId));
+    const character = data.characters.find((c) => c.id === characterId);
+    return (
+      levelGrowth(levelOf(characterId)) *
+      duplicateGrowth(duplicatesOf(characterId)) *
+      (character ? catchUpOf(character) : 1)
+    );
   }
 
   /**

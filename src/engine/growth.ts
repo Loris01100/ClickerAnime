@@ -103,3 +103,55 @@ export const NARRATOR_CLICK_PER_ALLY = 1;
 export function narratorClickPower(allyCount: number): number {
   return NARRATOR_BASE_CLICK + allyCount * NARRATOR_CLICK_PER_ALLY;
 }
+
+/**
+ * How much of the story's power ramp an older character catches up on.
+ *
+ * A character's printed `baseDps` conflates two different things: how strong the story is at that
+ * point (a ~1.85x-per-arc ramp baked into the data tables) and how strong that character is next to
+ * the ones they debut alongside. Only the second one is a design statement — the first is why an
+ * arc-1 recruit at 4 dps is dead weight next to a 15 200 000 dps Ôtsutsuki, a 4-million-fold gap
+ * that no amount of `levelGrowth` (linear) ever closes.
+ *
+ * So the ramp is divided back out and re-applied at the point the player has actually reached:
+ * `baseDps * (reachedPower / debutPower) ** CATCH_UP`. The ratio `baseDps / debutPower` survives
+ * untouched, which is the point — a character twice as strong as their arc-mates stays twice as
+ * strong forever. `CATCH_UP` is the single knob: 0 is the old behaviour, 1 lifts every recruit onto
+ * the current ramp exactly, and anything between leaves the veterans a fixed distance behind.
+ *
+ * Tuned with `npm run sim`: lifting the whole roster instead of just the last three recruits
+ * multiplies team dps by roughly the roster size, so this trades directly against the hp ramps.
+ */
+export const CATCH_UP = 0.75;
+
+/**
+ * The power level each arc sits at, read off the cast itself: the strongest character debuting
+ * there. Arcs nobody debuts in are absent — `reachedArcPower` just skips them, the neighbouring
+ * arcs bracket the ramp closely enough.
+ */
+export function arcPowerTable(characters: { arcIds: string[]; baseDps: number }[]): Record<string, number> {
+  const table: Record<string, number> = {};
+  for (const c of characters) {
+    const debut = c.arcIds[0];
+    if (debut) table[debut] = Math.max(table[debut] ?? 0, c.baseDps);
+  }
+  return table;
+}
+
+/** The deepest power level the player has stood at this run. Monotone, so travelling back never nerfs. */
+export function reachedArcPower(table: Record<string, number>, arcIds: (string | null)[]): number {
+  let power = 0;
+  for (const id of arcIds) if (id && table[id]) power = Math.max(power, table[id]);
+  return power;
+}
+
+/** Multiplier on one character's printed base damage from the ramp they've lived through since. */
+export function catchUpGrowth(
+  table: Record<string, number>,
+  character: { arcIds: string[] },
+  reachedPower: number
+): number {
+  const debut = table[character.arcIds[0] ?? ""] ?? 0;
+  if (debut <= 0 || reachedPower <= debut) return 1;
+  return Math.pow(reachedPower / debut, CATCH_UP);
+}

@@ -6,7 +6,7 @@ import { characterContributions, defaultSynergyConfig } from "../synergy";
 import { CROSSOVER_COST } from "../crossover";
 import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeAvailable, isAnimeComplete, isArcUnlocked } from "../progression";
 import { timeToKillMs } from "../combat";
-import { isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
+import { arcPowerTable, CATCH_UP, catchUpGrowth, isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
 import type { Anime, Arc, Character } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
@@ -86,6 +86,30 @@ describe("character growth", () => {
     expect(passiveAt(main, 1)!.value).toBeCloseTo(main.passive!.value);
     expect(passiveAt(main, 5)!.value).toBeGreaterThan(passiveAt(main, 1)!.value);
     expect(passiveAt(side, 5)!.value).toBeCloseTo(passiveAt(main, 5)!.value);
+  });
+
+  it("lifts an early recruit up the story's power ramp without touching their relative strength", () => {
+    const table = arcPowerTable(gameData.characters);
+    const first = gameData.characters.find((c) => c.arcIds[0] === gameData.arcs[0].id)!;
+    const lastArc = gameData.arcs[gameData.arcs.length - 1];
+    const last = gameData.characters.find((c) => c.arcIds[0] === lastArc.id)!;
+    const reached = table[last.arcIds[0]];
+
+    // Fresh out of their debut arc, nothing has changed for anyone.
+    expect(catchUpGrowth(table, first, table[first.arcIds[0]])).toBe(1);
+    expect(catchUpGrowth(table, last, reached)).toBe(1);
+
+    // By the last arc, the veteran has closed most of the gap the data's ramp opened — but only
+    // most of it, and two characters debuting together keep their exact ratio forever.
+    const rawGap = last.baseDps / first.baseDps;
+    const litGap = (last.baseDps * catchUpGrowth(table, last, reached)) /
+      (first.baseDps * catchUpGrowth(table, first, reached));
+    expect(litGap).toBeLessThan(rawGap / 1000);
+    expect(litGap).toBeGreaterThan(1); // still behind: catching up is not overtaking
+    expect(CATCH_UP).toBeLessThan(1);
+
+    const twin = { arcIds: first.arcIds };
+    expect(catchUpGrowth(table, twin, reached)).toBeCloseTo(catchUpGrowth(table, first, reached));
   });
 
   it("drops the passive entirely outside the character's own anime, even when ranked", () => {

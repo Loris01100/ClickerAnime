@@ -34,6 +34,8 @@ export function synergyMultiplier(
  * unless `evolved` and that anime is the character's evolution, which counts as home. An evolved
  * character also adds `evolution.bonus`, scaled the same way as the passive. `duplicates` are the
  * pack copies held of this character (see packs.ts) — they multiply the base damage, uncapped.
+ * `catchUp` is `catchUpGrowth` (growth.ts): how far the story's power ramp has moved since this
+ * character debuted, which is what keeps an arc-1 recruit from becoming dead weight by arc 10.
  */
 export function characterContributions(
   character: Character,
@@ -43,7 +45,8 @@ export function characterContributions(
   passiveRank = 0,
   evolved = false,
   equipmentItems: Item[] = [],
-  duplicates = 0
+  duplicates = 0,
+  catchUp = 1
 ): ActiveModifier[] {
   const synergy = activeArc ? synergyMultiplier(character, activeArc, config, evolved) : 1;
   const isHome = (arc: Arc) =>
@@ -51,8 +54,8 @@ export function characterContributions(
   // Outside every world this character calls home, the passive shuts off — only damage still
   // applies, at the (steep) other-anime malus.
   const otherAnime = activeArc ? !isHome(activeArc) : false;
-  // Levels and pack duplicates both scale the printed base damage, and stack with each other.
-  const damageGrowth = levelGrowth(level) * duplicateGrowth(duplicates);
+  // Levels, pack duplicates and the story's catch-up ramp all scale the printed base damage.
+  const damageGrowth = levelGrowth(level) * duplicateGrowth(duplicates) * catchUp;
   // Rank 1 is the passive as printed; every rank past it deepens it by the usual step.
   const passiveScale = passiveGrowth(passiveRank);
 
