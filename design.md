@@ -115,6 +115,7 @@ Tokens ajoutés pour l'habillage (tous définis dans les **trois** blocs, §8) :
 | `--world-strength` | à quel point `--world-hue` transparaît (0.2 en clair, 0.32 en sombre) |
 | `--world-hue` | teinte du monde courant, posée par les composants — voir §2 |
 | `--font-display` | police d'affichage des titres — voir §12 |
+| `--font-impact` | lettering d'onomatopée : titre, nom de boss, dégâts — voir §12 |
 
 ---
 
@@ -694,19 +695,30 @@ contenu change. `ItemCodex.tsx` rend directement les deux volets, sans wrapper, 
 
 `system-ui` partout donnait au jeu un air de tableau de bord plutôt que d'anime. Une **seule** police
 d'affichage a été ajoutée, `Zen Kaku Gothic New` (token `--font-display`), et **uniquement sur les
-titres** : `.topbar h1`, `.panel-head`, `.arc-current`, `.enemy-name`, `.stage-hint`, `.map-name`,
-`.modal h3`. Le corps de texte, les tableaux compacts et tous les chiffres restent en `system-ui` —
-la lisibilité des colonnes alignées du §1 prime sur la couleur locale.
+titres** : `.panel-head`, `.arc-current`, `.enemy-name`, `.stage-hint`, `.map-name`, `.modal h3`. Le
+corps de texte, les tableaux compacts et tous les chiffres restent en `system-ui` — la lisibilité des
+colonnes alignées du §1 prime sur la couleur locale.
+
+**Une deuxième face, et une seule autre** : `Bangers` (token `--font-impact`), un lettering de BD, sur
+**trois** surfaces — `.topbar h1`, `.enemy-name.boss` et `.pop`. Le critère est l'onomatopée : le
+titre du jeu, le nom du boss (le seul mur du jeu, §4) et les nombres de dégâts qui giclent au clic.
+Rien d'autre, et surtout aucun texte courant : Bangers n'a qu'une graisse et pas de bas-de-casse — ses
+minuscules sont des petites capitales — donc elle est disqualifiée d'office partout où on lit une
+phrase ou compare une colonne de chiffres. Elle vient du même vivier que le reste (Google Fonts, donc
+`@fontsource/bangers`, auto-hébergé, aucune requête externe) ; les alternatives testées sur dossier
+ont été écartées pour la raison inverse : Comic Relief est un clone métrique de Comic Sans (l'ombre
+portée du ridicule), Kalam a de mauvais chiffres, Happy Monkey est trop ronde pour cohabiter avec les
+trames de vitesse et le contour d'encre du §2.
 
 Choix d'une famille japonaise plutôt qu'une display latine à fort caractère (type Bebas Neue) parce
 que les `.panel-head` tournent à 0.85rem : une display condensée en capitales y détruirait la
 densité, là où Zen Kaku Gothic New reste lisible en petit tout en changeant le ton.
 
-**Piège trouvé en l'intégrant, à ne pas refaire** : les entrées CSS par sous-ensemble de
+**Piège trouvé en l'intégrant, à ne pas refaire** (il vaut pour les deux familles) : les entrées CSS par sous-ensemble de
 `@fontsource` (`latin-700.css`, `latin-ext-700.css`, …) **n'ont pas de `unicode-range`**. Importer
 `latin-700` puis `latin-ext-700` produit donc deux `@font-face` aux descripteurs identiques, et le
 dernier gagne pour *tous* les caractères — le poids 700 se retrouvait servi par le sous-ensemble
-latin-ext, qui ne contient aucun caractère ASCII. Les quatre `@font-face` sont donc écrits à la main
+latin-ext, qui ne contient aucun caractère ASCII. Les `@font-face` sont donc tous écrits à la main
 en tête de `styles.css`, avec leur `unicode-range` explicite, ce qui laisse le navigateur combiner
 les deux sous-ensembles et ne télécharger que ce dont la page a besoin. Vite résout les `url()` qui
 pointent vers le paquet (`@fontsource/.../files/*.woff2`) et inline les plus petits fichiers.
