@@ -5,6 +5,10 @@ const ITEM_ART: Record<string, string> = {
   "item-collier": "item-collier.png",
   "item-kusanagi": "item-kusanagi.png",
   "item-lunettes": "item-lunettes.png",
+  "item-parchemin": "item-parchemin.png",
+  "item-pari": "item-pari.png",
+  "item-pilule": "item-pilule.png",
+  "item-ration": "item-ration.png",
   "item-shuriken": "item-shuriken.png",
   "item-kubikiri": "item-kubikiri.png",
 };
