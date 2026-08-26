@@ -58,13 +58,15 @@ export default function ItemCodex(props: { game: GameStore }) {
     return null;
   }
 
-  /** Items grouped by the world they drop in; anything sourceless lands in a trailing group. */
+  /** Items grouped by the world they drop in, uniques first; anything sourceless lands in a trailing group. */
   const groups = createMemo(() => {
     const byAnime = new Map<string, Item[]>();
     for (const item of items()) {
       const animeId = sourceOf(item)?.arc.animeId ?? "";
       byAnime.set(animeId, [...(byAnime.get(animeId) ?? []), item]);
     }
+    for (const list of byAnime.values())
+      list.sort((a, b) => Number(b.kind === "unique") - Number(a.kind === "unique"));
     return [...byAnime.entries()].sort((a, b) => (a[0] === "" ? 1 : b[0] === "" ? -1 : 0));
   });
 
@@ -86,7 +88,9 @@ export default function ItemCodex(props: { game: GameStore }) {
                     onClick={() => setSelectedId(item.id)}
                   >
                     {iconOf(item)}
-                    <span class="name">{item.name}</span>
+                    <span class="name" classList={{ unique: item.kind === "unique" }}>
+                      {item.name}
+                    </span>
                     <span class="rarity">{held(item) > 0 ? `x${held(item)}` : ""}</span>
                   </button>
                 )}
