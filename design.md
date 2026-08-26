@@ -563,8 +563,11 @@ densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent mêm
   abandonnée trop tôt. Passer de 5 à 13 échelles n'a rien changé à l'écran : la liste vient de
   `ACHIEVEMENT_CATEGORIES` et la ligne de palier lit `category.target` pour dire quelle stat le
   bonus alimente (clic ou dps d'équipe), via `describeModifier` — aucun style par catégorie.
-- **Le bouton `Succès` du menu** utilise `IconTrophy` (déjà dans `icons.tsx`, jusque-là
-  inutilisé) — même gabarit que les entrées `Codex`/`Mondes` voisines, aucun style de bouton dédié.
+- **Les entrées du menu n'ont pas d'icône.** Elles en ont eu (`IconGlobe`, `IconShop`, `IconTrophy`,
+  `IconCrown`), et seules 4 des 11 entrées pouvaient en porter une : la colonne d'icônes trouée
+  désalignait les libellés sans rien signaler. Le texte porte seul, en 1rem au lieu du 0.85rem des
+  boutons du jeu — un menu se lit d'un coup d'œil, il n'a pas la contrainte de densité des panneaux
+  (§1). Les icônes restent utilisées là où elles étiquettent une ligne dans une liste dense.
 - **La topbar est un titre centré et un menu unique** (`.startmenu`), sur le modèle du StartMenu de
   PokéClicker : la rangée de boutons grandissait d'un cran à chaque panneau ajouté et finissait par
   toucher le titre. Un `<details>` natif, pas de librairie ni d'état de dropdown ; le panneau

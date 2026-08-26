@@ -380,8 +380,11 @@ button.tree-open:hover:not(:disabled) {
 .startmenu-items button {
   justify-content: flex-start;
   width: 100%;
+  padding: 0.35rem 0.5rem;
   border-color: transparent;
   background: transparent;
+  /* Menu sans icône : le texte porte seul chaque entrée, donc il est plus gros qu'ailleurs. */
+  font-size: 1rem;
   text-align: left;
 }
 .startmenu-items button:hover {

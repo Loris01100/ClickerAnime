@@ -132,7 +132,8 @@ pointerait sur du JS minifié.
 ## The topbar's start menu
 
 The topbar is a centred title plus, anchored right, the theme toggle and one `<details class="startmenu">`
-holding every entry point — Codex, Mondes, Boutique, Packs, Crossover, Défis, Succès, Prestige, then
+holding every entry point, text-only and a size up from the game's buttons — Codex, Mondes, Boutique,
+Packs, Crossover, Défis, Succès, Prestige, then
 Exporter / Importer / Tout effacer and the autosave line. It replaced a row of buttons that grew by one
 every time a panel was added, and would eventually have collided with the title; PokéClicker's StartMenu
 is the model.

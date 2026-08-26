@@ -18,7 +18,7 @@ import Notices from "./ui/Notices";
 import PackPanel from "./ui/PackPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
-import { IconCrown, IconGlobe, IconMonitor, IconMoon, IconShop, IconSun, IconTrophy } from "./ui/icons";
+import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
@@ -110,22 +110,14 @@ export default function App() {
             <div class="startmenu-items">
               <button onClick={() => runFromMenu(() => openCodexOn(undefined))}>Codex</button>
               <Show when={game.unlockedAnimes().length > 0}>
-                <button onClick={() => runFromMenu(() => setPortalOpen(true))}>
-                  <IconGlobe /> Mondes
-                </button>
-                <button onClick={() => runFromMenu(() => setShopOpen(true))}>
-                  <IconShop /> Boutique
-                </button>
+                <button onClick={() => runFromMenu(() => setPortalOpen(true))}>Mondes</button>
+                <button onClick={() => runFromMenu(() => setShopOpen(true))}>Boutique</button>
                 <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
                 <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
                 <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
               </Show>
-              <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>
-                <IconTrophy /> Succès
-              </button>
-              <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>
-                <IconCrown /> Prestige
-              </button>
+              <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
+              <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>
               <hr />
               <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
               <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
