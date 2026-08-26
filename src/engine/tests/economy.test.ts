@@ -207,8 +207,34 @@ describe("le succès « objets uniques équipés »", () => {
       },
     ],
     combos: [],
-    items: [{ id: "u1", name: "U1", kind: "unique" as const, effects: [] }],
+    items: [
+      { id: "u1", name: "U1", kind: "unique" as const, effects: [] },
+      {
+        id: "u2",
+        name: "U2",
+        kind: "unique" as const,
+        effects: [{ target: "teamDps" as const, kind: "multiplier" as const, value: 2 }],
+      },
+    ],
   };
+
+  it("l'objet unique équipé compte dans le DPS affiché du personnage", () => {
+    const restore = installSave(baseSave({ itemCounts: { u2: 1 } }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      const character = data.characters[0];
+      const before = game.characterStatOf(character, "teamDps");
+      expect(game.equipItem("ca", "u2")).toBe(true);
+      expect(game.characterStatOf(character, "teamDps")).toBeCloseTo(before * 2);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
 
   it("ne compte pas deux fois le même objet qu'on déséquipe et rééquipe", () => {
     const restore = installSave(baseSave({ itemCounts: { u1: 1 } }));

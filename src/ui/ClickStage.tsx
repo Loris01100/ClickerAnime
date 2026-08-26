@@ -141,6 +141,14 @@ export default function ClickStage(props: { game: GameStore }) {
             <IconSparkle /> Auto {props.game.autoClickEnabled() ? "ON" : "OFF"}
           </button>
         </Show>
+        <button
+          class="auto-toggle"
+          classList={{ on: props.game.paused() }}
+          title={props.game.paused() ? "Jeu en pause — cliquez pour reprendre." : "Mettre le jeu en pause : dégâts, timers et automatisations s'arrêtent."}
+          onClick={() => props.game.togglePause()}
+        >
+          {props.game.paused() ? "▶ Reprendre" : "⏸ Pause"}
+        </button>
         <small class="muted">
           {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
         </small>

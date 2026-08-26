@@ -12,8 +12,8 @@ type SortKey = "level" | "click" | "dps" | "synergy";
 
 const SORTS: Record<SortKey, { label: string; value: (game: GameStore, c: Character) => number }> = {
   level: { label: "Niveau", value: (game, c) => game.levelOf(c.id) },
-  click: { label: "Clic", value: (game, c) => c.baseClickPower * game.damageGrowthOf(c.id) },
-  dps: { label: "DPS", value: (game, c) => c.baseDps * game.damageGrowthOf(c.id) },
+  click: { label: "Clic", value: (game, c) => game.characterStatOf(c, "clickPower") },
+  dps: { label: "DPS", value: (game, c) => game.characterStatOf(c, "teamDps") },
   synergy: { label: "Synergie", value: (game, c) => game.synergyOf(c) },
 };
 
@@ -223,7 +223,6 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
             {(character) => {
               const progress = () => props.game.progressOf(character.id);
               const level = () => progress().level;
-              const growth = () => props.game.damageGrowthOf(character.id);
               const passive = () => props.game.passiveUpgradeOf(character);
               const passiveItem = () => props.game.passiveItemOf(character);
               return (
@@ -239,8 +238,8 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                       <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
                     </button>
                     <span>{level()}</span>
-                    <span>{fmt(character.baseClickPower * growth())}</span>
-                    <span>{fmt(character.baseDps * growth())}</span>
+                    <span>{fmt(props.game.characterStatOf(character, "clickPower"))}</span>
+                    <span>{fmt(props.game.characterStatOf(character, "teamDps"))}</span>
                     <span
                       class="synergy"
                       classList={{ bad: props.game.synergyOf(character) < 1 }}

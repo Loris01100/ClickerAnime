@@ -409,6 +409,10 @@ export function createGameStore(data: GameData) {
   const dismissNotice = (id: number) => setNotices((list) => list.filter((n) => n.id !== id));
 
   // Combat is transient: the current fight restarts from scratch on reload rather than being saved.
+  // Pause : le jeu ne tourne plus du tout. Le tick sort tôt et, à la reprise, toute échéance
+  // absolue (timer de boss, cooldowns, buffs, automatisations) est décalée de la durée de la pause,
+  // pour qu'une pause ne fasse ni perdre ni gagner de temps.
+  const [paused, setPaused] = createSignal(false);
   const [enemy, setEnemy] = createSignal<Enemy | null>(null);
   const [enemyHpLeft, setEnemyHpLeft] = createSignal(0);
   const [enemyMaxHp, setEnemyMaxHp] = createSignal(0);
@@ -923,7 +927,7 @@ export function createGameStore(data: GameData) {
    * refills a kill every tick — and the next call fells it.
    */
   function dealDamage(amount: number) {
-    if (!enemy() || amount <= 0) return 0;
+    if (paused() || !enemy() || amount <= 0) return 0;
     let remaining = amount;
     const allowance = Math.min(MAX_KILLS_PER_HIT, Math.floor(killBudget()));
     let spent = 0;
@@ -1129,6 +1133,18 @@ export function createGameStore(data: GameData) {
    */
   function damageGrowthOf(characterId: string): number {
     return levelGrowth(levelOf(characterId)) * duplicateGrowth(duplicatesOf(characterId));
+  }
+
+  /**
+   * A character's own printed damage as the roster shows it: base, grown by levels and duplicates,
+   * then their equipped unique folded in. Synergy stays out — it has its own column.
+   */
+  function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
+    const base = (target === "teamDps" ? character.baseDps : character.baseClickPower) * damageGrowthOf(character.id);
+    const effects = (equippedItemOf(character)?.effects ?? [])
+      .filter((e) => e.target === target)
+      .map((e) => ({ ...e, sourceId: character.id }));
+    return computeEffectiveStat(base, target, effects, 0);
   }
 
   /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
@@ -1593,6 +1609,7 @@ export function createGameStore(data: GameData) {
   spawnNext();
 
   const interval = setInterval(() => {
+    if (paused()) return;
     const nowMs = Date.now();
     // Clamped: a sleeping machine or a throttled tab must not bank hours of damage and xp on the
     // first tick back — see MAX_TICK_DELTA_MS.
@@ -1702,6 +1719,25 @@ export function createGameStore(data: GameData) {
       setNotices((list) => list.filter((n) => n.expiresAt > nowMs));
     }
   }, TICK_MS);
+  function togglePause() {
+    const pausedAt = Date.now();
+    if (paused()) {
+      const offset = pausedAt - now();
+      const shift = (t: number | null) => (t === null ? null : t + offset);
+      setTimerDeadline(shift);
+      setAutoAdvanceAt(shift);
+      setAutoRematchAt(shift);
+      setCrossoverUntil((t) => (t ? t + offset : t));
+      setTemporaryModifiers((mods) =>
+        mods.map((m) => (m.expiresAt === undefined ? m : { ...m, expiresAt: m.expiresAt + offset }))
+      );
+      setAbilityLastUsed((map) => Object.fromEntries(Object.entries(map).map(([k, v]) => [k, v + offset])));
+      setNotices((list) => list.map((n) => ({ ...n, expiresAt: n.expiresAt + offset })));
+      setNow(pausedAt);
+    }
+    setPaused((p) => !p);
+  }
+
   const autosave = setInterval(save, AUTOSAVE_MS);
   // `onCleanup` never runs when a tab is simply closed, so up to AUTOSAVE_MS of progress would be
   // lost. `pagehide` is the one lifecycle event that fires in that case on every browser, mobile
@@ -1746,6 +1782,7 @@ export function createGameStore(data: GameData) {
     characterEquipment,
     equippedItemOf,
     canEquipItem,
+    characterStatOf,
     equipItem,
     unequipItem,
     shopOffers,
@@ -1836,6 +1873,8 @@ export function createGameStore(data: GameData) {
     playableArcs,
     stepArc,
     // actions
+    paused,
+    togglePause,
     click,
     setActiveArc,
     unlockAnime,
