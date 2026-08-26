@@ -51,6 +51,7 @@ export const defaultSimOptions: SimOptions = {
 };
 
 export interface ArcReport {
+  id: string;
   world: string;
   arc: string;
   /** Difficulty multiplier the world was entered at — the frozen tier, not the live one. */
@@ -63,6 +64,8 @@ export interface ArcReport {
   teamSize: number;
   avgLevel: number;
   teamDps: number;
+  /** Mean effective dps over the arc — team plus the click cadence. What an hp target is sized on. */
+  avgDps: number;
   clickPower: number;
   bossTimeouts: number;
   lifetimeEarned: number;
@@ -271,12 +274,17 @@ function play(
   let clickCredit = 0;
   let ticks = 0;
   let stalledOn: string | null = null;
+  // Effective dps sampled every tick of the current arc: end-of-arc dps overstates what actually
+  // felled the arc, and an hp table sized on it comes out too heavy.
+  let dpsSum = 0;
+  let dpsSamples = 0;
 
   const finishArc = (arc: Arc) => {
     const now = counters(game);
     const kills = now.kills - baseline.kills;
     const commons = now.commons - baseline.commons;
     arcs.push({
+      id: arc.id,
       world: data.animes.find((a) => a.id === arc.animeId)?.name ?? arc.animeId,
       arc: arc.name,
       difficulty: game.difficultyOf(arc.animeId),
@@ -287,6 +295,7 @@ function play(
       teamSize: game.ownedCharacters().length,
       avgLevel: averageLevel(game),
       teamDps: game.teamDps(),
+      avgDps: dpsSamples > 0 ? dpsSum / dpsSamples : 0,
       clickPower: game.clickPower(),
       bossTimeouts: timeouts.get(arc.id) ?? 0,
       lifetimeEarned: game.lifetimeEarned(),
@@ -308,7 +317,11 @@ function play(
       currentArcId = arc.id;
       arcEnteredAt = clock.now();
       baseline = counters(game);
+      dpsSum = 0;
+      dpsSamples = 0;
     }
+    dpsSum += game.teamDps() + game.clickPower() * options.clicksPerSecond;
+    dpsSamples++;
 
     clickCredit += (options.clicksPerSecond * TICK_MS) / 1000;
     while (clickCredit >= 1) {

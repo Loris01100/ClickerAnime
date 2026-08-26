@@ -33,3 +33,13 @@ The numbers it prints are **measurements, not assertions**: `src/engine/tests/` 
 harness advances at all, is deterministic per seed, and leaves the environment intact. A table of
 zeros means a broken harness, not an impossible game — that is exactly the failure the smoke test
 exists to name.
+
+## Retuning an hp table with it
+
+`--json` carries two fields per arc that the printed table leaves out: `id`, and `avgDps` — the mean
+effective dps over the arc, team plus click cadence. `avgDps` is the one an hp target is sized on;
+the printed `dps` column is the value at the *end* of the arc, which overstates what actually felled
+it and yields a table that comes out too heavy.
+
+The loop, in full, is in `docs/combat.md` — measure, fit one `base x ramp^arc` per world, apply,
+repeat until the nudges are within a few percent, then fit the boss timers from `avgDps`.

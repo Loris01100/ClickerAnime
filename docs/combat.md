@@ -85,16 +85,35 @@ Both generated worlds are now tuned on three ramps rather than one, all verified
 
 | What | Shippūden | Boruto | Why |
 |---|---|---|---|
-| Boss `baseHp` | **2.5x** | **2.55x** | Matches the dps ramp, so the boss keeps the same pressure at every arc |
-| Mob `baseHp` | **2.33x** | **2.4x** | Slightly under, so the grind rises gently instead of turning the climax into a slog |
+| Boss `baseHp` | **2.29x** | **2.30x** | Matches the dps ramp, so the boss keeps the same pressure at every arc |
+| Mob `baseHp` | **2.14x** | **2.17x** | Slightly under, so the grind rises gently instead of turning the climax into a slog |
 | `reward`, recruit stats | 1.85x | 1.85x | **Untouched, in every world** — currency comes from kills, and kills per arc are fixed by `mobsToBoss`, so an hp-only change moves the clock without touching the economy at all |
 
-Boss timers were widened by 1.5x alongside (rounded to 15s steps). The result, on seed 1 at 4
-clicks/s: Shippūden's arcs run 1.3 → 3.4 minutes in a gentle rise, every boss fight uses 18-56s of
-its timer for a margin of 1.9x to 6.6x, and a full run goes from 27 to ~45 minutes with the same
-8.76B earned and the same 236 prestige points banked — the proof the economy really is untouched.
-Boruto, the world after it, runs 3.5 → 7.2 minutes per arc for margins of 3.2x to 8.4x. It is the
-hardest world by a clear margin, which is what its place in the reading order calls for.
+**The two worlds now sit on the same ramps**, where Boruto used to need the steeper table. That is
+`CATCH_UP` (`docs/progression.md`): once the whole roster rides the story's ramp instead of only the
+last few recruits, how fast the team's dps grows stops depending on how deep the roster is — so it
+stops depending on which world you are standing in. A fourth world can start from these numbers
+rather than measuring a third pair from scratch; the arc-0 allowance below still has to be measured.
+
+Boss timers were widened again alongside the catch-up retune, to hold every fight at a margin of at
+least ~2.5x (rounded to 15s steps, and kept non-decreasing across a world). The result, on seeds 1,
+2, 3 and 7 at 4 clicks/s: **28/28 arcs cleared in 81-85 minutes with no boss timeout anywhere**,
+Shippūden's arcs averaging a rise of 1.4 → 4.6 minutes and Boruto's 2.8 → 7.4, and the same 3.21T
+earned and the same 256 prestige points banked at every seed — the proof the economy really is
+untouched by an hp-only change.
+
+Two things the retune fixed, both of which had drifted since the tables were last measured:
+
+- **The run did not finish.** Before `CATCH_UP`, the simulator walled in Shippūden ("L'Histoire
+  d'Itachi") and never reached Boruto — so Boruto's table had gone unverified for a while.
+- **The back half was cap-bound, not hp-bound.** Boruto's arcs were falling in 0.2-1.3 minutes,
+  bottomed out on `MAX_KILLS_PER_SECOND` rather than on enemy hp — the same failure mode Shippūden's
+  flat 1.85 table had, one world further along.
+
+Retuning is a closed loop, not an equation: run `npm run sim`, take each arc's minutes against its
+target, fold the ratios into one `base x ramp^arc` fit per world (never per arc — `data.test.ts`
+holds the tables geometric), apply, repeat. It converges in about five passes. Fit the boss timers
+last, from the `avgDps` the JSON report carries per arc.
 
 ### Where a new world's arc 0 starts — not where you would think
 

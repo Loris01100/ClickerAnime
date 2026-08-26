@@ -84,12 +84,17 @@ describe("game data", () => {
    * and the tuning history are in `docs/combat.md`; this test is what stops an edit from quietly
    * walking one arc off its world's ramp.
    *
+   * The two worlds sit on near-identical ramps now, where Boruto used to be the steeper one. That
+   * is `CATCH_UP` (docs/progression.md): with the whole roster riding the story's ramp instead of
+   * only the last few recruits, how fast the team's dps grows stopped depending on how deep the
+   * roster is — so it stopped depending on which world you are in.
+   *
    * Naruto part 1 is deliberately absent: it is hand-written arc by arc, not generated, because the
    * opening world is where the team is still forming and its pacing is not a clean geometric ramp.
    */
   it.each([
-    { animeId: "shippuden", arcCount: 15, mobRamp: 2.33, bossRamp: 2.5 },
-    { animeId: "boruto", arcCount: 8, mobRamp: 2.4, bossRamp: 2.55 },
+    { animeId: "shippuden", arcCount: 15, mobRamp: 2.14, bossRamp: 2.29 },
+    { animeId: "boruto", arcCount: 8, mobRamp: 2.17, bossRamp: 2.3 },
   ])("tient les trois rampes de la table de $animeId", ({ animeId, arcCount, mobRamp, bossRamp }) => {
     const arcs = gameData.arcs.filter((arc) => arc.animeId === animeId).sort((a, b) => a.order - b.order);
     expect(arcs).toHaveLength(arcCount);
