@@ -124,6 +124,9 @@ export const LOCAL_PORTRAITS: Record<string, string> = {
   "Anbu de la Racine": "/portraits/anbu-de-la-racine.jpeg",
   "Police militaire Uchiwa": "/portraits/police-militaire-uchiwa.webp",
   "Espion de Danzô": "/portraits/espion-de-danzo.webp",
+  "Marionnette de la Lune": "/portraits/marionnette-de-la-lune.webp",
+  "Golem de Toneri": "/portraits/golem-de-toneri.webp",
+  "Chasseur Ôtsutsuki": "/portraits/chasseur-otsutsuki.webp",
 };
 
 interface CastMember {
