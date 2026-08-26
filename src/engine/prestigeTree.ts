@@ -49,7 +49,7 @@ export const AUTOCLICK_INTERVAL_REDUCTION_MS = 300;
  * `reductionMs` per level above, 0 when the node isn't bought at all. Same class of trap as
  * `scaledChance`: a reduction big enough to eat the whole base would make a maxed node fire at 0ms
  * — i.e. every tick — so `reductionMs * (LEVELS_PER_NODE - 1)` must stay under `baseMs`, which
- * `engine.test.ts` asserts for every pair below.
+ * `src/engine/tests/` asserts for every pair below.
  */
 function cadenceMs(baseMs: number, reductionMs: number, level: number): number {
   return level <= 0 ? 0 : baseMs - reductionMs * (level - 1);
@@ -83,7 +83,7 @@ export const PASSIVE_RANK_DISCOUNT = 0.15;
  * A "chance" node must still be a chance at level 5, never a guarantee: `scaledChance` clamps
  * `base * level` at 1, which silently turned 0.25 into "always double" at max level and took the
  * effective common-drop rate from 12% to 48% per kill on its own. Keep every chance constant
- * strictly under 1/5 — `engine.test.ts` asserts it for all of them.
+ * strictly under 1/5 — `src/engine/tests/` asserts it for all of them.
  */
 export const DOUBLE_DROP_CHANCE = 0.08;
 export const PITY_KILLS_THRESHOLD = 15;

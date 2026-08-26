@@ -59,7 +59,7 @@ evolved character is the one exception — see below.
 A character can grow into a stronger self later in their own story without becoming a second Codex
 entry — `Character.evolution` (`animeId`, `label`, `bonus` modifiers, an optional `ability`).
 `evolution.animeId` must be a sequel anime (`requiresAnimeId` pointing back at the character's own
-`animeId`, enforced in `engine.test.ts`) — evolutions only ever look forward in a universe's reading
+`animeId`, enforced in `src/engine/tests/`) — evolutions only ever look forward in a universe's reading
 order, never sideways or back.
 
 The Naruto universe uses this twice, one link per world border: part 1's mains grow when they reach

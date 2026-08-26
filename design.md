@@ -62,7 +62,7 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   unique** côté UI. Les mondes sans art dédié restent automatiquement distincts par le hash ; les
   mondes soignés reçoivent leur teinte sans toucher à un composant. Teintes retenues :
   **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja).
-  `engine.test.ts` vérifie que tout `themeHue` des données reste dans 0..360.
+  `src/engine/tests/` vérifie que tout `themeHue` des données reste dans 0..360.
 - **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
   fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.
   Il pose **`--world-hue`** sur son conteneur (`themeOf(...)`), et `styles.css` fait le reste avec
@@ -625,7 +625,7 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
   prouver le mécanisme (une copie d'objet sans condition, un personnage de Shippûden débloqué une
   fois Naruto terminé) — le vrai contenu (quels personnages, quels objets, quels coûts) reste à
   concevoir. Un personnage acheté doit malgré tout rester recrutable au combat quelque part :
-  `engine.test.ts` impose qu'aucun personnage ne soit "recrutable nulle part", donc une offre
+  `src/engine/tests/` impose qu'aucun personnage ne soit "recrutable nulle part", donc une offre
   boutique est un raccourci payant vers quelqu'un qu'on peut aussi obtenir en jouant, jamais un
   recrutement exclusif à la boutique.
 

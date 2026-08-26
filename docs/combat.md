@@ -30,7 +30,7 @@ budget went unboundedly negative with nothing flooring the debt, so after a few 
 the overkill burst never fired again. Spending no more than the budget holds fixes both at once. The
 stall is handled by construction instead: what the budget caps is *kills*, not damage, so leftover
 damage still chips the enemy in front of the team. It can leave one on nothing for a fraction of a
-second — the budget refills a kill every tick — and the next call fells it. `engine.test.ts` guards
+second — the budget refills a kill every tick — and the next call fells it. `src/engine/tests/` guards
 this with a 40-clicks/s run that must stay inside the cap.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at

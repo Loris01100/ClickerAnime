@@ -11,7 +11,7 @@ the deep rationale per system lives in `docs/`, one file per area, read on deman
 - `npm run dev` — Vite dev server
 - `npm run build` — `tsc --noEmit` typecheck, then Vite build
 - `npm test` — `vitest run` (node environment, only `src/**/*.test.ts`)
-- Single test: `npx vitest run src/engine/engine.test.ts -t "applies flat, then percent"`
+- Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — plays a whole run headlessly and prints its pacing (`docs/simulator.md`)
 
 ## Keeping the docs true
@@ -35,7 +35,7 @@ SolidJS + Vite + TypeScript idle/clicker prototype. Two layers, deliberately sep
 **`src/engine/` — pure logic, no Solid imports**, with exactly two exceptions: `gameState.ts`, the
 reactive seam, and `sim.ts`/`sim.cli.ts`, which drive that seam headlessly and are tooling rather
 than game rules. Every other file exports plain functions over plain data, which is why
-`engine.test.ts` can run in a node environment with no DOM. Keep new game rules pure and here; keep
+the tests in `src/engine/tests/` run in a node environment with no DOM. Keep new game rules pure and here; keep
 them out of components.
 
 **`src/engine/gameState.ts` — the only reactive seam.** `createGameStore(data)` holds all signals,
@@ -85,7 +85,7 @@ These outrank convenience, and several were learned the hard way. Don't break on
   An automation that granted anything would have to be re-simulated; these don't (`npm run sim` is
   unchanged by the whole branch).
 - **A chance node must still be a chance at level 5.** `scaledChance` clamps at 1; a base at or
-  above 1/5 silently becomes a guarantee. `engine.test.ts` guards every chance constant.
+  above 1/5 silently becomes a guarantee. `src/engine/tests/` guards every chance constant.
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.
@@ -101,7 +101,7 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - Tier is the anime's index in `unlockedAnimeIds`, **frozen at entry**. Never recompute a tier from
   the live completed-count — that is what stops a cleared anime from un-clearing itself.
 - Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
-  sequel anime, enforced in `engine.test.ts`.
+  sequel anime, enforced in `src/engine/tests/`.
 - A character belongs to exactly one world and is recruitable in exactly one arc.
 - `prestigeReset` wipes the run but spares the meta-progression: prestige points, achievement
   counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
@@ -165,7 +165,7 @@ world genuinely has no such section.
   border, which is far below what it ends the previous world with (`docs/combat.md`).
 
 A character belongs to exactly one world and is recruitable in exactly one arc: Shippūden reuses no
-one from part 1, it introduces new faces only (`engine.test.ts` enforces both rules, along with every
+one from part 1, it introduces new faces only (`src/engine/tests/` enforces both rules, along with every
 id being unique and every reference resolvable). Combos may still span worlds — the team only wipes
 on prestige, not on travel — which is what makes "Le Sommet des Cinq Kage" (Gaara and Tsunade from
 part 1, plus the Shippūden Kage) worth keeping a mixed team for. Every part-1 `rarity: "main"`

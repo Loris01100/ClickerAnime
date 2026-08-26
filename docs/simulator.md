@@ -27,9 +27,9 @@ It needs its own **`vite.sim.config.ts`**: `vite-node` runs in SSR mode, where N
 signal and `unlockedAnimes()` would still read empty, so the run silently did nothing and printed a
 table of zeros. The config forces the browser condition and pulls solid through Vite's pipeline.
 Don't run the sim through the plain `vite.config.ts`. `vitest` is unaffected: it already resolves
-the client build, which is why the smoke tests in `engine.test.ts` work without it.
+the client build, which is why the smoke tests in `src/engine/tests/` work without it.
 
-The numbers it prints are **measurements, not assertions**: `engine.test.ts` only guards that the
+The numbers it prints are **measurements, not assertions**: `src/engine/tests/` only guards that the
 harness advances at all, is deterministic per seed, and leaves the environment intact. A table of
 zeros means a broken harness, not an impossible game — that is exactly the failure the smoke test
 exists to name.

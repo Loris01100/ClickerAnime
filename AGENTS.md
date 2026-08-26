@@ -28,7 +28,7 @@ All commands run from the project root.
 - `npm run build` — run `tsc --noEmit` typecheck, then Vite production build. Output goes to `dist/`.
 - `npm run preview` — preview the production build locally.
 - `npm test` — run the full Vitest suite (`src/**/*.test.ts`).
-- Single test: `npx vitest run src/engine/engine.test.ts -t "applies flat, then percent"`
+- Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
   check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
   See `docs/simulator.md`.
@@ -40,7 +40,7 @@ substitute for running `npm test` yourself before declaring work done.
 
 The project currently has **129 passing tests** across three test files:
 
-- `src/engine/engine.test.ts` — engine rules
+- `src/engine/tests/` — engine rules, one file per area (combat, progression, economy, modifiers, prestige-tree, challenges, store, data…), shared fixtures in `helpers.ts`
 - `src/ui/ui.test.ts` — small UI utilities
 - `src/ui/anilist.test.ts` — AniList name matching logic
 
@@ -128,7 +128,7 @@ These come from `design.md` and are enforced in the existing components. Any new
 - Engine tests use Node environment and plain data fixtures. Do not import SolidJS in `engine/` tests unless you specifically need reactivity.
 - UI tests (`ui.test.ts`, `anilist.test.ts`) also run in Node; DOM-dependent code is avoided or mocked.
 - Run `npm test` before declaring work done.
-- When adding new game rules, add a test in `engine.test.ts` or a focused test file. The project relies heavily on regression coverage.
+- When adding new game rules, add a test in the matching `src/engine/tests/*.test.ts`. The project relies heavily on regression coverage.
 
 ## Seeing the game
 

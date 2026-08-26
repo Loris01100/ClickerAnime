@@ -41,7 +41,7 @@ Two constants were over that line and together took the effective common-drop ra
 and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third amplifier — `PITY_REDUCTION_PER_LEVEL`
 at 3 forced a common every 3 kills at max level, a 33% floor that made the printed chance
 meaningless. Retuned to 0.08 / 0.1 / 1 respectively (0.41 copies per kill fully maxed).
-`engine.test.ts` now asserts the rule for every chance constant and keeps the pity floor above the
+`src/engine/tests/` now asserts the rule for every chance constant and keeps the pity floor above the
 base draw's own ~8-kill average, so this class of mistake can't come back.
 
 ## Prestige
@@ -51,7 +51,7 @@ Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONE
 one for hours. Currency spans an enormous range between clearing the first world and the last, and
 the old 0.65 exponent turned that span into a gain of thousands — a single full run banked ~6 600
 points against a 775-point tree, buying the whole of the game's meta-progression the first time it
-was reachable. At 0.16 a full run banks ~250 and the tree takes several. `engine.test.ts` guards
+was reachable. At 0.16 a full run banks ~250 and the tree takes several. `src/engine/tests/` guards
 the trio together rather than the individual constants.
 
 **Adding a world only half self-balances, and the exponent is the other half.** `runCompletion` is a
@@ -161,7 +161,7 @@ can never stop being geometric:
   - **Levels buy cadence or scope.** `autoAdvanceDelayMs`, `autoAbilityIntervalMs` and
     `autoRematchDelayMs` all share `cadenceMs(base, reduction, level)` with the autoclicker — the
     same trap applies, a reduction that ate the whole base would make a maxed node fire *every
-    tick*, so `reduction * (LEVELS_PER_NODE - 1)` must stay under `base` and `engine.test.ts`
+    tick*, so `reduction * (LEVELS_PER_NODE - 1)` must stay under `base` and `src/engine/tests/`
     asserts it for all of them, the way it asserts `scaledChance` for every chance constant.
     "Intendance" scales by scope instead (`autoRankSlots`: one character per level), and "Instinct
     de crossover" by how much of the crystal stock it refuses to touch (`autoCrossoverReserve`:
@@ -298,7 +298,7 @@ category** (`AchievementCategory.target`): the click is a trigger, not a damage 
 ladders — the ones the player does *with* the click or with what it drops (clicks, commons,
 abilities, passive ranks, packs) — pay `clickPower`, exactly as many as before the list was
 extended; the other eight, all about what the team kills, clears and becomes, pay `teamDps`.
-`engine.test.ts` guards that split so a new ladder can't quietly be dumped onto the click. Unlike almost everything else,
+`src/engine/tests/` guards that split so a new ladder can't quietly be dumped onto the click. Unlike almost everything else,
 achievement counts are **not** wiped by `prestigeReset` — they are meta-progression in the same spirit
 as prestige points, meant to keep paying off across runs. Only `hardReset`, the full-wipe button,
 clears them.
@@ -314,6 +314,6 @@ the only gate (an anime already **cleared** — `animeCleared`, same as everywhe
 set, a high `cost` is the only barrier. Buying a character just calls the same `setOwnedCharacterIds`
 path `defeat` uses, so it is run-scoped exactly like a combat recruit: wiped by `prestigeReset` along
 with the currency that paid for it, same as the rest of a run. A character bought here must still be
-recruitable in a fight somewhere — `engine.test.ts`'s "recrutable nulle part" check covers
+recruitable in a fight somewhere — `src/engine/tests/`'s "recrutable nulle part" check covers
 `gameData.characters` regardless of a shop offer existing, so a shop character is always a paid
 shortcut to someone reachable in combat too, never an exclusive recruit.
