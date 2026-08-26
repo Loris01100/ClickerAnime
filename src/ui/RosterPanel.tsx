@@ -384,7 +384,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
             {(item) => (
               <div class="item-grid item-row" title={describeItem(item)}>
                 <span class="name">
-                  <ItemIcon kind={item.kind} /> {item.name}
+                  <ItemIcon id={item.id} kind={item.kind} /> {item.name}
                 </span>
                 <span classList={{ unique: item.kind === "unique" }}>
                   {item.kind === "unique" ? "unique" : "commun"}

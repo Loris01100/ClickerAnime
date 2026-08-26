@@ -1,16 +1,21 @@
 import { asset } from "./asset";
 
+const ITEM_ART: Record<string, string> = {
+  "item-shuriken": "item-shuriken.png",
+  "item-kubikiri": "item-kubikiri.png",
+};
+
 /**
- * La marque d'un objet, en image (`public/items/`), déclinée sur la seule chose qui distingue deux
- * objets à l'œil : commun (un passif qu'on empile) ou unique (un équipement). Même raison d'être que
- * `Coin.tsx` — un objet doit se reconnaître au même dessin dans le Codex, la fiche d'un personnage
- * et la boutique.
+ * Uses bespoke art when the item has one, otherwise keeps the common/unique fallback.
  */
-export default function ItemIcon(props: { kind: "common" | "unique"; px?: number }) {
+export default function ItemIcon(props: { id?: string; kind: "common" | "unique"; px?: number }) {
+  const file = () =>
+    (props.id && ITEM_ART[props.id]) ?? (props.kind === "unique" ? "unique-loot.png" : "common-loot.png");
+
   return (
     <img
       class="item-icon"
-      src={asset(props.kind === "unique" ? "/items/unique-loot.png" : "/items/common-loot.png")}
+      src={asset(`/items/${file()}`)}
       style={props.px ? { height: `${props.px}px` } : undefined}
       alt=""
     />

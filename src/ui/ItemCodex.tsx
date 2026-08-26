@@ -69,7 +69,7 @@ export default function ItemCodex(props: { game: GameStore }) {
   });
 
   /** Items have no portrait to fetch — leur marque tient lieu de portrait, agrandie pour la fiche. */
-  const iconOf = (item: Item, px?: number) => <ItemIcon kind={item.kind} px={px} />;
+  const iconOf = (item: Item, px?: number) => <ItemIcon id={item.id} kind={item.kind} px={px} />;
 
   return (
     <>

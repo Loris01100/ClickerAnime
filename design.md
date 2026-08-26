@@ -388,6 +388,10 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 
 ## 6. Sourcing d'images (personnages, mondes)
 
+Les objets peuvent recevoir une illustration locale dans `public/items/`, sélectionnée par leur
+`item.id` dans `ItemIcon.tsx`. Les objets sans illustration dédiée conservent automatiquement la
+marque générique commune ou unique. Le premier duo est `item-shuriken` / `item-kubikiri`.
+
 Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
 `ui/Sprite.tsx`, voir `docs/ui.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
 ni pixel-art généré, ni fichier custom déposé dans le repo — chaque `Character`/`Enemy`/`Anime` a

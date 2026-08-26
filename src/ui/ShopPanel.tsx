@@ -41,7 +41,10 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
             {(entry) => (
               <div class="row">
                 <span class="name">
-                  <Show when={entry.character} fallback={<ItemIcon kind={entry.item?.kind ?? "common"} px={30} />}>
+                  <Show
+                    when={entry.character}
+                    fallback={<ItemIcon id={entry.item?.id} kind={entry.item?.kind ?? "common"} px={30} />}
+                  >
                     {(character) => (
                       <Sprite name={character().name} kind="character" anime={animeNameOf(character().animeId)} px={5} />
                     )}
