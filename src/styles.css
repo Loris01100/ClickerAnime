@@ -1578,6 +1578,10 @@ small {
 .prestige-tree {
   overflow-y: auto;
   max-height: 78vh;
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 88%, var(--active-tint) 0 7rem, transparent 18rem),
+    repeating-radial-gradient(circle at 50% 100%, transparent 0 2.7rem, var(--line) 2.75rem 2.8rem);
 }
 .prestige-tree-balance {
   display: flex;
@@ -1590,17 +1594,47 @@ small {
 .prestige-tree-balance strong {
   color: var(--text);
 }
-/* --- prestige tree: five chains of five tiers, one column per branch --- */
+/* Six independent chains grow as crooked manga boughs from one decorative prestige seal. */
 .prestige-branches {
+  position: relative;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.15rem;
   margin-top: 0.75rem;
   overflow-x: auto;
-  padding-bottom: 0.2rem;
+  padding: 1rem 0.45rem 4.6rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle, var(--line) 0 1px, transparent 1.5px) 0 0 / 9px 9px,
+    linear-gradient(115deg, transparent 49.7%, var(--line) 50%, transparent 50.3%) 50% 100% / 6rem 100% repeat-x,
+    var(--panel-2);
+  isolation: isolate;
+}
+.prestige-branches::before,
+.prestige-branches::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.prestige-branches::before {
+  left: 50%;
+  bottom: 1.4rem;
+  width: 5.5rem;
+  height: 78%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--line) 22% 30%, transparent 31% 43%, var(--line) 44% 61%, transparent 62% 70%, var(--line) 71% 78%, transparent);
+  clip-path: polygon(43% 100%, 47% 55%, 4% 18%, 46% 47%, 50% 0, 55% 47%, 96% 17%, 57% 55%, 63% 100%);
+  opacity: 0.7;
+}
+.prestige-branches::after {
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, transparent 0 28%, var(--panel-2) 72%);
+  opacity: 0.28;
 }
 .prestige-branch {
   flex: 1 1 0;
-  min-width: 6.5rem;
+  min-width: 8.2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1614,6 +1648,12 @@ small {
   font-weight: 600;
   color: var(--branch-tint);
   text-align: center;
+  min-height: 2.2rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--branch-tint) 55%, var(--line));
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--branch-tint) 35%, transparent);
 }
 .prestige-branch-head small {
   color: var(--muted);
@@ -1622,7 +1662,9 @@ small {
 .prestige-branch-canvas {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 3.2;
+  aspect-ratio: 1 / 3.15;
+  border-radius: 4rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--branch-tint) 7%, transparent), transparent 72%);
 }
 .prestige-branch-links {
   position: absolute;
@@ -1641,19 +1683,65 @@ small {
 }
 .prestige-link-line {
   stroke: var(--line);
-  stroke-width: 2;
+  stroke-width: 4;
   vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
 }
 .prestige-link-line.unlocked {
   stroke: var(--branch-tint);
+  filter: drop-shadow(0 0 3px var(--branch-tint));
+}
+/* Each discipline has its own visual grammar, readable even without its branch color. */
+.prestige-branch-narratorClick .prestige-link-line {
+  stroke-dasharray: 2 7;
+  stroke-width: 5;
+}
+.prestige-branch-teamDps .prestige-link-line {
+  stroke-linecap: square;
+  stroke-width: 6;
+}
+.prestige-branch-xp .prestige-link-line {
+  stroke-dasharray: 13 3 2 3;
+  stroke-width: 3;
+}
+.prestige-branch-items .prestige-link-line {
+  stroke-dasharray: 1 6;
+  stroke-width: 7;
+}
+.prestige-branch-destin .prestige-link-line {
+  stroke-dasharray: 1 10;
+  stroke-width: 7;
+}
+.prestige-branch-automation .prestige-link-line {
+  stroke-dasharray: 10 5;
+  stroke-linecap: butt;
+  stroke-width: 5;
+}
+.prestige-branch-narratorClick .prestige-branch-canvas {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--branch-tint) 30%, transparent));
+}
+.prestige-branch-teamDps .prestige-branch-canvas {
+  clip-path: polygon(5% 0, 95% 0, 100% 96%, 50% 100%, 0 96%);
+}
+.prestige-branch-xp .prestige-branch-canvas {
+  background: repeating-linear-gradient(175deg, color-mix(in srgb, var(--branch-tint) 8%, transparent) 0 1px, transparent 1px 17px);
+}
+.prestige-branch-items .prestige-branch-canvas {
+  background: repeating-radial-gradient(circle at 50% 15%, color-mix(in srgb, var(--branch-tint) 9%, transparent) 0 2px, transparent 2px 18px);
+}
+.prestige-branch-destin .prestige-branch-canvas {
+  background: radial-gradient(circle, color-mix(in srgb, var(--branch-tint) 18%, transparent) 0 1px, transparent 2px) 0 0 / 17px 23px;
+}
+.prestige-branch-automation .prestige-branch-canvas {
+  background: repeating-linear-gradient(90deg, transparent 0 18px, color-mix(in srgb, var(--branch-tint) 9%, transparent) 18px 20px);
 }
 .prestige-node {
   position: absolute;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
+  width: 3.85rem;
+  height: 3.85rem;
+  border-radius: 34% 66% 42% 58% / 57% 38% 62% 43%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1661,22 +1749,90 @@ small {
   border: 2px solid var(--line);
   color: var(--text);
   padding: 0;
+  outline: 1px solid color-mix(in srgb, var(--branch-tint) 28%, transparent);
+  outline-offset: 4px;
+  rotate: -3deg;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.prestige-node:nth-of-type(even) {
+  rotate: 4deg;
+}
+.prestige-node::before,
+.prestige-node::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.prestige-node::before {
+  inset: 5px;
+  border: 1px dashed currentColor;
+  border-radius: inherit;
+  opacity: 0.32;
+}
+.prestige-node::after {
+  inset: -9px;
+  background: repeating-conic-gradient(from 5deg, currentColor 0 1deg, transparent 1deg 18deg);
+  clip-path: polygon(48% 0, 52% 0, 54% 35%, 78% 9%, 81% 12%, 62% 42%, 100% 48%, 100% 52%, 63% 55%, 90% 78%, 87% 82%, 57% 62%, 52% 100%, 48% 100%, 45% 63%, 13% 84%, 10% 80%, 37% 56%, 0 52%, 0 48%, 36% 44%, 9% 16%, 13% 13%, 43% 37%);
+  opacity: 0.16;
+  z-index: -1;
+}
+.prestige-node.available:hover:not(:disabled) {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--branch-tint) 65%, transparent);
 }
 .prestige-node.keystone {
-  width: 3.6rem;
-  height: 3.6rem;
+  width: 5rem;
+  height: 5rem;
 }
 .prestige-node.locked .icon {
-  opacity: 0.35;
+  opacity: 0.8;
+}
+.prestige-node > img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px var(--panel));
+}
+.prestige-node.locked > img {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+.prestige-node-lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  filter: drop-shadow(0 1px 2px var(--panel));
 }
 .prestige-node.available {
   border-color: var(--branch-tint);
+}
+.prestige-node.available:disabled {
+  opacity: 0.78;
 }
 .prestige-node.bought {
   border-color: var(--branch-tint);
   background: var(--branch-tint);
   color: var(--panel);
   box-shadow: 0 0 14px var(--branch-tint);
+}
+.prestige-tree-heart {
+  position: absolute;
+  left: 50%;
+  bottom: 0.8rem;
+  transform: translateX(-50%) rotate(45deg);
+  width: 3.6rem;
+  height: 3.6rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--accent);
+  background: var(--panel);
+  box-shadow: 0 0 22px var(--accent);
+}
+.prestige-tree-heart > * {
+  transform: rotate(-45deg);
 }
 .prestige-node-cost,
 .prestige-node-level {

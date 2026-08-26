@@ -25,6 +25,28 @@ const BRANCH_TINT: Record<PrestigeTreeCategoryId, string> = {
 
 const nodeY = (index: number) => ((index + 0.5) / LEVELS_PER_NODE) * 100;
 
+/** Each discipline grows with its own crooked silhouette instead of reading as a spreadsheet column. */
+const BRANCH_PATH: Record<PrestigeTreeCategoryId, readonly number[]> = {
+  narratorClick: [54, 38, 61, 42, 57],
+  teamDps: [45, 62, 39, 58, 43],
+  xp: [56, 42, 63, 47, 58],
+  items: [44, 60, 38, 55, 41],
+  destin: [55, 37, 59, 43, 62],
+  automation: [43, 61, 46, 64, 48],
+};
+
+const BRANCH_ASSET: Record<PrestigeTreeCategoryId, string> = {
+  narratorClick: "narrator-click",
+  teamDps: "team-dps",
+  xp: "xp",
+  items: "items",
+  destin: "destin",
+  automation: "automation",
+};
+
+const nodeImage = (category: PrestigeTreeCategoryId, position: number) =>
+  `/prestige-nodes/${BRANCH_ASSET[category]}-${position}.webp`;
+
 /**
  * Six independent chains, one column per branch — see design.md §5. Each of the 5 nodes holds up
  * to 5 levels of the same repeating effect (`nodeLevelOf`); a node unlocks as soon as its
@@ -78,9 +100,13 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
                 const maxedAt = (position: number) => levelOf(position) >= LEVELS_PER_NODE;
                 const activeNodes = () => category.nodes.filter((n) => unlockedAt(n.position) && !maxedAt(n.position));
                 const Icon = BRANCH_ICON[category.id];
+                const path = BRANCH_PATH[category.id];
 
                 return (
-                  <div class="prestige-branch" style={{ "--branch-tint": BRANCH_TINT[category.id] }}>
+                  <div
+                    class={`prestige-branch prestige-branch-${category.id}`}
+                    style={{ "--branch-tint": BRANCH_TINT[category.id] }}
+                  >
                     <div class="prestige-branch-head">
                       <Icon />
                       <span>{category.label}</span>
@@ -97,9 +123,9 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
                               <line
                                 class="prestige-link-line"
                                 classList={{ unlocked: unlockedAt(node.position) }}
-                                x1="50"
+                                x1={path[i() - 1]}
                                 y1={nodeY(i() - 1)}
-                                x2="50"
+                                x2={path[i()]}
                                 y2={nodeY(i())}
                               />
                             </Show>
@@ -125,11 +151,12 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
                                 <div
                                   class="prestige-node"
                                   classList={{ bought: unlocked() && maxed(), locked: !unlocked(), keystone: isKeystone }}
-                                  style={{ top: `${nodeY(i())}%` }}
+                                  style={{ top: `${nodeY(i())}%`, left: `${path[i()]}%` }}
                                   title={`${node.label} — ${node.description} (niveau ${level()}/${LEVELS_PER_NODE})`}
                                 >
-                                  <Show when={unlocked()} fallback={<IconLock />}>
-                                    <Icon />
+                                  <img src={nodeImage(category.id, node.position)} alt="" />
+                                  <Show when={!unlocked()}>
+                                    <span class="prestige-node-lock"><IconLock /></span>
                                   </Show>
                                 </div>
                               }
@@ -137,12 +164,12 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
                               <button
                                 class="prestige-node available"
                                 classList={{ keystone: isKeystone }}
-                                style={{ top: `${nodeY(i())}%` }}
+                                style={{ top: `${nodeY(i())}%`, left: `${path[i()]}%` }}
                                 disabled={!affordable()}
                                 title={`${node.label} — ${node.description} (niveau ${level()}/${LEVELS_PER_NODE})`}
                                 onClick={() => props.game.purchaseTreeLevel(category.id, node.position)}
                               >
-                                <Icon />
+                                <img src={nodeImage(category.id, node.position)} alt="" />
                                 <span class="prestige-node-level">
                                   {level()}/{LEVELS_PER_NODE}
                                 </span>
@@ -162,7 +189,7 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
                         <For each={activeNodes()}>
                           {(node) => (
                             <p class="muted small">
-                              Niveau {levelOf(node.position)}/{LEVELS_PER_NODE} — {node.description}
+                              <strong>{node.label}</strong> · Niveau {levelOf(node.position)}/{LEVELS_PER_NODE} — {node.description}
                             </p>
                           )}
                         </For>
@@ -172,6 +199,9 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
                 );
               }}
             </For>
+            <div class="prestige-tree-heart" aria-hidden="true">
+              <Coin kind="prestige" px={28} />
+            </div>
           </div>
         </div>
       </div>

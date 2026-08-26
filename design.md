@@ -321,6 +321,19 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 
 ### 5.3 Disposition, déblocage et monnaie
 
+La logique reste six chaînes indépendantes, mais la présentation ne les range plus sur six lignes
+verticales strictes : elles poussent en rameaux irréguliers autour d'un tronc commun décoratif. Les
+nœuds reprennent la forme imparfaite de sceaux dessinés et le fond une trame manga discrète. Ce
+langage visuel n'ajoute aucune dépendance entre branches et reste construit avec les tokens du thème.
+Chaque nœud possède aussi un emblème raster distinct dans `public/prestige-nodes/`, généré comme une
+iconographie originale plutôt que tiré d'une licence anime existante. L'image raconte l'effet précis
+du nœud ; l'icône générique de la branche ne sert plus qu'à identifier son en-tête.
+La silhouette du lien distingue également les disciplines sans dépendre uniquement de la couleur :
+énergie interrompue pour le clic, trait lourd et angulaire pour le DPS, rythme calligraphique pour
+l'XP, chaîne perlée pour les objets, constellation pour le destin et segments mécaniques pour
+l'automatisation. Les nœuds standards sont volontairement grands pour que leurs emblèmes restent
+lisibles ; les clés de voûte le sont davantage encore.
+
 - **Une seule monnaie** : `PrestigeState.prestigePoints` reste le seul solde (✦), déjà affiché
   dans `CurrencyBar`. Pas de sous-monnaie par branche.
 - **Chaîne, pas un arbre ramifié — mais un seul niveau suffit à ouvrir le nœud suivant.**
