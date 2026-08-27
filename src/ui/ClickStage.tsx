@@ -6,7 +6,7 @@ import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
-import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconSparkle, IconStar, IconTarget } from "./icons";
+import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar, IconTarget } from "./icons";
 
 interface Pop {
   id: number;
@@ -127,29 +127,6 @@ export default function ClickStage(props: { game: GameStore }) {
         <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
           Combat
         </PanelTitle>
-        {/* Only once the perk is actually bought — an off switch for something you don't have is noise. */}
-        <Show when={props.game.autoClickLevel() > 0}>
-          <button
-            class="auto-toggle"
-            classList={{ on: props.game.autoClickEnabled() }}
-            title={
-              props.game.autoClickEnabled()
-                ? `Clic automatique actif — un clic à pleine puissance toutes les ${seconds(props.game.autoClickInterval())}. Cliquez pour le couper.`
-                : "Clic automatique coupé. Cliquez pour le relancer."
-            }
-            onClick={() => props.game.setAutoClickEnabled(!props.game.autoClickEnabled())}
-          >
-            <IconSparkle /> Auto {props.game.autoClickEnabled() ? "ON" : "OFF"}
-          </button>
-        </Show>
-        <button
-          class="auto-toggle"
-          classList={{ on: props.game.paused() }}
-          title={props.game.paused() ? "Jeu en pause — cliquez pour reprendre." : "Mettre le jeu en pause : dégâts, timers et automatisations s'arrêtent."}
-          onClick={() => props.game.togglePause()}
-        >
-          {props.game.paused() ? "▶ Reprendre" : "⏸ Pause"}
-        </button>
         <small class="muted">
           {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
         </small>

@@ -196,9 +196,9 @@ L'auto-clic frappe à **pleine puissance de clic** ; ce que ses niveaux achèten
 d'un pourcentage invisible. Il suit la même règle que le reste : **ce qui frappe doit se voir**.
 Il produit donc son propre pop de dégâts, volontairement distinct de celui du joueur (plus petit,
 `--blue`, sans le `!` du critique) et posé près de l'ennemi avec une légère dispersion — il n'a
-aucun curseur derrière lui. L'interrupteur `.auto-toggle` vit dans le `panel-head` du Combat,
-c'est-à-dire là où l'effet se produit, et n'apparaît qu'une fois le nœud acheté : un interrupteur
-pour quelque chose qu'on ne possède pas est du bruit.
+aucun curseur derrière lui. L'interrupteur `.auto-toggle` vit dans la bande d'automatisation sous
+le sélecteur d'arc, avec Pause et les autres automatisations, et n'apparaît qu'une fois le nœud
+acheté : un interrupteur pour quelque chose qu'on ne possède pas est du bruit.
 
 ### 4.2 Lire sa progression d'un coup d'œil
 

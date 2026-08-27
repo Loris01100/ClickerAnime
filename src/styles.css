@@ -2056,8 +2056,8 @@ button.danger {
 
 /*
  * La bande d'automatisation, sous le sélecteur d'arc : une puce par automatisation *achetée*
- * (branche « Automatisation » de l'arbre), donc une bande qui n'existe pas tant que rien n'est
- * acheté. Elle défile horizontalement plutôt que de repousser le combat vers le bas.
+ * (branche « Automatisation » de l'arbre), plus le clic auto et la pause. Elle défile
+ * horizontalement plutôt que de repousser le combat vers le bas.
  */
 .auto-strip {
   display: flex;

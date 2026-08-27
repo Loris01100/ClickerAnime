@@ -77,7 +77,8 @@ plain `--stage-bg` gradient.
 
 `AutomationBar.tsx` is the strip of switches under `ClickStage`'s arc stepper, one per node of the
 prestige tree's "Automatisation" branch that is actually **bought** — an off switch for something
-you don't own is noise, the same rule the autoclicker's toggle in the Combat panel head follows.
+you don't own is noise. It also holds the Echo click toggle once bought and the always-available
+pause control, keeping every automatic/combat-flow switch on the same line.
 Each chip reads its label straight out of `PRESTIGE_TREE_CATEGORIES` so a switch and its tree node
 can't drift apart, and its tooltip states what the automation is doing *at the level bought right
 now* (`autoAdvanceDelay()`, `autoAbilityInterval()`, …) rather than repeating the node's generic

@@ -7,7 +7,7 @@ import {
   PRESTIGE_TREE_CATEGORIES,
 } from "../engine/prestigeTree";
 import { seconds } from "./format";
-import { IconGear } from "./icons";
+import { IconGear, IconSparkle } from "./icons";
 
 /** The branch's own node labels, so a switch and its tree node can never drift apart. */
 const NODES = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === "automation")?.nodes ?? [];
@@ -41,28 +41,48 @@ export default function AutomationBar(props: { game: GameStore }) {
   const owned = () => AUTOMATION_KEYS.filter((key) => props.game.automationLevelOf(key) > 0);
 
   return (
-    <Show when={owned().length > 0}>
-      <div class="auto-strip">
-        <span class="auto-strip-head muted">
-          <IconGear /> Automatisation
-        </span>
-        <For each={owned()}>
-          {(key) => {
-            const on = () => props.game.automationEnabled(key);
-            return (
-              <button
-                class="auto-toggle"
-                classList={{ on: on() }}
-                aria-pressed={on()}
-                title={`${detailOf(props.game, key)} ${on() ? "Cliquez pour la couper." : "Coupée — cliquez pour la relancer."}`}
-                onClick={() => props.game.setAutomationEnabled(key, !on())}
-              >
-                {labelOf(key)}
-              </button>
-            );
-          }}
-        </For>
-      </div>
-    </Show>
+    <div class="auto-strip">
+      <span class="auto-strip-head muted">
+        <IconGear /> Automatisation
+      </span>
+      <For each={owned()}>
+        {(key) => {
+          const on = () => props.game.automationEnabled(key);
+          return (
+            <button
+              class="auto-toggle"
+              classList={{ on: on() }}
+              aria-pressed={on()}
+              title={`${detailOf(props.game, key)} ${on() ? "Cliquez pour la couper." : "Coupée — cliquez pour la relancer."}`}
+              onClick={() => props.game.setAutomationEnabled(key, !on())}
+            >
+              {labelOf(key)}
+            </button>
+          );
+        }}
+      </For>
+      <Show when={props.game.autoClickLevel() > 0}>
+        <button
+          class="auto-toggle"
+          classList={{ on: props.game.autoClickEnabled() }}
+          title={
+            props.game.autoClickEnabled()
+              ? `Clic automatique actif — un clic à pleine puissance toutes les ${seconds(props.game.autoClickInterval())}. Cliquez pour le couper.`
+              : "Clic automatique coupé. Cliquez pour le relancer."
+          }
+          onClick={() => props.game.setAutoClickEnabled(!props.game.autoClickEnabled())}
+        >
+          <IconSparkle /> Auto {props.game.autoClickEnabled() ? "ON" : "OFF"}
+        </button>
+      </Show>
+      <button
+        class="auto-toggle"
+        classList={{ on: props.game.paused() }}
+        title={props.game.paused() ? "Jeu en pause — cliquez pour reprendre." : "Mettre le jeu en pause : dégâts, timers et automatisations s'arrêtent."}
+        onClick={() => props.game.togglePause()}
+      >
+        {props.game.paused() ? "▶ Reprendre" : "⏸ Pause"}
+      </button>
+    </div>
   );
 }
