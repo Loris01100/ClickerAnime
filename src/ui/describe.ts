@@ -2,6 +2,29 @@ import { cooldownOf } from "../engine/abilities";
 import type { AbilityDefinition, EquippableBy, Item, ModifierTemplate } from "../engine/types";
 import { fmt, seconds } from "./format";
 
+const CHARACTER_TAG_LABEL: Record<string, string> = {
+  akatsuki: "Akatsuki",
+  animal: "Animal",
+  hyuga: "Hyūga",
+  invocation: "Invocation",
+  jinchuriki: "Jinchūriki",
+  kara: "Kara",
+  karma: "Karma",
+  nue: "Nue",
+  otsutsuki: "Ōtsutsuki",
+  sage: "Ermite",
+  sannin: "Sannin",
+  serpent: "Serpent",
+  sharingan: "Sharingan",
+  swordsman: "Épéiste",
+  suna: "Ninja de Suna",
+  uchiwa: "Uchiwa",
+  uzumaki: "Uzumaki",
+};
+
+/** French display name for the character categories used by equipment restrictions. */
+export const describeCharacterTag = (tag: string) => CHARACTER_TAG_LABEL[tag] ?? tag;
+
 const TARGET_LABEL: Record<ModifierTemplate["target"], string> = {
   clickPower: "au clic",
   teamDps: "de DPS",
@@ -26,7 +49,8 @@ export function describeEquippableBy(restriction: EquippableBy | undefined): str
   const parts: string[] = [];
   if (restriction.characterIds && restriction.characterIds.length > 0) parts.push("personnages spécifiques");
   if (restriction.animeIds && restriction.animeIds.length > 0) parts.push("monde spécifique");
-  if (restriction.tags && restriction.tags.length > 0) parts.push(restriction.tags.map((t) => t).join(", "));
+  if (restriction.tags && restriction.tags.length > 0)
+    parts.push(restriction.tags.map(describeCharacterTag).join(", "));
   return parts.length > 0 ? `Réservé à : ${parts.join(" ; ")}` : "";
 }
 

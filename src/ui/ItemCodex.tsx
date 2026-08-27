@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Arc, Enemy, Item } from "../engine/types";
-import { describeModifier } from "./describe";
+import { describeCharacterTag, describeModifier } from "./describe";
 import ItemIcon from "./ItemIcon";
 
 const KIND_LABEL: Record<Item["kind"], string> = {
@@ -54,7 +54,7 @@ export default function ItemCodex(props: { game: GameStore }) {
     if (rule.characterIds)
       return rule.characterIds.map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id).join(", ");
     if (rule.animeIds) return rule.animeIds.map(animeName).join(", ");
-    if (rule.tags) return `personnages « ${rule.tags.join(" », « ")} »`;
+    if (rule.tags) return `personnages « ${rule.tags.map(describeCharacterTag).join(" », « ")} »`;
     return null;
   }
 

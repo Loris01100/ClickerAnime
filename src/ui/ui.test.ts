@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { spriteHue, themeOf } from "./hue";
-import { describeAbility, describeModifier } from "./describe";
+import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
 
 describe("spriteHue", () => {
   it("gives the same hue for the same id, every time", () => {
@@ -43,5 +43,12 @@ describe("describeModifier", () => {
     expect(text).toContain("5.0s");
     // La recharge affichée est celle réellement appliquée : 30s x ABILITY_COOLDOWN_SCALE.
     expect(text).toContain("45s");
+  });
+});
+
+describe("describeCharacterTag", () => {
+  it("translates equipment categories and keeps unknown ones readable", () => {
+    expect(describeCharacterTag("swordsman")).toBe("Épéiste");
+    expect(describeCharacterTag("future-tag")).toBe("future-tag");
   });
 });

@@ -5,7 +5,7 @@ import { LEVEL_DAMAGE_STEP, passiveGrowth } from "../engine/growth";
 import { DUPLICATE_DAMAGE_STEP } from "../engine/packs";
 import ItemCodex from "./ItemCodex";
 import Sprite from "./Sprite";
-import { describeAbility, describeModifier } from "./describe";
+import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
 import { fmt } from "./format";
 import { IconStar, IconStarOutline } from "./icons";
 
@@ -116,6 +116,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                     <p class="muted small">
                       {RARITY_LABEL[character().rarity]} · {animeName(character().animeId)}
                     </p>
+                    <Show when={character().tags?.length}>
+                      <p class="small">Type : {character().tags!.map(describeCharacterTag).join(" · ")}</p>
+                    </Show>
                     <p class="small" classList={{ muted: !owned(character()) }}>
                       {owned(character())
                         ? `Dans l'équipe · niveau ${props.game.levelOf(character().id)}`

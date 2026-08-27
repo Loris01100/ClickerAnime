@@ -20,7 +20,7 @@ panel because it is the way out of an unrecoverable save, and the topbar shows i
 resource is spent (gold → shop, prestige → tree, crystals → crossover, pack points → packs), so no
 counter is a dead end; the pack tile follows the active arc, since pack points are per world. `Codex.tsx` is the largest: the
 full character list, met or not, with stats, the passive at level 0 / at cap / right now, abilities,
-evolution and combos. It carries a second tab over the same two-pane shell, `ItemCodex.tsx`: every
+evolution, combos and the translated character types used by equipment restrictions. It carries a second tab over the same two-pane shell, `ItemCodex.tsx`: every
 item, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
 a passive can be bought from wherever it is read, not only from the team table.

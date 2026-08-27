@@ -740,6 +740,8 @@ contenu change. `ItemCodex.tsx` rend directement les deux volets, sans wrapper, 
 - **Le détail répond aux questions du joueur dans l'ordre où il se les pose** : d'où ça tombe (arc,
   ennemi, chance), puis à quoi ça sert — les passifs qu'un commun monte avec leur rang actuel, ou
   pour un unique ses effets, son porteur du moment et sa restriction éventuelle.
+- Les types d'un personnage sont affichés et traduits dans sa fiche ; une restriction d'objet reprend
+  exactement les mêmes libellés pour que sa compatibilité se lise sans connaître les identifiants internes.
 - **Le bouton `.rank-up` du roster est repris à l'identique** (« +1 · copies/coût »), ici sur chaque
   ligne de passif et dans le bloc Passif de l'onglet Personnages : là où un rang se lit en entier,
   il doit pouvoir s'acheter, sans repasser par le tableau de l'équipe. Une `.codex-row` qui porte une
