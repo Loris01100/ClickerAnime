@@ -5,6 +5,40 @@ import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("keeps ability cooldowns across a reload", () => {
+    const usedAt = Date.now();
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: [],
+          baseClickPower: 0,
+          baseDps: 1,
+          ability: { id: "ability-a", name: "A", cooldownMs: 10_000, durationMs: 1_000, effects: [] },
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const restore = installSave({ ...baseSave(), abilityLastUsed: { "ability-a": usedAt } });
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      expect(game.readyAbilities()).toEqual([]);
+      expect(game.abilityCooldownRemaining("ability-a")).toBeGreaterThan(0);
+    } finally {
+      restore();
+    }
+  });
+
   it("drops invalid imported equipment before it can grant a bonus", () => {
     const data = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],

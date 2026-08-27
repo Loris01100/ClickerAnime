@@ -229,6 +229,8 @@ interface SaveFile {
    * written; an absent one — every save from before this existed — reads as `"always"`.
    */
   abilityPolicy?: Record<string, AbilityPolicy>;
+  /** cooldown start times survive a reload so refreshing cannot make abilities ready early */
+  abilityLastUsed?: Record<string, number>;
   /** the challenge being played right now, if any; absent on an older save, defaults to none */
   activeChallengeId?: string | null;
   /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
@@ -281,6 +283,7 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.automationOff, (v) => isRecordOf(v, (on) => typeof on === "boolean")) &&
     opt(c.autoRankCharacterIds, isStringArray) &&
     opt(c.abilityPolicy, (v) => isRecordOf(v, (p) => p === "always" || p === "boss" || p === "sync")) &&
+    opt(c.abilityLastUsed, (v) => isRecordOf(v, isNumber)) &&
     opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
     opt(c.completedChallengeIds, isStringArray) &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
@@ -451,7 +454,8 @@ export function createGameStore(data: GameData) {
       : createInitialPrestigeState()
   );
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
-  const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
+  // Combat itself restarts on reload, but cooldowns do not: otherwise Ctrl+F5 becomes an ability reset.
+  const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>(saved?.abilityLastUsed ?? {});
   /**
    * How the automation is allowed to spend each ability — a preference, like `autoClickEnabled`, so
    * it survives a prestige. Only non-default entries are stored.
@@ -1716,6 +1720,7 @@ export function createGameStore(data: GameData) {
       automationOff: automationOff(),
       autoRankCharacterIds: autoRankCharacterIds(),
       abilityPolicy: abilityPolicy(),
+      abilityLastUsed: abilityLastUsed(),
       activeChallengeId: activeChallengeId(),
       completedChallengeIds: completedChallengeIds(),
     };

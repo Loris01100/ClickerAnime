@@ -21,7 +21,8 @@ same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.t
 `localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
 a setter per field. Equipment is additionally sanitized against the current game data on boot: an
 unknown, unowned, restricted or duplicate unique is discarded rather than granting a bonus. There is
-no offline-progress catch-up.
+no offline-progress catch-up. Combat still restarts on a reload, except for ability cooldown start
+times: they are saved so Ctrl+F5 cannot turn a cooling ability into a ready one.
 
 Two optional fields carry the prestige tree's "Automatisation" branch, and neither needed a key
 bump. `automationOff` holds the automations the player switched **off**, keyed by `AutomationKey` —
