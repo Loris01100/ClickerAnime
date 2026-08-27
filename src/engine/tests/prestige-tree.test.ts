@@ -517,14 +517,26 @@ describe("prestige tree — wired into gameState", () => {
 
   it("vend des lots de l'objet commun de l'arc actif au prix de son économie locale", () => {
     const testData = makeTestData({ mobItemId: "common-item", mobDropChance: 0 });
-    const restore = installSave(baseSave({ currency: 10_000 }));
+    testData.items.push({ id: "other-item", name: "Autre objet", kind: "common" });
+    testData.arcs.push({
+      id: "ta-arc-2",
+      animeId: "ta",
+      name: "Arc 2",
+      order: 1,
+      mobsToBoss: 1_000,
+      mobs: [{ id: "ta-mob-2", name: "Mob 2", baseHp: 12, reward: 20, itemId: "other-item", dropChance: 0 }],
+      boss: { id: "ta-boss-2", name: "Boss 2", baseHp: 1_000_000, reward: 2_000 },
+    });
+    const restore = installSave(baseSave({ currency: 10_000, clearedArcIds: ["ta-arc"] }));
     let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
         disposeRoot = dispose;
         return createGameStore(testData);
       });
-      const offer = game.shopOffers().find((entry) => entry.offer.amount === 5)!;
+      const offers = game.shopOffers();
+      expect(offers.filter((entry) => entry.arc).map((entry) => entry.arc!.id)).toContain("ta-arc-2");
+      const offer = offers.find((entry) => entry.offer.arcId === "ta-arc" && entry.offer.amount === 5)!;
       expect(offer.offer.cost).toBe(Math.ceil(10 * CURRENCY_REWARD_MULTIPLIER * SUPPLY_KILLS_PER_COPY * 5));
       expect(game.buyShopOffer(offer.offer.id)).toBe(true);
       expect(game.countOf("common-item")).toBe(5);

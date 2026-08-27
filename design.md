@@ -679,9 +679,10 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
   une offre objet reste affichée indéfiniment puisque les objets s'empilent. `game.shopOffers()`
   lui-même ne filtre rien — il renvoie l'état complet (`locked`/`owned`/`affordable`) pour que le
   composant décide de l'affichage, même patron que `passiveUpgradeOf`.
-- **Ravitaillement local.** Trois offres répétables vendent 1, 5 ou 25 exemplaires de l'objet commun
-  de l'arc actif. Leur prix suit la récompense moyenne des mobs qui lâchent cet objet, donc la
-  boutique reste pertinente malgré l'échelle exponentielle des mondes.
+- **Ravitaillement local.** Un sélecteur interne donne accès à chaque arc jouable sans déplacer
+  l'équipe. Trois offres répétables vendent 1, 5 ou 25 exemplaires de son objet commun. Leur prix
+  suit la récompense moyenne des mobs qui lâchent cet objet, donc la boutique reste pertinente
+  malgré l'échelle exponentielle des mondes.
 - **Compagnons exclusifs.** Pakkun, Tonton et Gamakichi apparaissent après avoir terminé Naruto.
   Leur achat disparaît une fois effectué et leur recrutement est remis à zéro au prestige comme le
   reste de l'équipe. Le test des données accepte donc deux portes d'entrée exclusives : un combat ou

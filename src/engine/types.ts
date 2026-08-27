@@ -179,6 +179,8 @@ export interface ShopOffer {
   cost: number;
   /** items only: copies granted per purchase; defaults to 1 */
   amount?: number;
+  /** Generated supply offers only: the arc whose common item is being sold. */
+  arcId?: string;
   requiresAnimeId?: string;
 }
 

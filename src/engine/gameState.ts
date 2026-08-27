@@ -676,24 +676,25 @@ export function createGameStore(data: GameData) {
     return data.items.find((i) => i.id === itemId) ?? null;
   }
 
-  /** Repeatable supplies for the active arc, priced against what its farm mobs actually pay. */
+  /** Repeatable supplies for every accessible arc, priced against what its farm mobs actually pay. */
   function supplyOffers(): ShopOffer[] {
-    const arc = activeArc();
-    if (!arc) return [];
-    const item = arcCommonItem(arc);
-    const farm = item ? arc.mobs.filter((enemy) => enemy.itemId === item.id) : [];
-    if (!item || farm.length === 0) return [];
-    const pricePerCopy =
-      (farm.reduce((sum, enemy) => sum + enemyReward(enemy, currentDifficulty()), 0) / farm.length) *
-      CURRENCY_REWARD_MULTIPLIER *
-      SUPPLY_KILLS_PER_COPY;
-    return [1, 5, 25].map((amount) => ({
-      id: `shop-supply-${arc.id}-${amount}`,
-      kind: "item",
-      targetId: item.id,
-      amount,
-      cost: Math.ceil(pricePerCopy * amount),
-    }));
+    return playableArcs().flatMap((arc) => {
+      const item = arcCommonItem(arc);
+      const farm = item ? arc.mobs.filter((enemy) => enemy.itemId === item.id) : [];
+      if (!item || farm.length === 0) return [];
+      const pricePerCopy =
+        (farm.reduce((sum, enemy) => sum + enemyReward(enemy, difficultyOf(arc.animeId)), 0) / farm.length) *
+        CURRENCY_REWARD_MULTIPLIER *
+        SUPPLY_KILLS_PER_COPY;
+      return [1, 5, 25].map((amount) => ({
+        id: `shop-supply-${arc.id}-${amount}`,
+        kind: "item" as const,
+        targetId: item.id,
+        amount,
+        arcId: arc.id,
+        cost: Math.ceil(pricePerCopy * amount),
+      }));
+    });
   }
 
   const availableShopOffers = () => [...(data.shop ?? []), ...supplyOffers()];
@@ -1265,6 +1266,7 @@ export function createGameStore(data: GameData) {
       discounted: shopDiscount > 0,
       item: offer.kind === "item" ? data.items.find((i) => i.id === offer.targetId) : undefined,
       character: offer.kind === "character" ? data.characters.find((c) => c.id === offer.targetId) : undefined,
+      arc: offer.arcId ? data.arcs.find((arc) => arc.id === offer.arcId) : undefined,
       owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
       locked: !shopOfferUnlocked(offer, clearedIds),
       affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), shopDiscount),

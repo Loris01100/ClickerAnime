@@ -326,8 +326,9 @@ with the currency that paid for it, same as the rest of a run. The three Naruto 
 shop-exclusive; the data test requires every character to have either one combat encounter or one
 character offer, so nobody can become unobtainable.
 
-Three repeatable supply offers are generated for the active arc rather than duplicated in `data.shop`:
-1, 5 or 25 copies of its common item. One copy costs the currency payout of
+Three repeatable supply offers are generated for every accessible arc rather than duplicated in
+`data.shop`: 1, 5 or 25 copies of its common item. The shop selects the active arc initially, then
+lets the player browse every other accessible arc without travelling. One copy costs the currency payout of
 `SUPPLY_KILLS_PER_COPY` (**15**) average common-dropping mobs at the current difficulty. Prices thus
 follow the world's economy automatically, and the existing geometric passive costs provide the
 long-term sink without another scaling system.
