@@ -33,6 +33,15 @@ describe("game data", () => {
       Math.max(...gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((character) => character.baseDps))
     );
     expect(debutPower).toEqual([6, 8, 18, 30, 72, 120]);
+
+    const abilities = [
+      ...gameData.characters.filter((character) => character.animeId === "hunter-x-hunter").flatMap((character) => character.ability ?? []),
+      ...gameData.combos.filter((combo) => combo.id.startsWith("hxh-")).map((combo) => combo.ability),
+    ];
+    const multipliers = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "multiplier"));
+    const percents = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "percent"));
+    expect(Math.max(...multipliers.map((effect) => effect.value))).toBe(3.5);
+    expect(Math.max(...percents.map((effect) => effect.value))).toBe(0.5);
   });
 
   it("keeps every id unique and every reference resolvable", () => {

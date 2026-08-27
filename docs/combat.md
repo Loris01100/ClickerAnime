@@ -156,8 +156,10 @@ Three practical notes, each learned by getting it wrong:
   stay outside the geometric sequel-table test. Its 30 recruits made the first table collapse in
   under ten minutes: kill budgets now rise from 20 to 52, enemy hp is roughly twice the original
   curve, and recruit damage after the opening arc is roughly halved. Every boss now uses the same
-  strict 60-second timer. Seeds 1–4 clear the world in 30.8–31.2 minutes and each records one
-  timeout followed by a successful rematch: the clock creates pressure without becoming a wall.
+  strict 60-second timer. Character and combo abilities are capped at ×3.5 for multipliers and +50%
+  for additive damage bonuses, down from peaks of ×5 and +80%. Seeds 1–4 clear the world in
+  33.6–33.8 minutes and each records three timeouts followed by successful rematches: abilities
+  remain valuable, while the clock creates pressure without becoming a wall.
 - **Update `data.test.ts`'s expected ramps in the same commit.** They are measurements, not targets,
   and a corrective ramp of even 1.5%/arc compounds them past the test's ±0.05 tolerance.
 
