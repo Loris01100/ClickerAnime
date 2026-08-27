@@ -13,7 +13,9 @@ export type PortraitKind = "character" | "anime";
 
 const ENDPOINT = "https://graphql.anilist.co";
 const TIMEOUT_MS = 5_000;
-const CACHE_KEY = "clicker-anime:portraits:v2";
+// Bump when a correction changes an already-cached portrait: successful hits are intentionally
+// persistent, so keeping the old key would leave existing players on the wrong image forever.
+const CACHE_KEY = "clicker-anime:portraits:v3";
 
 // The name shown in-game (French localization) can differ from AniList's canonical spelling — the
 // old French dub's "Uchiwa" vs AniList's "Uchiha", a character AniList only lists under an alias
@@ -43,6 +45,15 @@ const NAME_OVERRIDES: [from: string, to: string][] = [
   // After the pair above, so "Obito Uchiwa" is already "Tobi" and never rewritten twice; this one
   // catches the boss card that names him without a surname ("Obito — Jinchûriki de Dix-Queues").
   ["Obito", "Tobi"],
+  ["Kirua Zoldik", "Killua Zoldyck"],
+  ["Leolio Paradinaito", "Leorio Paladiknight"],
+  ["Kuroro Lucifer", "Chrollo Lucilfer"],
+  ["Uvôguine", "Uvogin"],
+  ["Melody", "Senritsu"],
+  ["Illumi Zoldik", "Illumi Zoldyck"],
+  ["Alluka Zoldik", "Alluka Zoldyck"],
+  ["Zeno Zoldik", "Zeno Zoldyck"],
+  ["Geretta", "Gereta"],
 ];
 
 // The arc *enemies* go through the same table. They used to be anonymous by design ("Garde de
@@ -71,6 +82,7 @@ const ANIME_ID_OVERRIDES: Record<string, number> = {
   // Verified live, and a textbook case for this table: searching the bare "Boruto" resolves to
   // BORUTO: NARUTO THE MOVIE (21220), not the 293-episode TV series the game's cast comes from.
   Boruto: 97938,
+  "Hunter x Hunter": 11061,
 };
 
 // A character's own story can span a spin-off movie the game's data doesn't model as a separate

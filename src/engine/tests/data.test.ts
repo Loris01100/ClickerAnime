@@ -8,6 +8,23 @@ describe("game data", () => {
     expect(gameData.arcs.find((arc) => arc.id === "shippuden-confrontation")?.boss.name).toBe("Mû, le Second Tsuchikage");
   });
 
+  it("covers the complete Hunter x Hunter anime without the unadapted Dark Continent", () => {
+    const arcs = gameData.arcs.filter((arc) => arc.animeId === "hunter-x-hunter").sort((a, b) => a.order - b.order);
+    expect(arcs.map((arc) => arc.name)).toEqual([
+      "L'Examen Hunter",
+      "La Tour Céleste",
+      "York Shin City",
+      "Greed Island",
+      "Les Kimera Ants",
+      "Les Élections Présidentielles",
+    ]);
+    expect(arcs.some((arc) => arc.name.toLowerCase().includes("continent"))).toBe(false);
+    const anime = gameData.animes.find((entry) => entry.id === "hunter-x-hunter");
+    expect(anime?.requiresAnimeId).toBeUndefined();
+    expect(anime?.mapImage).toBe("/hunter-hunter-map.webp");
+    expect(arcs.every((arc) => arc.mapX !== undefined && arc.mapY !== undefined)).toBe(true);
+  });
+
   it("keeps every id unique and every reference resolvable", () => {
     const dupes = (ids: string[]) => ids.filter((id, i) => ids.indexOf(id) !== i);
     expect(dupes(gameData.characters.map((c) => c.id))).toEqual([]);

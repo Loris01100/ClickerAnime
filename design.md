@@ -72,7 +72,9 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   `themeOf(anime) = anime.themeHue ?? spriteHue(anime.id)` (`ui/hue.ts`) est le **point d'entrée
   unique** côté UI. Les mondes sans art dédié restent automatiquement distincts par le hash ; les
   mondes soignés reçoivent leur teinte sans toucher à un composant. Teintes retenues :
-  **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja).
+  **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja),
+  **Boruto `205`** (le bleu froid du Karma) et **Hunter x Hunter `142`** (le vert de l'aventure et
+  de l'Examen Hunter).
   `src/engine/tests/` vérifie que tout `themeHue` des données reste dans 0..360.
 - **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
   fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.

@@ -4,9 +4,9 @@ This file is the first thing an AI coding agent should read before touching the 
 
 ## Project Overview
 
-ClickerAnime is a browser idle/clicker prototype built with **SolidJS + Vite + TypeScript**. The live UI is in French, but engine identifiers, comments, and this guide are in English. The current content is Naruto-focused: `Naruto` (part 1) is the entry world and `Naruto Shippūden` is the sequel. More worlds are meant to be added later.
+ClickerAnime is a browser idle/clicker prototype built with **SolidJS + Vite + TypeScript**. The live UI is in French, but engine identifiers, comments, and this guide are in English. The Naruto universe runs from `Naruto` through `Naruto Shippūden` to `Boruto`; `Hunter x Hunter` is a separate entry world. More worlds are meant to be added later.
 
-The app is a static SPA with no backend. Save data lives in `localStorage`; portraits are fetched live from AniList in the player's own browser.
+The app is a static SPA with no backend. Save data lives in `localStorage`; portraits are fetched live from AniList in the player's own browser. Alongside the Naruto universe, Hunter x Hunter (2011) is an independent starting world covering the animated story through the Chairman Election.
 
 ## Technology Stack
 
@@ -98,6 +98,8 @@ One **directory** per world plus `index.ts`. Adding a world means adding a direc
 
 - `naruto/` — Naruto part 1, 5 arcs.
 - `shippuden/` — Naruto Shippūden, 15 arcs (generated from a table with a ~1.85 ramp).
+- `boruto/` — Boruto, 8 arcs.
+- `hunter-x-hunter/` — Hunter x Hunter (2011), 6 arcs in one world; no unadapted Dark Continent.
 - `index.ts` — concatenates all worlds into `gameData` and defines shop offers.
 
 ## Code Style Guidelines
@@ -165,7 +167,7 @@ looking at the result.
 
 ## External Dependencies & APIs
 
-- **AniList GraphQL** — portraits are fetched in the browser, not from a server. AniList blocks shared cloud IPs but allows CORS from end-user browsers. Cache key: `clicker-anime:portraits:v2`.
+- **AniList GraphQL** — portraits are fetched in the browser, not from a server. AniList blocks shared cloud IPs but allows CORS from end-user browsers. Cache key: `clicker-anime:portraits:v3`.
 - **MCP servers** — `.mcp.json` registers `higgsfield` for image/video generation. These are dev-session tools, not runtime dependencies.
 
 ## Security Considerations

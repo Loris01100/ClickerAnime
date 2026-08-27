@@ -173,6 +173,9 @@ combos, rarely a whole world at once. Keep the shape when adding a world; omit a
 world genuinely has no such section.
 
 - `naruto/` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
+- `hunter-x-hunter/` — **Hunter x Hunter (2011)**, 6 arcs and one independent entry world. It
+  covers the animated story from the Hunter Exam through the Chairman Election; the unadapted Dark
+  Continent is intentionally absent. Like Naruto, its opening-world balance is hand-authored.
 - `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~5.4 minutes an arc against
   Shippūden's ~2.3. Generated from a table like Shippūden, on the **same** ramps (boss hp ~2.31,
   mob hp ~2.17, rewards and recruit stats ~1.85) — it needed its own steeper table only before

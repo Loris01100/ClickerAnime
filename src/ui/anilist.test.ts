@@ -140,6 +140,33 @@ describe("portraitUrl", () => {
     );
   });
 
+  it("maps Hunter x Hunter's French names to their AniList cast entries", async () => {
+    const fetchMock = mockCastEndpoint(11061, [
+      { name: { full: "Senritsu" }, image: { large: "https://example.com/melody.jpg" } },
+      { name: { full: "Illumi Zoldyck" }, image: { large: "https://example.com/illumi.jpg" } },
+      { name: { full: "Alluka Zoldyck" }, image: { large: "https://example.com/alluka.jpg" } },
+      { name: { full: "Zeno Zoldyck" }, image: { large: "https://example.com/zeno.jpg" } },
+      { name: { full: "Gereta" }, image: { large: "https://example.com/gereta.jpg" } },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(portraitUrl("Melody", "character", "Hunter x Hunter names")).resolves.toBe(
+      "https://example.com/melody.jpg"
+    );
+    await expect(portraitUrl("Illumi Zoldik", "character", "Hunter x Hunter names")).resolves.toBe(
+      "https://example.com/illumi.jpg"
+    );
+    await expect(portraitUrl("Alluka Zoldik", "character", "Hunter x Hunter names")).resolves.toBe(
+      "https://example.com/alluka.jpg"
+    );
+    await expect(portraitUrl("Zeno Zoldik", "character", "Hunter x Hunter names")).resolves.toBe(
+      "https://example.com/zeno.jpg"
+    );
+    await expect(portraitUrl("Geretta", "character", "Hunter x Hunter names")).resolves.toBe(
+      "https://example.com/gereta.jpg"
+    );
+  });
+
   it("applies a name override even when it's only part of a longer display name (a boss's subtitle)", async () => {
     // A boss can carry a fight-specific subtitle ("Sasuke Uchiwa — Vallée de la Fin") that an exact
     // dictionary lookup on the full string would miss — the override has to apply as a substring.

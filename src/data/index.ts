@@ -4,8 +4,11 @@ import type { GameData } from "../engine/gameState";
 import { narutoData } from "./naruto";
 import { shippudenData } from "./shippuden";
 import { borutoData } from "./boruto";
+import { hunterXHunterData } from "./hunter-x-hunter";
 
-const worlds = [narutoData, shippudenData, borutoData];
+// Independent entry worlds stay before sequel chains in the flattened data. Catch-up power is
+// monotone across this authored order, while `requiresAnimeId` still decides the actual route.
+const worlds = [narutoData, hunterXHunterData, shippudenData, borutoData];
 
 export const gameData: GameData = {
   animes: worlds.flatMap((w) => w.animes),

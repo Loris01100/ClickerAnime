@@ -151,6 +151,10 @@ Three practical notes, each learned by getting it wrong:
   not hold it geometric — but its arcs respond *superlinearly* to hp (roughly time ∝ hp^1.45),
   because the team is still forming and a longer arc also means more recruits and levels. Applying
   the raw ratio makes it oscillate with growing amplitude; `ratio ** 0.7` converges in two passes.
+- **Hunter x Hunter follows the same opening-world method.** It is an independent entry point, not
+  a late-game continuation, so its six arcs are hand-authored against a fresh team and deliberately
+  stay outside the geometric sequel-table test. The seed-1 baseline clears them in roughly 0.2–2.0
+  minutes each without a boss timeout.
 - **Update `data.test.ts`'s expected ramps in the same commit.** They are measurements, not targets,
   and a corrective ramp of even 1.5%/arc compounds them past the test's ±0.05 tolerance.
 

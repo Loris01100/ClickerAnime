@@ -63,7 +63,8 @@ own browser is exactly what AniList's CORS is for, confirmed against the sibling
 first. `portraitUrl` never rejects — network error, timeout, AniList's 404-on-no-match, malformed
 JSON and a full `localStorage` all resolve to `null`, since there is no `<ErrorBoundary>` anywhere
 to catch a rejected `createResource`. A handful of in-game French names don't match AniList's
-canonical spelling (the old dub's "Uchiwa" vs AniList's "Uchiha") — corrected via `NAME_OVERRIDES`
+canonical spelling (the old dub's "Uchiwa" vs AniList's "Uchiha", or Hunter x Hunter's French
+"Melody"/"Zoldik" vs AniList's "Senritsu"/"Zoldyck") — corrected via `NAME_OVERRIDES`
 in `anilist.ts`, not by changing the name shown in the UI.
 
 The Codex only starts portrait requests for the anime of the selected character; other groups keep

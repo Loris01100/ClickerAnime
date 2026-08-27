@@ -110,7 +110,9 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   *cleared* first, and `isAnimeAvailable` gates both routes into a world — free travel and the paid
   shortcut alike. Prestige buys an early entry, never a way to read a sequel first: Shippūden sits
   behind part 1, and Boruto is meant to sit behind Shippūden. An anime with no `requiresAnimeId` is
-  an entry point, i.e. a world the player may start a run on.
+  an entry point, i.e. a world the player may start a run on. Naruto and Hunter x Hunter are the
+  current entry points; Hunter x Hunter is one continuous world because the anime has no sequel
+  part in this data model.
 - The player picks their first world freely among the entry points and travels freely after each
   clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige
   points to enter early — but only into a world whose prerequisite is already cleared.
