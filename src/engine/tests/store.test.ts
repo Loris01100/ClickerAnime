@@ -160,7 +160,10 @@ describe("store boot", () => {
       name: id,
       cooldownMs: 0,
       durationMs: 10_000,
-      effects: [{ target: "teamDps" as const, kind, value }],
+      effects: [
+        { target: "teamDps" as const, kind, value },
+        { target: "clickPower" as const, kind, value },
+      ],
     });
     const member = (id: string, own: ReturnType<typeof ability>) => ({
       id,
@@ -168,7 +171,7 @@ describe("store boot", () => {
       animeId: "ta",
       rarity: "secondary" as const,
       arcIds: [],
-      baseClickPower: 0,
+      baseClickPower: 10,
       baseDps: 10,
       ability: own,
     });
@@ -219,6 +222,10 @@ describe("store boot", () => {
       // A's buff lands on A alone: 10 * (1 + 1) + 10.
       expect(game.activateAbility("ability-a")).toBe(true);
       expect(game.teamDps()).toBeCloseTo(30);
+      expect(game.characterStatOf(testData.characters[0], "teamDps")).toBeCloseTo(20);
+      expect(game.characterStatOf(testData.characters[0], "clickPower")).toBeCloseTo(20);
+      expect(game.characterStatOf(testData.characters[1], "teamDps")).toBeCloseTo(10);
+      expect(game.characterStatOf(testData.characters[1], "clickPower")).toBeCloseTo(10);
       // B's buff targets the same stat and still fires — it only boosts B: 20 + 10 * (1 + 2).
       expect(game.activateAbility("ability-b")).toBe(true);
       expect(game.teamDps()).toBeCloseTo(50);

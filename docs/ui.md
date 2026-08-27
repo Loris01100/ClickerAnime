@@ -129,7 +129,9 @@ tokenised (`--stage-bg`, `--topbar-bg`, `--label-shadow`, `--active-tint`) preci
 have to flip. Never hard-code a colour in a rule. Components must never compute balance themselves — if a number needs deriving, it belongs in
 the engine and gets exposed on the store (that is why `synergyOf`, `costOf`, `damageGrowthOf` and
 `pendingPrestigeGain` exist — `damageGrowthOf` in particular is what stops the roster and the Codex
-from printing two different damage numbers for the same character). Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+from printing two different damage numbers for the same character). The roster's Clic/DPS cells
+also include active abilities scoped to that character and update for activation and expiry, under
+the same mastery cap as the team totals. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 
 ## L'écran de secours
 

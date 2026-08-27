@@ -1184,14 +1184,23 @@ export function createGameStore(data: GameData) {
 
   /**
    * A character's own printed damage as the roster shows it: base, grown by levels and duplicates,
-   * then their equipped unique folded in. Synergy stays out — it has its own column.
+   * then their equipped unique and running abilities folded in. Synergy stays out — it has its
+   * own column. The same mastery cap as the team total applies to the temporary boost.
    */
   function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
     const base = (target === "teamDps" ? character.baseDps : character.baseClickPower) * damageGrowthOf(character.id);
     const effects = (equippedItemOf(character)?.effects ?? [])
       .filter((e) => e.target === target)
       .map((e) => ({ ...e, sourceId: character.id }));
-    return computeEffectiveStat(base, target, effects, 0);
+    const nowMs = now();
+    const bare = computeEffectiveStat(base, target, effects, nowMs);
+    const buffed = computeEffectiveStat(
+      base,
+      target,
+      [...effects, ...temporaryModifiers().filter((m) => m.scope === character.id)],
+      nowMs
+    );
+    return Math.min(buffed, bare * buffCap());
   }
 
   /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
