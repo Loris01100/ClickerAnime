@@ -679,13 +679,13 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
   une offre objet reste affichée indéfiniment puisque les objets s'empilent. `game.shopOffers()`
   lui-même ne filtre rien — il renvoie l'état complet (`locked`/`owned`/`affordable`) pour que le
   composant décide de l'affichage, même patron que `passiveUpgradeOf`.
-- **Contenu actuel = placeholder.** `data/index.ts` ne définit que deux offres d'exemple pour
-  prouver le mécanisme (une copie d'objet sans condition, un personnage de Shippûden débloqué une
-  fois Naruto terminé) — le vrai contenu (quels personnages, quels objets, quels coûts) reste à
-  concevoir. Un personnage acheté doit malgré tout rester recrutable au combat quelque part :
-  `src/engine/tests/` impose qu'aucun personnage ne soit "recrutable nulle part", donc une offre
-  boutique est un raccourci payant vers quelqu'un qu'on peut aussi obtenir en jouant, jamais un
-  recrutement exclusif à la boutique.
+- **Ravitaillement local.** Trois offres répétables vendent 1, 5 ou 25 exemplaires de l'objet commun
+  de l'arc actif. Leur prix suit la récompense moyenne des mobs qui lâchent cet objet, donc la
+  boutique reste pertinente malgré l'échelle exponentielle des mondes.
+- **Compagnons exclusifs.** Pakkun, Tonton et Gamakichi apparaissent après avoir terminé Naruto.
+  Leur achat disparaît une fois effectué et leur recrutement est remis à zéro au prestige comme le
+  reste de l'équipe. Le test des données accepte donc deux portes d'entrée exclusives : un combat ou
+  une offre personnage, jamais aucune des deux.
 
 ### 11.1 Cristaux de crossover
 

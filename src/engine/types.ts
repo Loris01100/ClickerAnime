@@ -167,8 +167,8 @@ export interface ComboDefinition {
 }
 
 /**
- * A currency purchase offered in the shop panel: either copies of an item or a character not
- * otherwise recruitable in a fight. `requiresAnimeId`, if set, gates the offer behind that anime
+ * A currency purchase offered in the shop panel: either copies of an item or a character.
+ * `requiresAnimeId`, if set, gates the offer behind that anime
  * being cleared — otherwise a high `cost` is the only barrier.
  */
 export interface ShopOffer {

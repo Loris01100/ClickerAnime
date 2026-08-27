@@ -118,7 +118,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   the live completed-count — that is what stops a cleared anime from un-clearing itself.
 - Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
   sequel anime, enforced in `src/engine/tests/`.
-- A character belongs to exactly one world and is recruitable in exactly one arc.
+- A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
+  shop-exclusive companions must have exactly one character offer instead.
 - `prestigeReset` wipes the run but spares the meta-progression: prestige points, achievement
   counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
 
@@ -181,8 +182,9 @@ world genuinely has no such section.
   again** rather than copied from here — and sized against the dps the team has *after* crossing the
   border, which is far below what it ends the previous world with (`docs/combat.md`).
 
-A character belongs to exactly one world and is recruitable in exactly one arc: Shippūden reuses no
-one from part 1, it introduces new faces only (`src/engine/tests/` enforces both rules, along with every
+A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
+shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
+those entry paths, along with every
 id being unique and every reference resolvable). Combos may still span worlds — the team only wipes
 on prestige, not on travel — which is what makes "Le Sommet des Cinq Kage" (Gaara and Tsunade from
 part 1, plus the Shippūden Kage) worth keeping a mixed team for. Every part-1 `rarity: "main"`

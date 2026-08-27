@@ -32,15 +32,16 @@ describe("game data", () => {
     }
   });
 
-  it("recruits each character in exactly one world, and never twice", () => {
+  it("recruits each regular character once and keeps shop exclusives purchasable", () => {
     const recruited = gameData.arcs.flatMap((a) => [...a.mobs, a.boss]).map((e) => e.characterId).filter(Boolean);
     expect(recruited.filter((id, i) => recruited.indexOf(id) !== i)).toEqual([]);
     for (const character of gameData.characters) {
       const arc = gameData.arcs.find(
         (a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)
       );
-      expect(arc, `${character.id} n'est recrutable nulle part`).toBeDefined();
-      expect(arc!.animeId).toBe(character.animeId);
+      const shopOffer = gameData.shop?.find((offer) => offer.kind === "character" && offer.targetId === character.id);
+      expect(arc || shopOffer, `${character.id} n'est ni recrutable ni vendu`).toBeDefined();
+      if (arc) expect(arc.animeId).toBe(character.animeId);
       for (const arcId of character.arcIds) {
         expect(gameData.arcs.find((a) => a.id === arcId)?.animeId).toBe(character.animeId);
       }

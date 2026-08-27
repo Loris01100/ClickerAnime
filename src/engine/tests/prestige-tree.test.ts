@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
-import { createGameStore, CURRENCY_REWARD_MULTIPLIER } from "../gameState";
+import { createGameStore, CURRENCY_REWARD_MULTIPLIER, SUPPLY_KILLS_PER_COPY } from "../gameState";
 import { passiveRankCost, XP_PER_KILL_REWARD } from "../growth";
 import type { Enemy, ShopOffer } from "../types";
 import { AUSPICE_DOUBLE_DROP_CHANCE, AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS, AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS, AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS, autoAbilityIntervalMs, autoAdvanceDelayMs, AUTOCLICK_INTERVAL_MS, AUTOCLICK_INTERVAL_REDUCTION_MS, autoClickIntervalMs, autoCrossoverReserve, autoRankSlots, autoRematchDelayMs, canPurchaseNodeLevel, CRIT_CHANCE, CURRENCY_GAIN_PERCENT, DOUBLE_DROP_CHANCE, DOUBLE_PRESTIGE_CHANCE, FREE_ABILITY_TRIGGER_CHANCE, GHOST_LOOT_CHANCE, isNodeUnlocked, LEVEL_COSTS, LEVELS_PER_BRANCH, LEVELS_PER_NODE, nodeCost, nodeLevel, nodeLevels, NARRATOR_CLICK_PERCENT, PITY_KILLS_THRESHOLD, PITY_REDUCTION_PER_LEVEL, prestigeTreeContributions, PRESTIGE_PER_KILL_CHANCE, PRESTIGE_TREE_CATEGORIES, purchaseNodeLevel, scaledChance, SHOP_COST_DISCOUNT, softenedSynergyConfig, TEAM_DPS_PERCENT, totalLevels, XP_GAIN_PERCENT } from "../prestigeTree";
@@ -509,6 +509,26 @@ describe("prestige tree — wired into gameState", () => {
       expect(offers[0].affordable).toBe(true);
       expect(game.buyShopOffer("shop-item")).toBe(true);
       expect(game.currency()).toBeCloseTo(0);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("vend des lots de l'objet commun de l'arc actif au prix de son économie locale", () => {
+    const testData = makeTestData({ mobItemId: "common-item", mobDropChance: 0 });
+    const restore = installSave(baseSave({ currency: 10_000 }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const offer = game.shopOffers().find((entry) => entry.offer.amount === 5)!;
+      expect(offer.offer.cost).toBe(Math.ceil(10 * CURRENCY_REWARD_MULTIPLIER * SUPPLY_KILLS_PER_COPY * 5));
+      expect(game.buyShopOffer(offer.offer.id)).toBe(true);
+      expect(game.countOf("common-item")).toBe(5);
+      expect(game.currency()).toBe(10_000 - offer.cost);
     } finally {
       disposeRoot();
       restore();

@@ -322,7 +322,12 @@ live item/character lookup plus `locked`/`owned`/`affordable` for the panel to r
 the only gate (an anime already **cleared** — `animeCleared`, same as everywhere else); with none
 set, a high `cost` is the only barrier. Buying a character just calls the same `setOwnedCharacterIds`
 path `defeat` uses, so it is run-scoped exactly like a combat recruit: wiped by `prestigeReset` along
-with the currency that paid for it, same as the rest of a run. A character bought here must still be
-recruitable in a fight somewhere — `src/engine/tests/`'s "recrutable nulle part" check covers
-`gameData.characters` regardless of a shop offer existing, so a shop character is always a paid
-shortcut to someone reachable in combat too, never an exclusive recruit.
+with the currency that paid for it, same as the rest of a run. The three Naruto companions are
+shop-exclusive; the data test requires every character to have either one combat encounter or one
+character offer, so nobody can become unobtainable.
+
+Three repeatable supply offers are generated for the active arc rather than duplicated in `data.shop`:
+1, 5 or 25 copies of its common item. One copy costs the currency payout of
+`SUPPLY_KILLS_PER_COPY` (**15**) average common-dropping mobs at the current difficulty. Prices thus
+follow the world's economy automatically, and the existing geometric passive costs provide the
+long-term sink without another scaling system.

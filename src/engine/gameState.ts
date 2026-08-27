@@ -164,6 +164,8 @@ const MAX_KILLS_PER_HIT = 100;
 export const MAX_KILLS_PER_SECOND = 5;
 /** Currency paid by a defeated enemy; XP keeps using the full data reward. */
 export const CURRENCY_REWARD_MULTIPLIER = 0.75;
+/** Price of one current-arc common item, measured in ordinary victories. */
+export const SUPPLY_KILLS_PER_COPY = 15;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 export const SAVE_KEY = "clicker-anime:save:v10";
 /** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
@@ -673,6 +675,28 @@ export function createGameStore(data: GameData) {
     const itemId = arc.mobs.find((m) => m.itemId)?.itemId;
     return data.items.find((i) => i.id === itemId) ?? null;
   }
+
+  /** Repeatable supplies for the active arc, priced against what its farm mobs actually pay. */
+  function supplyOffers(): ShopOffer[] {
+    const arc = activeArc();
+    if (!arc) return [];
+    const item = arcCommonItem(arc);
+    const farm = item ? arc.mobs.filter((enemy) => enemy.itemId === item.id) : [];
+    if (!item || farm.length === 0) return [];
+    const pricePerCopy =
+      (farm.reduce((sum, enemy) => sum + enemyReward(enemy, currentDifficulty()), 0) / farm.length) *
+      CURRENCY_REWARD_MULTIPLIER *
+      SUPPLY_KILLS_PER_COPY;
+    return [1, 5, 25].map((amount) => ({
+      id: `shop-supply-${arc.id}-${amount}`,
+      kind: "item",
+      targetId: item.id,
+      amount,
+      cost: Math.ceil(pricePerCopy * amount),
+    }));
+  }
+
+  const availableShopOffers = () => [...(data.shop ?? []), ...supplyOffers()];
 
   /**
    * How far a buff may lift its own character right now: `SCOPED_BUFF_CAP_FLOOR` on the first arc,
@@ -1235,7 +1259,7 @@ export function createGameStore(data: GameData) {
   function shopOffers() {
     const clearedIds = clearedAnimes().map((a) => a.id);
     const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
-    return (data.shop ?? []).map((offer) => ({
+    return availableShopOffers().map((offer) => ({
       offer,
       cost: discountedShopCost(offer, shopDiscount),
       discounted: shopDiscount > 0,
@@ -1249,7 +1273,7 @@ export function createGameStore(data: GameData) {
 
   /** Spends the main currency on a shop offer: copies of an item, or a character not owned yet. */
   function buyShopOffer(offerId: string): boolean {
-    const offer = (data.shop ?? []).find((o) => o.id === offerId);
+    const offer = availableShopOffers().find((o) => o.id === offerId);
     if (!offer) return false;
     const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
     const cost = discountedShopCost(offer, shopDiscount);
