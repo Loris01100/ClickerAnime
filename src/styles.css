@@ -872,6 +872,17 @@ small {
   z-index: 1;
   animation: breathe 3.4s ease-in-out infinite;
   filter: drop-shadow(0 3px 6px var(--enemy-ground));
+  /*
+   * Square, and wider than `Sprite`'s 7:8 default: AniList art comes in every aspect ratio, and a
+   * wide group shot is bounded by the box's *width* under `contain` — widening the box is the only
+   * thing that makes those portraits bigger. The box itself stays unpainted: no frame on the scene.
+   */
+  width: 220px;
+  height: 220px;
+}
+.enemy.boss .sprite {
+  width: 260px;
+  height: 260px;
 }
 .enemy.rival .sprite {
   filter: drop-shadow(0 0 10px var(--gold)) drop-shadow(0 3px 6px var(--enemy-ground));
