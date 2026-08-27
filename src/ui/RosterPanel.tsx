@@ -1,10 +1,11 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { SCOPED_BUFF_CAP } from "../engine/modifiers";
+import { passiveGrowth } from "../engine/growth";
 import type { Character, Item } from "../engine/types";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
-import { describeAbility, describeItem } from "./describe";
+import { describeAbility, describeItem, describeModifier } from "./describe";
 import { fmt, seconds } from "./format";
 import ItemIcon from "./ItemIcon";
 import { IconGear, IconStar, IconStarOutline } from "./icons";
@@ -268,8 +269,22 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                   </div>
                   <Show when={character.passive}>
                     <div class="passive-row">
-                      <small classList={{ muted: !passive().maxed, capped: passive().maxed }}>
+                      <small
+                        classList={{ muted: !passive().maxed, capped: passive().maxed }}
+                        title={
+                          passive().rank > 0
+                            ? `Passif de ${character.name} : ${describeModifier({ ...character.passive!, value: character.passive!.value * passiveGrowth(passive().rank) })} — sur ses propres stats.`
+                            : "Passif verrouillé : achetez un rang pour l'activer."
+                        }
+                      >
                         Passif {passive().rank}/{props.game.passiveCapOf(character)}
+                        <Show when={passive().rank > 0}>
+                          {" · "}
+                          {describeModifier({
+                            ...character.passive!,
+                            value: character.passive!.value * passiveGrowth(passive().rank),
+                          })}
+                        </Show>
                       </small>
                       {/* Only once "Intendance" is bought: a slot the tree hasn't opened is noise. */}
                       <Show when={props.game.autoRankCapacity() > 0 && !passive().maxed}>

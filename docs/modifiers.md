@@ -85,7 +85,8 @@ sources, merged in `allModifiers`:
 
 1. **Owned characters** → `characterContributions` converts base stats + innate passive + any
    equipped unique item (`Item.effects`) into modifiers, each pre-scaled by the character's synergy
-   with the active arc.
+   with the active arc. Base stats **and the passive** carry the character's id as their `scope`: a
+   passive raises its own character's statistics, not the team's.
 2. **Activated abilities** → temporary modifiers stamped with `expiresAt` and one `scope` per
    character the ability covers, pruned on every tick.
 3. **Equipped unique items** → permanent modifiers contributed by `characterContributions`, carrying

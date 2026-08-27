@@ -78,9 +78,11 @@ export function characterContributions(
   ];
 
   if (character.passive && passiveRank > 0 && !otherAnime) {
+    // Scoped like the character's own damage: a passive is *their* statistic growing, not the team's.
     contributions.push({
       ...character.passive,
       sourceId: character.id,
+      scope: character.id,
       value: character.passive.value * passiveScale * synergy,
     });
   }

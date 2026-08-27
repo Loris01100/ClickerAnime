@@ -30,6 +30,7 @@ import {
   levelGrowth,
   reachedArcPower,
   narratorClickPower,
+  passiveGrowth,
   passiveUpgrade,
   PASSIVE_LEVEL_CAP,
   XP_GROWTH,
@@ -1214,14 +1215,24 @@ export function createGameStore(data: GameData) {
 
   /**
    * A character's own printed damage as the roster shows it: base, grown by levels and duplicates,
-   * then their equipped unique and running abilities folded in. Synergy stays out — it has its
-   * own column. The same mastery cap as the team total applies to the temporary boost.
+   * then their passive, their equipped unique and running abilities folded in. The passive belongs
+   * here because it is scoped to its owner (`characterContributions`): it raises *their* stats, so
+   * the roster has to show it. Synergy stays out — it has its own column. The same mastery cap as
+   * the team total applies to the temporary boost.
    */
   function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
     const base = (target === "teamDps" ? character.baseDps : character.baseClickPower) * damageGrowthOf(character.id);
-    const effects = (equippedItemOf(character)?.effects ?? [])
-      .filter((e) => e.target === target)
-      .map((e) => ({ ...e, sourceId: character.id }));
+    const rank = passiveRankOf(character);
+    const passive =
+      character.passive && character.passive.target === target && rank > 0
+        ? [{ ...character.passive, value: character.passive.value * passiveGrowth(rank), sourceId: character.id }]
+        : [];
+    const effects = [
+      ...passive,
+      ...(equippedItemOf(character)?.effects ?? [])
+        .filter((e) => e.target === target)
+        .map((e) => ({ ...e, sourceId: character.id })),
+    ];
     const nowMs = now();
     const bare = computeEffectiveStat(base, target, effects, nowMs);
     const buffed = computeEffectiveStat(

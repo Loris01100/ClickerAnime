@@ -86,6 +86,8 @@ describe("character growth", () => {
     expect(passiveAt(main, 1)!.value).toBeCloseTo(main.passive!.value);
     expect(passiveAt(main, 5)!.value).toBeGreaterThan(passiveAt(main, 1)!.value);
     expect(passiveAt(side, 5)!.value).toBeCloseTo(passiveAt(main, 5)!.value);
+    // A passive raises its own character's stats, never the team's: it must carry their scope.
+    expect(passiveAt(main, 1)!.scope).toBe(main.id);
   });
 
   it("lifts an early recruit up the story's power ramp without touching their relative strength", () => {

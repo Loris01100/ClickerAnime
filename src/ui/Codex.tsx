@@ -25,7 +25,6 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
   const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
   /** What multiplies the printed base damage right now: levels and pack duplicates, stacked. */
-  const growthOf = (character: Character) => props.game.damageGrowthOf(character.id);
 
   const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
@@ -158,9 +157,12 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                   <Show when={owned(character())}>
                     <div class="codex-row">
                       <span class="muted">Actuel</span>
+                      {/* Même chiffre que la ligne du panel Équipe : niveaux, doublons, passif,
+                          objet équipé et buffs en cours — le passif est scopé sur le personnage,
+                          il compte donc dans ses stats à lui. Hors synergie. */}
                       <strong>
-                        {fmt(character().baseClickPower * growthOf(character()))} clic /{" "}
-                        {fmt(character().baseDps * growthOf(character()))} dps
+                        {fmt(props.game.characterStatOf(character(), "clickPower"))} clic /{" "}
+                        {fmt(props.game.characterStatOf(character(), "teamDps"))} dps
                       </strong>
                     </div>
                   </Show>
@@ -211,7 +213,8 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                           </Show>
                           <p class="muted small">
                             Le passif se monte en dépensant « {props.game.passiveItemOf(character())?.name ?? "—"} »,
-                            l'objet commun de son arc d'origine, et s'arrête au rang {cap()}. Les niveaux, eux,
+                            l'objet commun de son arc d'origine, et s'arrête au rang {cap()}. Il ne s'applique
+                            qu'aux statistiques de ce personnage, pas à celles de l'équipe. Les niveaux, eux,
                             n'ajoutent que des dégâts.
                           </p>
                         </>
