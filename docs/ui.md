@@ -66,6 +66,11 @@ to catch a rejected `createResource`. A handful of in-game French names don't ma
 canonical spelling (the old dub's "Uchiwa" vs AniList's "Uchiha") — corrected via `NAME_OVERRIDES`
 in `anilist.ts`, not by changing the name shown in the UI.
 
+The Codex only starts portrait requests for the anime of the selected character; other groups keep
+their normal silhouette until selected. This keeps the AniList cast lookup below its rate limit while
+leaving the full list immediately usable. Startup preloads the four currency images and the active
+world's local art; the prestige tree's background and nodes wait until its panel is opened.
+
 `bannerUrl(animeName)` is the same client's second lookup: a show's wide key art
 (`Media.bannerImage`), used as the fight scene's backdrop. It reuses `resolveMediaId` (hence
 `ANIME_ID_OVERRIDES` — a text search on this franchise lands on a similarly-titled movie often

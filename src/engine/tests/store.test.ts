@@ -2,9 +2,41 @@ import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND } from "../gameState";
 import { gameData } from "../../data";
-import { installSave } from "./helpers";
+import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("drops invalid imported equipment before it can grant a bonus", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [],
+      characters: [
+        { id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 0, baseDps: 10 },
+      ],
+      combos: [],
+      items: [
+        {
+          id: "locked-unique",
+          name: "Objet réservé",
+          kind: "unique" as const,
+          effects: [{ target: "teamDps" as const, kind: "flat" as const, value: 100 }],
+          equippableBy: { tags: ["sage"] },
+        },
+      ],
+    };
+    const restore = installSave({ ...baseSave(), itemCounts: { "locked-unique": 1 }, characterEquipment: { ca: "locked-unique" } });
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      expect(game.equippedItemOf(data.characters[0])).toBeNull();
+      expect(game.teamDps()).toBe(10);
+    } finally {
+      restore();
+    }
+  });
+
   it("boots from a save that already holds a team", () => {
     // The empty-roster path never reads the passive helpers: only a save with characters does, which
     // is why a helper declared below the `allModifiers` memo blanked the app on reload and not on a

@@ -19,7 +19,9 @@ resort. `gameState`'s `buildSaveFile` is the one place the on-disk shape is asse
 same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.txt` download);
 `importSave` decodes and shape-checks it exactly like `readSave`, then writes straight to
 `localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
-a setter per field. There is no offline-progress catch-up.
+a setter per field. Equipment is additionally sanitized against the current game data on boot: an
+unknown, unowned, restricted or duplicate unique is discarded rather than granting a bonus. There is
+no offline-progress catch-up.
 
 Two optional fields carry the prestige tree's "Automatisation" branch, and neither needed a key
 bump. `automationOff` holds the automations the player switched **off**, keyed by `AutomationKey` —

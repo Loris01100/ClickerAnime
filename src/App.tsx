@@ -20,7 +20,7 @@ import ReflexPanel from "./ui/ReflexPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
-import { imagePathsForAnime, preloadImages, STARTUP_IMAGE_PATHS } from "./ui/preload";
+import { imagePathsForAnime, preloadImages, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./ui/preload";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
@@ -44,6 +44,9 @@ export default function App() {
     createEffect(() => {
       const animeId = game.activeArc()?.animeId;
       if (animeId) preloadImages(imagePathsForAnime(game.data, animeId));
+    });
+    createEffect(() => {
+      if (prestigeTreeOpen()) preloadImages(PRESTIGE_IMAGE_PATHS);
     });
   });
 

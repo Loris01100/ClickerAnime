@@ -7,6 +7,10 @@ export const STARTUP_IMAGE_PATHS = [
   "/resources/prestige.png",
   "/resources/crossover-crystal.png",
   "/resources/pack-points.png",
+];
+
+/** The prestige panel is optional and heavy, so its art waits for the panel to open. */
+export const PRESTIGE_IMAGE_PATHS = [
   "/prestige-tree-background.png",
   ...["narrator-click", "team-dps", "xp", "items", "destin", "automation"].flatMap((branch) =>
     [1, 2, 3, 4, 5].map((level) => `/prestige-nodes/${branch}-${level}.webp`)

@@ -290,6 +290,39 @@ function isValidSave(value: unknown): value is SaveFile {
   );
 }
 
+/** Imported equipment also has to be meaningful for the current game data, not merely well-typed. */
+function sanitizedEquipment(
+  data: GameData,
+  equipment: Record<string, string> | undefined,
+  itemCounts: Record<string, number>,
+  ownedIds: string[]
+): Record<string, string> {
+  const cleaned: Record<string, string> = {};
+  const worn = new Set<string>();
+  for (const [characterId, itemId] of Object.entries(equipment ?? {})) {
+    const character = data.characters.find((c) => c.id === characterId);
+    const item = data.items.find((i) => i.id === itemId);
+    const restriction = item?.equippableBy;
+    const allowed =
+      !restriction ||
+      ((!restriction.characterIds || restriction.characterIds.includes(characterId)) &&
+        (!restriction.animeIds || restriction.animeIds.includes(character?.animeId ?? "")) &&
+        (!restriction.tags || restriction.tags.some((tag) => character?.tags?.includes(tag))));
+    if (
+      character &&
+      ownedIds.includes(characterId) &&
+      item?.kind === "unique" &&
+      itemCounts[itemId] > 0 &&
+      allowed &&
+      !worn.has(itemId)
+    ) {
+      cleaned[characterId] = itemId;
+      worn.add(itemId);
+    }
+  }
+  return cleaned;
+}
+
 function readSave(): SaveFile | null {
   if (typeof localStorage === "undefined") return null;
   try {
@@ -395,7 +428,7 @@ export function createGameStore(data: GameData) {
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
   // characterId -> itemId for equipped unique items.
   const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
-    saved?.characterEquipment ?? {}
+    sanitizedEquipment(data, saved?.characterEquipment, saved?.itemCounts ?? {}, saved?.ownedCharacterIds ?? [])
   );
   // Cristaux de crossover: earned on kills with a team spanning two worlds, spent to lift the
   // synergy malus for a while (see crossover.ts). Run-scoped like items — prestigeReset wipes them.

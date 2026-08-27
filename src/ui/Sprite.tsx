@@ -16,13 +16,21 @@ const SCALE = 1.3;
  * instead of AniList's whole character database — without it, a common name (e.g. "Chiyo") can
  * resolve to an unrelated character from a different anime entirely.
  */
-export default function Sprite(props: { name: string; kind: PortraitKind; anime?: string; px?: number; dim?: boolean }) {
+export default function Sprite(props: {
+  name: string;
+  kind: PortraitKind;
+  anime?: string;
+  px?: number;
+  dim?: boolean;
+  /** A hidden Codex group keeps its placeholder and does not spend an AniList request. */
+  load?: boolean;
+}) {
   const px = () => (props.px ?? 4) * SCALE;
   const width = () => BOX_COLS * px();
   const height = () => BOX_ROWS * px();
 
   const [portrait] = createResource(
-    () => `${props.kind}:${props.anime ?? ""}:${props.name}`,
+    () => (props.load === false ? false : `${props.kind}:${props.anime ?? ""}:${props.name}`),
     () => portraitUrl(props.name, props.kind, props.anime)
   );
 

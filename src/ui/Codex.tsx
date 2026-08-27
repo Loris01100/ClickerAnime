@@ -90,6 +90,7 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                           anime={animeName(character.animeId)}
                           px={3}
                           dim={!owned(character)}
+                          load={anime.id === selected()?.animeId}
                         />
                         <span class="name">{character.name}</span>
                         <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spriteHue, themeOf } from "./hue";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
-import { imagePathsForAnime } from "./preload";
+import { imagePathsForAnime, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./preload";
 
 describe("spriteHue", () => {
   it("gives the same hue for the same id, every time", () => {
@@ -74,5 +74,12 @@ describe("imagePathsForAnime", () => {
     };
 
     expect(imagePathsForAnime(data, "a")).toEqual(["/a.jpg", "/items/item-shuriken.png"]);
+  });
+});
+
+describe("preload paths", () => {
+  it("keeps the optional prestige art out of the startup batch", () => {
+    expect(STARTUP_IMAGE_PATHS).not.toContain("/prestige-tree-background.png");
+    expect(PRESTIGE_IMAGE_PATHS).toContain("/prestige-tree-background.png");
   });
 });
