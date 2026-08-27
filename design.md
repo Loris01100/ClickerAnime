@@ -672,6 +672,9 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
   `affordable` — qui a toujours compté la remise — pouvait allumer un bouton à côté d'un prix hors
   de portée. Quand une remise court, le prix de base la précède barré (`<s class="muted">`), pour que
   le nœud se voie agir plutôt que de simplement faire baisser un chiffre.
+- **Un bouton d'achat ne doit jamais être recréé pendant le geste.** L'argent peut changer à chaque
+  kill derrière l'overlay ; les lignes utilisent donc `<Index>` pour conserver leur nœud DOM entre
+  l'appui et le relâchement de la souris tout en actualisant prix et disponibilité.
 - **Rien à vendre = une ligne muette** dans l'overlay : un tiroir ouvert exprès par le joueur ne
   doit jamais être vide sans explication (contrairement à l'ancienne version en colonne, qui se
   cachait entièrement).

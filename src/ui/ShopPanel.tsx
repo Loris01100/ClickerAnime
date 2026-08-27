@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Index, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
@@ -29,41 +29,41 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
   const characterOffers = () => entries().filter((entry) => entry.character && !entry.owned);
   const supplyOffers = () => entries().filter((entry) => entry.arc?.id === supplyArcId());
 
-  const OfferRow = (rowProps: { entry: ReturnType<GameStore["shopOffers"]>[number] }) => {
+  const OfferRow = (rowProps: { entry: () => ReturnType<GameStore["shopOffers"]>[number] }) => {
     const entry = rowProps.entry;
     return (
       <div class="row">
         <span class="name">
           <Show
-            when={entry.character}
-            fallback={<ItemIcon id={entry.item?.id} kind={entry.item?.kind ?? "common"} px={30} />}
+            when={entry().character}
+            fallback={<ItemIcon id={entry().item?.id} kind={entry().item?.kind ?? "common"} px={30} />}
           >
             {(character) => (
               <Sprite name={character().name} kind="character" anime={animeNameOf(character().animeId)} px={5} />
             )}
           </Show>
-          {entry.item?.name ?? entry.character?.name ?? "—"}
-          <Show when={entry.offer.kind === "item" && (entry.offer.amount ?? 1) > 1}>
-            {" "}x{entry.offer.amount}
+          {entry().item?.name ?? entry().character?.name ?? "—"}
+          <Show when={entry().offer.kind === "item" && (entry().offer.amount ?? 1) > 1}>
+            {" "}x{entry().offer.amount}
           </Show>
         </span>
         <Show
-          when={!entry.locked}
+          when={!entry().locked}
           fallback={
             <small class="muted small">
-              <IconLock /> {animeNameOf(entry.offer.requiresAnimeId!)}
+              <IconLock /> {animeNameOf(entry().offer.requiresAnimeId!)}
             </small>
           }
         >
           <button
-            disabled={!entry.affordable}
-            title={entry.discounted ? `Prix de base ${fmt(entry.offer.cost)} — remise « Relations »` : undefined}
-            onClick={() => props.game.buyShopOffer(entry.offer.id)}
+            disabled={!entry().affordable}
+            title={entry().discounted ? `Prix de base ${fmt(entry().offer.cost)} — remise « Relations »` : undefined}
+            onClick={() => props.game.buyShopOffer(entry().offer.id)}
           >
-            <Show when={entry.discounted}>
-              <s class="muted">{fmt(entry.offer.cost)}</s>{" "}
+            <Show when={entry().discounted}>
+              <s class="muted">{fmt(entry().offer.cost)}</s>{" "}
             </Show>
-            {fmt(entry.cost)} <Coin kind="gold" />
+            {fmt(entry().cost)} <Coin kind="gold" />
           </button>
         </Show>
       </div>
@@ -88,7 +88,8 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
         <div class="codex-detail scroll">
           <Show when={characterOffers().length > 0}>
             <div class="codex-group">Compagnons</div>
-            <For each={characterOffers()}>{(entry) => <OfferRow entry={entry} />}</For>
+            {/* Currency changes during combat; Index preserves the button between pointer down/up. */}
+            <Index each={characterOffers()}>{(entry) => <OfferRow entry={entry} />}</Index>
           </Show>
           <Show when={supplyArcs().length > 0}>
             <div class="row">
@@ -103,7 +104,7 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
                 </For>
               </select>
             </div>
-            <For each={supplyOffers()}>{(entry) => <OfferRow entry={entry} />}</For>
+            <Index each={supplyOffers()}>{(entry) => <OfferRow entry={entry} />}</Index>
           </Show>
           <Show when={characterOffers().length === 0 && supplyOffers().length === 0}>
             <p class="muted pad">Plus rien à acheter pour l'instant.</p>
