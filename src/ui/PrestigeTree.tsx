@@ -63,7 +63,7 @@ export default function PrestigeTree(props: { game: GameStore; onClose: () => vo
   return (
     <div class="overlay" onClick={props.onClose}>
       <div
-        class="modal"
+        class="modal prestige-modal"
         role="dialog"
         aria-modal="true"
         aria-label="Arbre de prestige"
