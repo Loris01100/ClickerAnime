@@ -37,7 +37,7 @@ function detailOf(game: GameStore, key: AutomationKey): string {
  * same rule the autoclicker's toggle follows. Each is a real choice rather than a downgrade:
  * "Relève" would drag the player out of the cleared arc they came back to farm the common of.
  */
-export default function AutomationBar(props: { game: GameStore; onOpenReflex: () => void }) {
+export default function AutomationBar(props: { game: GameStore }) {
   const owned = () => AUTOMATION_KEYS.filter((key) => props.game.automationLevelOf(key) > 0);
 
   return (
@@ -62,13 +62,6 @@ export default function AutomationBar(props: { game: GameStore; onOpenReflex: ()
             );
           }}
         </For>
-        {/* Les plans se règlent ailleurs : l'interrupteur dit si le Réflexe tourne, le bouton dit
-            ce qu'il a le droit de lancer. */}
-        <Show when={props.game.automationLevelOf("ability") > 0}>
-          <button class="auto-toggle plans" title="Régler ce que le Réflexe lance : tout de suite, au boss, ou en groupe." onClick={props.onOpenReflex}>
-            Plans…
-          </button>
-        </Show>
       </div>
     </Show>
   );

@@ -19,7 +19,7 @@ interface Pop {
 }
 
 /** Middle column: the arc stepper, the fight, and the running combat stats. */
-export default function ClickStage(props: { game: GameStore; onOpenReflex: () => void }) {
+export default function ClickStage(props: { game: GameStore }) {
   const [pops, setPops] = createSignal<Pop[]>([]);
   const [open, setOpen] = createSignal(true);
   // Purely cosmetic combat feedback (`design.md` §4), cleared by the animations' own `animationend`
@@ -181,7 +181,7 @@ export default function ClickStage(props: { game: GameStore; onOpenReflex: () =>
         )}
       </Show>
 
-      <AutomationBar game={props.game} onOpenReflex={props.onOpenReflex} />
+      <AutomationBar game={props.game} />
 
       <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour combattre.</div>}>
         {(current) => (

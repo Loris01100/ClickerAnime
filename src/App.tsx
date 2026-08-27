@@ -126,6 +126,9 @@ export default function App() {
                 <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
                 <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
                 <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
+                <Show when={game.automationLevelOf("ability") > 0}>
+                  <button onClick={() => runFromMenu(() => setReflexOpen(true))}>Plans</button>
+                </Show>
               </Show>
               <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
               <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>

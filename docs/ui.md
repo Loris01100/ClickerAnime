@@ -86,8 +86,8 @@ know *whose* passive to rank: `RosterPanel` grows an `.auto-rank` cog next to ea
 rank-up button, and `toggleAutoRank` refuses past `autoRankCapacity()` (one slot per node level)
 rather than accepting a character it would silently never get to.
 
-The other one is "Réflexe", which needs to know *quand* dépenser chaque capacité: the strip grows a
-`Plans…` button (only once the node is bought) opening **`ReflexPanel.tsx`**, one row per unlocked
+The other one is "Réflexe", which needs to know *quand* dépenser chaque capacité: the main menu grows a
+`Plans` entry (only once the node is bought) opening **`ReflexPanel.tsx`**, one row per unlocked
 ability with its three plans as segments — `Auto` / `Boss` / `Groupe`, greyed out until the node's
 level opens them (`abilityPolicyChoices`). It is deliberately *not* in the abilities panel: that bar
 is the "fire now" gesture and already runs to forty buttons, while a plan is set once and read as a
