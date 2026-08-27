@@ -75,6 +75,7 @@ import {
   type AutomationKey,
   AUTOMATION_POSITIONS,
   autoRankSlots,
+  abilityPolicyChoices as policyChoices,
   autoRematchDelayMs,
   BOSS_TIMER_BOOST,
   BOSS_XP_BOOST,
@@ -425,7 +426,16 @@ export function createGameStore(data: GameData) {
   const [abilityPolicy, setAbilityPolicyMap] = createSignal<Record<string, AbilityPolicy>>(
     saved?.abilityPolicy ?? {}
   );
-  const abilityPolicyOf = (abilityId: string): AbilityPolicy => abilityPolicy()[abilityId] ?? "always";
+  /** The plans "Réflexe" has opened at its current level — [] while the node is unbought. */
+  const abilityPolicyChoices = () => policyChoices(automationLevelOf("ability"));
+  /**
+   * A plan the node no longer opens reads as `"always"`: a prestige reset can't take levels away,
+   * but a save carried across a rebalance can, and a stored plan must never silently keep working.
+   */
+  const abilityPolicyOf = (abilityId: string): AbilityPolicy => {
+    const stored = abilityPolicy()[abilityId] ?? "always";
+    return abilityPolicyChoices().includes(stored) ? stored : "always";
+  };
   function setAbilityPolicy(abilityId: string, policy: AbilityPolicy) {
     setAbilityPolicyMap((map) => {
       const next = { ...map };
@@ -2028,6 +2038,7 @@ export function createGameStore(data: GameData) {
     unlockAnime,
     activateAbility,
     abilityPolicyOf,
+    abilityPolicyChoices,
     setAbilityPolicy,
     activateReadyAbilities,
     abilityMagnitudeOf,

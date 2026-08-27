@@ -3,7 +3,7 @@ import { createRoot } from "solid-js";
 import { createGameStore, CURRENCY_REWARD_MULTIPLIER, SUPPLY_KILLS_PER_COPY } from "../gameState";
 import { passiveRankCost, XP_PER_KILL_REWARD } from "../growth";
 import type { Enemy, ShopOffer } from "../types";
-import { AUSPICE_DOUBLE_DROP_CHANCE, AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS, AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS, AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS, autoAbilityIntervalMs, autoAdvanceDelayMs, AUTOCLICK_INTERVAL_MS, AUTOCLICK_INTERVAL_REDUCTION_MS, autoClickIntervalMs, autoCrossoverReserve, autoRankSlots, autoRematchDelayMs, canPurchaseNodeLevel, CRIT_CHANCE, CURRENCY_GAIN_PERCENT, DOUBLE_DROP_CHANCE, DOUBLE_PRESTIGE_CHANCE, FREE_ABILITY_TRIGGER_CHANCE, GHOST_LOOT_CHANCE, isNodeUnlocked, LEVEL_COSTS, LEVELS_PER_BRANCH, LEVELS_PER_NODE, nodeCost, nodeLevel, nodeLevels, NARRATOR_CLICK_PERCENT, PITY_KILLS_THRESHOLD, PITY_REDUCTION_PER_LEVEL, prestigeTreeContributions, PRESTIGE_PER_KILL_CHANCE, PRESTIGE_TREE_CATEGORIES, purchaseNodeLevel, scaledChance, SHOP_COST_DISCOUNT, softenedSynergyConfig, TEAM_DPS_PERCENT, totalLevels, XP_GAIN_PERCENT } from "../prestigeTree";
+import { abilityPolicyChoices, AUSPICE_DOUBLE_DROP_CHANCE, AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS, AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS, AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS, autoAbilityIntervalMs, autoAdvanceDelayMs, AUTOCLICK_INTERVAL_MS, AUTOCLICK_INTERVAL_REDUCTION_MS, autoClickIntervalMs, autoCrossoverReserve, autoRankSlots, autoRematchDelayMs, canPurchaseNodeLevel, CRIT_CHANCE, CURRENCY_GAIN_PERCENT, DOUBLE_DROP_CHANCE, DOUBLE_PRESTIGE_CHANCE, FREE_ABILITY_TRIGGER_CHANCE, GHOST_LOOT_CHANCE, isNodeUnlocked, LEVEL_COSTS, LEVELS_PER_BRANCH, LEVELS_PER_NODE, nodeCost, nodeLevel, nodeLevels, NARRATOR_CLICK_PERCENT, PITY_KILLS_THRESHOLD, PITY_REDUCTION_PER_LEVEL, prestigeTreeContributions, PRESTIGE_PER_KILL_CHANCE, PRESTIGE_TREE_CATEGORIES, purchaseNodeLevel, scaledChance, SHOP_COST_DISCOUNT, softenedSynergyConfig, TEAM_DPS_PERCENT, totalLevels, XP_GAIN_PERCENT } from "../prestigeTree";
 import { baseSave, installSave } from "./helpers";
 
 describe("prestige tree — pure functions", () => {
@@ -998,4 +998,11 @@ describe("automatisation", () => {
       automationData({ bossHp: 300, bossTimerMs: 2_000 })
     );
   });
+  it("opens the Réflexe plans level by level, and never before the node is bought", () => {
+    expect(abilityPolicyChoices(0)).toEqual([]);
+    expect(abilityPolicyChoices(1)).toEqual(["always"]);
+    expect(abilityPolicyChoices(2)).toEqual(["always", "boss"]);
+    expect(abilityPolicyChoices(5)).toEqual(["always", "boss", "sync"]);
+  });
+
 });

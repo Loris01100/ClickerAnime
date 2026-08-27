@@ -724,27 +724,6 @@ small {
   padding: 0.3rem 0.4rem;
   min-width: 0;
 }
-/* Une case = la capacité + son plan d'automatisation. Le select reste minuscule : c'est un réglage
-   qu'on touche une fois, pas le geste principal. */
-.ability-slot {
-  display: flex;
-  align-items: stretch;
-  gap: 0.15rem;
-  min-width: 0;
-}
-.ability-slot > .ability {
-  flex: 1;
-  min-width: 0;
-}
-.ability-policy {
-  font-size: 0.6rem;
-  padding: 0 0.1rem;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--muted);
-  max-width: 3.4rem;
-}
 .ability-name {
   font-weight: 600;
   font-size: 0.72rem;
@@ -2161,4 +2140,48 @@ button.danger {
 .crash pre {
   color: var(--bad);
   white-space: pre-wrap;
+}
+
+/* --- plans du Réflexe (overlay) ---
+   Une ligne par capacité : à gauche ce qu'elle fait, à droite les trois plans en segments. Les
+   prêtes sont soulignées par leur bordure — on règle souvent le plan juste après en avoir vu une
+   partir au mauvais moment. */
+.reflex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+}
+.reflex-row.ready {
+  border-color: var(--accent);
+}
+.reflex-id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+.reflex-id small {
+  font-size: 0.68rem;
+}
+.reflex-plans {
+  display: flex;
+  gap: 0.15rem;
+  flex: none;
+}
+.reflex-plan {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+}
+.reflex-plan.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.reflex-group {
+  color: var(--accent);
+  margin-bottom: 0.4rem;
 }

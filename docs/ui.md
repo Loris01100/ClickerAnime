@@ -9,7 +9,7 @@ roster (abilities, sortable team table, item table), middle is resources + the f
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`, `PackPanel.tsx`. `Notices.tsx` is the exception to the overlay rule: a fixed,
+`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`. `Notices.tsx` is the exception to the overlay rule: a fixed,
 non-blocking stack of pop-ups fed by the store's `notices` queue, which `grantItem` and `defeat`
 push to so that a drop, a recruit and a cleared arc stop happening in silence. The queue lives in
 the store because those events are born in the engine, and it is expired by the existing 200ms tick
@@ -85,6 +85,14 @@ per-level wording. The one automation that needs more than a switch is "Intendan
 know *whose* passive to rank: `RosterPanel` grows an `.auto-rank` cog next to each character's
 rank-up button, and `toggleAutoRank` refuses past `autoRankCapacity()` (one slot per node level)
 rather than accepting a character it would silently never get to.
+
+The other one is "Réflexe", which needs to know *quand* dépenser chaque capacité: the strip grows a
+`Plans…` button (only once the node is bought) opening **`ReflexPanel.tsx`**, one row per unlocked
+ability with its three plans as segments — `Auto` / `Boss` / `Groupe`, greyed out until the node's
+level opens them (`abilityPolicyChoices`). It is deliberately *not* in the abilities panel: that bar
+is the "fire now" gesture and already runs to forty buttons, while a plan is set once and read as a
+whole — the rows sort grouped-first so the screen reads like the plan itself. Manual firing ignores
+plans entirely, which the panel says in its intro.
 
 `ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
 section — next to the tree button, because a challenge starts from a reset just like a prestige

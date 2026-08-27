@@ -16,6 +16,7 @@ import ShopPanel from "./ui/ShopPanel";
 import CrossoverPanel from "./ui/CrossoverPanel";
 import Notices from "./ui/Notices";
 import PackPanel from "./ui/PackPanel";
+import ReflexPanel from "./ui/ReflexPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
@@ -33,6 +34,7 @@ export default function App() {
   const [shopOpen, setShopOpen] = createSignal(false);
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   const [packsOpen, setPacksOpen] = createSignal(false);
+  const [reflexOpen, setReflexOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
   let menu: HTMLDetailsElement | undefined;
 
@@ -156,7 +158,7 @@ export default function App() {
               onOpenCrossover={() => setCrossoverOpen(true)}
               onOpenPacks={() => setPacksOpen(true)}
             />
-            <ClickStage game={game} />
+            <ClickStage game={game} onOpenReflex={() => setReflexOpen(true)} />
             <WorldMap game={game} />
           </div>
           <ProgressPanel
@@ -193,6 +195,10 @@ export default function App() {
 
       <Show when={prestigeTreeOpen()}>
         <PrestigeTree game={game} onClose={() => setPrestigeTreeOpen(false)} />
+      </Show>
+
+      <Show when={reflexOpen()}>
+        <ReflexPanel game={game} onClose={() => setReflexOpen(false)} />
       </Show>
 
       <Show when={challengesOpen()}>

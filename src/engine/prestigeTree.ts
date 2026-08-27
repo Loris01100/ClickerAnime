@@ -1,3 +1,4 @@
+import type { AbilityPolicy } from "./abilities";
 import type { ActiveModifier, SynergyConfig } from "./types";
 
 /** Six independent chains the prestige points feed. */
@@ -145,6 +146,19 @@ export function autoRankSlots(level: number): number {
  */
 export function autoCrossoverReserve(level: number, cost: number): number {
   return Math.max(0, LEVELS_PER_NODE - level) * cost;
+}
+
+/**
+ * What "Réflexe" lets the player *plan*, level by level. Pure scope, like every other level in this
+ * branch: a plan can only make the automation hold an ability back, never make one worth more.
+ * Level 1 fires everything as soon as it's ready; level 2 opens "Boss"; level 3 opens "Groupe".
+ */
+export function abilityPolicyChoices(level: number): AbilityPolicy[] {
+  if (level <= 0) return [];
+  const choices: AbilityPolicy[] = ["always"];
+  if (level >= 2) choices.push("boss");
+  if (level >= 3) choices.push("sync");
+  return choices;
 }
 
 /** The five automations, each reading the level of its own node in the "Automatisation" branch. */
@@ -353,7 +367,9 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
         label: "Réflexe",
         description:
           `Déclenche seul les capacités prêtes, toutes les ${secs(AUTO_ABILITY_INTERVAL_MS)} — ` +
-          `${secs(AUTO_ABILITY_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoAbilityIntervalMs(LEVELS_PER_NODE))}`,
+          `${secs(AUTO_ABILITY_REDUCTION_MS)} de moins par niveau, jusqu'à ${secs(autoAbilityIntervalMs(LEVELS_PER_NODE))}. ` +
+          `Niveau 2 : chaque capacité peut être réservée aux boss. Niveau 3 : on peut en grouper ` +
+          `plusieurs, lancées ensemble une fois toutes prêtes`,
       },
       {
         position: 3,

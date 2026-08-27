@@ -1,6 +1,5 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
-import type { AbilityPolicy } from "../engine/abilities";
 import { SCOPED_BUFF_CAP } from "../engine/modifiers";
 import { passiveGrowth } from "../engine/growth";
 import type { Character, Item } from "../engine/types";
@@ -177,33 +176,16 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                     `Maîtrise : x${Math.round(props.game.buffCap())} au maximum par personnage`,
                   ].join("\n");
                 return (
-                  <div class="ability-slot">
-                    <button
-                      class="ability"
-                      classList={{ running: running() }}
-                      disabled={remaining() > 0}
-                      title={tooltip()}
-                      onClick={() => props.game.activateAbility(unlocked.ability.id)}
-                    >
-                      <span class="ability-name">{unlocked.ability.name}</span>
-                      <span class="ability-cd">{label()}</span>
-                    </button>
-                    {/* Le plan ne concerne que l'automatisation « Réflexe » : le bouton, lui, lance
-                        toujours. « Groupe » attend que toutes les capacités du groupe soient prêtes,
-                        ce qui couvre « ne lance A que si B est disponible ». */}
-                    <select
-                      class="ability-policy"
-                      title="Plan d'automatisation : quand le Réflexe a le droit de lancer cette capacité."
-                      value={props.game.abilityPolicyOf(unlocked.ability.id)}
-                      onChange={(e) =>
-                        props.game.setAbilityPolicy(unlocked.ability.id, e.currentTarget.value as AbilityPolicy)
-                      }
-                    >
-                      <option value="always">Auto</option>
-                      <option value="boss">Boss</option>
-                      <option value="sync">Groupe</option>
-                    </select>
-                  </div>
+                  <button
+                    class="ability"
+                    classList={{ running: running() }}
+                    disabled={remaining() > 0}
+                    title={tooltip()}
+                    onClick={() => props.game.activateAbility(unlocked.ability.id)}
+                  >
+                    <span class="ability-name">{unlocked.ability.name}</span>
+                    <span class="ability-cd">{label()}</span>
+                  </button>
                 );
               }}
             </For>
