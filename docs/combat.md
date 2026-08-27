@@ -6,8 +6,9 @@ See `CLAUDE.md` for the invariants that outrank anything here.
 ## The combat loop
 
 An arc is a zone the player fights through. `combat.ts` is pure and decides who shows up next:
-cycle `arc.mobs` in order until `mobsToBoss` kills, then `arc.boss`; once the arc is cleared the boss
-stops appearing and the zone farms mobs forever. Mobs carrying a `characterId` are the anime's
+cycle `arc.mobs` in order until `mobsToBoss` kills, then `arc.boss`; once the arc is cleared, its boss
+returns after every 50 ordinary victories, forever. The arc kill counter resets on each boss win and
+the combat panel shows progress toward the next encounter. Mobs carrying a `characterId` are the anime's
 characters — beating one adds them to the team for free, and they drop out of the pool afterwards.
 Enemies carrying an `itemId` may hand it over — see the narrator's click below.
 

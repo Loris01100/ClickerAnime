@@ -1,5 +1,6 @@
 import { For, Show, createEffect, createResource, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import { BOSS_REPLAY_KILLS } from "../engine/combat";
 import { bannerUrl } from "./anilist";
 import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
@@ -110,7 +111,7 @@ export default function ClickStage(props: { game: GameStore }) {
     const current = arc();
     return current ? props.game.killsIn(current) : 0;
   };
-  const killsGoal = () => arc()?.mobsToBoss ?? 0;
+  const killsGoal = () => (cleared() ? BOSS_REPLAY_KILLS : arc()?.mobsToBoss ?? 0);
   const cleared = () => {
     const current = arc();
     return current ? props.game.arcCleared(current) : false;
@@ -272,11 +273,9 @@ export default function ClickStage(props: { game: GameStore }) {
           <strong>{fmt(props.game.teamDps())}</strong>
         </div>
         <div>
-          <small>Avant le boss</small>
+          <small>{cleared() ? "Prochain boss" : "Avant le boss"}</small>
           <strong>
-            <Show when={!cleared()} fallback="terminé">
-              {Math.min(kills(), killsGoal())} / {killsGoal()}
-            </Show>
+            {Math.min(kills(), killsGoal())} / {killsGoal()}
           </strong>
         </div>
         <div>

@@ -891,6 +891,9 @@ export function createGameStore(data: GameData) {
         armAutoAdvance();
         maybeCompleteChallenge();
       }
+      // Cleared arcs count ordinary fights since the last boss, so the same 50-fight cycle can
+      // repeat without another save field or a one-shot rematch flag.
+      setArcKills((k) => ({ ...k, [arc.id]: 0 }));
       setBossRetreatArcIds((ids) => ids.filter((id) => id !== arc.id));
       bumpAchievement("bossesKilled");
     } else {
@@ -1355,7 +1358,7 @@ export function createGameStore(data: GameData) {
   const isAutoRanked = (characterId: string) => autoRankCharacterIds().includes(characterId);
 
   /** True once a rematch against this arc's boss is on offer: the player retreated from it before. */
-  const bossChallengeable = (arc: Arc) => !arcCleared(arc) && hasRetreatedFromBoss(arc);
+  const bossChallengeable = (arc: Arc) => hasRetreatedFromBoss(arc);
 
   /** Deliberate rematch against the active arc's boss, whenever the player feels ready for it. */
   function challengeBoss(): boolean {

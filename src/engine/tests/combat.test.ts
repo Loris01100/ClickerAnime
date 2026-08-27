@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND } from "../gameState";
-import { encounterPool, enemyHp, nextEnemy, pendingRecruits } from "../combat";
+import { BOSS_REPLAY_KILLS, encounterPool, enemyHp, nextEnemy, pendingRecruits } from "../combat";
 import type { Enemy } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
@@ -28,9 +28,10 @@ describe("combat", () => {
     expect(nextEnemy(arc, 3, [], false).id).toBe("a1-boss");
   });
 
-  it("goes back to farming mobs once the arc is cleared", () => {
-    expect(nextEnemy(arc, 3, [], true).id).not.toBe("a1-boss");
-    expect(nextEnemy(arc, 99, ["c1"], true).id).toBe("mob");
+  it("brings a cleared arc's boss back every 50 mob victories", () => {
+    expect(nextEnemy(arc, BOSS_REPLAY_KILLS - 1, ["c1"], true).id).toBe("mob");
+    expect(nextEnemy(arc, BOSS_REPLAY_KILLS, ["c1"], true).id).toBe("a1-boss");
+    expect(nextEnemy(arc, BOSS_REPLAY_KILLS, ["c1"], true, true).id).toBe("mob");
   });
 
   it("farms mobs instead of the boss once the player retreated from it", () => {
@@ -103,10 +104,15 @@ describe("plafond de kills par seconde", () => {
   });
 
   it("ne ralentit jamais un boss : un seul ennemi, un seul kill", () => {
-    const data = farmData(1e9);
+    const data = farmData(5_000);
     data.arcs[0].mobsToBoss = 0;
     data.arcs[0].boss = { id: "ta-boss", name: "Boss", baseHp: 1_000, reward: 1 };
-    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    const restore = installSave({
+      ...baseSave(),
+      ownedCharacterIds: ["ca"],
+      unlockedAnimeIds: ["ta"],
+      arcKills: { "ta-arc": 7 },
+    });
     vi.useFakeTimers();
     let disposeRoot!: () => void;
     try {
@@ -117,6 +123,7 @@ describe("plafond de kills par seconde", () => {
       game.setActiveArc("ta-arc");
       vi.advanceTimersByTime(200); // un seul tick
       expect(game.arcCleared(game.data.arcs[0])).toBe(true);
+      expect(game.killsIn(game.data.arcs[0])).toBe(0);
     } finally {
       disposeRoot();
       vi.useRealTimers();

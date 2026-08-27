@@ -90,6 +90,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   unchanged by the whole branch).
 - **A chance node must still be a chance at level 5.** `scaledChance` clamps at 1; a base at or
   above 1/5 silently becomes a guarantee. `src/engine/tests/` guards every chance constant.
+- A cleared arc remains a 50-mob boss cycle forever. `arcKills` resets on every boss victory; do not
+  turn cleared arcs back into boss-free farms.
 - **A character's `baseDps` is a ramp times a strength, and only the strength is a design
   statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
   the arc the player has reached, so an early recruit never becomes dead weight. Two characters
