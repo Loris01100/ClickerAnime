@@ -1891,6 +1891,7 @@ export function createGameStore(data: GameData) {
     worldPointsOf,
     duplicatesOf,
     damageGrowthOf,
+    catchUpOf,
     packPoolOf,
     openPack,
     // crossover

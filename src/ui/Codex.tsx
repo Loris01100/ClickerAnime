@@ -2,7 +2,7 @@ import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-j
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
 import { LEVEL_DAMAGE_STEP, passiveGrowth } from "../engine/growth";
-import { DUPLICATE_DAMAGE_STEP } from "../engine/packs";
+import { DUPLICATE_DAMAGE_STEP, duplicateGrowth } from "../engine/packs";
 import ItemCodex from "./ItemCodex";
 import Sprite from "./Sprite";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
@@ -24,7 +24,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
 
   const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
-  /** What multiplies the printed base damage right now: levels and pack duplicates, stacked. */
+  /** Ce qui multiplie la stat imprimée hors niveaux : doublons de packs et rattrapage d'histoire. */
+  const rampOf = (character: Character) =>
+    props.game.catchUpOf(character) * duplicateGrowth(props.game.duplicatesOf(character.id));
 
   const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
@@ -139,12 +141,20 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                   <div class="codex-row">
                     <span class="muted">Gain par niveau</span>
                     {/* Un niveau vaut LEVEL_DAMAGE_STEP fois la stat de base, pas la stat entière —
-                        c'est `levelGrowth` qui fait foi. Affiché en dur, ça surestimait de 67 %. */}
+                        c'est `levelGrowth` qui fait foi. Affiché en dur, ça surestimait de 67 %.
+                        Le rattrapage multiplie cette stat de base : sans lui la ligne annonçait un
+                        gain par niveau des dizaines de fois trop petit face à « Actuel ». */}
                     <strong>
-                      +{fmt(character().baseClickPower * LEVEL_DAMAGE_STEP)} clic /{" "}
-                      +{fmt(character().baseDps * LEVEL_DAMAGE_STEP)} dps
+                      +{fmt(character().baseClickPower * rampOf(character()) * LEVEL_DAMAGE_STEP)} clic /{" "}
+                      +{fmt(character().baseDps * rampOf(character()) * LEVEL_DAMAGE_STEP)} dps
                     </strong>
                   </div>
+                  <Show when={props.game.catchUpOf(character()) > 1}>
+                    <div class="codex-row">
+                      <span class="muted">Rattrapage (ramp de l'histoire)</span>
+                      <strong>x{props.game.catchUpOf(character()).toFixed(1)} sur les stats de base</strong>
+                    </div>
+                  </Show>
                   <Show when={props.game.duplicatesOf(character().id) > 0}>
                     <div class="codex-row">
                       <span class="muted">Doublons (packs)</span>
