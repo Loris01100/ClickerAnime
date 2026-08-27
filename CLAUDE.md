@@ -148,6 +148,9 @@ One file per area under `docs/`. Each carries the full rationale and the tuning 
 | Combat | `docs/combat.md` | The arc loop, overkill carry-over, `MAX_KILLS_PER_SECOND`, boss timers, how steep a world's hp table has to be, the narrator's click |
 | Progression | `docs/progression.md` | Levels and xp, world/arc unlocking and tiers, synergy, evolutions |
 | Economy | `docs/economy.md` | Items and passive ranks, prestige, the 30-node prestige tree (automation included), run challenges, crossover crystals, packs and duplicates, achievements, the shop |
+
+Every production character has at least one `tags` entry. These types are shown in the Codex and are
+the shared vocabulary for equipment restrictions; add their French label in `ui/describe.ts`.
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
 | UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |

@@ -153,6 +153,23 @@ describe("portraitUrl", () => {
     expect(url).toBe("https://example.com/sasuke.jpg");
   });
 
+  it("directly searches an explicit alias missing from the fetched cast pages", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init!.body as string) as { query: string; variables: { s?: string } };
+      if (body.query.includes("Character(search:")) {
+        expect(body.variables.s).toBe("Isshiki Ootsutsuki");
+        return Response.json({ data: { Character: { image: { large: "https://example.com/isshiki.jpg" } } } });
+      }
+      if (body.query.includes("characters(")) return Response.json({ data: { Media: { characters: { nodes: [] } } } });
+      return Response.json({ data: { Media: { id: 97938 } } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(portraitUrl("Isshiki Ôtsutsuki", "character", "Boruto")).resolves.toBe(
+      "https://example.com/isshiki.jpg"
+    );
+  });
+
   it("with a context, never falls back to a different show's character even on a name miss", async () => {
     const fetchMock = mockCastEndpoint(5, [
       { name: { full: "Unrelated Name" }, image: { large: "https://example.com/nope.jpg" } },

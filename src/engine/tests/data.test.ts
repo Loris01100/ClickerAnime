@@ -13,6 +13,9 @@ describe("game data", () => {
 
     const characterIds = gameData.characters.map((c) => c.id);
     const itemIds = gameData.items.map((i) => i.id);
+    for (const character of gameData.characters) {
+      expect(character.tags?.length, `${character.id} n'a aucun type`).toBeGreaterThan(0);
+    }
     for (const arc of gameData.arcs) {
       expect(gameData.animes.some((a) => a.id === arc.animeId)).toBe(true);
       for (const enemy of [...arc.mobs, arc.boss]) {

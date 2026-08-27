@@ -38,19 +38,12 @@ const NAME_OVERRIDES: [from: string, to: string][] = [
   ["Ay, le Quatrième Raikage", "A"],
   ["Nagato", "Pain"],
   ["Sarada Uchiwa", "Sarada Uchiha"],
+  ["Isshiki Ôtsutsuki", "Isshiki Ootsutsuki"],
   // After the pair above, so "Obito Uchiwa" is already "Tobi" and never rewritten twice; this one
   // catches the boss card that names him without a surname ("Obito — Jinchûriki de Dix-Queues").
   ["Obito", "Tobi"],
 ];
 
-// Checked against the live cast of every show the game ships (172 characters for Boruto), with this
-// file's own `normalize`/`matchScore`: every name resolves except **Isshiki Ôtsutsuki**, who has no
-// card on AniList at all — not under that name, not as an alternative, not anywhere in the database.
-// He is left to resolve to `null`, i.e. `Sprite`'s silhouette. The tempting fix is an override onto
-// "Jigen", his vessel and the same person — the `Nagato` → `Pain` trick above — but Jigen is a
-// separate roster entry standing in the very same arc, so the two Codex cards would wear one face
-// and read as a bug. A known blank beats a confusing duplicate.
-//
 // The *enemies* are a different story: checked the same way, ~50 of the 191 arc mobs resolve to
 // nothing, and almost all of them are anonymous by design ("Garde de Kiri", "Serpent gardien",
 // "Voie de l'Insecte", "Les Cinq Kage Ressuscités") — AniList has no card for them and never will,
@@ -267,15 +260,16 @@ function cacheKey(name: string, kind: PortraitKind, context?: string): string {
  * `context` is the anime's name — required in practice for `kind: "character"` (every call site has
  * one) to search *within that show's cast* rather than AniList's whole character database. Without
  * it, a common name can resolve to the wrong show entirely (a "Chiyo" from some other anime instead
- * of Naruto's), which is worse than no portrait at all — so a character lookup with no context falls
- * back to the old global search only as a last resort, not as the normal path.
+ * of Naruto's), which is worse than no portrait at all. Only an explicit name override may fall back
+ * to the global search when that character is absent from the fetched cast pages.
  */
 async function fetchPortrait(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
   const resolvedName = applyNameOverrides(name);
   const resolvedContext = CHARACTER_ANIME_OVERRIDES[name] ?? context;
 
   if (kind === "character" && resolvedContext) {
-    return bestCastMatch(resolvedName, await castOf(resolvedContext));
+    const match = bestCastMatch(resolvedName, await castOf(resolvedContext));
+    if (match || resolvedName === name) return match;
   }
 
   const data = (await runQuery(kind === "character" ? CHARACTER_QUERY : MEDIA_QUERY, { s: resolvedName })) as {

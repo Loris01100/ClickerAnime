@@ -27,6 +27,8 @@ a passive can be bought from wherever it is read, not only from the team table.
 The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
+AniList name overrides may use a direct character search when the matching entry lies outside the
+cached cast pages; ordinary names never leave their anime context.
 
 The three-column shell grows up to 1800px: flexible side columns leave most extra room to combat,
 then stack below 1200px with the middle column first. The combat stage scales from 320px to 430px
