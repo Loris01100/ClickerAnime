@@ -72,10 +72,14 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - **A buff is scoped to the characters it comes from.** An ability boosts its own character, a
   combo boosts its members, and nothing else — which is what lets every ability and combo run at
   once. Don't make a buff team-wide again, and don't reintroduce a `STACK_FALLOFF`.
-- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth.** Combos are all
-  multipliers, so a dozen landing on the same character multiply into an overkill without it. Keep
-  it, and re-run `npm run sim` whenever it or either compensation (`scopedMagnitude`,
-  `dutyMagnitude`) changes.
+- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth, and it ramps.** Combos are
+  all multipliers, so a dozen landing on the same character multiply into an overkill without it —
+  and because it binds from arc 2 onward it *is* an ability's strength, not a safety net.
+  `scopedBuffCap` climbs it from `SCOPED_BUFF_CAP_FLOOR` (12) on the first arc to the full 50 on the
+  last, which is what makes abilities grow over a run instead of arriving at full power. **The
+  ceiling stays 50** — raising it re-opens the overkill it exists to stop; the ramp only lowers the
+  early game. Moving the floor rebalances the first two thirds of the game: re-run `npm run sim` and
+  refit both hp tables (`docs/modifiers.md`).
 - A `ModifierTemplate` carries **no id of its own**. Don't reintroduce a per-effect `id`.
 - **The "Automatisation" branch automates, it never grants.** Every one of its nodes plays a move
   the player could play by hand — walk to the next arc, fire a ready ability, buy a passive rank,
@@ -90,8 +94,14 @@ These outrank convenience, and several were learned the hard way. Don't break on
   statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
   the arc the player has reached, so an early recruit never becomes dead weight. Two characters
   debuting in the same arc keep their exact ratio forever — that ratio is the only thing the data
-  really says. `CATCH_UP` must stay **below 1**: at 1 the team's dps grows with roster size instead
-  of converging. Re-run `npm run sim` whenever it moves (`docs/progression.md`).
+  really says. `CATCH_UP` is **0.85** and must stay **below 1**: at 1 the team's dps grows with
+  roster size instead of converging. Moving it means refitting both generated hp tables — re-run
+  `npm run sim` and expect five passes (`docs/progression.md`).
+- **No character's `baseDps` sits below 0.6 of the strongest one debuting in their arc.** That floor
+  is what stops the preserved-forever cohort ratio from being a permanent 3.5x gap between two
+  characters recruited five minutes apart. It only ever raises a `secondary`, and it is free:
+  `arcPowerTable` reads a cohort's **maximum**, so raising a minimum moves no `debutPower`. Hold new
+  content to it (`docs/progression.md`).
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.
@@ -157,13 +167,14 @@ combos, rarely a whole world at once. Keep the shape when adding a world; omit a
 world genuinely has no such section.
 
 - `naruto/` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
-- `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~4.6 minutes an arc against
-  Shippūden's ~2.4. Generated from a table like Shippūden, on its own **steeper** ramps (boss hp
-  ~2.55, mob hp ~2.4, rewards and recruit stats ~1.85), because the roster it inherits grows faster.
+- `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~5.4 minutes an arc against
+  Shippūden's ~2.3. Generated from a table like Shippūden, on the **same** ramps (boss hp ~2.31,
+  mob hp ~2.17, rewards and recruit stats ~1.85) — it needed its own steeper table only before
+  `CATCH_UP` stopped the dps ramp depending on how deep the roster is.
   Its `name` is deliberately the short one — see `design.md`. Only new faces are recruitable here:
   the new generation, Kara and the Ôtsutsuki.
 - `shippuden/` — **Naruto Shippūden**, 15 arcs, deliberately the long one: it is the climax of the
-  Naruto worlds. Generated from a table, on **three ramps per arc**: boss hp ~2.5, mob hp ~2.33,
+  Naruto worlds. Generated from a table, on **three ramps per arc**: boss hp ~2.34, mob hp ~2.18,
   rewards and recruit stats ~1.85. Keep all three when editing — the hp ones track how fast the
   team's dps actually grows (measured, not guessed: `docs/combat.md`), and the reward one is what
   keeps the economy where it was. A world added after this one needs its own ramps **measured

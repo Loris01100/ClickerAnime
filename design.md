@@ -228,6 +228,15 @@ tout lancer est simplement le meilleur coup, le panel-head porte **« Tout lance
 en lancer une seule. Le compte remplace le total qui était affiché là avant — il dit la même chose
 et en plus ce qui est prêt.
 
+À sa gauche, un badge discret : **« Maîtrise xN »** (`.buff-cap`, pilule `--muted` sur `--line`,
+`cursor: help`). C'est le plafond qu'un buff peut atteindre sur un personnage, et il **monte à chaque
+arc terminé** — de x12 au premier arc à x50 au dernier (`docs/modifiers.md`). Il est affiché parce
+qu'une rampe invisible se lit comme « mes capacités sont bizarrement faibles au début » : le badge en
+fait une progression qu'on voit grimper, et le `title` de chaque capacité redit le plafond du moment,
+puisque ce qui atterrit vraiment est souvent moins que la valeur imprimée juste au-dessus. Le badge
+est **du texte, pas une barre** — il change quelques fois par heure, une jauge à cette cadence serait
+du bruit dans un panneau déjà dense.
+
 Ce qu'on **n'ajoute pas** : rien qui bloque l'input (pas d'animation qui empêche d'enchaîner les
 clics), rien qui ralentisse la boucle de tick 200ms (`gameState.ts`), pas de dépendance externe —
 tout en CSS/`@keyframes` ou signaux Solid, comme l'existant.
@@ -321,6 +330,19 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 
 ### 5.3 Disposition, déblocage et monnaie
 
+La logique reste six chaînes indépendantes, mais la présentation ne les range plus sur six lignes
+verticales strictes : elles poussent en rameaux irréguliers autour d'un tronc commun décoratif. Les
+nœuds reprennent la forme imparfaite de sceaux dessinés et le fond une trame manga discrète. Ce
+langage visuel n'ajoute aucune dépendance entre branches et reste construit avec les tokens du thème.
+Chaque nœud possède aussi un emblème raster distinct dans `public/prestige-nodes/`, généré comme une
+iconographie originale plutôt que tiré d'une licence anime existante. L'image raconte l'effet précis
+du nœud ; l'icône générique de la branche ne sert plus qu'à identifier son en-tête.
+La silhouette du lien distingue également les disciplines sans dépendre uniquement de la couleur :
+énergie interrompue pour le clic, trait lourd et angulaire pour le DPS, rythme calligraphique pour
+l'XP, chaîne perlée pour les objets, constellation pour le destin et segments mécaniques pour
+l'automatisation. Les nœuds standards sont volontairement grands pour que leurs emblèmes restent
+lisibles ; les clés de voûte le sont davantage encore.
+
 - **Une seule monnaie** : `PrestigeState.prestigePoints` reste le seul solde (✦), déjà affiché
   dans `CurrencyBar`. Pas de sous-monnaie par branche.
 - **Chaîne, pas un arbre ramifié — mais un seul niveau suffit à ouvrir le nœud suivant.**
@@ -390,8 +412,12 @@ exactement le même effet que le précédent (ex. "+8% de dégâts au clic" à c
 
 Les objets peuvent recevoir une illustration locale dans `public/items/`, sélectionnée par leur
 `item.id` dans `ItemIcon.tsx`. Les objets sans illustration dédiée conservent automatiquement la
-marque générique commune ou unique. Les dix objets de Naruto, les quinze objets communs de
-Naruto Shippūden et les huit objets communs de Boruto ont désormais leur propre asset.
+marque générique commune ou unique. Les dix objets de Naruto, les quinze objets communs et les
+quinze objets uniques de Naruto Shippūden, ainsi que les seize objets de Boruto ont désormais leur
+propre asset. Les uniques reprennent leur silhouette canonique quand elle existe (Samehada, Gunbai,
+masque spiralé, Tenseigan, Hiramekarei) et interprètent les objets abstraits dans le même rendu
+d'inventaire semi-réaliste. Les uniques de Boruto ajoutent à ce langage les matières et mécanismes
+de l'ère scientifique ninja : céramique blanche, noyaux artificiels, carbone et capsules biologiques.
 
 Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
 `ui/Sprite.tsx`, voir `docs/ui.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,

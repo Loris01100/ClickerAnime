@@ -132,7 +132,10 @@ can never stop being geometric:
 - **DPS Équipe** — teamDps percent (node 1); boosts an activated ability's percent/multiplier
   effects, via `buildAbilityModifiers` (node 2); softens the active arc's synergy malus further per
   level, via `softenedSynergyConfig` wrapping `defaultSynergyConfig` (node 3); stretches an
-  ability's buff duration (node 4); extends a boss's `timerMs` (node 5).
+  ability's buff duration (node 4); extends a boss's `timerMs` (node 5). Node 5 is the one node the
+  base tables are tuned *around*: boss clocks are fit at ~1.5x a fight's time-to-kill precisely so
+  its +30%/level buys a real margin rather than padding one the base clock already gave away — see
+  `docs/combat.md`. Widening the base timers again would quietly delete it.
 - **XP** — xp-per-grant percent, applied inside `grantXp` so every source benefits (node 1); a
   passive xp trickle each tick regardless of combat (node 2); flattens the level curve further per
   level by handing a reduced growth constant into `levelFromXp`/`xpProgress` (node 3, see

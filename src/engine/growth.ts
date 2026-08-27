@@ -122,7 +122,7 @@ export function narratorClickPower(allyCount: number): number {
  * Tuned with `npm run sim`: lifting the whole roster instead of just the last three recruits
  * multiplies team dps by roughly the roster size, so this trades directly against the hp ramps.
  */
-export const CATCH_UP = 0.75;
+export const CATCH_UP = 0.85;
 
 /**
  * The power level each arc sits at, read off the cast itself: the strongest character debuting

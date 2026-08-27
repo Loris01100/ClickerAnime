@@ -1,6 +1,6 @@
 import type { GameData } from "../../engine/gameState";
 
-const BOSS_TIMER_MS = 60_000;
+const BOSS_TIMER_MS = 45_000;
 
 export const narutoArcs: GameData["arcs"] = [
   {
@@ -31,19 +31,19 @@ export const narutoArcs: GameData["arcs"] = [
     order: 1,
     mobsToBoss: 21,
     mobs: [
-      { id: "chunin-son", itemId: "item-parchemin", dropChance: 0.12, name: "Zaku Abumi", baseHp: 1_960, reward: 24 },
-      { id: "chunin-suna", itemId: "item-parchemin", dropChance: 0.12, name: "Baki", baseHp: 2_730, reward: 30 },
-      { id: "chunin-kabuto", itemId: "item-parchemin", dropChance: 0.12, name: "Kabuto Yakushi", baseHp: 3_910, reward: 45 },
-      { id: "chunin-lee", name: "Rock Lee", baseHp: 7_060, reward: 120, characterId: "rock-lee" },
-      { id: "chunin-shikamaru", name: "Shikamaru Nara", baseHp: 6_280, reward: 110, characterId: "shikamaru-nara" },
-      { id: "chunin-hinata", name: "Hinata Hyûga", baseHp: 6_680, reward: 115, characterId: "hinata-hyuga" },
-      { id: "chunin-sasuke", name: "Sasuke Uchiwa", baseHp: 9_820, reward: 180, characterId: "sasuke-uchiwa" },
+      { id: "chunin-son", itemId: "item-parchemin", dropChance: 0.12, name: "Zaku Abumi", baseHp: 1_810, reward: 24 },
+      { id: "chunin-suna", itemId: "item-parchemin", dropChance: 0.12, name: "Baki", baseHp: 2_510, reward: 30 },
+      { id: "chunin-kabuto", itemId: "item-parchemin", dropChance: 0.12, name: "Kabuto Yakushi", baseHp: 3_620, reward: 45 },
+      { id: "chunin-lee", name: "Rock Lee", baseHp: 6_520, reward: 120, characterId: "rock-lee" },
+      { id: "chunin-shikamaru", name: "Shikamaru Nara", baseHp: 5_810, reward: 110, characterId: "shikamaru-nara" },
+      { id: "chunin-hinata", name: "Hinata Hyûga", baseHp: 6_170, reward: 115, characterId: "hinata-hyuga" },
+      { id: "chunin-sasuke", name: "Sasuke Uchiwa", baseHp: 9_140, reward: 180, characterId: "sasuke-uchiwa" },
     ],
     boss: {
       id: "chunin-neji",
       itemId: "item-bandeau",
       name: "Neji Hyûga — Finale du tournoi",
-      baseHp: 32_900,
+      baseHp: 30_300,
       reward: 700,
       timerMs: BOSS_TIMER_MS,
       characterId: "neji-hyuga",
@@ -58,14 +58,14 @@ export const narutoArcs: GameData["arcs"] = [
     order: 2,
     mobsToBoss: 25,
     mobs: [
-      { id: "konoha-son", itemId: "item-ration", dropChance: 0.12, name: "Kabuto Yakushi", baseHp: 22_200, reward: 95 },
-      { id: "konoha-serpent", itemId: "item-ration", dropChance: 0.12, name: "Manda", baseHp: 29_400, reward: 120 },
-      { id: "konoha-anbu", itemId: "item-ration", dropChance: 0.12, name: "Kin Tsuchi", baseHp: 39_300, reward: 150 },
-      { id: "konoha-temari", name: "Temari", baseHp: 68_700, reward: 400, characterId: "temari" },
-      { id: "konoha-kankuro", name: "Kankurô", baseHp: 63_800, reward: 380, characterId: "kankuro" },
-      { id: "konoha-gaara", name: "Gaara du Désert", baseHp: 123_000, reward: 800, characterId: "gaara" },
+      { id: "konoha-son", itemId: "item-ration", dropChance: 0.12, name: "Kabuto Yakushi", baseHp: 16_500, reward: 95 },
+      { id: "konoha-serpent", itemId: "item-ration", dropChance: 0.12, name: "Manda", baseHp: 21_800, reward: 120 },
+      { id: "konoha-anbu", itemId: "item-ration", dropChance: 0.12, name: "Kin Tsuchi", baseHp: 29_200, reward: 150 },
+      { id: "konoha-temari", name: "Temari", baseHp: 51_200, reward: 400, characterId: "temari" },
+      { id: "konoha-kankuro", name: "Kankurô", baseHp: 47_300, reward: 380, characterId: "kankuro" },
+      { id: "konoha-gaara", name: "Gaara du Désert", baseHp: 91_400, reward: 800, characterId: "gaara" },
     ],
-    boss: { id: "konoha-orochimaru", itemId: "item-kusanagi", name: "Orochimaru", baseHp: 369_000, reward: 3_000, timerMs: BOSS_TIMER_MS },
+    boss: { id: "konoha-orochimaru", itemId: "item-kusanagi", name: "Orochimaru", baseHp: 275_000, reward: 3_000, timerMs: BOSS_TIMER_MS },
   },
   {
     id: "naruto-tsunade",
@@ -76,14 +76,14 @@ export const narutoArcs: GameData["arcs"] = [
     order: 3,
     mobsToBoss: 25,
     mobs: [
-      { id: "tsunade-chasseur", itemId: "item-pari", dropChance: 0.12, name: "Kotetsu Hagane", baseHp: 115_000, reward: 380 },
-      { id: "tsunade-clone", itemId: "item-pari", dropChance: 0.12, name: "Kisame Hoshigaki", baseHp: 153_000, reward: 460 },
-      { id: "tsunade-corbeau", itemId: "item-pari", dropChance: 0.12, name: "Itachi Uchiwa", baseHp: 191_000, reward: 540 },
-      { id: "tsunade-shizune", name: "Shizune", baseHp: 326_000, reward: 1_400, characterId: "shizune" },
-      { id: "tsunade-jiraya", name: "Jiraya", baseHp: 555_000, reward: 2_400, characterId: "jiraya" },
-      { id: "tsunade-tsunade", name: "Tsunade", baseHp: 729_000, reward: 3_000, characterId: "tsunade" },
+      { id: "tsunade-chasseur", itemId: "item-pari", dropChance: 0.12, name: "Kotetsu Hagane", baseHp: 80_800, reward: 380 },
+      { id: "tsunade-clone", itemId: "item-pari", dropChance: 0.12, name: "Kisame Hoshigaki", baseHp: 108_000, reward: 460 },
+      { id: "tsunade-corbeau", itemId: "item-pari", dropChance: 0.12, name: "Itachi Uchiwa", baseHp: 135_000, reward: 540 },
+      { id: "tsunade-shizune", name: "Shizune", baseHp: 229_000, reward: 1_400, characterId: "shizune" },
+      { id: "tsunade-jiraya", name: "Jiraya", baseHp: 391_000, reward: 2_400, characterId: "jiraya" },
+      { id: "tsunade-tsunade", name: "Tsunade", baseHp: 515_000, reward: 3_000, characterId: "tsunade" },
     ],
-    boss: { id: "tsunade-kabuto", itemId: "item-lunettes", name: "Kabuto Yakushi — Bistouri de chakra", baseHp: 1_930_000, reward: 14_000, timerMs: BOSS_TIMER_MS },
+    boss: { id: "tsunade-kabuto", itemId: "item-lunettes", name: "Kabuto Yakushi — Bistouri de chakra", baseHp: 1_360_000, reward: 14_000, timerMs: BOSS_TIMER_MS },
   },
   {
     id: "naruto-sasuke",
@@ -94,14 +94,14 @@ export const narutoArcs: GameData["arcs"] = [
     order: 4,
     mobsToBoss: 28,
     mobs: [
-      { id: "sasuke-jirobo", itemId: "item-pilule", dropChance: 0.12, name: "Jirobô", baseHp: 275_000, reward: 1_500 },
-      { id: "sasuke-kidomaru", itemId: "item-pilule", dropChance: 0.12, name: "Kidômaru", baseHp: 335_000, reward: 1_700 },
-      { id: "sasuke-sakon", itemId: "item-pilule", dropChance: 0.12, name: "Sakon & Ukon", baseHp: 395_000, reward: 1_900 },
-      { id: "sasuke-tayuya", itemId: "item-pilule", dropChance: 0.12, name: "Tayuya", baseHp: 453_000, reward: 2_100 },
-      { id: "sasuke-choji", name: "Chôji Akimichi", baseHp: 749_000, reward: 6_000, characterId: "choji-akimichi" },
-      { id: "sasuke-kiba", name: "Kiba Inuzuka", baseHp: 690_000, reward: 5_600, characterId: "kiba-inuzuka" },
-      { id: "sasuke-kimimaro", name: "Kimimaro", baseHp: 1_380_000, reward: 12_000, characterId: "kimimaro" },
+      { id: "sasuke-jirobo", itemId: "item-pilule", dropChance: 0.12, name: "Jirobô", baseHp: 267_000, reward: 1_500 },
+      { id: "sasuke-kidomaru", itemId: "item-pilule", dropChance: 0.12, name: "Kidômaru", baseHp: 326_000, reward: 1_700 },
+      { id: "sasuke-sakon", itemId: "item-pilule", dropChance: 0.12, name: "Sakon & Ukon", baseHp: 384_000, reward: 1_900 },
+      { id: "sasuke-tayuya", itemId: "item-pilule", dropChance: 0.12, name: "Tayuya", baseHp: 440_000, reward: 2_100 },
+      { id: "sasuke-choji", name: "Chôji Akimichi", baseHp: 728_000, reward: 6_000, characterId: "choji-akimichi" },
+      { id: "sasuke-kiba", name: "Kiba Inuzuka", baseHp: 669_000, reward: 5_600, characterId: "kiba-inuzuka" },
+      { id: "sasuke-kimimaro", name: "Kimimaro", baseHp: 1_340_000, reward: 12_000, characterId: "kimimaro" },
     ],
-    boss: { id: "sasuke-vallee", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 5_120_000, reward: 90_000, timerMs: 90_000 },
+    boss: { id: "sasuke-vallee", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 4_970_000, reward: 90_000, timerMs: 90_000 },
   },
 ];

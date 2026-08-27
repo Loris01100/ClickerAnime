@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeEffectiveStat, computeScopedStat, SCOPED_BUFF_CAP } from "../modifiers";
+import { computeEffectiveStat, computeScopedStat, scopedBuffCap, SCOPED_BUFF_CAP, SCOPED_BUFF_CAP_FLOOR } from "../modifiers";
 import { synergyMultiplier, defaultSynergyConfig } from "../synergy";
 import { crossoverSynergyConfig, isMixedTeam } from "../crossover";
 import type { ActiveModifier, Character } from "../types";
@@ -72,6 +72,45 @@ describe("computeScopedStat", () => {
     expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(10 * SCOPED_BUFF_CAP);
     // Under the cap, the stack applies in full: x10 alone is worth exactly that.
     expect(computeScopedStat(0, "teamDps", [flat("ca", 10), buff("c1", 10)], 0)).toBeCloseTo(100);
+  });
+
+  it("honours the ramped cap the store passes, not only the endgame one", () => {
+    const buff = (id: string, value: number): ActiveModifier => ({
+      sourceId: id,
+      scope: "ca",
+      target: "teamDps",
+      kind: "multiplier",
+      value,
+      expiresAt: 10_000,
+    });
+    // x20 sits above the floor and under the ceiling, so it is the one buff the ramp actually moves.
+    const modifiers = [flat("ca", 10), buff("c1", 20)];
+    expect(computeScopedStat(0, "teamDps", modifiers, 0, scopedBuffCap(0))).toBeCloseTo(10 * SCOPED_BUFF_CAP_FLOOR);
+    expect(computeScopedStat(0, "teamDps", modifiers, 0, scopedBuffCap(1))).toBeCloseTo(200);
+  });
+});
+
+describe("scopedBuffCap", () => {
+  it("runs from the floor to the full cap and never past either", () => {
+    expect(scopedBuffCap(0)).toBeCloseTo(SCOPED_BUFF_CAP_FLOOR);
+    expect(scopedBuffCap(1)).toBeCloseTo(SCOPED_BUFF_CAP);
+    // The ceiling is what stops a dozen multiplier combos on one character from running away, so
+    // no progress value, and no bad one, may ever lift the cap past it.
+    for (const progress of [-1, 0, 0.5, 1, 2, Number.NaN]) {
+      const cap = scopedBuffCap(progress);
+      expect(cap).toBeGreaterThanOrEqual(SCOPED_BUFF_CAP_FLOOR);
+      expect(cap).toBeLessThanOrEqual(SCOPED_BUFF_CAP);
+    }
+  });
+
+  it("climbs monotonically, so clearing an arc never weakens a buff", () => {
+    for (let i = 1; i <= 20; i++) {
+      expect(scopedBuffCap(i / 20)).toBeGreaterThan(scopedBuffCap((i - 1) / 20));
+    }
+  });
+
+  it("keeps the floor meaningfully under the cap — at equality the whole ramp is dead", () => {
+    expect(SCOPED_BUFF_CAP_FLOOR).toBeLessThan(SCOPED_BUFF_CAP / 2);
   });
 });
 

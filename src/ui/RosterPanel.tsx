@@ -1,5 +1,6 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import { SCOPED_BUFF_CAP } from "../engine/modifiers";
 import type { Character, Item } from "../engine/types";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
@@ -132,6 +133,14 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
           <PanelTitle open={abilitiesOpen()} onToggle={() => setAbilitiesOpen(!abilitiesOpen())}>
             Capacités
           </PanelTitle>
+          <span
+            class="buff-cap"
+            title={`Maîtrise : un buff peut porter un personnage jusqu'à x${Math.round(
+              props.game.buffCap()
+            )} de ses dégâts de base. Elle monte à chaque arc terminé, jusqu'à x${SCOPED_BUFF_CAP} sur le dernier.`}
+          >
+            Maîtrise x{Math.round(props.game.buffCap())}
+          </span>
           <button
             class="fire-all"
             disabled={props.game.readyAbilities().length === 0}
@@ -157,7 +166,14 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                     .map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id)
                     .join(", ");
                 const tooltip = () =>
-                  [unlocked.ability.name, describeAbility(unlocked.ability, props.game.abilityMagnitudeOf(unlocked.ability)), `Cible : ${targets()}`].join("\n");
+                  [
+                    unlocked.ability.name,
+                    describeAbility(unlocked.ability, props.game.abilityMagnitudeOf(unlocked.ability)),
+                    `Cible : ${targets()}`,
+                    // What lands can be less than the line above: the maîtrise ceiling bites long
+                    // before the printed value does, and hiding it made every ability read alike.
+                    `Maîtrise : x${Math.round(props.game.buffCap())} au maximum par personnage`,
+                  ].join("\n");
                 return (
                   <button
                     class="ability"

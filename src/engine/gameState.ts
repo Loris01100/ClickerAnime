@@ -1,6 +1,6 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
 import { achievementContributions } from "./achievements";
-import { computeEffectiveStat, computeScopedStat, pruneExpired } from "./modifiers";
+import { computeEffectiveStat, computeScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
 import {
   applyPrestige,
   PRESTIGE_SCALE,
@@ -672,10 +672,24 @@ export function createGameStore(data: GameData) {
     return data.items.find((i) => i.id === itemId) ?? null;
   }
 
+  /**
+   * How far a buff may lift its own character right now: `SCOPED_BUFF_CAP_FLOOR` on the first arc,
+   * the full `SCOPED_BUFF_CAP` once the run stands on the last one. Read off cleared arcs, so it
+   * climbs with the story and `prestigeReset` walks it back to the floor with everything else.
+   *
+   * Denominator is `arcs.length - 1`, not `arcs.length`: the ceiling is meant to be reached *on*
+   * the final arc, not one clear after the game has ended.
+   */
+  const buffCap = createMemo(() =>
+    scopedBuffCap(data.arcs.length > 1 ? clearedArcIds().length / (data.arcs.length - 1) : 1)
+  );
+
   /** Damage of one narrator click. */
-  const clickPower = createMemo(() => computeScopedStat(narratorBase(), "clickPower", allModifiers(), now()));
+  const clickPower = createMemo(() =>
+    computeScopedStat(narratorBase(), "clickPower", allModifiers(), now(), buffCap())
+  );
   /** Damage the team deals on its own, per second. */
-  const teamDps = createMemo(() => computeScopedStat(0, "teamDps", allModifiers(), now()));
+  const teamDps = createMemo(() => computeScopedStat(0, "teamDps", allModifiers(), now(), buffCap()));
 
   const unlockedAbilities = createMemo(() =>
     // "Le Silence des héros" takes every ability away at the source: nothing to activate, nothing
@@ -1916,6 +1930,9 @@ export function createGameStore(data: GameData) {
     activateAbility,
     activateReadyAbilities,
     abilityMagnitudeOf,
+    // The ceiling a buff may lift one character to right now — the ability bar prints it, so
+    // the climb from `SCOPED_BUFF_CAP_FLOOR` to `SCOPED_BUFF_CAP` is something the player sees.
+    buffCap,
     abilityCooldownRemaining,
     prestigeReset,
     save,
