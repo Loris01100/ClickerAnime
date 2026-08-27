@@ -26,7 +26,8 @@ describe("game data", () => {
     // This opening world used to clear in under ten minutes: its larger cast made damage grow much
     // faster than enemy health. Keep both the longer kill budgets and the rebuilt boss curve.
     expect(arcs.map((arc) => arc.mobsToBoss)).toEqual([20, 28, 34, 40, 46, 52]);
-    expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 2_720_000, 9_940_000, 36_000_000]);
+    expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 1_800_000, 6_000_000, 16_000_000]);
+    expect(arcs.every((arc) => arc.boss.timerMs === 60_000)).toBe(true);
 
     const debutPower = arcs.map((arc) =>
       Math.max(...gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((character) => character.baseDps))
