@@ -129,7 +129,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
 
   return (
     <div class="column">
-      <section class="panel">
+      <section class="panel roster-resizable-panel">
         <header class="panel-head">
           <PanelTitle open={abilitiesOpen()} onToggle={() => setAbilitiesOpen(!abilitiesOpen())}>
             Capacités
@@ -196,7 +196,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </Show>
       </section>
 
-      <section class="panel">
+      <section class="panel roster-resizable-panel">
         <header class="panel-head">
           <PanelTitle open={teamOpen()} onToggle={() => setTeamOpen(!teamOpen())}>
             Équipe ({sortedTeam().length}
@@ -374,7 +374,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </section>
       </Show>
 
-      <section class="panel">
+      <section class="panel roster-resizable-panel">
         <header class="panel-head">
           <PanelTitle open={itemsOpen()} onToggle={() => setItemsOpen(!itemsOpen())}>
             Objets ({shownItems().length}

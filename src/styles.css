@@ -507,6 +507,18 @@ small {
   max-height: 260px;
   overflow-y: auto;
 }
+.roster-resizable-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 10rem;
+  resize: vertical;
+}
+.roster-resizable-panel > .scroll,
+.roster-resizable-panel > .ability-bar {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
 .scroll::-webkit-scrollbar {
   width: 8px;
 }

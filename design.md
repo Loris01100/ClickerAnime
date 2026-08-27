@@ -547,6 +547,8 @@ code écrit à la main.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.
   Pas de tableau HTML natif, pas de pagination — le scroll interne au panel est le seul mécanisme
   de dépassement.
+- **Capacités, Équipe et Objets sont redimensionnables verticalement.** Leur poignée native au bas
+  du panneau augmente la zone défilante sans changer la densité des lignes.
 - **Overlay = Escape pour fermer, clic sur le fond pour fermer, clic dans le contenu ne
   propage pas.** Patron `onKeyDown` + `stopPropagation()` déjà répété trois fois
   (`Codex`, `WorldPortal`, `PrestigeTree`) — toute nouvelle vue plein écran le copie à l'identique.
