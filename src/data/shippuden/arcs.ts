@@ -12,8 +12,8 @@ export const shippudenArcs: GameData["arcs"] = [
     mobsToBoss: 32,
     mobs: [
       { id: "shippuden-kazekage-mob-1", itemId: "item-fil", dropChance: 0.12, name: "Baki", baseHp: 234_000, reward: 2_200 },
-      { id: "shippuden-kazekage-mob-2", itemId: "item-fil", dropChance: 0.12, name: "Marionnette de Sasori", baseHp: 318_000, reward: 2_860 },
-      { id: "shippuden-kazekage-mob-3", itemId: "item-fil", dropChance: 0.12, name: "Clone d'argile de Deidara", baseHp: 400_000, reward: 3_520 },
+      { id: "shippuden-kazekage-mob-2", itemId: "item-fil", dropChance: 0.12, name: "Kankurô", baseHp: 318_000, reward: 2_860 },
+      { id: "shippuden-kazekage-mob-3", itemId: "item-fil", dropChance: 0.12, name: "Temari", baseHp: 400_000, reward: 3_520 },
       { id: "shippuden-kazekage-rival-chiyo", name: "Chiyo", baseHp: 957_000, reward: 12_000, characterId: "chiyo" },
       { id: "shippuden-kazekage-rival-sasori", name: "Sasori", baseHp: 957_000, reward: 12_000, characterId: "sasori" },
     ],
@@ -36,7 +36,7 @@ export const shippudenArcs: GameData["arcs"] = [
     order: 1,
     mobsToBoss: 33,
     mobs: [
-      { id: "shippuden-tenchi-mob-1", itemId: "item-note-espion", dropChance: 0.12, name: "Espion d'Orochimaru", baseHp: 516_000, reward: 4_070 },
+      { id: "shippuden-tenchi-mob-1", itemId: "item-note-espion", dropChance: 0.12, name: "Yamato", baseHp: 516_000, reward: 4_070 },
       { id: "shippuden-tenchi-mob-2", itemId: "item-note-espion", dropChance: 0.12, name: "Kabuto Yakushi", baseHp: 690_000, reward: 5_290 },
       { id: "shippuden-tenchi-mob-3", itemId: "item-note-espion", dropChance: 0.12, name: "Manda", baseHp: 882_000, reward: 6_510 },
       { id: "shippuden-tenchi-rival-sai", name: "Saï", baseHp: 2_100_000, reward: 22_200, characterId: "sai" },
@@ -60,7 +60,7 @@ export const shippudenArcs: GameData["arcs"] = [
     order: 2,
     mobsToBoss: 35,
     mobs: [
-      { id: "shippuden-akatsuki-mob-1", itemId: "item-masque-coeur", dropChance: 0.12, name: "Zombie de Kakuzu", baseHp: 1_140_000, reward: 7_530 },
+      { id: "shippuden-akatsuki-mob-1", itemId: "item-masque-coeur", dropChance: 0.12, name: "Shikamaru Nara", baseHp: 1_140_000, reward: 7_530 },
       { id: "shippuden-akatsuki-mob-2", itemId: "item-masque-coeur", dropChance: 0.12, name: "Sora", baseHp: 1_560_000, reward: 9_790 },
       { id: "shippuden-akatsuki-mob-3", itemId: "item-masque-coeur", dropChance: 0.12, name: "Izumo Kamizuki", baseHp: 1_930_000, reward: 12_000 },
       { id: "shippuden-akatsuki-rival-asuma", name: "Asuma Sarutobi", baseHp: 4_660_000, reward: 41_100, characterId: "asuma" },
@@ -161,7 +161,7 @@ export const shippudenArcs: GameData["arcs"] = [
     mobs: [
       { id: "shippuden-pain-mob-1", itemId: "item-recepteur", dropChance: 0.12, name: "Shizune", baseHp: 27_000_000, reward: 88_200 },
       { id: "shippuden-pain-mob-2", itemId: "item-recepteur", dropChance: 0.12, name: "Shino Aburame", baseHp: 36_600_000, reward: 115_000 },
-      { id: "shippuden-pain-mob-3", itemId: "item-recepteur", dropChance: 0.12, name: "Invocation de Pain", baseHp: 46_100_000, reward: 141_000 },
+      { id: "shippuden-pain-mob-3", itemId: "item-recepteur", dropChance: 0.12, name: "Ebisu", baseHp: 46_100_000, reward: 141_000 },
       { id: "shippuden-pain-rival-konan", name: "Konan", baseHp: 110_000_000, reward: 481_000, characterId: "konan" },
       { id: "shippuden-pain-rival-nagato", name: "Nagato", baseHp: 110_000_000, reward: 481_000, characterId: "nagato" },
     ],
@@ -185,7 +185,7 @@ export const shippudenArcs: GameData["arcs"] = [
     mobs: [
       { id: "shippuden-sommet-mob-1", itemId: "item-lame", dropChance: 0.12, name: "Samui", baseHp: 59_600_000, reward: 163_000 },
       { id: "shippuden-sommet-mob-2", itemId: "item-lame", dropChance: 0.12, name: "Omoi", baseHp: 80_400_000, reward: 212_000 },
-      { id: "shippuden-sommet-mob-3", itemId: "item-lame", dropChance: 0.12, name: "Zetsu blanc infiltré", baseHp: 100_000_000, reward: 261_000 },
+      { id: "shippuden-sommet-mob-3", itemId: "item-lame", dropChance: 0.12, name: "Tobi", baseHp: 100_000_000, reward: 261_000 },
       { id: "shippuden-sommet-rival-ay", name: "Ay, le Quatrième Raikage", baseHp: 243_000_000, reward: 890_000, characterId: "ay" },
       { id: "shippuden-sommet-rival-mei", name: "Mei Terumî", baseHp: 243_000_000, reward: 890_000, characterId: "mei" },
       { id: "shippuden-sommet-rival-onoki", name: "Ônoki", baseHp: 243_000_000, reward: 890_000, characterId: "onoki" },
@@ -211,7 +211,7 @@ export const shippudenArcs: GameData["arcs"] = [
     order: 8,
     mobsToBoss: 46,
     mobs: [
-      { id: "shippuden-compte-a-rebours-mob-1", itemId: "item-talisman", dropChance: 0.12, name: "Zetsu blanc", baseHp: 131_000_000, reward: 302_000 },
+      { id: "shippuden-compte-a-rebours-mob-1", itemId: "item-talisman", dropChance: 0.12, name: "Kinkaku", baseHp: 131_000_000, reward: 302_000 },
       { id: "shippuden-compte-a-rebours-mob-2", itemId: "item-talisman", dropChance: 0.12, name: "Pakura", baseHp: 175_000_000, reward: 392_000 },
       { id: "shippuden-compte-a-rebours-mob-3", itemId: "item-talisman", dropChance: 0.12, name: "Inoichi Yamanaka", baseHp: 221_000_000, reward: 483_000 },
       { id: "shippuden-compte-a-rebours-rival-killer-bee", name: "Killer Bee", baseHp: 526_000_000, reward: 1_650_000, characterId: "killer-bee" },
@@ -237,8 +237,8 @@ export const shippudenArcs: GameData["arcs"] = [
     mobsToBoss: 49,
     mobs: [
       { id: "shippuden-confrontation-mob-1", itemId: "item-fragment-lame", dropChance: 0.12, name: "Kushimaru Kuriarare", baseHp: 290_000_000, reward: 558_000 },
-      { id: "shippuden-confrontation-mob-2", itemId: "item-fragment-lame", dropChance: 0.12, name: "Zetsu", baseHp: 392_000_000, reward: 726_000 },
-      { id: "shippuden-confrontation-mob-3", itemId: "item-fragment-lame", dropChance: 0.12, name: "Mû", baseHp: 496_000_000, reward: 893_000 },
+      { id: "shippuden-confrontation-mob-2", itemId: "item-fragment-lame", dropChance: 0.12, name: "Jinpachi Munashi", baseHp: 392_000_000, reward: 726_000 },
+      { id: "shippuden-confrontation-mob-3", itemId: "item-fragment-lame", dropChance: 0.12, name: "Rasa", baseHp: 496_000_000, reward: 893_000 },
       { id: "shippuden-confrontation-rival-yugito", name: "Yugito Nii", baseHp: 1_190_000_000, reward: 3_050_000, characterId: "yugito" },
       { id: "shippuden-confrontation-rival-roshi", name: "Rôshi", baseHp: 1_190_000_000, reward: 3_050_000, characterId: "roshi" },
       { id: "shippuden-confrontation-rival-han", name: "Han", baseHp: 1_190_000_000, reward: 3_050_000, characterId: "han" },
@@ -248,7 +248,7 @@ export const shippudenArcs: GameData["arcs"] = [
     boss: {
       id: "shippuden-confrontation-boss",
       itemId: "item-sceau-kage",
-      name: "Les Cinq Kage Ressuscités",
+      name: "Mû, le Second Tsuchikage",
       baseHp: 9_940_000_000,
       reward: 30_500_000,
       timerMs: 120_000,
@@ -264,7 +264,7 @@ export const shippudenArcs: GameData["arcs"] = [
     mobsToBoss: 53,
     mobs: [
       { id: "shippuden-climax-mob-1", itemId: "item-eclat-bois", dropChance: 0.12, name: "Gyûki", baseHp: 640_000_000, reward: 1_030_000 },
-      { id: "shippuden-climax-mob-2", itemId: "item-eclat-bois", dropChance: 0.12, name: "Bataillon Zetsu", baseHp: 867_000_000, reward: 1_340_000 },
+      { id: "shippuden-climax-mob-2", itemId: "item-eclat-bois", dropChance: 0.12, name: "Shikaku Nara", baseHp: 867_000_000, reward: 1_340_000 },
       { id: "shippuden-climax-mob-3", itemId: "item-eclat-bois", dropChance: 0.12, name: "Yamato", baseHp: 1_100_000_000, reward: 1_650_000 },
       { id: "shippuden-climax-rival-hashirama", name: "Hashirama Senju", baseHp: 2_640_000_000, reward: 5_640_000, characterId: "hashirama" },
       { id: "shippuden-climax-rival-tobirama", name: "Tobirama Senju", baseHp: 2_640_000_000, reward: 5_640_000, characterId: "tobirama" },
@@ -290,7 +290,7 @@ export const shippudenArcs: GameData["arcs"] = [
     mobsToBoss: 53,
     mobs: [
       { id: "shippuden-dix-queues-mob-1", itemId: "item-graine", dropChance: 0.12, name: "Kaguya Ôtsutsuki", baseHp: 1_410_000_000, reward: 1_910_000 },
-      { id: "shippuden-dix-queues-mob-2", itemId: "item-graine", dropChance: 0.12, name: "Zetsu spiralé", baseHp: 1_900_000_000, reward: 2_480_000 },
+      { id: "shippuden-dix-queues-mob-2", itemId: "item-graine", dropChance: 0.12, name: "Neji Hyûga", baseHp: 1_900_000_000, reward: 2_480_000 },
       { id: "shippuden-dix-queues-mob-3", itemId: "item-graine", dropChance: 0.12, name: "Son Goku", baseHp: 2_370_000_000, reward: 3_060_000 },
       { id: "shippuden-dix-queues-rival-obito", name: "Obito Uchiwa", baseHp: 5_730_000_000, reward: 10_400_000, characterId: "obito" },
       { id: "shippuden-dix-queues-rival-kurama", name: "Kurama", baseHp: 5_730_000_000, reward: 10_400_000, characterId: "kurama" },
@@ -338,8 +338,8 @@ export const shippudenArcs: GameData["arcs"] = [
     mobsToBoss: 56,
     mobs: [
       { id: "shippuden-kaguya-mob-1", itemId: "item-fragment-dimension", dropChance: 0.12, name: "Zetsu noir", baseHp: 6_870_000_000, reward: 6_540_000 },
-      { id: "shippuden-kaguya-mob-2", itemId: "item-fragment-dimension", dropChance: 0.12, name: "Cœur de la dimension de lave", baseHp: 9_300_000_000, reward: 8_500_000 },
-      { id: "shippuden-kaguya-mob-3", itemId: "item-fragment-dimension", dropChance: 0.12, name: "Géant de la dimension de sable", baseHp: 11_600_000_000, reward: 10_500_000 },
+      { id: "shippuden-kaguya-mob-2", itemId: "item-fragment-dimension", dropChance: 0.12, name: "Sakura Haruno", baseHp: 9_300_000_000, reward: 8_500_000 },
+      { id: "shippuden-kaguya-mob-3", itemId: "item-fragment-dimension", dropChance: 0.12, name: "Naruto Uzumaki", baseHp: 11_600_000_000, reward: 10_500_000 },
       { id: "shippuden-kaguya-rival-madara", name: "Madara Uchiwa", baseHp: 28_200_000_000, reward: 35_700_000, characterId: "madara" },
       { id: "shippuden-kaguya-rival-zetsu-noir", name: "Zetsu Noir", baseHp: 28_200_000_000, reward: 35_700_000, characterId: "zetsu-noir" },
     ],

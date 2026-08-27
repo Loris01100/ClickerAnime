@@ -4,6 +4,10 @@ import { layoutArcs, MAP_COLS } from "../mapLayout";
 import { makeArc } from "./helpers";
 
 describe("game data", () => {
+  it("uses Mû as the Confrontation boss", () => {
+    expect(gameData.arcs.find((arc) => arc.id === "shippuden-confrontation")?.boss.name).toBe("Mû, le Second Tsuchikage");
+  });
+
   it("keeps every id unique and every reference resolvable", () => {
     const dupes = (ids: string[]) => ids.filter((id, i) => ids.indexOf(id) !== i);
     expect(dupes(gameData.characters.map((c) => c.id))).toEqual([]);
