@@ -162,6 +162,8 @@ const MAX_KILLS_PER_HIT = 100;
  * team is nowhere near outgunning the zone by 20x.
  */
 export const MAX_KILLS_PER_SECOND = 5;
+/** Currency paid by a defeated enemy; XP keeps using the full data reward. */
+export const CURRENCY_REWARD_MULTIPLIER = 0.75;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 export const SAVE_KEY = "clicker-anime:save:v10";
 /** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
@@ -814,9 +816,10 @@ export function createGameStore(data: GameData) {
 
     const currencyLevel = nodeLevelOf("destin", 1);
     const baseReward = enemyReward(target, currentDifficulty());
-    const reward = currencyLevel > 0 ? baseReward * (1 + CURRENCY_GAIN_PERCENT * currencyLevel) : baseReward;
-    setCurrency((c) => c + reward);
-    setLifetimeEarned((l) => l + reward);
+    const currencyReward =
+      baseReward * CURRENCY_REWARD_MULTIPLIER * (1 + CURRENCY_GAIN_PERCENT * currencyLevel);
+    setCurrency((c) => c + currencyReward);
+    setLifetimeEarned((l) => l + currencyReward);
     // Pack points are per world and flat: one per fight won, wherever it was won.
     setWorldPoints((points) => ({ ...points, [arc.animeId]: (points[arc.animeId] ?? 0) + POINTS_PER_KILL }));
 
@@ -839,9 +842,8 @@ export function createGameStore(data: GameData) {
       if (crystals > 0) setCrossoverCrystals((c) => c + crystals);
     }
     const bossXpLevel = nodeLevelOf("xp", 5);
-    // xp is a multiple of the currency reward — see XP_PER_KILL_REWARD — so it scales with the
-    // world just like currency does, only harder.
-    const xpAmount = reward * XP_PER_KILL_REWARD * (isBoss && bossXpLevel > 0 ? 1 + BOSS_XP_BOOST * bossXpLevel : 1);
+    // XP follows the enemy's data reward, not the separately balanced currency payout.
+    const xpAmount = baseReward * XP_PER_KILL_REWARD * (isBoss && bossXpLevel > 0 ? 1 + BOSS_XP_BOOST * bossXpLevel : 1);
     grantXp(xpAmount);
     const recruitBonusLevel = nodeLevelOf("xp", 4);
     if (isNewRecruit && recruitBonusLevel > 0) {

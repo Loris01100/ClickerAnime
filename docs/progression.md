@@ -17,7 +17,7 @@ Two knobs, deliberately decoupled — this is the main/secondary distinction:
   `PASSIVE_LEVEL_CAP` is the rank cap — 10 for `rarity: "main"`, 5 for `"secondary"`.
 
 Levels come from **xp earned in combat**: every kill grants the whole team xp equal to `XP_PER_KILL_REWARD`
-times the kill's currency reward, so it scales with the world the same way currency does. The
+times the enemy's raw reward, so it scales with the world independently of the currency payout. The
 multiplier sits well above 1x on purpose — level has no cap, and a flat 1:1 income gets swallowed by
 the xp curve (`XP_BASE`/`XP_GROWTH` in `growth.ts`) after a few dozen levels, stalling leveling out
 and leaving a character's level worth nothing next to their ability. Only the xp total is stored —

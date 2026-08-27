@@ -3,6 +3,11 @@
 Everything the player spends: item copies, prestige points, crossover crystals, pack points and
 gold — and the two ladders (achievements, the prestige tree) that pay out across runs.
 
+Enemy gold is paid at `CURRENCY_REWARD_MULTIPLIER` (**75%**) of the reward stored in the data.
+`lifetimeEarned` receives that same reduced amount, while combat XP keeps using the raw reward so
+an economy adjustment does not also slow character levels. « Sens du commerce » then adds **5% per
+level** to this payout (25% at rank 5).
+
 ## Items and passives
 
 Items deal no damage at all. They are the passive currency, hung off `Enemy.itemId` and separated by

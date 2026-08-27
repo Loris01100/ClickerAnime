@@ -95,7 +95,7 @@ export const PITY_KILLS_THRESHOLD = 15;
 export const PITY_REDUCTION_PER_LEVEL = 1;
 export const GHOST_LOOT_CHANCE = 0.05;
 
-export const CURRENCY_GAIN_PERCENT = 0.15;
+export const CURRENCY_GAIN_PERCENT = 0.05;
 export const PRESTIGE_PER_KILL_CHANCE = 0.001;
 export const AUSPICE_DOUBLE_DROP_CHANCE = 0.05;
 export const SHOP_COST_DISCOUNT = 0.06;

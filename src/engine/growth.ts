@@ -66,7 +66,7 @@ const XP_BASE = 25;
 export const XP_GROWTH = 1.15;
 
 /**
- * Kills grant this many times their currency reward as team xp. Pushed well above 1x because level
+ * Kills grant this many times their raw enemy reward as team xp. Pushed well above 1x because level
  * has no cap: a flat 1:1 income gets swallowed by the curve above after a few dozen levels and
  * leveling stalls out, leaving a character's level contributing nothing next to their ability. This
  * keeps levels climbing meaningfully throughout a run instead.
