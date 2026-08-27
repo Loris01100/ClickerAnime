@@ -514,6 +514,10 @@ small {
   max-height: 70vh;
   resize: vertical;
 }
+.roster-resizable-panel.collapsed {
+  min-height: 0;
+  resize: none;
+}
 .roster-resizable-panel > .scroll,
 .roster-resizable-panel > .ability-bar {
   flex: 1;

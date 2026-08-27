@@ -87,6 +87,9 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
   const [teamOpen, setTeamOpen] = createSignal(true);
   const [itemsOpen, setItemsOpen] = createSignal(true);
   const [recruitsOpen, setRecruitsOpen] = createSignal(true);
+  let abilitiesPanel: HTMLElement | undefined;
+  let teamPanel: HTMLElement | undefined;
+  let itemsPanel: HTMLElement | undefined;
 
   const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
 
@@ -129,9 +132,9 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
 
   return (
     <div class="column">
-      <section class="panel roster-resizable-panel">
+      <section ref={abilitiesPanel} class="panel roster-resizable-panel" classList={{ collapsed: !abilitiesOpen() }}>
         <header class="panel-head">
-          <PanelTitle open={abilitiesOpen()} onToggle={() => setAbilitiesOpen(!abilitiesOpen())}>
+          <PanelTitle onToggle={() => { abilitiesPanel?.style.removeProperty("height"); setAbilitiesOpen(!abilitiesOpen()); }} open={abilitiesOpen()}>
             Capacités
           </PanelTitle>
           <span
@@ -196,9 +199,9 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </Show>
       </section>
 
-      <section class="panel roster-resizable-panel">
+      <section ref={teamPanel} class="panel roster-resizable-panel" classList={{ collapsed: !teamOpen() }}>
         <header class="panel-head">
-          <PanelTitle open={teamOpen()} onToggle={() => setTeamOpen(!teamOpen())}>
+          <PanelTitle onToggle={() => { teamPanel?.style.removeProperty("height"); setTeamOpen(!teamOpen()); }} open={teamOpen()}>
             Équipe ({sortedTeam().length}
             <Show when={worldFilter()}>/{props.game.ownedCharacters().length}</Show>)
           </PanelTitle>
@@ -374,9 +377,9 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </section>
       </Show>
 
-      <section class="panel roster-resizable-panel">
+      <section ref={itemsPanel} class="panel roster-resizable-panel" classList={{ collapsed: !itemsOpen() }}>
         <header class="panel-head">
-          <PanelTitle open={itemsOpen()} onToggle={() => setItemsOpen(!itemsOpen())}>
+          <PanelTitle onToggle={() => { itemsPanel?.style.removeProperty("height"); setItemsOpen(!itemsOpen()); }} open={itemsOpen()}>
             Objets ({shownItems().length}
             <Show when={itemKindFilter()}>/{props.game.foundItems().length}</Show>)
           </PanelTitle>
