@@ -18,7 +18,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 90_000,
       durationMs: 12_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 5 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -38,7 +38,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 60_000,
       durationMs: 8_000,
       effects: [
-        { target: "clickPower", kind: "multiplier", value: 6 },
+        { target: "clickPower", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -135,7 +135,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 120_000,
       durationMs: 14_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 7 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -177,7 +177,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 100_000,
       durationMs: 12_000,
       effects: [
-        { target: "clickPower", kind: "multiplier", value: 9 },
+        { target: "clickPower", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -230,7 +230,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 110_000,
       durationMs: 13_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 7.5 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -283,7 +283,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 115_000,
       durationMs: 14_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 8 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -303,7 +303,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 100_000,
       durationMs: 12_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 8 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -378,7 +378,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 120_000,
       durationMs: 15_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 8.5 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -398,7 +398,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 130_000,
       durationMs: 16_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 9 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -418,7 +418,7 @@ export const borutoCharacters: GameData["characters"] = [
       cooldownMs: 150_000,
       durationMs: 20_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 10 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },

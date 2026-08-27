@@ -12,8 +12,8 @@ export const shippudenCombos: GameData["combos"] = [
       cooldownMs: 150_000,
       durationMs: 20_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 6 },
-        { target: "clickPower", kind: "multiplier", value: 3 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
+        { target: "clickPower", kind: "multiplier", value: 2.25 },
       ],
     },
   },
@@ -27,7 +27,7 @@ export const shippudenCombos: GameData["combos"] = [
       cooldownMs: 70_000,
       durationMs: 10_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 2.5 },
+        { target: "teamDps", kind: "multiplier", value: 2 },
       ],
     },
   },
@@ -41,7 +41,7 @@ export const shippudenCombos: GameData["combos"] = [
       cooldownMs: 160_000,
       durationMs: 20_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 7 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -55,8 +55,8 @@ export const shippudenCombos: GameData["combos"] = [
       cooldownMs: 180_000,
       durationMs: 25_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 8 },
-        { target: "clickPower", kind: "multiplier", value: 4 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
+        { target: "clickPower", kind: "multiplier", value: 3 },
       ],
     },
   },
@@ -70,7 +70,7 @@ export const shippudenCombos: GameData["combos"] = [
       cooldownMs: 90_000,
       durationMs: 12_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 3 },
+        { target: "teamDps", kind: "multiplier", value: 2.25 },
       ],
     },
   },
@@ -84,7 +84,7 @@ export const shippudenCombos: GameData["combos"] = [
       cooldownMs: 80_000,
       durationMs: 10_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 2.5 },
+        { target: "teamDps", kind: "multiplier", value: 2 },
       ],
     },
   },

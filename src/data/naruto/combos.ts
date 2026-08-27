@@ -12,8 +12,8 @@ export const narutoCombos: GameData["combos"] = [
       cooldownMs: 90_000,
       durationMs: 12_000,
       effects: [
-        { target: "clickPower", kind: "multiplier", value: 3 },
-        { target: "teamDps", kind: "multiplier", value: 2.5 },
+        { target: "clickPower", kind: "multiplier", value: 2.25 },
+        { target: "teamDps", kind: "multiplier", value: 2 },
       ],
     },
   },
@@ -26,7 +26,7 @@ export const narutoCombos: GameData["combos"] = [
       name: "Fougue de la jeunesse",
       cooldownMs: 60_000,
       durationMs: 10_000,
-      effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
+      effects: [{ target: "teamDps", kind: "multiplier", value: 1.75 }],
     },
   },
   {
@@ -39,8 +39,8 @@ export const narutoCombos: GameData["combos"] = [
       cooldownMs: 120_000,
       durationMs: 15_000,
       effects: [
-        { target: "clickPower", kind: "multiplier", value: 4 },
-        { target: "teamDps", kind: "multiplier", value: 4 },
+        { target: "clickPower", kind: "multiplier", value: 3 },
+        { target: "teamDps", kind: "multiplier", value: 3 },
       ],
     },
   },
@@ -53,7 +53,7 @@ export const narutoCombos: GameData["combos"] = [
       name: "Tempête de sable",
       cooldownMs: 75_000,
       durationMs: 10_000,
-      effects: [{ target: "teamDps", kind: "multiplier", value: 3 }],
+      effects: [{ target: "teamDps", kind: "multiplier", value: 2.25 }],
     },
   },
 ];

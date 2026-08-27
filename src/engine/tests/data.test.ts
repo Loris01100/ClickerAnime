@@ -34,9 +34,13 @@ describe("game data", () => {
     );
     expect(debutPower).toEqual([6, 8, 18, 30, 72, 120]);
 
+  });
+
+  it("caps active ability damage gains in every world", () => {
     const abilities = [
-      ...gameData.characters.filter((character) => character.animeId === "hunter-x-hunter").flatMap((character) => character.ability ?? []),
-      ...gameData.combos.filter((combo) => combo.id.startsWith("hxh-")).map((combo) => combo.ability),
+      ...gameData.characters.flatMap((character) => character.ability ? [character.ability] : []),
+      ...gameData.characters.flatMap((character) => character.evolution?.ability ? [character.evolution.ability] : []),
+      ...gameData.combos.map((combo) => combo.ability),
     ];
     const multipliers = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "multiplier"));
     const percents = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "percent"));

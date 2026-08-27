@@ -40,7 +40,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 55_000,
       durationMs: 8_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 2.5 },
+        { target: "teamDps", kind: "multiplier", value: 2 },
       ],
     },
   },
@@ -63,7 +63,7 @@ export const shippudenCharacters: GameData["characters"] = [
         name: "Fauves de l'Encre — Escadron",
         cooldownMs: 85_000,
         durationMs: 10_000,
-        effects: [{ target: "teamDps", kind: "multiplier", value: 4.5 }],
+        effects: [{ target: "teamDps", kind: "multiplier", value: 3.25 }],
       },
     },
   },
@@ -209,7 +209,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 80_000,
       durationMs: 10_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 4 },
+        { target: "teamDps", kind: "multiplier", value: 3 },
       ],
     },
   },
@@ -240,7 +240,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 100_000,
       durationMs: 12_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 4.5 },
+        { target: "teamDps", kind: "multiplier", value: 3.25 },
       ],
     },
   },
@@ -290,7 +290,7 @@ export const shippudenCharacters: GameData["characters"] = [
         name: "Jinton — Dernier Souffle",
         cooldownMs: 95_000,
         durationMs: 11_000,
-        effects: [{ target: "teamDps", kind: "multiplier", value: 5 }],
+        effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }],
       },
     },
   },
@@ -343,7 +343,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 70_000,
       durationMs: 10_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 3 },
+        { target: "teamDps", kind: "multiplier", value: 2.25 },
       ],
     },
     evolution: {
@@ -355,7 +355,7 @@ export const shippudenCharacters: GameData["characters"] = [
         name: "Lariat du Hachibi",
         cooldownMs: 100_000,
         durationMs: 12_000,
-        effects: [{ target: "teamDps", kind: "multiplier", value: 5.5 }],
+        effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }],
       },
     },
   },
@@ -452,7 +452,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 110_000,
       durationMs: 14_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 5 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -483,7 +483,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 45_000,
       durationMs: 6_000,
       effects: [
-        { target: "clickPower", kind: "multiplier", value: 8 },
+        { target: "clickPower", kind: "multiplier", value: 3.5 },
         { target: "teamDps", kind: "percent", value: 0.5 },
       ],
     },
@@ -515,7 +515,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 65_000,
       durationMs: 8_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 3.5 },
+        { target: "teamDps", kind: "multiplier", value: 2.5 },
       ],
     },
   },
@@ -535,7 +535,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 90_000,
       durationMs: 10_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 4 },
+        { target: "teamDps", kind: "multiplier", value: 3 },
       ],
     },
   },
@@ -577,7 +577,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 130_000,
       durationMs: 16_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 6 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -619,7 +619,7 @@ export const shippudenCharacters: GameData["characters"] = [
       cooldownMs: 140_000,
       durationMs: 18_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 7 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },

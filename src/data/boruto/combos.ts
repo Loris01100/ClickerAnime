@@ -12,7 +12,7 @@ export const borutoCombos: GameData["combos"] = [
       cooldownMs: 80_000,
       durationMs: 12_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 4 },
+        { target: "teamDps", kind: "multiplier", value: 3 },
       ],
     },
   },
@@ -26,7 +26,7 @@ export const borutoCombos: GameData["combos"] = [
       cooldownMs: 75_000,
       durationMs: 10_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 3.5 },
+        { target: "teamDps", kind: "multiplier", value: 2.5 },
       ],
     },
   },
@@ -40,8 +40,8 @@ export const borutoCombos: GameData["combos"] = [
       cooldownMs: 170_000,
       durationMs: 22_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 11 },
-        { target: "clickPower", kind: "multiplier", value: 4 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
+        { target: "clickPower", kind: "multiplier", value: 3 },
       ],
     },
   },
@@ -55,7 +55,7 @@ export const borutoCombos: GameData["combos"] = [
       cooldownMs: 180_000,
       durationMs: 22_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 12 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -69,7 +69,7 @@ export const borutoCombos: GameData["combos"] = [
       cooldownMs: 130_000,
       durationMs: 16_000,
       effects: [
-        { target: "clickPower", kind: "multiplier", value: 12 },
+        { target: "clickPower", kind: "multiplier", value: 3.5 },
       ],
     },
   },
@@ -85,8 +85,8 @@ export const borutoCombos: GameData["combos"] = [
       cooldownMs: 190_000,
       durationMs: 24_000,
       effects: [
-        { target: "teamDps", kind: "multiplier", value: 13 },
-        { target: "clickPower", kind: "multiplier", value: 5 },
+        { target: "teamDps", kind: "multiplier", value: 3.5 },
+        { target: "clickPower", kind: "multiplier", value: 3.5 },
       ],
     },
   },
