@@ -421,6 +421,10 @@ masque spiralé, Tenseigan, Hiramekarei) et interprètent les objets abstraits d
 d'inventaire semi-réaliste. Les uniques de Boruto ajoutent à ce langage les matières et mécanismes
 de l'ère scientifique ninja : céramique blanche, noyaux artificiels, carbone et capsules biologiques.
 
+Les images locales sont préchargées : les monnaies et l'arbre de prestige dès l'ouverture du site,
+puis la carte et les objets du monde actif dès sa sélection. Les portraits AniList restent chargés à
+l'affichage, afin de ne pas augmenter le volume ni la fréquence des appels API.
+
 Portraits fetchés en direct depuis AniList, **dans le navigateur du joueur** (`ui/anilist.ts` +
 `ui/Sprite.tsx`, voir `docs/ui.md`). Décision explicite de l'utilisateur : ni SVG dessiné à la main,
 ni pixel-art généré, ni fichier custom déposé dans le repo — chaque `Character`/`Enemy`/`Anime` a

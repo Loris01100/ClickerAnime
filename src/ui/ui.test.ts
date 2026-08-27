@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spriteHue, themeOf } from "./hue";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
+import { imagePathsForAnime } from "./preload";
 
 describe("spriteHue", () => {
   it("gives the same hue for the same id, every time", () => {
@@ -50,5 +51,28 @@ describe("describeCharacterTag", () => {
   it("translates equipment categories and keeps unknown ones readable", () => {
     expect(describeCharacterTag("swordsman")).toBe("Épéiste");
     expect(describeCharacterTag("future-tag")).toBe("future-tag");
+  });
+});
+
+describe("imagePathsForAnime", () => {
+  it("warms only the selected world's map and item art", () => {
+    const data = {
+      animes: [
+        { id: "a", name: "A", unlockCost: 1, mapImage: "/a.jpg" },
+        { id: "b", name: "B", unlockCost: 1, mapImage: "/b.jpg" },
+      ],
+      arcs: [
+        { id: "arc-a", animeId: "a", name: "A", order: 0, mobsToBoss: 1, mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1, itemId: "item-shuriken" }], boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1 } },
+        { id: "arc-b", animeId: "b", name: "B", order: 0, mobsToBoss: 1, mobs: [{ id: "mob-b", name: "Mob", baseHp: 1, reward: 1, itemId: "item-ration" }], boss: { id: "boss-b", name: "Boss", baseHp: 1, reward: 1 } },
+      ],
+      items: [
+        { id: "item-shuriken", name: "Shuriken", kind: "common" as const },
+        { id: "item-ration", name: "Ration", kind: "common" as const },
+      ],
+      characters: [],
+      combos: [],
+    };
+
+    expect(imagePathsForAnime(data, "a")).toEqual(["/a.jpg", "/items/item-shuriken.png"]);
   });
 });

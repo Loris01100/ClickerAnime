@@ -1,4 +1,4 @@
-import { Show, createSignal } from "solid-js";
+import { Show, createEffect, createSignal, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { gameData } from "./data";
@@ -20,6 +20,7 @@ import ReflexPanel from "./ui/ReflexPanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
+import { imagePathsForAnime, preloadImages, STARTUP_IMAGE_PATHS } from "./ui/preload";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
@@ -37,6 +38,14 @@ export default function App() {
   const [reflexOpen, setReflexOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
   let menu: HTMLDetailsElement | undefined;
+
+  onMount(() => {
+    preloadImages(STARTUP_IMAGE_PATHS);
+    createEffect(() => {
+      const animeId = game.activeArc()?.animeId;
+      if (animeId) preloadImages(imagePathsForAnime(game.data, animeId));
+    });
+  });
 
   /** Toute entrée du menu le referme derriere elle — sinon il reste ouvert sous la modale. */
   function runFromMenu(action: () => void) {

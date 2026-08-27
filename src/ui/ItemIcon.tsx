@@ -59,17 +59,17 @@ const ITEM_ART: Record<string, string> = {
   "item-susanoo": "item-susanoo.png",
 };
 
+export const itemImagePath = (id: string | undefined, kind: "common" | "unique") =>
+  `/items/${(id && ITEM_ART[id]) ?? (kind === "unique" ? "unique-loot.png" : "common-loot.png")}`;
+
 /**
  * Uses bespoke art when the item has one, otherwise keeps the common/unique fallback.
  */
 export default function ItemIcon(props: { id?: string; kind: "common" | "unique"; px?: number }) {
-  const file = () =>
-    (props.id && ITEM_ART[props.id]) ?? (props.kind === "unique" ? "unique-loot.png" : "common-loot.png");
-
   return (
     <img
       class="item-icon"
-      src={asset(`/items/${file()}`)}
+      src={asset(itemImagePath(props.id, props.kind))}
       style={props.px ? { height: `${props.px}px` } : undefined}
       alt=""
     />
