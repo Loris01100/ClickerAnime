@@ -548,7 +548,8 @@ code écrit à la main.
   Pas de tableau HTML natif, pas de pagination — le scroll interne au panel est le seul mécanisme
   de dépassement.
 - **Capacités, Équipe et Objets sont redimensionnables verticalement.** Leur poignée native au bas
-  du panneau augmente la zone défilante sans changer la densité des lignes.
+  du panneau augmente la zone défilante sans changer la densité des lignes, jusqu'à 70 % de la
+  hauteur de l'écran.
 - **Overlay = Escape pour fermer, clic sur le fond pour fermer, clic dans le contenu ne
   propage pas.** Patron `onKeyDown` + `stopPropagation()` déjà répété trois fois
   (`Codex`, `WorldPortal`, `PrestigeTree`) — toute nouvelle vue plein écran le copie à l'identique.

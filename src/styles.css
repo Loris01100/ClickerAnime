@@ -511,6 +511,7 @@ small {
   display: flex;
   flex-direction: column;
   min-height: 10rem;
+  max-height: 70vh;
   resize: vertical;
 }
 .roster-resizable-panel > .scroll,
