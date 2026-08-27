@@ -159,7 +159,13 @@ can never stop being geometric:
 - **Automatisation** — the branch that plays the parts of the loop that aren't decisions, and
   **only** those: see the invariant in `CLAUDE.md`. "Relève" walks the team to the next arc once it
   clears the one it's in (node 1); "Réflexe" fires every ability that is off cooldown, exactly what
-  `activateReadyAbilities` already does from the roster's button (node 2); "Intendance" buys passive
+  `activateReadyAbilities` already does from the roster's button (node 2) — filtered by each
+  ability's **plan** (`AbilityPolicy`, chosen on the ability itself in the roster): `"always"` par
+  défaut, `"boss"` ne la lance que face au boss de l'arc, `"sync"` fait attendre chaque capacité du
+  groupe que *toutes* soient prêtes, puis les lance ensemble (c'est ce qui couvre « ne lance A que
+  si B est disponible » sans éditeur de règles). Un plan est une préférence : il survit au prestige,
+  ne s'applique jamais au clic manuel, et ne peut que retarder une capacité — jamais la renforcer,
+  donc la branche reste hors du balancing; "Intendance" buys passive
   ranks for the characters the player hands it (node 3); "Second souffle" asks for the boss rematch
   after a timeout, through `challengeBoss`, **and only once `bossOutlookOf(arc).winnable` says the
   boss is actually within reach** (node 4); "Instinct de crossover" opens a window as soon

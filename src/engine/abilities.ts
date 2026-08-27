@@ -89,3 +89,30 @@ export function cooldownRemaining(lastActivatedAt: number | undefined, cooldownM
   if (lastActivatedAt === undefined) return 0;
   return Math.max(0, cooldownMs - (now - lastActivatedAt));
 }
+
+/**
+ * How the "Réflexe" automation is allowed to spend one ability. Manual firing ignores it entirely —
+ * this is a plan for the robot, not a lock on the player.
+ *
+ * `"sync"` is what covers "ne lance A que si B est disponible" without a rule builder: every
+ * ability marked sync waits until *all* of them are ready, then they go off together.
+ */
+export type AbilityPolicy = "always" | "boss" | "sync";
+
+/** Which of the ready abilities the automation may fire right now, given each one's policy. */
+export function autoFirable(
+  ready: UnlockedAbility[],
+  all: UnlockedAbility[],
+  policyOf: (abilityId: string) => AbilityPolicy,
+  onBoss: boolean
+): UnlockedAbility[] {
+  const readyIds = new Set(ready.map((u) => u.ability.id));
+  const sync = all.filter((u) => policyOf(u.ability.id) === "sync");
+  const syncReady = sync.length > 0 && sync.every((u) => readyIds.has(u.ability.id));
+  return ready.filter((u) => {
+    const policy = policyOf(u.ability.id);
+    if (policy === "boss") return onBoss;
+    if (policy === "sync") return syncReady;
+    return true;
+  });
+}

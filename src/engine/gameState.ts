@@ -18,8 +18,16 @@ import {
   crossoverSynergyConfig,
   isMixedTeam,
 } from "./crossover";
-import { cooldownOf, cooldownRemaining, dutyMagnitude, getUnlockedAbilities, isAbilityReady, scopedMagnitude } from "./abilities";
-import type { UnlockedAbility } from "./abilities";
+import {
+  autoFirable,
+  cooldownOf,
+  cooldownRemaining,
+  dutyMagnitude,
+  getUnlockedAbilities,
+  isAbilityReady,
+  scopedMagnitude,
+} from "./abilities";
+import type { AbilityPolicy, UnlockedAbility } from "./abilities";
 import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
@@ -215,6 +223,11 @@ interface SaveFile {
   automationOff?: Record<string, boolean>;
   /** characters handed to the "Intendance" node; run-scoped like the roster, defaults to [] */
   autoRankCharacterIds?: string[];
+  /**
+   * Per-ability plan for the "Réflexe" automation, by ability id. Only the non-default entries are
+   * written; an absent one — every save from before this existed — reads as `"always"`.
+   */
+  abilityPolicy?: Record<string, AbilityPolicy>;
   /** the challenge being played right now, if any; absent on an older save, defaults to none */
   activeChallengeId?: string | null;
   /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
@@ -266,6 +279,7 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.autoClickEnabled, (v) => typeof v === "boolean") &&
     opt(c.automationOff, (v) => isRecordOf(v, (on) => typeof on === "boolean")) &&
     opt(c.autoRankCharacterIds, isStringArray) &&
+    opt(c.abilityPolicy, (v) => isRecordOf(v, (p) => p === "always" || p === "boss" || p === "sync")) &&
     opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
     opt(c.completedChallengeIds, isStringArray) &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
@@ -404,6 +418,22 @@ export function createGameStore(data: GameData) {
   );
   const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
   const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>({});
+  /**
+   * How the automation is allowed to spend each ability — a preference, like `autoClickEnabled`, so
+   * it survives a prestige. Only non-default entries are stored.
+   */
+  const [abilityPolicy, setAbilityPolicyMap] = createSignal<Record<string, AbilityPolicy>>(
+    saved?.abilityPolicy ?? {}
+  );
+  const abilityPolicyOf = (abilityId: string): AbilityPolicy => abilityPolicy()[abilityId] ?? "always";
+  function setAbilityPolicy(abilityId: string, policy: AbilityPolicy) {
+    setAbilityPolicyMap((map) => {
+      const next = { ...map };
+      if (policy === "always") delete next[abilityId];
+      else next[abilityId] = policy;
+      return next;
+    });
+  }
 
   // Transient feed of "you just gained something" events — the HUD pops them up (see ui/Notices.tsx)
   // because a drop, a recruit or a cleared arc otherwise happen in complete silence. Pruned by the
@@ -1510,6 +1540,22 @@ export function createGameStore(data: GameData) {
     return readyAbilities().filter((u) => activateAbility(u.ability.id)).length;
   }
 
+  /** Is the enemy in front of us the arc's boss — the one condition a `"boss"` policy waits for. */
+  const onBoss = () => {
+    const arc = activeArc();
+    return !!arc && enemy()?.id === arc.boss.id;
+  };
+
+  /**
+   * What the "Réflexe" automation fires: the ready abilities the player's plan allows right now.
+   * Still cadence and scope only — a policy can delay an ability, never make one worth more.
+   */
+  function activatePlannedAbilities(): number {
+    return autoFirable(readyAbilities(), unlockedAbilities(), abilityPolicyOf, onBoss()).filter((u) =>
+      activateAbility(u.ability.id)
+    ).length;
+  }
+
   /** Buffs running right now, strongest first — what the ability bar shows as the live stack. */
   const activeBuffs = createMemo(() => {
     const live = pruneExpired(temporaryModifiers(), now());
@@ -1626,6 +1672,7 @@ export function createGameStore(data: GameData) {
       autoClickEnabled: autoClickEnabled(),
       automationOff: automationOff(),
       autoRankCharacterIds: autoRankCharacterIds(),
+      abilityPolicy: abilityPolicy(),
       activeChallengeId: activeChallengeId(),
       completedChallengeIds: completedChallengeIds(),
     };
@@ -1778,7 +1825,7 @@ export function createGameStore(data: GameData) {
       const interval = autoAbilityInterval();
       const accumMs = autoAbilityAccumMs() + deltaMs;
       if (accumMs >= interval) {
-        activateReadyAbilities();
+        activatePlannedAbilities();
         setAutoAbilityAccumMs(accumMs % interval);
       } else {
         setAutoAbilityAccumMs(accumMs);
@@ -1980,6 +2027,8 @@ export function createGameStore(data: GameData) {
     setActiveArc,
     unlockAnime,
     activateAbility,
+    abilityPolicyOf,
+    setAbilityPolicy,
     activateReadyAbilities,
     abilityMagnitudeOf,
     // The ceiling a buff may lift one character to right now — the ability bar prints it, so
