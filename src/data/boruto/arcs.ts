@@ -93,7 +93,7 @@ export const borutoArcs: GameData["arcs"] = [
     mobs: [
       { id: "boruto-brume-mob-1", itemId: "item-eclat-hiramekarei", dropChance: 0.12, name: "Rebelle de la Brume", baseHp: 126_000_000_000, reward: 139_000_000 },
       { id: "boruto-brume-mob-2", itemId: "item-eclat-hiramekarei", dropChance: 0.12, name: "Épéiste en formation", baseHp: 170_000_000_000, reward: 181_000_000 },
-      { id: "boruto-brume-mob-3", itemId: "item-eclat-hiramekarei", dropChance: 0.12, name: "Garde de Kiri", baseHp: 214_000_000_000, reward: 223_000_000 },
+      { id: "boruto-brume-mob-3", itemId: "item-eclat-hiramekarei", dropChance: 0.12, name: "Hebiichigo", baseHp: 214_000_000_000, reward: 223_000_000 },
       { id: "boruto-brume-rival-kagura", name: "Kagura Karatachi", baseHp: 514_000_000_000, reward: 759_000_000, characterId: "kagura" },
       { id: "boruto-brume-rival-buntan", name: "Buntan Kurosuki", baseHp: 514_000_000_000, reward: 759_000_000, characterId: "buntan" },
     ],

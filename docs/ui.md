@@ -99,13 +99,11 @@ multiplies every call site's `px`, so the whole game's portraits are resized fro
 resolved `<img>` (scaled with `object-fit: contain` into a box sized by `px`) or, while pending or
 once resolved to nothing, a `.sprite-empty` box of the same size holding `IconSilhouette` tinted with
 `--world-hue` — never a layout shift, never a broken image, and never a blank hole. The placeholder
-carries a silhouette rather than nothing because a good ~quarter of the arc enemies are anonymous by
-design ("Garde de Kiri", "Voie de l'Insecte"): AniList has no card for them, so no `NAME_OVERRIDES`
-entry can ever fill those boxes. Pour en habiller un à la main : `LOCAL_PORTRAITS` dans
-`anilist.ts` associe un nom de `src/data/` à un fichier sous `public/portraits/` (png, svg, webp —
-aucune étape de build), consulté avant le réseau et jamais mis en cache, donc remplacer le fichier
-suffit à changer l'art. Les images locales gardent le même `object-fit: contain` que celles
-d'AniList : le cadre peut avoir des marges, mais aucun bord de l'illustration n'est coupé.
+carries a silhouette rather than nothing because a lookup can still miss — un nom qu'AniList
+orthographie autrement et qu'aucune entrée `NAME_OVERRIDES` ne couvre encore, ou une requête qui
+échoue. Tous les ennemis d'arc sont désormais des personnages nommés présents dans le casting
+AniList de leur anime : ils se résolvent comme une recrue, et il n'y a plus d'art local sous
+`public/portraits/` — en ajouter un demande de choisir un ennemi qu'AniList référence.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.
@@ -167,8 +165,7 @@ Anything under `public/` is referenced by an absolute path in the source (`/port
 before it reaches an `src`. The site is served from a sub-directory on GitHub Pages
 (`/ClickerAnime/`), where a leading `/` points at the domain root instead; Vite rewrites `url()` in
 CSS and static imports, but never a string built at runtime, so the `BASE_URL` prefix has to be
-explicit. The three call sites are `Sprite.tsx` (local portrait overrides only — an AniList URL is
-already absolute), `WorldMap.tsx`'s `mapImage` and `CurrencyBar.tsx`'s four coins.
+explicit. The two call sites are `WorldMap.tsx`'s `mapImage` and `CurrencyBar.tsx`'s four coins.
 
 ## Coins
 

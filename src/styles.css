@@ -551,9 +551,6 @@ small {
   flex: none;
   object-fit: contain;
 }
-.sprite.local {
-  border-radius: 4px;
-}
 /* No portrait: a silhouette in the world's own hue rather than an empty grey box. */
 .sprite-empty {
   display: flex;

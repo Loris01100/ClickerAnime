@@ -39,16 +39,17 @@ const NAME_OVERRIDES: [from: string, to: string][] = [
   ["Nagato", "Pain"],
   ["Sarada Uchiwa", "Sarada Uchiha"],
   ["Isshiki Ôtsutsuki", "Isshiki Ootsutsuki"],
+  ["Mikoto Uchiwa", "Mikoto Uchiha"],
   // After the pair above, so "Obito Uchiwa" is already "Tobi" and never rewritten twice; this one
   // catches the boss card that names him without a surname ("Obito — Jinchûriki de Dix-Queues").
   ["Obito", "Tobi"],
 ];
 
-// The *enemies* are a different story: checked the same way, ~50 of the 191 arc mobs resolve to
-// nothing, and almost all of them are anonymous by design ("Garde de Kiri", "Serpent gardien",
-// "Voie de l'Insecte", "Les Cinq Kage Ressuscités") — AniList has no card for them and never will,
-// so no override can fix those. That is what `Sprite`'s silhouette placeholder is for; only names
-// AniList lists under a different spelling or alias belong in the table above.
+// The arc *enemies* go through the same table. They used to be anonymous by design ("Garde de
+// Kiri", "Serpent gardien") and needed hand-placed art under `public/portraits/`; every one of
+// them is now a named character AniList actually lists in that arc's cast, so a mob resolves the
+// same way a recruit does. Keep it that way when adding an arc: pick a mob AniList has a card for,
+// or it falls back to `Sprite`'s silhouette.
 
 function applyNameOverrides(name: string): string {
   let result = name;
@@ -80,47 +81,6 @@ const CHARACTER_ANIME_OVERRIDES: Record<string, string> = {
   "Toneri Ôtsutsuki": "The Last: Naruto the Movie",
 };
 
-// Fallback art for a name AniList genuinely has no card for. Keys are the in-game name exactly as
-// written in `src/data/`; values are paths under `public/` (`/portraits/x.png` → `public/portraits/
-// x.png`), so any png/svg/webp dropped there works with no build step. Checked before the network,
-// and never cached in `localStorage` — swapping the file out is enough to change the art.
-// Everything not listed falls through to AniList and then to `Sprite`'s silhouette.
-export const LOCAL_PORTRAITS: Record<string, string> = {
-  "Garde de Kiri": "/portraits/garde-de-kiri.webp",
-  "Ninja de Suna sous contrôle": "/portraits/ninja-de-suna-sous-controle.jpg",
-  "Serpent gardien": "/portraits/serpent-gardien.webp",
-  "Garde du repaire du Nord": "/portraits/garde-du-repaire-nord.jpg",
-  "Masque à cœur": "/portraits/masque-a-coeur.jpg",
-  "Moine du Temple du Feu corrompu": "/portraits/moine-du-temple-du-feu-corrompu.webp",
-  "Éclaireur de l'Akatsuki": "/portraits/eclaireur-de-l-akatsuki.webp",
-  "Prison d'eau": "/portraits/prison-d-eau.webp",
-  "Déserteur recruté par Taka": "/portraits/deserteur-recrute-par-taka.webp",
-  "Voie de l'Animal — invocation": "/portraits/voie-de-l-animal.webp",
-  "Sentinelle de la pluie": "/portraits/sentinelle-de-la-pluie.webp",
-  "Ninja d'Ame": "/portraits/ninja-ame.webp",
-  "Corbeau de genjutsu": "/portraits/corbeau-genjutsu.webp",
-  "Garde du repaire Uchiwa": "/portraits/garde-uchiwa.webp",
-  "Flamme d'Amaterasu": "/portraits/flamme-d-amaterasu.webp",
-  "Voie de l'Humain": "/portraits/voie-de-l-humain.webp",
-  "Voie de l'Insecte": "/portraits/voie-de-l-insecte.webp",
-  "Garde du Pays du Fer": "/portraits/garde-pays-du-fer.webp",
-  "Samouraï en armure": "/portraits/samourai-en-armure.webp",
-  "Ninja ressuscité": "/portraits/ninja-ressuscite.webp",
-  "Éclaireur de l'Alliance": "/portraits/ninja-alliance.jpg",
-  "Épéiste de la Brume ressuscité": "/portraits/epeiste-de-la-brume-ressuscite.webp",
-  "Division d'assaut Zetsu": "/portraits/division-assaut-zetsu.webp",
-  "Clone de bois de Madara": "/portraits/clone-de-bois-de-madara.webp",
-  "Tentacule de la Statue Démoniaque": "/portraits/tentacule-de-la-statue-demoniaque.webp",
-  "Titan de bois": "/portraits/titan-de-bois.webp",
-  "Racine du Shinjû": "/portraits/racine-de-shinju.webp",
-  "Bombe-boule de Dix-Queues": "/portraits/bombe-boule-dix-queues.jpg",
-  "Anbu de la Racine": "/portraits/anbu-de-la-racine.jpeg",
-  "Police militaire Uchiwa": "/portraits/police-militaire-uchiwa.webp",
-  "Espion de Danzô": "/portraits/espion-de-danzo.webp",
-  "Marionnette de la Lune": "/portraits/marionnette-de-la-lune.webp",
-  "Golem de Toneri": "/portraits/golem-de-toneri.webp",
-  "Chasseur Ôtsutsuki": "/portraits/chasseur-otsutsuki.webp",
-};
 
 interface CastMember {
   name: string;
@@ -328,8 +288,6 @@ function lookup(key: string, fetcher: () => Promise<string | null>): Promise<str
 
 /** Best-effort AniList portrait URL for a character or anime name; `null` on any miss or failure. */
 export function portraitUrl(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
-  const local = LOCAL_PORTRAITS[name];
-  if (local) return Promise.resolve(local);
   return lookup(cacheKey(name, kind, context), () => fetchPortrait(name, kind, context));
 }
 
