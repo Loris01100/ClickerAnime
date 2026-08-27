@@ -551,13 +551,7 @@ small {
   flex: none;
   object-fit: contain;
 }
-/*
- * Local art (`LOCAL_PORTRAITS`) is a screenshot in whatever aspect it came in, often wide — `contain`
- * would letterbox it to a fraction of the box while AniList's own portraits (~2:3) nearly fill it.
- * `cover` crops it instead, so an imported image reads at the same size as every other portrait.
- */
 .sprite.local {
-  object-fit: cover;
   border-radius: 4px;
 }
 /* No portrait: a silhouette in the world's own hue rather than an empty grey box. */

@@ -104,9 +104,8 @@ design ("Garde de Kiri", "Voie de l'Insecte"): AniList has no card for them, so 
 entry can ever fill those boxes. Pour en habiller un à la main : `LOCAL_PORTRAITS` dans
 `anilist.ts` associe un nom de `src/data/` à un fichier sous `public/portraits/` (png, svg, webp —
 aucune étape de build), consulté avant le réseau et jamais mis en cache, donc remplacer le fichier
-suffit à changer l'art. Une image locale porte `.sprite.local` et passe en `object-fit: cover` : un
-screenshot large serait sinon letterboxé au tiers de la boîte là où les portraits AniList (~2:3) la
-remplissent presque — recadrer le fait lire à la même taille que les autres.
+suffit à changer l'art. Les images locales gardent le même `object-fit: contain` que celles
+d'AniList : le cadre peut avoir des marges, mais aucun bord de l'illustration n'est coupé.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.

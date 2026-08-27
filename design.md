@@ -460,6 +460,8 @@ si AniList est indisponible ou ne trouve rien. Ce repli n'est pas une case vide 
 silhouette (`IconSilhouette`) teintée en `--world-hue`, parce qu'un bon quart des ennemis d'arc sont
 anonymes par construction (« Garde de Kiri », « Voie de l'Insecte ») et n'auront jamais de fiche
 AniList — une ombre générique se lit comme un figurant, un carré gris se lit comme un bug.
+Tous les portraits utilisent `object-fit: contain` : préserver l'illustration entière prime sur le
+remplissage du cadre, même lorsqu'une image locale laisse des marges.
 
 **La bannière d'un monde, en plus des portraits.** `bannerUrl(nomDeLAnime)` récupère la clé d'art
 large d'un show (`Media.bannerImage`) et sert de décor à la scène de combat — l'équivalent de la vue
