@@ -5,6 +5,68 @@ import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("turns repeat boss uniques into forge fragments", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1, itemId: "unique" },
+        },
+      ],
+      characters: [{ id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 1, baseDps: 0 }],
+      combos: [],
+      items: [{ id: "unique", name: "Unique", kind: "unique" as const }],
+    };
+    const restore = installSave(
+      baseSave({ clearedArcIds: ["ta-arc"], arcKills: { "ta-arc": 50 }, itemCounts: { unique: 1 } })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      game.click();
+      expect(game.countOf("unique")).toBe(1);
+      expect(game.uniqueFragmentsOf("unique")).toBe(1);
+    } finally {
+      restore();
+    }
+  });
+
+  it("upgrades a unique from its former rank-4 strength to rank 5", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [],
+      characters: [{ id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 10, baseDps: 0 }],
+      combos: [],
+      items: [{
+        id: "unique", name: "Unique", kind: "unique" as const,
+        effects: [{ target: "clickPower" as const, kind: "multiplier" as const, value: 2 }],
+      }],
+    };
+    const restore = installSave(
+      baseSave({ itemCounts: { unique: 1 }, uniqueFragments: { unique: 25 }, uniqueUpgradeRanks: { unique: 4 } })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      game.equipItem("ca", "unique");
+      expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(20);
+      expect(game.upgradeUnique("unique")).toBe(true);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+      expect(game.uniqueFragmentsOf("unique")).toBe(0);
+      expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(10 * (1 + 7 / 6));
+    } finally {
+      restore();
+    }
+  });
+
   it("keeps ability cooldowns across a reload", () => {
     const usedAt = Date.now();
     const data = {

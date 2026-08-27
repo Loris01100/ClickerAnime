@@ -176,6 +176,9 @@ export const MAX_KILLS_PER_SECOND = 5;
 export const CURRENCY_REWARD_MULTIPLIER = 0.75;
 /** Price of one current-arc common item, measured in ordinary victories. */
 export const SUPPLY_KILLS_PER_COPY = 15;
+/** Boss uniques start at rank 1; rank 4 preserves the power they had before the forge existed. */
+export const UNIQUE_FORGE_MULTIPLIERS = [0, 0.5, 2 / 3, 5 / 6, 1, 7 / 6] as const;
+export const UNIQUE_FORGE_FRAGMENT_COSTS = [0, 1, 5, 10, 15, 25] as const;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 export const SAVE_KEY = "clicker-anime:save:v10";
 /** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
@@ -231,6 +234,10 @@ interface SaveFile {
   abilityPolicy?: Record<string, AbilityPolicy>;
   /** cooldown start times survive a reload so refreshing cannot make abilities ready early */
   abilityLastUsed?: Record<string, number>;
+  /** fragments dropped by a boss after its unique has already been found */
+  uniqueFragments?: Record<string, number>;
+  /** forge rank of each unique; absent saves keep their former rank-4 strength */
+  uniqueUpgradeRanks?: Record<string, number>;
   /** the challenge being played right now, if any; absent on an older save, defaults to none */
   activeChallengeId?: string | null;
   /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
@@ -284,6 +291,8 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.autoRankCharacterIds, isStringArray) &&
     opt(c.abilityPolicy, (v) => isRecordOf(v, (p) => p === "always" || p === "boss" || p === "sync")) &&
     opt(c.abilityLastUsed, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.uniqueFragments, (v) => isRecordOf(v, isNumber)) &&
+    opt(c.uniqueUpgradeRanks, (v) => isRecordOf(v, isNumber)) &&
     opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
     opt(c.completedChallengeIds, isStringArray) &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
@@ -291,6 +300,20 @@ function isValidSave(value: unknown): value is SaveFile {
       isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
     )
   );
+}
+
+function uniqueRanksFromSave(data: GameData, saved: SaveFile | null): Record<string, number> {
+  const ranks = saved?.uniqueUpgradeRanks;
+  return Object.fromEntries(
+    data.items
+      .filter((item) => item.kind === "unique" && (saved?.itemCounts?.[item.id] ?? 0) > 0)
+      .map((item) => [item.id, Math.max(1, Math.min(5, Math.floor(ranks?.[item.id] ?? 4)))])
+  );
+}
+
+function scaledUniqueEffect(effect: ModifierTemplate, level: number): ModifierTemplate {
+  const strength = UNIQUE_FORGE_MULTIPLIERS[level] ?? UNIQUE_FORGE_MULTIPLIERS[1];
+  return { ...effect, value: effect.kind === "multiplier" ? 1 + (effect.value - 1) * strength : effect.value * strength };
 }
 
 /** Imported equipment also has to be meaningful for the current game data, not merely well-typed. */
@@ -358,6 +381,8 @@ export function createGameStore(data: GameData) {
   const [clearedArcIds, setClearedArcIds] = createSignal<string[]>(saved?.clearedArcIds ?? []);
   const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
+  const [uniqueFragments, setUniqueFragments] = createSignal<Record<string, number>>(saved?.uniqueFragments ?? {});
+  const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(uniqueRanksFromSave(data, saved));
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
   const [evolvedCharacterIds, setEvolvedCharacterIds] = createSignal<string[]>(saved?.evolvedCharacterIds ?? []);
   // Lifetime totals for the achievement ladders (see achievements.ts) — never decrease and, unlike
@@ -602,6 +627,19 @@ export function createGameStore(data: GameData) {
   const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
 
   const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
+  const uniqueFragmentsOf = (itemId: string) => uniqueFragments()[itemId] ?? 0;
+  const uniqueUpgradeLevelOf = (itemId: string) => uniqueUpgradeRanks()[itemId] ?? 0;
+  const uniqueUpgradeMultiplierOf = (itemId: string) => UNIQUE_FORGE_MULTIPLIERS[uniqueUpgradeLevelOf(itemId)] ?? 0;
+  const uniqueUpgradeCostOf = (itemId: string) => UNIQUE_FORGE_FRAGMENT_COSTS[uniqueUpgradeLevelOf(itemId) + 1] ?? null;
+  const forgeableUniques = createMemo(() => data.items.filter((item) => item.kind === "unique" && countOf(item.id) > 0));
+
+  function upgradeUnique(itemId: string): boolean {
+    const cost = uniqueUpgradeCostOf(itemId);
+    if (cost === null || uniqueFragmentsOf(itemId) < cost) return false;
+    setUniqueFragments((fragments) => ({ ...fragments, [itemId]: fragments[itemId] - cost }));
+    setUniqueUpgradeRanks((ranks) => ({ ...ranks, [itemId]: uniqueUpgradeLevelOf(itemId) + 1 }));
+    return true;
+  }
 
   /** The unique item currently equipped by a character, if any. */
   function equippedItemOf(character: Character): Item | null {
@@ -692,7 +730,9 @@ export function createGameStore(data: GameData) {
     const equipmentOf = (c: Character) => {
       const itemId = equipment[c.id];
       const item = itemId ? data.items.find((i) => i.id === itemId) : undefined;
-      return item && item.kind === "unique" ? [item] : [];
+      return item && item.kind === "unique"
+        ? [{ ...item, effects: item.effects?.map((effect) => scaledUniqueEffect(effect, uniqueUpgradeLevelOf(item.id))) }]
+        : [];
     };
     const fromCharacters = ownedCharacters().flatMap((c) =>
       characterContributions(
@@ -985,8 +1025,14 @@ export function createGameStore(data: GameData) {
   /** Grants one copy of an item; counted on pickup, not derived from the stack still held. */
   function grantItem(item: Item) {
     setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) + 1 }));
+    if (item.kind === "unique") setUniqueUpgradeRanks((ranks) => ({ ...ranks, [item.id]: ranks[item.id] ?? 1 }));
     if (item.kind === "common") bumpAchievement("commonItemsCollected");
     pushNotice("item", `${item.name} +1`);
+  }
+
+  function grantUniqueFragment(item: Item) {
+    setUniqueFragments((fragments) => ({ ...fragments, [item.id]: (fragments[item.id] ?? 0) + 1 }));
+    pushNotice("item", `Fragment de ${item.name} +1`);
   }
 
   /**
@@ -1011,8 +1057,9 @@ export function createGameStore(data: GameData) {
         dropChanceLevel > 0 ? Math.min(1, baseChance * (1 + DROP_CHANCE_BOOST * dropChanceLevel)) : baseChance;
       if (rollsDrop({ ...target, dropChance: boostedChance }, Math.random())) {
         const item = data.items.find((i) => i.id === target.itemId);
-        if (item && !(item.kind === "unique" && countOf(item.id) > 0)) {
-          grantItem(item);
+        if (item) {
+          if (item.kind === "unique" && countOf(item.id) > 0) grantUniqueFragment(item);
+          else grantItem(item);
           dropped = true;
           if (doubleDropLevel > 0 && item.kind === "common" && Math.random() < scaledChance(DOUBLE_DROP_CHANCE, doubleDropLevel)) {
             grantItem(item);
@@ -1304,11 +1351,12 @@ export function createGameStore(data: GameData) {
       character.passive && character.passive.target === target && rank > 0
         ? [{ ...character.passive, value: character.passive.value * passiveGrowth(rank), sourceId: character.id }]
         : [];
+    const equipped = equippedItemOf(character);
     const effects = [
       ...passive,
-      ...(equippedItemOf(character)?.effects ?? [])
+      ...(equipped?.effects ?? [])
         .filter((e) => e.target === target)
-        .map((e) => ({ ...e, sourceId: character.id })),
+        .map((e) => ({ ...scaledUniqueEffect(e, uniqueUpgradeLevelOf(equipped!.id)), sourceId: character.id })),
     ];
     const nowMs = now();
     const bare = computeEffectiveStat(base, target, effects, nowMs);
@@ -1675,6 +1723,8 @@ export function createGameStore(data: GameData) {
     setTemporaryModifiers([]);
     setAbilityLastUsed({});
     setItemCounts({});
+    setUniqueFragments({});
+    setUniqueUpgradeRanks({});
     setPassiveRanks({});
     setArcKills({});
     setClearedArcIds([]);
@@ -1708,6 +1758,8 @@ export function createGameStore(data: GameData) {
       clearedArcIds: clearedArcIds(),
       characterXp: characterXp(),
       itemCounts: itemCounts(),
+      uniqueFragments: uniqueFragments(),
+      uniqueUpgradeRanks: uniqueUpgradeRanks(),
       passiveRanks: passiveRanks(),
       evolvedCharacterIds: evolvedCharacterIds(),
       achievementCounts: achievementCounts(),
@@ -1764,6 +1816,8 @@ export function createGameStore(data: GameData) {
     setPrestige(createInitialPrestigeState());
     setCharacterXp({});
     setItemCounts({});
+    setUniqueFragments({});
+    setUniqueUpgradeRanks({});
     setPassiveRanks({});
     setArcKills({});
     setClearedArcIds([]);
@@ -1964,6 +2018,12 @@ export function createGameStore(data: GameData) {
     teamDps,
     foundItems,
     countOf,
+    forgeableUniques,
+    uniqueFragmentsOf,
+    uniqueUpgradeLevelOf,
+    uniqueUpgradeMultiplierOf,
+    uniqueUpgradeCostOf,
+    upgradeUnique,
     xpOf,
     levelOf,
     progressOf,

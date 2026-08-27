@@ -17,6 +17,7 @@ import CrossoverPanel from "./ui/CrossoverPanel";
 import Notices from "./ui/Notices";
 import PackPanel from "./ui/PackPanel";
 import ReflexPanel from "./ui/ReflexPanel";
+import ForgePanel from "./ui/ForgePanel";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
@@ -36,6 +37,7 @@ export default function App() {
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   const [packsOpen, setPacksOpen] = createSignal(false);
   const [reflexOpen, setReflexOpen] = createSignal(false);
+  const [forgeOpen, setForgeOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
   let menu: HTMLDetailsElement | undefined;
 
@@ -180,6 +182,7 @@ export default function App() {
             game={game}
             onOpenPrestige={() => setPrestigeTreeOpen(true)}
             onOpenChallenges={() => setChallengesOpen(true)}
+            onOpenForge={() => setForgeOpen(true)}
           />
         </main>
       </Show>
@@ -214,6 +217,10 @@ export default function App() {
 
       <Show when={reflexOpen()}>
         <ReflexPanel game={game} onClose={() => setReflexOpen(false)} />
+      </Show>
+
+      <Show when={forgeOpen()}>
+        <ForgePanel game={game} onClose={() => setForgeOpen(false)} />
       </Show>
 
       <Show when={challengesOpen()}>

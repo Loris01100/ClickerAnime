@@ -100,6 +100,11 @@ is the "fire now" gesture and already runs to forty buttons, while a plan is set
 whole — the rows sort grouped-first so the screen reads like the plan itself. Manual firing ignores
 plans entirely, which the panel says in its intro.
 
+The right column places a compact **Forge** entry directly below Prestige whenever the run owns a
+unique. It opens `ForgePanel.tsx`, whose cards give each unique a reserved large art frame (its item
+icon fills the space until bespoke art exists), rank, contribution, matching boss fragments and the
+next rank purchase.
+
 `ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
 section — next to the tree button, because a challenge starts from a reset just like a prestige
 does, and both `confirm()` say so. It renders each challenge's rule, goal, reward (through

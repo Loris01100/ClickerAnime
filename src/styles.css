@@ -543,6 +543,50 @@ small {
 .row:last-child {
   border-bottom: none;
 }
+
+.forge-modal {
+  width: min(42rem, calc(100vw - 2rem));
+}
+.forge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 0.6rem;
+  padding: 0.6rem;
+}
+.forge-card {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.forge-art {
+  display: grid;
+  place-items: center;
+  min-height: 6rem;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+}
+.forge-info {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+}
+.forge-info h3,
+.forge-info p {
+  margin: 0;
+}
+.forge-info h3 {
+  font-size: 0.95rem;
+}
+.forge-info p {
+  font-size: 0.8rem;
+}
+.forge-info button {
+  margin-top: 0.2rem;
+}
 .name {
   display: flex;
   align-items: center;

@@ -40,6 +40,14 @@ Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes bot
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
 
+## Forge
+
+Every unique begins at forge rank 1 (50% of its former contribution). Ranks 2–5 contribute 67%,
+84%, 100% and 116%; rank 4 is exactly the pre-forge power, so existing saves keep their balance.
+After its first drop, defeating that arc's replayable boss awards one fragment of that unique instead
+of another copy. The forge consumes 5, 10, 15 then 25 fragments for ranks 2–5 (rank 1 is granted
+with the first unique) and is reset with the run alongside uniques themselves.
+
 **A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
 Two constants were over that line and together took the effective common-drop rate from the printed

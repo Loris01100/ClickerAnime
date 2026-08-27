@@ -38,6 +38,9 @@ un onglet si elle peut tenir sur l'écran. Conséquences concrètes déjà en pl
 - **Densité mais pas de bruit** : chaque panel a un `.panel-head` (titre à gauche, compteur/chip/
   select à droite) qui donne un point d'ancrage visuel constant, quelle que soit la richesse du
   contenu en dessous.
+- **Forge compacte, détails en modal.** Son entrée apparaît sous Prestige après le premier unique;
+  elle ouvre des cartes dédiées, avec un cadre d'illustration déjà réservé pour chaque objet, sans
+  gonfler la colonne de progression.
 
 Toute nouvelle vue doit d'abord se demander « est-ce que ça peut être un panel de plus dans une
 colonne existante, ou une ligne de plus dans un tableau existant ? » avant d'envisager un nouvel

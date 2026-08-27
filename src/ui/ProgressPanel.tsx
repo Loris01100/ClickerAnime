@@ -12,6 +12,7 @@ export default function ProgressPanel(props: {
   game: GameStore;
   onOpenPrestige: () => void;
   onOpenChallenges: () => void;
+  onOpenForge: () => void;
 }) {
   const [openAnimes, setOpenAnimes] = createSignal<Record<string, boolean>>({});
   const [travelOpen, setTravelOpen] = createSignal(true);
@@ -190,6 +191,21 @@ export default function ProgressPanel(props: {
         </div>
         </Show>
       </section>
+
+      <Show when={props.game.forgeableUniques().length > 0}>
+        <section class="panel">
+          <header class="panel-head">
+            <span>Forge</span>
+            <small class="muted">Fragments de boss</small>
+          </header>
+          <div class="pad">
+            <button class="tree-open" onClick={props.onOpenForge}>
+              Ouvrir la forge ({props.game.forgeableUniques().length})
+              <IconChevronRight class="tree-open-go" />
+            </button>
+          </div>
+        </section>
+      </Show>
 
     </div>
   );
