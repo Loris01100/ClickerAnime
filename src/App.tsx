@@ -170,7 +170,7 @@ export default function App() {
               onOpenCrossover={() => setCrossoverOpen(true)}
               onOpenPacks={() => setPacksOpen(true)}
             />
-            <ClickStage game={game} onOpenReflex={() => setReflexOpen(true)} />
+            <ClickStage game={game} />
             <WorldMap game={game} />
           </div>
           <ProgressPanel
