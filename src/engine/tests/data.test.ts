@@ -23,6 +23,15 @@ describe("game data", () => {
     expect(anime?.requiresAnimeId).toBeUndefined();
     expect(anime?.mapImage).toBe("/hunter-hunter-map.webp");
     expect(arcs.every((arc) => arc.mapX !== undefined && arc.mapY !== undefined)).toBe(true);
+    // This opening world used to clear in under ten minutes: its larger cast made damage grow much
+    // faster than enemy health. Keep both the longer kill budgets and the rebuilt boss curve.
+    expect(arcs.map((arc) => arc.mobsToBoss)).toEqual([20, 28, 34, 40, 46, 52]);
+    expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 2_720_000, 9_940_000, 36_000_000]);
+
+    const debutPower = arcs.map((arc) =>
+      Math.max(...gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((character) => character.baseDps))
+    );
+    expect(debutPower).toEqual([6, 8, 18, 30, 72, 120]);
   });
 
   it("keeps every id unique and every reference resolvable", () => {

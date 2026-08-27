@@ -153,8 +153,10 @@ Three practical notes, each learned by getting it wrong:
   the raw ratio makes it oscillate with growing amplitude; `ratio ** 0.7` converges in two passes.
 - **Hunter x Hunter follows the same opening-world method.** It is an independent entry point, not
   a late-game continuation, so its six arcs are hand-authored against a fresh team and deliberately
-  stay outside the geometric sequel-table test. The seed-1 baseline clears them in roughly 0.2–2.0
-  minutes each without a boss timeout.
+  stay outside the geometric sequel-table test. Its 30 recruits made the first table collapse in
+  under ten minutes: kill budgets now rise from 20 to 52, enemy hp is roughly twice the original
+  curve, and recruit damage after the opening arc is roughly halved. Seeds 1–4 now clear the world
+  in 32.6–32.8 minutes, from about one minute for the Exam to 8–9 for the Election, with no timeout.
 - **Update `data.test.ts`'s expected ramps in the same commit.** They are measurements, not targets,
   and a corrective ramp of even 1.5%/arc compounds them past the test's ±0.05 tolerance.
 
