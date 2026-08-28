@@ -1573,9 +1573,15 @@ small {
 .prestige-modal {
   width: min(1360px, 98vw);
 }
+.codex-modal {
+  /* Every Codex route shares one frame so its navigation never jumps when switching between the
+     short anime picker and the longer character/item lists. */
+  height: min(800px, 88vh);
+}
 .codex-anime-picker {
+  flex: 1;
+  min-height: 0;
   padding: 1rem;
-  max-height: 75vh;
 }
 .codex-anime-picker > p {
   margin: 0 0 0.8rem;
@@ -1630,13 +1636,14 @@ small {
   height: 0.9rem;
 }
 .codex {
+  flex: 1;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   min-height: 0;
 }
 .codex-list {
   border-right: 1px solid var(--line);
-  max-height: 70vh;
+  min-height: 0;
 }
 .codex-group {
   padding: 0.35rem 0.6rem;
@@ -1671,7 +1678,7 @@ small {
 }
 .codex-detail {
   padding: 0.75rem;
-  max-height: 70vh;
+  min-height: 0;
 }
 .codex-hero {
   display: flex;

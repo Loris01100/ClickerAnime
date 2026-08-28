@@ -74,7 +74,13 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
 
   return (
     <div class="overlay" onClick={props.onClose}>
-      <div class="modal" role="dialog" aria-modal="true" aria-label="Codex" onClick={(e) => e.stopPropagation()}>
+      <div
+        class="modal codex-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Codex"
+        onClick={(e) => e.stopPropagation()}
+      >
         <header class="panel-head">
           <span>
             <Show when={selectedAnime()} fallback="Codex — Choisir un anime">
