@@ -123,8 +123,10 @@ The right column places a compact **Forge** entry directly below Prestige whenev
 unique. It opens `ForgePanel.tsx` over a dedicated forge illustration. The workbench starts with two
 empty slots rather than listing every recipe. Clicking the left slot opens a compact picker containing
 the owned uniques; choosing one fills that slot with its boss-earned fragments and previews the forged
-unique in the right slot. The central action then upgrades only that selection. The centered workbench
-leaves the smiths and heated metal visible, and stacks vertically on narrow viewports.
+unique in the right slot. Once filled, either slot or the explicit `Changer` action reopens the picker,
+so another unique can be selected without closing the forge. The central action upgrades only that
+selection. The centered workbench leaves the smiths and heated metal visible, and stacks vertically
+on narrow viewports.
 
 `ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
 section — next to the tree button, because a challenge starts from a reset just like a prestige

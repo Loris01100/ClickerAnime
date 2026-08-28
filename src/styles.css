@@ -804,9 +804,9 @@ small {
   padding: 1rem;
 }
 .forge-selection-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: baseline;
-  justify-content: space-between;
   gap: 0.75rem;
   width: min(44rem, 100%);
   padding: 0.4rem 0.65rem;
@@ -818,6 +818,13 @@ small {
 .forge-selection-head span {
   color: var(--muted);
   font-size: 0.78rem;
+}
+.forge-selection-head button {
+  padding: 0.2rem 0.5rem;
+  color: var(--gold);
+  font-size: 0.7rem;
+  background: color-mix(in srgb, var(--panel-2) 82%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
 }
 .forge-process {
   display: grid;
@@ -1024,8 +1031,16 @@ small {
   }
   .forge-selection-head {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.15rem;
+  }
+  .forge-selection-head span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .forge-selection-head button {
+    grid-column: 2;
+    grid-row: 1;
   }
   .forge-slot {
     width: 8.5rem;

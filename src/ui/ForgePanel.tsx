@@ -27,6 +27,7 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
           <div class="forge-workbench">
             <Show
               when={selectedItem()}
+              keyed
               fallback={
                 <div class="forge-process">
                   <button
@@ -53,8 +54,7 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                 </div>
               }
             >
-              {(itemAccessor) => {
-                const item = itemAccessor();
+              {(item) => {
                 const level = () => props.game.uniqueUpgradeLevelOf(item.id);
                 const cost = () => props.game.uniqueUpgradeCostOf(item.id);
                 const fragments = () => props.game.uniqueFragmentsOf(item.id);
@@ -64,13 +64,14 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                     <div class="forge-selection-head">
                       <strong>{item.name}</strong>
                       <span>Niveau {level()}/5 · puissance {Math.round(props.game.uniqueUpgradeMultiplierOf(item.id) * 100)} %</span>
+                      <button type="button" onClick={() => setPickerOpen(true)}>Changer</button>
                     </div>
                     <div class="forge-process">
                       <button
                         class={`forge-slot forge-slot-button forge-slot-fragments${canForge() ? " ready" : ""}`}
                         type="button"
                         aria-expanded={pickerOpen()}
-                        onClick={() => setPickerOpen((open) => !open)}
+                        onClick={() => setPickerOpen(true)}
                       >
                         <span class="forge-slot-label">Fragments</span>
                         <div class="forge-fragment-art">
@@ -96,7 +97,13 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                         </button>
                       </div>
 
-                      <section class={`forge-slot forge-slot-result${canForge() ? " ready" : ""}`}>
+                      <button
+                        class={`forge-slot forge-slot-button forge-slot-result${canForge() ? " ready" : ""}`}
+                        type="button"
+                        aria-label={`Changer l'objet sélectionné, actuellement ${item.name}`}
+                        aria-expanded={pickerOpen()}
+                        onClick={() => setPickerOpen(true)}
+                      >
                         <span class="forge-slot-label">Résultat</span>
                         <div class="forge-result-art"><ItemIcon id={item.id} kind="unique" px={64} /></div>
                         <b>{item.name}</b>
@@ -105,7 +112,7 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                             Objet unique · niveau {level() + 1}
                           </Show>
                         </small>
-                      </section>
+                      </button>
                     </div>
                   </>
                 );
