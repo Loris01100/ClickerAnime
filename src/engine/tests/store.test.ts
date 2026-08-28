@@ -5,6 +5,52 @@ import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("shows a character's reduced damage after travelling to another anime", () => {
+    const data = {
+      animes: [
+        { id: "ta", name: "A", unlockCost: 0 },
+        { id: "tb", name: "B", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc A", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob-a", name: "Mob A", baseHp: 1, reward: 1 }],
+          boss: { id: "boss-a", name: "Boss A", baseHp: 1, reward: 1 },
+        },
+        {
+          id: "tb-arc", animeId: "tb", name: "Arc B", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob-b", name: "Mob B", baseHp: 1, reward: 1 }],
+          boss: { id: "boss-b", name: "Boss B", baseHp: 1, reward: 1 },
+        },
+      ],
+      characters: [{
+        id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const,
+        arcIds: ["ta-arc"], baseClickPower: 20, baseDps: 10,
+      }],
+      combos: [],
+      items: [],
+    };
+    const restore = installSave(baseSave({ unlockedAnimeIds: ["ta", "tb"] }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+
+      expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(20);
+      expect(game.characterStatOf(data.characters[0], "teamDps")).toBeCloseTo(10);
+
+      expect(game.setActiveArc("tb-arc")).toBe(true);
+      expect(game.synergyOf(data.characters[0])).toBeCloseTo(0.5);
+      expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(10);
+      expect(game.characterStatOf(data.characters[0], "teamDps")).toBeCloseTo(5);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
   it("turns repeat boss uniques into forge fragments", () => {
     const data = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],

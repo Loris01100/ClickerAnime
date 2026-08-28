@@ -1581,6 +1581,7 @@ small {
 .codex-anime-picker {
   flex: 1;
   min-height: 0;
+  max-height: none;
   padding: 1rem;
 }
 .codex-anime-picker > p {
@@ -1639,11 +1640,15 @@ small {
   flex: 1;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 .codex-list {
   border-right: 1px solid var(--line);
   min-height: 0;
+  max-height: none;
+  height: 100%;
 }
 .codex-group {
   padding: 0.35rem 0.6rem;
@@ -1679,6 +1684,8 @@ small {
 .codex-detail {
   padding: 0.75rem;
   min-height: 0;
+  max-height: none;
+  height: 100%;
 }
 .codex-hero {
   display: flex;
@@ -1977,11 +1984,15 @@ small {
   }
   .codex {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(8rem, 30vh) minmax(0, 1fr);
   }
   .codex-list {
-    max-height: 30vh;
+    height: auto;
     border-right: none;
     border-bottom: 1px solid var(--line);
+  }
+  .codex-detail {
+    height: auto;
   }
 }
 

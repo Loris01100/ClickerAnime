@@ -38,7 +38,6 @@ import {
   levelGrowth,
   reachedArcPower,
   narratorClickPower,
-  passiveGrowth,
   passiveUpgrade,
   PASSIVE_LEVEL_CAP,
   XP_GROWTH,
@@ -1338,32 +1337,34 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * A character's own printed damage as the roster shows it: base, grown by levels and duplicates,
-   * then their passive, their equipped unique and running abilities folded in. The passive belongs
-   * here because it is scoped to its owner (`characterContributions`): it raises *their* stats, so
-   * the roster has to show it. Synergy stays out — it has its own column. The same mastery cap as
-   * the team total applies to the temporary boost.
+   * A character's actual contribution in the active arc, as the roster and Codex show it. Going to
+   * another anime must visibly reduce Clic/DPS, not only change the separate synergy column. Reuse
+   * `characterContributions` so the number also follows its less obvious rules: passives shut off
+   * abroad, equipped effects are synergy-scaled and evolution bonuses remain part of the kit. The
+   * same mastery cap as the team total applies to temporary abilities.
    */
   function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
-    const base = (target === "teamDps" ? character.baseDps : character.baseClickPower) * damageGrowthOf(character.id);
-    const rank = passiveRankOf(character);
-    const passive =
-      character.passive && character.passive.target === target && rank > 0
-        ? [{ ...character.passive, value: character.passive.value * passiveGrowth(rank), sourceId: character.id }]
-        : [];
     const equipped = equippedItemOf(character);
-    const effects = [
-      ...passive,
-      ...(equipped?.effects ?? [])
-        .filter((e) => e.target === target)
-        .map((e) => ({ ...scaledUniqueEffect(e, uniqueUpgradeLevelOf(equipped!.id)), sourceId: character.id })),
-    ];
+    const equipment = equipped
+      ? [{ ...equipped, effects: equipped.effects?.map((effect) => scaledUniqueEffect(effect, uniqueUpgradeLevelOf(equipped.id))) }]
+      : [];
+    const permanent = characterContributions(
+      character,
+      activeArc(),
+      activeSynergyConfig(),
+      levelOf(character.id),
+      passiveRankOf(character),
+      isEvolved(character),
+      equipment,
+      duplicatesOf(character.id),
+      catchUpOf(character)
+    );
     const nowMs = now();
-    const bare = computeEffectiveStat(base, target, effects, nowMs);
+    const bare = computeEffectiveStat(0, target, permanent, nowMs);
     const buffed = computeEffectiveStat(
-      base,
+      0,
       target,
-      [...effects, ...temporaryModifiers().filter((m) => m.scope === character.id)],
+      [...permanent, ...temporaryModifiers().filter((m) => m.scope === character.id)],
       nowMs
     );
     return Math.min(buffed, bare * buffCap());

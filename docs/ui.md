@@ -26,8 +26,9 @@ item from the selected anime, found or not, with where it drops and at what odds
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
 a passive can be bought from wherever it is read, not only from the team table.
 The Codex modal keeps the same fixed responsive frame on its anime picker, character tab and item
-tab. Each page scrolls inside that frame, so the close, back and tab buttons never move when the
-amount of content changes.
+tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
+and detail page therefore uses and scrolls through all the remaining space inside that frame, while
+the close, back and tab buttons never move when the amount of content changes.
 The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
@@ -153,8 +154,10 @@ have to flip. Never hard-code a colour in a rule. Components must never compute 
 the engine and gets exposed on the store (that is why `synergyOf`, `costOf`, `damageGrowthOf` and
 `pendingPrestigeGain` exist — `damageGrowthOf` in particular is what stops the roster and the Codex
 from printing two different damage numbers for the same character). The roster's Clic/DPS cells
-also include active abilities scoped to that character and update for activation and expiry, under
-the same mastery cap as the team totals. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+show that character's effective contribution in the active arc: they include the current synergy
+malus, suppress a passive outside its home anime, and update for scoped ability activation and
+expiry under the same mastery cap as the team totals. The separate Syn. column keeps the multiplier
+visible so the reason for the drop is explicit. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 
 ## L'écran de secours
 
