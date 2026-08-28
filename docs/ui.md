@@ -29,6 +29,10 @@ The Codex modal keeps the same fixed responsive frame on its anime picker, chara
 tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
 and detail page therefore uses and scrolls through all the remaining space inside that frame, while
 the close, back and tab buttons never move when the amount of content changes.
+`ShopPanel.tsx` presents companion and supply offers as compact cards rather than generic table
+rows. Each card keeps its art, useful context, price and purchase state in a stable hierarchy;
+locked companions still show both their prerequisite and future price. Supply lots share a grid
+under an arc selector, with the current stock shown directly on every offer.
 The tab strip is `.tabs`, shared with `WorldMap`. Each component takes `game: GameStore` as its only
 prop. A panel is `.panel` + `.panel-head` (title left, a count/chip/select right); compact tables are
 a `.table-head` row over rows sharing the same grid class, inside a `.scroll` box.
@@ -221,6 +225,10 @@ is the subject rather than an annotation pass `px` instead.
 `ItemIcon.tsx` is the same idea for items, split on the only thing that separates two of them at a
 glance — common (a passive to stack) or unique (an equippable) — and drawn from `public/items/`. It
 covers `ItemCodex` (list and detail hero), `RosterPanel`'s item rows and `ShopPanel`'s item offers.
+Hunter x Hunter's six common items have bespoke art under their `hxh-item-*` ids, so they keep the
+same icon in each of those views instead of falling back to the generic common-loot image. The
+Triple-Star Hunter License, Poor Man's Rose, Blue Planet card, Skill Hunter book, Scarlet Eyes
+reliquary and Joker card also have their own isolated art instead of the generic unique-loot image.
 `Notices.tsx` keeps its SVG: a `Notice` carries a kind (`item`/`recruit`/`arc`) but no item, so the
 pop-up cannot know whether the drop was common or unique, and showing the wrong one of the two marks
 would be worse than a neutral glyph. So does `PrestigeTree`'s "Objets" branch, whose icon belongs to

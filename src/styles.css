@@ -544,6 +544,222 @@ small {
   border-bottom: none;
 }
 
+/* --- shop --- */
+.shop-modal {
+  width: min(980px, calc(100vw - 2rem));
+}
+.shop-head-actions,
+.shop-balance {
+  display: flex;
+  align-items: center;
+}
+.shop-head-actions {
+  gap: 0.55rem;
+}
+.shop-balance {
+  gap: 0.3rem;
+  padding: 0.18rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--gold);
+  letter-spacing: normal;
+}
+.shop-balance small {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.shop-balance strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+.shop-body {
+  max-height: 76vh;
+  padding: 0.8rem;
+}
+.shop-section + .shop-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--line);
+}
+.shop-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.6rem;
+}
+.shop-section-title > div {
+  flex: 1;
+  min-width: 0;
+}
+.shop-section-title h3,
+.shop-section-title p,
+.shop-offer-copy h4,
+.shop-offer-copy p {
+  margin: 0;
+}
+.shop-section-title h3 {
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.shop-section-title p {
+  margin-top: 0.12rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.shop-section-title > span {
+  display: grid;
+  place-items: center;
+  min-width: 1.7rem;
+  height: 1.7rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.shop-supply-head {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.shop-supply-head .shop-section-title {
+  flex: 1;
+  margin-bottom: 0;
+}
+.shop-supply-head select {
+  max-width: 25rem;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.shop-offer {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-rows: minmax(4.5rem, auto) auto;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background:
+    linear-gradient(
+      120deg,
+      hsl(var(--world-hue) 70% 55% / calc(var(--world-strength) * 0.7)),
+      transparent 58%
+    ),
+    var(--panel-2);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--line) 70%, transparent);
+}
+.shop-offer.locked {
+  background: var(--panel-2);
+}
+.shop-offer.unavailable .shop-offer-visual {
+  opacity: 0.72;
+}
+.shop-offer-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, hsl(var(--world-hue) 60% 55%) 35%, var(--line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+}
+.shop-offer.locked .shop-offer-visual {
+  filter: grayscale(0.8);
+  opacity: 0.55;
+}
+.shop-amount {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.2rem;
+  padding: 0.05rem 0.28rem;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--gold);
+  font-size: 0.72rem;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.shop-offer-copy {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.shop-offer-copy h4 {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shop-offer-copy p {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.shop-offer-copy small {
+  line-height: 1.25;
+}
+.shop-offer-action {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.shop-offer-action button {
+  flex: 1;
+  min-width: 0;
+  padding-block: 0.35rem;
+}
+.shop-offer-action s {
+  opacity: 0.72;
+}
+.shop-lock {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.shop-locked-price {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+  .shop-supply-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .shop-supply-head select {
+    max-width: none;
+    width: 100%;
+  }
+}
+@media (max-width: 440px) {
+  .shop-balance small {
+    display: none;
+  }
+  .shop-body {
+    padding: 0.55rem;
+  }
+}
+
 .forge-modal {
   width: min(42rem, calc(100vw - 2rem));
 }

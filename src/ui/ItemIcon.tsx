@@ -57,6 +57,18 @@ const ITEM_ART: Record<string, string> = {
   "item-sceptre-isshiki": "item-sceptre-isshiki.png",
   "item-sept-lames": "item-sept-lames.png",
   "item-susanoo": "item-susanoo.png",
+  "hxh-item-badge": "hxh-item-badge.png",
+  "hxh-item-ticket": "hxh-item-ticket.png",
+  "hxh-item-catalogue": "hxh-item-catalogue.png",
+  "hxh-item-carte-sort": "hxh-item-carte-sort.png",
+  "hxh-item-ecaille": "hxh-item-ecaille.png",
+  "hxh-item-bulletin": "hxh-item-bulletin.png",
+  "hxh-item-licence-triple": "hxh-item-licence-triple.png",
+  "hxh-item-rose": "hxh-item-rose.png",
+  "hxh-item-blue-planet": "hxh-item-blue-planet.png",
+  "hxh-item-skill-hunter": "hxh-item-skill-hunter.png",
+  "hxh-item-fil-nen": "hxh-item-yeux-ecarlates.png",
+  "hxh-item-carte-joker": "hxh-item-carte-joker.png",
 };
 
 export const itemImagePath = (id: string | undefined, kind: "common" | "unique") =>
