@@ -188,7 +188,7 @@ The production artifact is the `dist/` directory produced by `npm run build`. It
 - **AniList name mismatches**: fix via `NAME_OVERRIDES` in `ui/anilist.ts`, not by renaming game data.
 - **World-specific UI code**: add data or a hue override in `types.ts`/`data/`, not component branches.
 - **Ability stacking**: every ability can run at once — a buff is scoped to the character it comes from (`computeScopedStat`), never team-wide.
-- **Synergy outside home arc**: passives are dropped entirely outside a character's own anime unless evolved.
+- **Synergy outside home arc**: passives *and* active abilities are dropped entirely outside a character's own anime unless evolved — one `isHomeArc` test, and a crossover doesn't lift it.
 
 ## Quick Reference
 

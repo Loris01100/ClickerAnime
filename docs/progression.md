@@ -126,9 +126,22 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
 scales both `clickPower` and `teamDps` contributions: a character deals full damage in their own arcs
 (`matchingArcMultiplier`, 1.0), weaker in other arcs of their own anime (`sameAnimeMalus`, 0.85),
 weakest in another anime's arc (`otherAnimeMalus`, 0.5). Tuning `defaultSynergyConfig` is the main
-balance knob. Outside their own anime entirely, `characterContributions` also drops the passive
-altogether (not just malused) — it's a story ability, it doesn't travel to another anime's arc. An
-evolved character is the one exception — see below.
+balance knob.
+
+Outside their own anime entirely, two things stop rather than shrink, because both are story
+abilities and neither travels:
+
+- the **passive** — `characterContributions` drops it altogether, not just malused;
+- the **active ability** — `getUnlockedAbilities` refuses to list it, so it can't be fired, doesn't
+  reach the "Réflexe" automation, and any buff of it still running is filtered back out of
+  `allModifiers` on arrival (`awayCharacterIds`). Walk home and the buff resumes for whatever is
+  left of its duration: travelling suspends an ability, it never spends one.
+
+Both read the same `isHomeArc` test, deliberately one function — a character weakened for being
+abroad has to be exactly the character whose story abilities stayed behind. And neither is lifted by
+a crossover window, which buys damage back and nothing else. An evolved character is the one
+exception to "abroad": the anime their evolution grows into counts as home for all three — see
+below.
 
 ## Evolutions
 

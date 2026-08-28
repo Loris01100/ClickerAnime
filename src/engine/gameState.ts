@@ -9,7 +9,7 @@ import {
   createInitialPrestigeState,
   unlockAnime as unlockAnimeState,
 } from "./prestige";
-import { characterContributions, defaultSynergyConfig, synergyMultiplier } from "./synergy";
+import { characterContributions, defaultSynergyConfig, isHomeArc, synergyMultiplier } from "./synergy";
 import {
   CROSSOVER_BOSS_REWARD,
   CROSSOVER_COST,
@@ -752,10 +752,39 @@ export function createGameStore(data: GameData) {
     ];
   }
 
-  const allModifiers = createMemo<ActiveModifier[]>(() => [
-    ...permanentModifiersFor(activeArc()),
-    ...pruneExpired(temporaryModifiers(), now()),
-  ]);
+  /**
+   * Who is currently abroad: the active arc belongs to no world they call home. It is the same
+   * `isHomeArc` test that already shuts their passive off, and it is what puts their ability out of
+   * reach too — a story ability doesn't travel. Empty between arcs, when there is no world to be
+   * foreign to.
+   */
+  const awayCharacterIds = createMemo<Set<string>>(() => {
+    const arc = activeArc();
+    if (!arc) return new Set<string>();
+    return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, isEvolved(c))).map((c) => c.id));
+  });
+
+  /**
+   * How many abilities are asleep because their character is abroad. The bar filters them out
+   * entirely, so without this the roster would just quietly shrink on arrival in a new world and
+   * the player would have no way to tell a travelled ability from one never unlocked.
+   */
+  const sleepingAbilityCount = createMemo(() => {
+    const away = awayCharacterIds();
+    return ownedCharacters().filter((c) => away.has(c.id) && ((isEvolved(c) && c.evolution?.ability) || c.ability))
+      .length;
+  });
+
+  const allModifiers = createMemo<ActiveModifier[]>(() => {
+    const away = awayCharacterIds();
+    return [
+      ...permanentModifiersFor(activeArc()),
+      // A buff whose character has left their world stops applying the moment they arrive, exactly
+      // like their passive. Otherwise "a capacity doesn't travel" would be a rule you walk around:
+      // fire everything at home, then step into the next world with the buffs still up.
+      ...pruneExpired(temporaryModifiers(), now()).filter((m) => m.scope === undefined || !away.has(m.scope)),
+    ];
+  });
 
   /**
    * What `computeScopedStat` applies to **every** scoped group: the unscoped percents and
@@ -857,10 +886,11 @@ export function createGameStore(data: GameData) {
 
   const unlockedAbilities = createMemo(() =>
     // "Le Silence des héros" takes every ability away at the source: nothing to activate and
-    // nothing for the "Réflexe" automation to fire.
+    // nothing for the "Réflexe" automation to fire. Being abroad takes them away the same way, one
+    // character at a time — see `getUnlockedAbilities`.
     challengeRules().noAbilities
       ? []
-      : getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds())
+      : getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds(), activeArc())
   );
 
   /** Currency threshold worth one prestige point on reset — kept at the default scale. */
@@ -2070,6 +2100,7 @@ export function createGameStore(data: GameData) {
     crossoverAdvised,
     activateCrossover,
     unlockedAbilities,
+    sleepingAbilityCount,
     activeBuffs,
     readyAbilities,
     synergyOf,

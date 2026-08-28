@@ -182,7 +182,8 @@ was first sized against Shippūden's closing 61.8B dps, and the world walled on 
 Crossing into a new world does two things at once to a team built over sixty recruits:
 `synergyMultiplier` drops every one of them to `otherAnimeMalus` (half damage), and
 `characterContributions` **shuts their passives off entirely** — and by then those additive percents
-are most of what the team's dps is. Measured at the time, the crossing cost 61.8B → **1.95B, a 32x
+are most of what the team's dps is. Their active abilities go with them (`getUnlockedAbilities`),
+which deepens the cliff again. Measured at the time, the crossing cost 61.8B → **1.95B, a 32x
 cliff**, and it gets steeper with every world added because the roster carried across keeps growing.
 **Those two figures predate `CATCH_UP` 0.85 and the `baseDps` cohort floor — re-measure the cliff
 before sizing a fourth world on it.** The mechanism is what matters here and is unchanged; the

@@ -225,6 +225,12 @@ toutes les capacités tournent en même temps, et le `title` nomme l'allié vis�
 (« Cible : Naruto ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
 et pas par temps restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
 
+Une capacité **ne voyage pas** : hors de son monde, le personnage n'a pas la sienne et son bouton
+disparaît de la grille, comme son passif s'éteint. La barre le **dit** — « N capacités en sommeil :
+leurs personnages sont hors de leur monde » (`sleepingAbilityCount`) — parce qu'une grille qui perd
+la moitié de ses boutons en changeant de monde, sans un mot, se lit comme un bug et pas comme une
+règle. C'est le même parti pris que `.save-state` : la raison d'un silence vaut d'être écrite.
+
 Comme tout se cumule, la barre finit à une quarantaine de boutons : elle est donc une **grille dense**
 (`repeat(auto-fill, minmax(6.5rem, 1fr))`, noms tronqués sur une ligne) à **hauteur plafonnée** avec
 son propre ascenseur — sinon le panneau pousse l'équipe et les objets hors de l'écran. Et puisque

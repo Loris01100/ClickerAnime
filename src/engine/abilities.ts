@@ -1,4 +1,5 @@
-import type { AbilityDefinition, Character } from "./types";
+import { isHomeArc } from "./synergy";
+import type { AbilityDefinition, Arc, Character } from "./types";
 
 export interface UnlockedAbility {
   ability: AbilityDefinition;
@@ -11,11 +12,20 @@ export interface UnlockedAbility {
 /**
  * An ability is unlocked by owning the character that grants one. An evolved character's ability,
  * if their evolution defines one, replaces their base ability outright — never both at once.
+ *
+ * **A capacity doesn't travel.** Away from every world they call home — the `otherAnimeMalus` tier,
+ * the same `isHomeArc` test the passive already uses — a character's ability is simply not there:
+ * not firable, not listed, nothing for the "Réflexe" automation to pick up. That is the rule
+ * enforced at its source rather than watched, so there is no "ability used abroad" to detect; and
+ * it is deliberately *not* lifted by a crossover window, which buys damage back and never a story
+ * ability (see `crossoverSynergyConfig`). `activeArc` null — between arcs — leaves everything
+ * unlocked, since there is no world to be foreign to.
  */
 export function getUnlockedAbilities(
   ownedCharacterIds: string[],
   characters: Character[],
-  evolvedCharacterIds: string[] = []
+  evolvedCharacterIds: string[] = [],
+  activeArc: Arc | null = null
 ): UnlockedAbility[] {
   const owned = new Set(ownedCharacterIds);
   const evolved = new Set(evolvedCharacterIds);
@@ -23,7 +33,9 @@ export function getUnlockedAbilities(
 
   for (const character of characters) {
     if (!owned.has(character.id)) continue;
-    const ability = (evolved.has(character.id) && character.evolution?.ability) || character.ability;
+    const isEvolved = evolved.has(character.id);
+    if (activeArc && !isHomeArc(character, activeArc, isEvolved)) continue;
+    const ability = (isEvolved && character.evolution?.ability) || character.ability;
     if (ability) result.push({ ability, sourceId: character.id, characterIds: [character.id] });
   }
 

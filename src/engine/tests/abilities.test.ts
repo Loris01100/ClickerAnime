@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { autoFirable, getUnlockedAbilities, isAbilityReady } from "../abilities";
 import type { AbilityPolicy, UnlockedAbility } from "../abilities";
-import type { Character } from "../types";
+import type { Arc, Character } from "../types";
 
 describe("abilities", () => {
   const base = { animeId: "anime-1", arcIds: [], baseClickPower: 1, baseDps: 1, rarity: "main" as const };
@@ -27,6 +27,41 @@ describe("abilities", () => {
   it("scopes an ability to the character it comes from", () => {
     expect(getUnlockedAbilities(["c1", "c2"], [withAbility, plain])).toEqual([
       { ability: withAbility.ability, sourceId: "c1", characterIds: ["c1"] },
+    ]);
+  });
+
+  const arcIn = (animeId: string): Arc => ({
+    id: `${animeId}-arc`,
+    animeId,
+    name: "Arc",
+    order: 0,
+    mobsToBoss: 1,
+    mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+    boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1 },
+  });
+
+  it("laisse la capacité au personnage dans son propre monde", () => {
+    expect(getUnlockedAbilities(["c1"], [withAbility], [], arcIn("anime-1")).map((u) => u.ability.id)).toEqual([
+      "ability-1",
+    ]);
+  });
+
+  it("retire la capacité d'un personnage hors de son monde", () => {
+    expect(getUnlockedAbilities(["c1"], [withAbility], [], arcIn("anime-2"))).toEqual([]);
+  });
+
+  it("rend la capacité dans le monde de son évolution, une fois évolué", () => {
+    const evolvable: Character = {
+      ...base,
+      id: "c4",
+      name: "C4",
+      ability: withAbility.ability,
+      evolution: { animeId: "anime-2", label: "Evolved", bonus: [] },
+    };
+    // Pas encore évolué : anime-2 reste l'étranger, comme pour le malus de synergie.
+    expect(getUnlockedAbilities(["c4"], [evolvable], [], arcIn("anime-2"))).toEqual([]);
+    expect(getUnlockedAbilities(["c4"], [evolvable], ["c4"], arcIn("anime-2")).map((u) => u.ability.id)).toEqual([
+      "ability-1",
     ]);
   });
 

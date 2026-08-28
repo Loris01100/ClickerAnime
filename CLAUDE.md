@@ -105,6 +105,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
   characters recruited five minutes apart. It only ever raises a `secondary`, and it is free:
   `arcPowerTable` reads a cohort's **maximum**, so raising a minimum moves no `debutPower`. Hold new
   content to it (`docs/progression.md`).
+- **A story ability doesn't travel.** Outside every world a character calls home — their own anime,
+  or their evolution's once evolved, the single `isHomeArc` test — their passive *and* their active
+  ability shut off entirely rather than being malused. `getUnlockedAbilities` won't list the
+  ability, so it can't be fired nor automated, and `allModifiers` filters out a buff of theirs still
+  running on arrival. A crossover window buys the damage malus back and never these.
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.

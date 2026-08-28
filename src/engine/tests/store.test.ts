@@ -481,6 +481,75 @@ describe("store boot", () => {
     }
   });
 
+  it("une capacité ne suit pas son personnage hors de son monde, même déjà lancée", () => {
+    const arc = (animeId: string) => ({
+      id: `${animeId}-arc`,
+      animeId,
+      name: "Arc",
+      order: 0,
+      mobsToBoss: 1_000,
+      mobs: [{ id: `${animeId}-mob`, name: "Mob", baseHp: 1e12, reward: 1 }],
+      boss: { id: `${animeId}-boss`, name: "Boss", baseHp: 1e12, reward: 1 },
+    });
+    const testData = {
+      animes: [
+        { id: "ta", name: "TA", unlockCost: 0 },
+        { id: "tb", name: "TB", unlockCost: 0 },
+      ],
+      arcs: [arc("ta"), arc("tb")],
+      characters: [
+        {
+          id: "ca",
+          name: "CA",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["ta-arc"],
+          baseClickPower: 0,
+          baseDps: 100,
+          ability: {
+            id: "ability-a",
+            name: "A",
+            cooldownMs: 0,
+            durationMs: 10_000,
+            effects: [{ target: "teamDps" as const, kind: "multiplier" as const, value: 2 }],
+          },
+        },
+      ],
+      items: [],
+    };
+    const restore = installSave(
+      baseSave({ ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta", "tb"], activeArcId: "ta-arc" })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+
+      // Chez lui : la capacité est là et son buff porte.
+      expect(game.unlockedAbilities().map((u) => u.ability.id)).toEqual(["ability-a"]);
+      expect(game.teamDps()).toBeCloseTo(100);
+      expect(game.activateAbility("ability-a")).toBe(true);
+      expect(game.teamDps()).toBeCloseTo(200);
+
+      // À l'étranger : plus de capacité à lancer, et le buff déjà en cours ne voyage pas non plus.
+      // Reste le seul malus de synergie sur ses dégâts : 100 * 0.5.
+      game.setActiveArc("tb-arc");
+      expect(game.unlockedAbilities()).toEqual([]);
+      expect(game.sleepingAbilityCount()).toBe(1);
+      expect(game.activateAbility("ability-a")).toBe(false);
+      expect(game.teamDps()).toBeCloseTo(50);
+
+      // Et de retour chez lui, le buff toujours en cours reprend : rien n'a été consommé.
+      game.setActiveArc("ta-arc");
+      expect(game.teamDps()).toBeCloseTo(200);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
   it("the free ability trigger adds to the running buffs instead of cutting one short", () => {
     const ability = (id: string, value: number) => ({
       id,

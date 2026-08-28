@@ -27,6 +27,18 @@ export function synergyMultiplier(
 }
 
 /**
+ * Whether this arc is one the character calls home: an arc of their own anime, or of the anime their
+ * evolution grows into once they've grown into it. Anything else is the "different world entirely"
+ * tier — `otherAnimeMalus` on damage, and no passive and no ability at all (see
+ * `characterContributions` and `getUnlockedAbilities`). One definition, because those three rules
+ * have to agree: a character weakened for being abroad is exactly a character whose story abilities
+ * stay behind.
+ */
+export function isHomeArc(character: Character, arc: Arc, evolved = false): boolean {
+  return character.animeId === arc.animeId || (evolved && character.evolution?.animeId === arc.animeId);
+}
+
+/**
  * Converts one owned character's stats + passive into modifiers, pre-scaled by their synergy with
  * the currently active arc. Damage grows with every level; the passive is driven by `passiveRank`
  * instead — copies of the origin item, see `passiveRank` — and is absent while still locked, or
@@ -49,11 +61,9 @@ export function characterContributions(
   catchUp = 1
 ): ActiveModifier[] {
   const synergy = activeArc ? synergyMultiplier(character, activeArc, config, evolved) : 1;
-  const isHome = (arc: Arc) =>
-    character.animeId === arc.animeId || (evolved && character.evolution?.animeId === arc.animeId);
   // Outside every world this character calls home, the passive shuts off — only damage still
   // applies, at the (steep) other-anime malus.
-  const otherAnime = activeArc ? !isHome(activeArc) : false;
+  const otherAnime = activeArc ? !isHomeArc(character, activeArc, evolved) : false;
   // Levels, pack duplicates and the story's catch-up ramp all scale the printed base damage.
   const damageGrowth = levelGrowth(level) * duplicateGrowth(duplicates) * catchUp;
   // Rank 1 is the passive as printed; every rank past it deepens it by the usual step.

@@ -110,7 +110,16 @@ character's contributions by hand because the roster asks for it once a row, twi
 
 Unlocked by owning a character that grants one, computed from the owned set in
 `getUnlockedAbilities`. `UnlockedAbility` carries `characterIds` — who the buff lands on, which is
-that character alone. Cooldowns are tracked as last-used timestamps in a record, not as counters,
+that character alone.
+
+**And only at home.** The same function takes the active arc and drops every character it isn't home
+for (`isHomeArc`, the test the passive already used): abroad, the ability is not listed, not firable,
+not visible to the "Réflexe" automation, and `allModifiers` filters out any buff of theirs still
+running so that firing everything at home and then stepping over the border buys nothing. It is the
+rule enforced at its source rather than watched — there is no "ability used abroad" to detect — and
+a crossover window does not lift it, since a crossover buys damage and never a story ability. The
+count the bar hides shows up as `sleepingAbilityCount`, so arriving in a new world says why half the
+buttons went away instead of just shrinking. Cooldowns are tracked as last-used timestamps in a record, not as counters,
 and they are now the **only** gate: nothing locks an ability out any more, so the bar's tooltip
 names the ally a buff will land on instead of the ability blocking it. The "Clic du Narrateur" free trigger picks any ability that isn't already
 running — re-firing one would only refresh a buff the player already has. `readyAbilities` lists

@@ -275,8 +275,9 @@ The one resource that exists because the game is inter-anime. Crystals only drop
 `CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. `activateCrossover()` spends
 `CROSSOVER_COST` for a `CROSSOVER_DURATION_MS` window during which `activeSynergyConfig` is wrapped
 in `crossoverSynergyConfig` — every malus flattened to `matchingArcMultiplier`, so the whole team
-fights at full power anywhere. Damage only: a passive is still a story ability and stays shut off
-outside its own anime (`characterContributions` decides that from the arc, not from the config).
+fights at full power anywhere. Damage only: a passive and an active ability are still story
+abilities and stay shut off outside their own anime (`characterContributions` and
+`getUnlockedAbilities` decide that from the arc, not from the config).
 The stock is saved and run-scoped (`prestigeReset` wipes it, like items); the window's deadline is
 transient like combat state, so a reload drops an active buff. `crossoverAdvised` is the nudge the
 resource never had — true only while the player is fighting somewhere at least one team member sits

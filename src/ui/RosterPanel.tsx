@@ -195,6 +195,15 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
             <Show when={props.game.unlockedAbilities().length === 0}>
               <p class="muted pad">Battez des personnages pour débloquer des capacités.</p>
             </Show>
+            {/* La barre filtre les capacités des personnages hors de leur monde : sans cette ligne
+                elle rétrécirait sans rien dire en arrivant dans un nouveau monde. */}
+            <Show when={props.game.sleepingAbilityCount() > 0}>
+              <p class="muted pad small">
+                {props.game.sleepingAbilityCount()} capacité
+                {props.game.sleepingAbilityCount() > 1 ? "s en sommeil" : " en sommeil"} : leurs personnages
+                sont hors de leur monde.
+              </p>
+            </Show>
           </div>
         </Show>
       </section>

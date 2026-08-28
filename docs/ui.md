@@ -156,7 +156,9 @@ the engine and gets exposed on the store (that is why `synergyOf`, `costOf`, `da
 from printing two different damage numbers for the same character). The roster's Clic/DPS cells
 show that character's effective contribution in the active arc: they include the current synergy
 malus, suppress a passive outside its home anime, and update for scoped ability activation and
-expiry under the same mastery cap as the team totals. The separate Syn. column keeps the multiplier
+expiry under the same mastery cap as the team totals. The ability bar drops the buttons of every
+character who is abroad for the same reason, and prints `sleepingAbilityCount` under the grid so a
+world change reads as a rule rather than as a bug. The separate Syn. column keeps the multiplier
 visible so the reason for the drop is explicit. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 
 ## L'écran de secours
