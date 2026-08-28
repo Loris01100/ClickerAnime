@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup } from "solid-js";
+import { batch, createMemo, createSignal, onCleanup } from "solid-js";
 import { achievementContributions } from "./achievements";
 import { computeScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
 import {
@@ -1199,8 +1199,15 @@ export function createGameStore(data: GameData) {
    * The narrator's click. Beyond raw damage, the "Clic du Narrateur" tree can crit (node 3), shave
    * time off every unlocked ability's cooldown (node 4), and has a small chance to fire one of them
    * for free (node 5).
+   *
+   * Batched, for the reason spelled out on `tick`: one click writes a dozen signals, and outside a
+   * batch each one costs the subscribers a full recompute of their own.
    */
   function click() {
+    return batch(resolveClick);
+  }
+
+  function resolveClick() {
     // "Le Narrateur muet": the click stops dealing damage — and stops counting as one, or the
     // achievement ladder would fill up on clicks that did nothing. It keeps landing while the team
     // is empty, which is the one thing that makes the challenge startable at all: see `clickIsMuted`.
@@ -1916,7 +1923,22 @@ export function createGameStore(data: GameData) {
 
   spawnNext();
 
-  const interval = setInterval(() => {
+  /**
+   * One 200ms step of the game, wrapped in a single `batch` by the interval below.
+   *
+   * The batch is load-bearing for performance, not for correctness. A tick writes a dozen signals —
+   * the clock, the kill budget, the enemy's hp, and everything `defeat` hands out per kill — and
+   * outside a batch Solid flushes the whole effect queue after *each* write. `modifiersByScope` and
+   * `teamWideScaling` hand back a fresh Map/array every time they run, so every subscriber rebuilds:
+   * measured at a mid-run save (50 characters, one world's 15 arcs on screen), a single click cost
+   * twenty full recomputes of the team's modifiers instead of one.
+   *
+   * It changes nothing the engine can observe: a batch defers *effects*, not writes, so a signal
+   * read back after being written inside the tick still returns the value just written and a memo
+   * read inside it still recomputes on demand. `dealDamage` relies on exactly that when it reads
+   * `enemyHpLeft()` back between two kills.
+   */
+  function tick() {
     if (paused()) return;
     const nowMs = Date.now();
     // Clamped: a sleeping machine or a throttled tab must not bank hours of damage and xp on the
@@ -2026,7 +2048,9 @@ export function createGameStore(data: GameData) {
     if (notices().some((n) => n.expiresAt <= nowMs)) {
       setNotices((list) => list.filter((n) => n.expiresAt > nowMs));
     }
-  }, TICK_MS);
+  }
+  const interval = setInterval(() => batch(tick), TICK_MS);
+
   function togglePause() {
     const pausedAt = Date.now();
     if (paused()) {

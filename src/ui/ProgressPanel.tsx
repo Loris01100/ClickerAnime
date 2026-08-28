@@ -1,4 +1,4 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt, seconds } from "./format";
@@ -50,15 +50,23 @@ export default function ProgressPanel(props: {
                 const open = () => props.game.arcOpen(arc);
                 const cleared = () => props.game.arcCleared(arc);
                 const kills = () => Math.min(props.game.killsIn(arc), arc.mobsToBoss);
-                const outlook = () => props.game.bossOutlookOf(arc);
+                /*
+                 * Mémoïsés, pas de simples fonctions : `bossOutlookOf` refait passer toute
+                 * l'équipe dans le pipeline de modificateurs pour *cet* arc-là (synergie,
+                 * passifs, uniques, succès, arbre), et la ligne le lit trois fois — le `title` du
+                 * bouton, le test « trop dur », le `title` de ce marqueur. En l'état, un monde
+                 * ouvert à 15 arcs reconstruisait 45 fois l'équipe à chaque changement d'état ;
+                 * le memo ramène ça à une fois par arc.
+                 */
+                const outlook = createMemo(() => props.game.bossOutlookOf(arc));
                 /** Ce que l'équipe vaut face au boss de cet arc — le seul mur du jeu. */
-                const outlookLabel = () => {
+                const outlookLabel = createMemo(() => {
                   const { ttkMs, timerMs, winnable } = outlook();
                   if (!Number.isFinite(ttkMs)) return "Boss : aucun DPS pour l'instant";
                   const base = `Boss : ${seconds(ttkMs)} pour l'abattre`;
                   if (!timerMs) return base;
                   return `${base} · limite ${seconds(timerMs)}${winnable ? "" : " — trop dur pour l'instant"}`;
-                };
+                });
                 return (
                   <button
                     class="arc"

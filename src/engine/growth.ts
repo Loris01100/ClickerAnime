@@ -79,10 +79,23 @@ export function xpToReach(level: number, growth: number = XP_GROWTH): number {
   return Math.ceil((XP_BASE * (Math.pow(growth, level) - 1)) / (growth - 1));
 }
 
+/**
+ * The inverse of `xpToReach`, in closed form.
+ *
+ * It used to climb one level at a time, and each step cost a `Math.pow` — fine at level 5, not at
+ * the level ~107 the simulator reports mid-run, times a roster of fifty, on every rebuild of the
+ * team's modifiers. Solving the geometric sum for `level` instead makes it a constant two logs.
+ *
+ * The two loops after it are the correction, and they are not optional: `xpToReach` rounds *up*, so
+ * the analytic level can land a rung either side of the one the rounded table actually grants (and
+ * a log is not exact to the last bit). Each runs at most once, since the rounding error is under a
+ * single level — and they are what guarantees this returns exactly what the loop it replaced did.
+ */
 export function levelFromXp(xp: number, growth: number = XP_GROWTH): number {
-  let level = 0;
-  // The curve is geometric, so this converges in a few dozen steps even for absurd xp totals.
+  if (xp <= 0) return 0;
+  let level = Math.max(0, Math.floor(Math.log1p((xp * (growth - 1)) / XP_BASE) / Math.log(growth)));
   while (xp >= xpToReach(level + 1, growth)) level++;
+  while (level > 0 && xp < xpToReach(level, growth)) level--;
   return level;
 }
 
