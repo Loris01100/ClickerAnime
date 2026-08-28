@@ -260,6 +260,42 @@ export default function ClickStage(props: { game: GameStore }) {
           <strong>{fmt(props.game.lifetimeEarned())}</strong>
         </div>
       </div>
+
+      {/*
+        Le plafond de kills (`MAX_KILLS_PER_SECOND`) est la seule chose qui rende « DPS équipe »
+        trompeur : sur un arc largement dépassé, l'overkill au-delà de 5 ennemis/s est jeté, et rien
+        à l'écran ne le disait — on continuait à monter des dégâts qui ne rapportaient plus un objet
+        de plus. La ligne reste une simple mesure tant que la cadence passe, et devient un
+        avertissement dès que le surplus commence à se perdre. Absente sur un boss : un seul ennemi,
+        donc un temps de mise à mort, jamais une cadence (voir `gameState`'s killRate).
+      */}
+      <Show when={props.game.killRate()}>
+        {(rate) => (
+          <p
+            class="kill-rate"
+            classList={{ capped: rate().efficiency < 1 }}
+            title={
+              rate().efficiency < 1
+                ? `Un combat ne peut pas résoudre plus de ${props.game.maxKillsPerSecond} ennemis par seconde. `
+                  + `Votre DPS en vaut ${fmt(rate().uncapped)} ici : le reste des dégâts est perdu, et tout ce `
+                  + `qui se gagne au kill (monnaie, xp, objets, points de pack) plafonne avec. Un arc plus dur `
+                  + `reconvertit ces dégâts en gains.`
+                : `Ennemis abattus par seconde par le DPS de l'équipe, ${props.game.maxKillsPerSecond} au maximum. `
+                  + `Les clics s'ajoutent à cette cadence sans lever le plafond.`
+            }
+          >
+            <IconTarget />
+            <span>
+              Cadence <strong>{fmt(rate().actual)}</strong> / {props.game.maxKillsPerSecond} ennemis/s
+            </span>
+            <Show when={rate().efficiency < 1}>
+              <span class="kill-rate-loss">
+                — plafond atteint, {Math.round((1 - rate().efficiency) * 100)}% du DPS perdu ici
+              </span>
+            </Show>
+          </p>
+        )}
+      </Show>
       </Show>
     </section>
   );

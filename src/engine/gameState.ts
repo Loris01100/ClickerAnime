@@ -28,7 +28,7 @@ import {
   scopedMagnitude,
 } from "./abilities";
 import type { AbilityPolicy, UnlockedAbility } from "./abilities";
-import { enemyHp, enemyReward, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
+import { enemyHp, enemyReward, killRateOf, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
@@ -1267,6 +1267,23 @@ export function createGameStore(data: GameData) {
   const timeToKill = createMemo(() => timeToKillMs(enemyHpLeft(), teamDps()));
 
   /**
+   * The kill cadence of the farm on screen, and what `MAX_KILLS_PER_SECOND` is throwing away — or
+   * `null` where the cap has nothing to bite on and the readout would only mislead: a boss is a
+   * single enemy, so its fight is a time-to-kill, never a rate.
+   *
+   * Measured on `teamDps` alone, to stay the same number the "DPS équipe" tile prints. Clicks fell
+   * enemies too and spend the very same budget, so the real cadence is a little above this one
+   * while the player is clicking — but a rate that moved with how fast a hand is moving would say
+   * nothing about the arc, which is the whole question here.
+   */
+  const killRate = createMemo(() => {
+    const arc = activeArc();
+    const target = enemy();
+    if (!arc || !target || target.id === arc.boss.id) return null;
+    return killRateOf(enemyMaxHp(), teamDps(), MAX_KILLS_PER_SECOND);
+  });
+
+  /**
    * Whether this arc's boss is beatable yet, and how comfortably. `winnable` compares the team's
    * time-to-kill against the boss's own clock (stretched by "DPS Équipe" node 5, exactly as
    * `spawnNext` stretches it), which is the only thing that can actually stop a run — nothing else
@@ -2148,6 +2165,8 @@ export function createGameStore(data: GameData) {
     enemyHpLeft,
     enemyMaxHp,
     timeToKill,
+    killRate,
+    maxKillsPerSecond: MAX_KILLS_PER_SECOND,
     bossOutlookOf,
     timerRemaining,
     timerTotal,

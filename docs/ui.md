@@ -86,6 +86,15 @@ enough to matter), `runQuery`, the `inFlight` dedupe and the same `localStorage`
 all, so `ClickStage` renders the element only when the URL exists and otherwise falls through to the
 plain `--stage-bg` gradient.
 
+Under the fight, `ClickStage`'s four-tile `.stat-grid` is followed by one full-width `.kill-rate`
+line: the cadence the fight is actually resolving at, against `MAX_KILLS_PER_SECOND`. It exists
+because "DPS équipe" alone is a half-truth on an outgrown arc — past 5 kills/s the surplus is thrown
+away, and nothing on screen said so (`docs/combat.md`). It reads as a plain muted measurement while
+the cadence passes and turns `--gold` on a `--panel-2` band the moment the cap starts eating damage,
+naming the share lost; the tooltip carries the "go somewhere harder" reading in both states. It is a
+separate line rather than a fifth tile so the grid keeps its four even columns, and it renders only
+where the store hands it a value — never on a boss.
+
 `AutomationBar.tsx` is the strip of switches under `ClickStage`'s arc stepper, one per node of the
 prestige tree's "Automatisation" branch that is actually **bought** — an off switch for something
 you don't own is noise. It also holds the Echo click toggle once bought and the always-available

@@ -207,7 +207,7 @@ acheté : un interrupteur pour quelque chose qu'on ne possède pas est du bruit.
 
 ### 4.2 Lire sa progression d'un coup d'œil
 
-Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
+Cinq lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
 
 - **Temps de mise à mort** collé au label de la barre de PV (`ClickStage`) — c'est déjà là que
   l'œil va pour juger si un combat avance. `∞` quand l'équipe ne fait aucun DPS.
@@ -218,6 +218,17 @@ Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
   vraiment — l'équipe combat hors de son monde. Sans ça le stock ne bougeait jamais.
 - **État de la sauvegarde** en bas du menu de la topbar (`.save-state`) : un autosave silencieux est
   indiscernable d'un autosave cassé.
+- **Cadence de kills** (`.kill-rate`) en pleine largeur sous la grille de stats de `ClickStage` :
+  `Cadence 2.3 / 5 ennemis/s`. Un combat ne résout pas plus de 5 ennemis par seconde
+  (`MAX_KILLS_PER_SECOND`), et au-delà les dégâts sont jetés — donc sur un arc largement dépassé
+  « DPS équipe » est une demi-vérité, et le jeu continuait pourtant à inviter le joueur à faire
+  monter ce chiffre. La ligne est **muette tant qu'elle passe** — une mesure grise, du même registre
+  que le temps de mise à mort — et bascule en `--gold` sur un bandeau `--panel-2` dès que le plafond
+  mange des dégâts, en nommant la part perdue (« plafond atteint, 93% du DPS perdu ici »). Même parti
+  pris que `.arc-hard` : on n'avertit que là où quelque chose est réellement en train de coûter, et
+  le `title` porte la conclusion (« un arc plus dur reconvertit ces dégâts »). Une **ligne** et pas
+  une cinquième tuile, pour que la grille garde ses quatre colonnes égales ; **absente sur un boss**,
+  où un seul ennemi ne peut rien perdre au plafond.
 
 Et la barre de capacités distingue `actif` (`.ability.running`, bordure `--good`) de la recharge
 normale. Plus rien ne bloque une capacité : un buff ne booste que le personnage dont il vient, donc

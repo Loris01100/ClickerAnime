@@ -58,3 +58,31 @@ export function rollsDrop(enemy: Enemy, roll: number): boolean {
   if (!enemy.itemId) return false;
   return roll < (enemy.dropChance ?? 1);
 }
+
+/** What the team's damage is really worth against a farm pool — see `killRateOf`. */
+export interface KillRate {
+  /** Fights a second `dps` resolves on its own: overkill carries over, so it really is `dps / hp`. */
+  uncapped: number;
+  /** What the cap lets through — the rate the player actually collects rewards at. */
+  actual: number;
+  /** Share of the damage that becomes a kill, 0..1. Below 1, the surplus is discarded. */
+  efficiency: number;
+}
+
+/**
+ * The kill cadence of a farm, and how much of the team's damage the cap is throwing away.
+ *
+ * Overkill carry-over is what makes this a rate at all: a tick fells as many enemies as its damage
+ * covers, so an arc whose mobs the team one-shots resolves `dps / hp` fights a second — until
+ * `cap` (`MAX_KILLS_PER_SECOND`) stops it. Past that point every further point of dps is discarded
+ * here, which the raw "DPS équipe" number gives no way to see: the only thing that converts it back
+ * into progress is fighting somewhere the enemies are worth more hp.
+ *
+ * `hp` is the *full* hp of the enemies being farmed, not what is left of the one on screen: the
+ * question is what the pool costs, not how far along this single fight is.
+ */
+export function killRateOf(hp: number, dps: number, cap: number): KillRate {
+  const uncapped = hp > 0 && dps > 0 ? dps / hp : 0;
+  const actual = Math.min(uncapped, cap);
+  return { uncapped, actual, efficiency: uncapped > 0 ? actual / uncapped : 1 };
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND } from "../gameState";
-import { BOSS_REPLAY_KILLS, encounterPool, enemyHp, nextEnemy, pendingRecruits } from "../combat";
+import { BOSS_REPLAY_KILLS, encounterPool, enemyHp, killRateOf, nextEnemy, pendingRecruits } from "../combat";
 import type { Enemy } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
@@ -40,40 +40,41 @@ describe("combat", () => {
   });
 });
 
-describe("plafond de kills par seconde", () => {
-  /**
-   * Overkill carry-over makes the kill rate `dps / mob hp`, and a cleared arc's mobs never grow:
-   * coming back to farm an old zone — which the passive-item design asks for — used to resolve
-   * hundreds of fights a second, and every per-kill reward rode on it (drops, monnaie, xp, points
-   * de pack). This is the one thing bounding that.
-   */
-  const farmData = (dps: number) => ({
-    animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
-    arcs: [
-      {
-        id: "ta-arc",
-        animeId: "ta",
-        name: "Arc",
-        order: 0,
-        mobsToBoss: 1_000_000,
-        mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1, itemId: "ta-item", dropChance: 1 }],
-        boss: { id: "ta-boss", name: "Boss", baseHp: 1e12, reward: 1 },
-      },
-    ],
-    characters: [
-      {
-        id: "ca",
-        name: "A",
-        animeId: "ta",
-        rarity: "secondary" as const,
-        arcIds: ["ta-arc"],
-        baseClickPower: 0,
-        baseDps: dps,
-      },
-    ],
-    items: [{ id: "ta-item", name: "Item", kind: "common" as const }],
-  });
+/**
+ * Overkill carry-over makes the kill rate `dps / mob hp`, and a cleared arc's mobs never grow:
+ * coming back to farm an old zone — which the passive-item design asks for — used to resolve
+ * hundreds of fights a second, and every per-kill reward rode on it (drops, monnaie, xp, points
+ * de pack). This is the one thing bounding that.
+ */
+const farmData = (dps: number) => ({
+  animes: [{ id: "ta", name: "TA", unlockCost: 0 }],
+  arcs: [
+    {
+      id: "ta-arc",
+      animeId: "ta",
+      name: "Arc",
+      order: 0,
+      mobsToBoss: 1_000_000,
+      mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1, itemId: "ta-item", dropChance: 1 }],
+      boss: { id: "ta-boss", name: "Boss", baseHp: 1e12, reward: 1 },
+    },
+  ],
+  characters: [
+    {
+      id: "ca",
+      name: "A",
+      animeId: "ta",
+      rarity: "secondary" as const,
+      arcIds: ["ta-arc"],
+      baseClickPower: 0,
+      baseDps: dps,
+    },
+  ],
+  items: [{ id: "ta-item", name: "Item", kind: "common" as const }],
+});
 
+
+describe("plafond de kills par seconde", () => {
   it("un DPS absurde ne dépasse pas le budget de kills, et les drops suivent", () => {
     const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
     vi.useFakeTimers();
@@ -164,6 +165,81 @@ describe("plafond de kills par seconde", () => {
       // Le budget plein du départ en plus des dix secondes de recharge, et pas un kill de plus.
       expect(game.killsIn(arc)).toBeLessThanOrEqual(MAX_KILLS_PER_SECOND * (seconds + 1));
       expect(game.killsIn(arc)).toBeGreaterThan(MAX_KILLS_PER_SECOND * (seconds - 1));
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+});
+
+describe("cadence de kills affichée", () => {
+  /**
+   * Ce que le joueur ne pouvait pas voir : « DPS équipe » ne dit rien du plafond, donc sur un arc
+   * dépassé on continuait à empiler des dégâts qui ne rapportaient plus un objet de plus.
+   */
+  it("mesure la cadence et ce que le plafond jette", () => {
+    // 100 dps contre des mobs à 50 PV : 2 combats/s, sous le plafond — rien n'est perdu.
+    expect(killRateOf(50, 100, MAX_KILLS_PER_SECOND)).toEqual({ uncapped: 2, actual: 2, efficiency: 1 });
+    // 1000 dps contre les mêmes mobs : 20 combats/s voulus, 5 accordés, trois quarts jetés.
+    const capped = killRateOf(50, 1_000, MAX_KILLS_PER_SECOND);
+    expect(capped.uncapped).toBe(20);
+    expect(capped.actual).toBe(MAX_KILLS_PER_SECOND);
+    expect(capped.efficiency).toBeCloseTo(0.25);
+  });
+
+  it("ne divise jamais par zéro : sans dégâts ni PV, la cadence est nulle et rien n'est perdu", () => {
+    expect(killRateOf(50, 0, MAX_KILLS_PER_SECOND)).toEqual({ uncapped: 0, actual: 0, efficiency: 1 });
+    expect(killRateOf(0, 100, MAX_KILLS_PER_SECOND)).toEqual({ uncapped: 0, actual: 0, efficiency: 1 });
+  });
+
+  /**
+   * Le boss est le seul combat où la cadence ment : un ennemi, un kill, donc le plafond n'a rien à
+   * mordre. Le store rend `null` plutôt que de laisser l'écran annoncer un DPS « perdu » qui ne
+   * l'est pas.
+   */
+  it("le store ne publie pas de cadence sur un boss", () => {
+    const data = farmData(5_000);
+    data.arcs[0].mobsToBoss = 3;
+    data.arcs[0].boss = { id: "ta-boss", name: "Boss", baseHp: 1e9, reward: 1 };
+    const restore = installSave({
+      ...baseSave(),
+      ownedCharacterIds: ["ca"],
+      unlockedAnimeIds: ["ta"],
+      arcKills: { "ta-arc": 3 },
+    });
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      game.setActiveArc("ta-arc");
+      expect(game.enemy()!.id).toBe("ta-boss");
+      expect(game.killRate()).toBeNull();
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+
+  it("le store publie la cadence saturée d'un farm dépassé", () => {
+    // Mobs à 1 PV, un milliard de dps : le plafond est très largement atteint.
+    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(farmData(1e9));
+      });
+      game.setActiveArc("ta-arc");
+      const rate = game.killRate()!;
+      expect(rate.actual).toBe(MAX_KILLS_PER_SECOND);
+      expect(rate.uncapped).toBeGreaterThan(MAX_KILLS_PER_SECOND);
+      expect(rate.efficiency).toBeLessThan(0.001);
     } finally {
       disposeRoot();
       vi.useRealTimers();

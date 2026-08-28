@@ -34,6 +34,24 @@ damage still chips the enemy in front of the team. It can leave one on nothing f
 second — the budget refills a kill every tick — and the next call fells it. `src/engine/tests/` guards
 this with a 40-clicks/s run that must stay inside the cap.
 
+**And the player can now see it bite.** The cap used to be entirely invisible: the stage printed
+"DPS équipe" and nothing else, so on an arc the team had outgrown by 20x the honest reading of that
+number was "95% of this does nothing here" — while every screen in the game kept inviting the player
+to grow it. `killRateOf(hp, dps, cap)` (pure, in `combat.ts`) turns the three into the cadence the
+fight actually resolves at, and how much of the damage the cap is discarding; `gameState`'s
+`killRate` memo feeds it the current enemy's **full** hp — the pool's price, not how far along this
+one fight is — and the stage prints one line under the stat grid: `Cadence 2.3 / 5 ennemis/s`,
+turning gold with `— plafond atteint, 93% du DPS perdu ici` once the surplus starts being thrown
+away. It is a readout and nothing more: no rule reads it, and the cap behaves exactly as before.
+
+Two deliberate limits on that line. It is measured on `teamDps` alone, so it stays the same number
+the tile above it prints — clicks fell enemies too and spend the very same budget, so the true
+cadence sits a little above it while the player is clicking, but a rate that moved with how fast a
+hand is moving would say nothing about the *arc*, which is the question being answered. And it is
+absent on a boss: one enemy means one kill, so the cap has nothing to bite on there and a "DPS
+perdu" figure would be a lie — the boss's reading is its time-to-kill against its own clock, which
+the hp bar already gives.
+
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
 change — by default only bosses carry one, because timed mobs would break idling.

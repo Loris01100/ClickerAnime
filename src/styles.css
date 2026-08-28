@@ -1183,6 +1183,28 @@ small {
   font-size: 0.7rem;
 }
 
+/* Cadence de kills : muette tant qu'elle passe, dorée dès que le plafond mange des dégâts. */
+.kill-rate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+.kill-rate.capped {
+  color: var(--gold);
+  background: var(--panel-2);
+}
+.kill-rate-loss {
+  font-weight: 600;
+}
+
 /* --- arc list --- */
 .arc {
   display: block;
