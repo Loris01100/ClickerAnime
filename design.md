@@ -39,8 +39,10 @@ un onglet si elle peut tenir sur l'écran. Conséquences concrètes déjà en pl
   select à droite) qui donne un point d'ancrage visuel constant, quelle que soit la richesse du
   contenu en dessous.
 - **Forge compacte, détails en modal.** Son entrée apparaît sous Prestige après le premier unique;
-  elle ouvre des cartes dédiées, avec un cadre d'illustration déjà réservé pour chaque objet, sans
-  gonfler la colonne de progression.
+  la modal met en scène le décor avec un établi initialement vide plutôt qu'une liste de recettes.
+  Un clic sur la case gauche choisit l'unique à travailler, affiche ses fragments, puis prévisualise
+  automatiquement le résultat dans la case droite. Leur format compact laisse visibles les forgerons
+  et le métal chauffé; sur mobile, ce même parcours est empilé verticalement.
 
 Toute nouvelle vue doit d'abord se demander « est-ce que ça peut être un panel de plus dans une
 colonne existante, ou une ligne de plus dans un tableau existant ? » avant d'envisager un nouvel

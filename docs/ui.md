@@ -120,9 +120,11 @@ whole — the rows sort grouped-first so the screen reads like the plan itself. 
 plans entirely, which the panel says in its intro.
 
 The right column places a compact **Forge** entry directly below Prestige whenever the run owns a
-unique. It opens `ForgePanel.tsx`, whose cards give each unique a reserved large art frame (its item
-icon fills the space until bespoke art exists), rank, contribution, matching boss fragments and the
-next rank purchase.
+unique. It opens `ForgePanel.tsx` over a dedicated forge illustration. The workbench starts with two
+empty slots rather than listing every recipe. Clicking the left slot opens a compact picker containing
+the owned uniques; choosing one fills that slot with its boss-earned fragments and previews the forged
+unique in the right slot. The central action then upgrades only that selection. The centered workbench
+leaves the smiths and heated metal visible, and stacks vertically on narrow viewports.
 
 `ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
 section — next to the tree button, because a challenge starts from a reset just like a prestige
