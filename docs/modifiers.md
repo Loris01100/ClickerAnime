@@ -97,6 +97,17 @@ sources, merged in `allModifiers`:
 Expiry is checked both in `pruneExpired` and again inside `computeEffectiveStat`, so a stale list
 can never inflate a stat.
 
+**What the roster prints per character is that character's own term in `computeScopedStat`**, not a
+fold of their modifiers alone. `characterStatOf` pulls their scoped group out of `allModifiers` and
+re-folds it with the team-wide scaling — achievements, the prestige tree, challenge rewards, every
+evolution bonus — because that is exactly what `teamDps` does to it. Folding the group on its own
+was the older, wrong answer: the team-wide scaling is most of a grown team's damage, so a 40-strong
+roster averaging 3k dps a row sat under a 240k team total with no ability running, and the column
+looked broken. The two numbers now agree by construction — `Σ characterStatOf(c, "teamDps")` **is**
+`teamDps()`, guarded in `src/engine/tests/store.test.ts` — and `clickPower` differs only by the
+narrator's own base, which belongs to no character. It reads the memo rather than rebuilding a
+character's contributions by hand because the roster asks for it once a row, twice, every tick.
+
 ## Abilities
 
 Unlocked two ways, both computed from the owned set in `getUnlockedAbilities`: a single character

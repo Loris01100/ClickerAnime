@@ -1,6 +1,6 @@
 import { createMemo, createSignal, onCleanup } from "solid-js";
 import { achievementContributions } from "./achievements";
-import { computeEffectiveStat, computeScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
+import { computeScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
 import {
   applyPrestige,
   PRESTIGE_SCALE,
@@ -759,6 +759,28 @@ export function createGameStore(data: GameData) {
     ...pruneExpired(temporaryModifiers(), now()),
   ]);
 
+  /**
+   * What `computeScopedStat` applies to **every** scoped group: the unscoped percents and
+   * multipliers — achievements, the prestige tree, challenge rewards, evolution bonuses. Split out
+   * as a memo because `characterStatOf` needs exactly this list once per roster row, and rebuilding
+   * it per character would walk the whole modifier list on every tick.
+   */
+  const teamWideScaling = createMemo(() =>
+    allModifiers().filter((m) => m.scope === undefined && m.kind !== "flat")
+  );
+
+  /** The scoped modifiers of each character, grouped the way `computeScopedStat` groups them. */
+  const modifiersByScope = createMemo(() => {
+    const byScope = new Map<string, ActiveModifier[]>();
+    for (const mod of allModifiers()) {
+      if (mod.scope === undefined) continue;
+      const group = byScope.get(mod.scope);
+      if (group) group.push(mod);
+      else byScope.set(mod.scope, [mod]);
+    }
+    return byScope;
+  });
+
   /** What one narrator click is worth before any modifier: just the allies standing at their side. */
   const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length));
 
@@ -1235,7 +1257,12 @@ export function createGameStore(data: GameData) {
     // answers "come back later?", not "fire now?": the badge must not blink with a cooldown.
     // The `now` argument is 0 because nothing `permanentModifiersFor` returns ever expires; reading
     // the real clock would re-run this for every arc on screen at every tick.
-    const dps = computeEffectiveStat(0, "teamDps", permanentModifiersFor(arc), 0);
+    //
+    // `computeScopedStat`, not `computeEffectiveStat`: a scope-blind fold applies every character's
+    // own passive percent to the *whole* team's flat damage, so a 40-strong roster came out an
+    // order of magnitude above the dps it will actually bring, and every boss was announced
+    // winnable. This is the same fold `teamDps` uses, minus the running buffs.
+    const dps = computeScopedStat(0, "teamDps", permanentModifiersFor(arc), 0, buffCap());
     const ttkMs = timeToKillMs(enemyHp(arc.boss, difficultyOf(arc.animeId)), dps);
     return { ttkMs, timerMs: timerMs ?? null, winnable: timerMs ? ttkMs <= timerMs : Number.isFinite(ttkMs) };
   }
@@ -1337,37 +1364,24 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * A character's actual contribution in the active arc, as the roster and Codex show it. Going to
-   * another anime must visibly reduce Clic/DPS, not only change the separate synergy column. Reuse
-   * `characterContributions` so the number also follows its less obvious rules: passives shut off
-   * abroad, equipped effects are synergy-scaled and evolution bonuses remain part of the kit. The
-   * same mastery cap as the team total applies to temporary abilities.
+   * A character's actual contribution in the active arc, as the roster and Codex show it — the very
+   * term `computeScopedStat` adds for them into `teamDps`/`clickPower`, so the column now sums to
+   * the team's total instead of a fraction of it.
+   *
+   * That is the whole point of routing it through `allModifiers` rather than rebuilding the
+   * character's own contributions here: a scoped group is never folded alone in the team's stat,
+   * it is folded *with* everything team-wide — achievements, the prestige tree, challenge rewards,
+   * every evolution bonus — which is most of a grown team's damage. Leaving it out printed each
+   * character at their bare damage while the team header showed the scaled sum, and a 40-strong
+   * roster averaging 3k dps sat under a 240k total with no ability running.
+   *
+   * The same mastery cap as the team total still applies to temporary abilities, and a character
+   * who isn't recruited has no group at all: they contribute nothing, and read as 0.
    */
   function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
-    const equipped = equippedItemOf(character);
-    const equipment = equipped
-      ? [{ ...equipped, effects: equipped.effects?.map((effect) => scaledUniqueEffect(effect, uniqueUpgradeLevelOf(equipped.id))) }]
-      : [];
-    const permanent = characterContributions(
-      character,
-      activeArc(),
-      activeSynergyConfig(),
-      levelOf(character.id),
-      passiveRankOf(character),
-      isEvolved(character),
-      equipment,
-      duplicatesOf(character.id),
-      catchUpOf(character)
-    );
-    const nowMs = now();
-    const bare = computeEffectiveStat(0, target, permanent, nowMs);
-    const buffed = computeEffectiveStat(
-      0,
-      target,
-      [...permanent, ...temporaryModifiers().filter((m) => m.scope === character.id)],
-      nowMs
-    );
-    return Math.min(buffed, bare * buffCap());
+    const own = modifiersByScope().get(character.id);
+    if (!own) return 0;
+    return computeScopedStat(0, target, [...teamWideScaling(), ...own], now(), buffCap());
   }
 
   /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */

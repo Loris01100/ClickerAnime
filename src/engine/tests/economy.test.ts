@@ -229,7 +229,9 @@ describe("le succès « objets uniques équipés »", () => {
       const character = data.characters[0];
       const before = game.characterStatOf(character, "teamDps");
       expect(game.equipItem("ca", "u2")).toBe(true);
-      expect(game.characterStatOf(character, "teamDps")).toBeCloseTo(before * 2);
+      // x2 from the unique, and the first "objets uniques équipés" tier the equip itself completes:
+      // the displayed stat is the character's term in `teamDps`, so every team-wide bonus is in it.
+      expect(game.characterStatOf(character, "teamDps")).toBeCloseTo(before * 2 * (1 + achievementTierBonus(0)));
     } finally {
       disposeRoot();
       restore();

@@ -56,12 +56,16 @@ deal **there**, not here (synergy makes those very different), measured against 
 that can actually stop a run.
 
 That dps goes through the **whole modifier pipeline** — `permanentModifiersFor(arc)` rebuilds every
-permanent contribution as if that arc were the one being fought, and `computeEffectiveStat` folds it
-in the usual order. It used to sum the characters' `flat` damage by hand instead, which quietly left
-out passives, evolution bonuses, equipped uniques, achievements and the prestige tree — most of a
-grown team's dps — so the marker cried "trop dur" on bosses the team could fell several times over.
-Running buffs are the one thing deliberately excluded: an ability lasts seconds, and the marker
-answers "come back later?", not "fire now?" — it must not blink on and off with a cooldown.
+permanent contribution as if that arc were the one being fought, and `computeScopedStat` folds it
+exactly as `teamDps` does. It used to sum the characters' `flat` damage by hand instead, which
+quietly left out passives, evolution bonuses, equipped uniques, achievements and the prestige tree —
+most of a grown team's dps — so the marker cried "trop dur" on bosses the team could fell several
+times over. The fix then overshot the other way: it folded with `computeEffectiveStat`, which is
+**scope-blind**, so every character's own passive percent applied to the *whole* team's flat damage
+and a 40-strong roster was credited with an order of magnitude more dps than it brings. `teamDps`'s
+own fold is the only honest answer, so the marker uses it. Running buffs are the one thing
+deliberately excluded: an ability lasts seconds, and the marker answers "come back later?", not
+"fire now?" — it must not blink on and off with a cooldown.
 
 Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved: a reload
 restarts the current fight. Only kill counts and cleared arcs persist.

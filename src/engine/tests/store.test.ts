@@ -5,6 +5,81 @@ import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("le DPS affiché par personnage additionne exactement le DPS de l'équipe", () => {
+    // La panne que ce test garde : `characterStatOf` ne pliait que les modificateurs du personnage,
+    // alors que `teamDps` applique en plus tout ce qui est global (succès, arbre de prestige, bonus
+    // d'évolution) à *chaque* groupe. Un roster de 40 personnages à 3k affichés vivait donc sous un
+    // total de 240k. Les deux nombres doivent tomber sur la même somme.
+    const data = {
+      animes: [
+        { id: "ta", name: "A", unlockCost: 0 },
+        { id: "tb", name: "B", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1 },
+        },
+      ],
+      characters: [
+        {
+          id: "ca", name: "A", animeId: "ta", rarity: "main" as const, arcIds: ["ta-arc"],
+          baseClickPower: 5, baseDps: 10,
+          // Passif scopé : il ne gonfle que A.
+          passive: { target: "teamDps" as const, kind: "percent" as const, value: 0.5 },
+          ability: {
+            id: "ability-a", name: "A", cooldownMs: 0, durationMs: 10_000,
+            effects: [{ target: "teamDps" as const, kind: "multiplier" as const, value: 3 }],
+          },
+          // Bonus d'évolution : non scopé, il multiplie toute l'équipe.
+          evolution: {
+            animeId: "tb", label: "Évo",
+            bonus: [{ target: "teamDps" as const, kind: "percent" as const, value: 0.25 }],
+          },
+        },
+        {
+          id: "cb", name: "B", animeId: "ta", rarity: "secondary" as const, arcIds: ["ta-arc"],
+          baseClickPower: 3, baseDps: 7,
+        },
+      ],
+      combos: [],
+      items: [],
+    };
+    const restore = installSave(
+      baseSave({
+        ownedCharacterIds: ["ca", "cb"],
+        evolvedCharacterIds: ["ca"],
+        passiveRanks: { ca: 3 },
+        // Deux paliers de succès sur teamDps, pour que du global non nul soit en jeu.
+        achievementCounts: { mobsKilled: 150, bossesKilled: 6 },
+      })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      const sum = game
+        .ownedCharacters()
+        .reduce((total, c) => total + game.characterStatOf(c, "teamDps"), 0);
+      expect(game.teamDps()).toBeGreaterThan(17); // le global mord vraiment
+      expect(sum).toBeCloseTo(game.teamDps());
+
+      // Et toujours vrai pendant qu'un buff temporaire tourne sur un seul membre.
+      expect(game.activateAbility("ability-a")).toBe(true);
+      const buffed = game
+        .ownedCharacters()
+        .reduce((total, c) => total + game.characterStatOf(c, "teamDps"), 0);
+      expect(buffed).toBeGreaterThan(sum); // la capacité tourne bien
+      expect(buffed).toBeCloseTo(game.teamDps());
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
   it("shows a character's reduced damage after travelling to another anime", () => {
     const data = {
       animes: [
@@ -96,11 +171,14 @@ describe("store boot", () => {
     const restore = installSave(
       baseSave({ itemCounts: { unique: 1 }, uniqueFragments: { unique: 25 }, uniqueUpgradeRanks: { unique: 4 } })
     );
+    // Disposed in `finally` like every other store test, not the moment the store is built: the
+    // displayed stat is read off `allModifiers`, and a root disposed up front freezes that memo on
+    // its boot value — the equip below would never show up.
+    let disposeRoot!: () => void;
     try {
       const game = createRoot((dispose) => {
-        const store = createGameStore(data);
-        dispose();
-        return store;
+        disposeRoot = dispose;
+        return createGameStore(data);
       });
       game.equipItem("ca", "unique");
       expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(20);
@@ -109,6 +187,7 @@ describe("store boot", () => {
       expect(game.uniqueFragmentsOf("unique")).toBe(0);
       expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(10 * (1 + 7 / 6));
     } finally {
+      disposeRoot();
       restore();
     }
   });
