@@ -67,7 +67,7 @@ describe("computeScopedStat", () => {
       value,
       expiresAt: 10_000,
     });
-    // Four combos on the same character would be x10 * x10 * x10 * x10 = x10000 of their own damage.
+    // Four buffs on the same character would be x10 * x10 * x10 * x10 = x10000 of their own damage.
     const modifiers = [flat("ca", 10), buff("c1", 10), buff("c2", 10), buff("c3", 10), buff("c4", 10)];
     expect(computeScopedStat(0, "teamDps", modifiers, 0)).toBeCloseTo(10 * SCOPED_BUFF_CAP);
     // Under the cap, the stack applies in full: x10 alone is worth exactly that.
@@ -94,7 +94,7 @@ describe("scopedBuffCap", () => {
   it("runs from the floor to the full cap and never past either", () => {
     expect(scopedBuffCap(0)).toBeCloseTo(SCOPED_BUFF_CAP_FLOOR);
     expect(scopedBuffCap(1)).toBeCloseTo(SCOPED_BUFF_CAP);
-    // The ceiling is what stops a dozen multiplier combos on one character from running away, so
+    // The ceiling is what stops stacked multipliers on one character from running away, so
     // no progress value, and no bad one, may ever lift the cap past it.
     for (const progress of [-1, 0, 0.5, 1, 2, Number.NaN]) {
       const cap = scopedBuffCap(progress);

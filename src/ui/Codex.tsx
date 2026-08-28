@@ -38,9 +38,6 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
   const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
     character.arcIds.map((id) => props.game.data.arcs.find((a) => a.id === id)?.name ?? id);
-  const combosOf = (character: Character) =>
-    props.game.data.combos.filter((combo) => combo.requiredCharacterIds.includes(character.id));
-
   const itemsOf = (animeId: string) => {
     const itemIds = new Set(
       props.game.data.arcs
@@ -343,29 +340,6 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                       </Show>
                     </div>
                   )}
-                </Show>
-
-                <Show when={combosOf(character()).length > 0}>
-                  <div class="codex-block">
-                    <h4>Combos</h4>
-                    <For each={combosOf(character())}>
-                      {(combo) => (
-                        <div class="codex-combo">
-                          <strong class="small">{combo.name}</strong>
-                          <p class="muted small">
-                            Avec{" "}
-                            {combo.requiredCharacterIds
-                              .filter((id) => id !== character().id)
-                              .map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id)
-                              .join(", ")}
-                          </p>
-                          <p class="small">
-                            {describeAbility(combo.ability, props.game.abilityMagnitudeOf(combo.ability))}
-                          </p>
-                        </div>
-                      )}
-                    </For>
-                  </div>
                 </Show>
 
                 <div class="codex-block">

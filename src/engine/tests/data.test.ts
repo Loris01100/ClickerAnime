@@ -40,7 +40,6 @@ describe("game data", () => {
     const abilities = [
       ...gameData.characters.flatMap((character) => character.ability ? [character.ability] : []),
       ...gameData.characters.flatMap((character) => character.evolution?.ability ? [character.evolution.ability] : []),
-      ...gameData.combos.map((combo) => combo.ability),
     ];
     const multipliers = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "multiplier"));
     const percents = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "percent"));
@@ -68,9 +67,6 @@ describe("game data", () => {
       }
       // one common item per arc: it is what the passives of that arc's characters are paid with
       expect(arc.mobs.some((m) => m.itemId)).toBe(true);
-    }
-    for (const combo of gameData.combos) {
-      for (const id of combo.requiredCharacterIds) expect(characterIds).toContain(id);
     }
     const animeIds = gameData.animes.map((a) => a.id);
     for (const offer of gameData.shop ?? []) {

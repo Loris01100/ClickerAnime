@@ -15,7 +15,6 @@ export const gameData: GameData = {
   arcs: worlds.flatMap((w) => w.arcs),
   characters: worlds.flatMap((w) => w.characters),
   items: worlds.flatMap((w) => w.items),
-  combos: worlds.flatMap((w) => w.combos),
   shop: [
     { id: "shop-pakkun", kind: "character", targetId: "pakkun", cost: 75_000, requiresAnimeId: "naruto" },
     { id: "shop-tonton", kind: "character", targetId: "tonton", cost: 100_000, requiresAnimeId: "naruto" },

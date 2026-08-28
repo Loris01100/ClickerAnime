@@ -11,7 +11,6 @@ import type { GameData } from "../../engine/gameState";
 import { shippudenArcs } from "./arcs";
 import { shippudenCharacters } from "./characters";
 import { shippudenItems } from "./items";
-import { shippudenCombos } from "./combos";
 
 export const shippudenData: GameData = {
   animes: [
@@ -33,5 +32,4 @@ export const shippudenData: GameData = {
   arcs: shippudenArcs,
   characters: shippudenCharacters,
   items: shippudenItems,
-  combos: shippudenCombos,
 };

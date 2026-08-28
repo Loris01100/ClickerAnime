@@ -6,7 +6,6 @@ import type { GameData } from "../../engine/gameState";
 import { hunterXHunterArcs } from "./arcs";
 import { hunterXHunterCharacters } from "./characters";
 import { hunterXHunterItems } from "./items";
-import { hunterXHunterCombos } from "./combos";
 
 export const hunterXHunterData: GameData = {
   animes: [
@@ -25,5 +24,4 @@ export const hunterXHunterData: GameData = {
   arcs: hunterXHunterArcs,
   characters: hunterXHunterCharacters,
   items: hunterXHunterItems,
-  combos: hunterXHunterCombos,
 };

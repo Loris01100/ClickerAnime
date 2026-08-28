@@ -138,7 +138,6 @@ describe("packs", () => {
         },
       ],
       characters: [cast[2]],
-      combos: [],
       items: [],
     };
 
@@ -206,7 +205,6 @@ describe("le succès « objets uniques équipés »", () => {
         baseDps: 1,
       },
     ],
-    combos: [],
     items: [
       { id: "u1", name: "U1", kind: "unique" as const, effects: [] },
       {

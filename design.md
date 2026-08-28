@@ -220,9 +220,9 @@ Quatre lectures manquaient, toutes ajoutées sans nouveau vocabulaire visuel :
   indiscernable d'un autosave cassé.
 
 Et la barre de capacités distingue `actif` (`.ability.running`, bordure `--good`) de la recharge
-normale. Plus rien ne bloque une capacité : un buff ne booste que les personnages dont il vient, donc
-capacités et combos tournent tous en même temps, et le `title` nomme les alliés visés
-(« Cible : Naruto, Sasuke ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
+normale. Plus rien ne bloque une capacité : un buff ne booste que le personnage dont il vient, donc
+toutes les capacités tournent en même temps, et le `title` nomme l'allié visé
+(« Cible : Naruto ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
 et pas par temps restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
 
 Comme tout se cumule, la barre finit à une quarantaine de boutons : elle est donc une **grille dense**

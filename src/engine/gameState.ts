@@ -115,7 +115,6 @@ import type {
   Anime,
   Arc,
   Character,
-  ComboDefinition,
   Enemy,
   Item,
   ModifierTemplate,
@@ -128,7 +127,6 @@ export interface GameData {
   animes: Anime[];
   arcs: Arc[];
   characters: Character[];
-  combos: ComboDefinition[];
   items: Item[];
   /** absent in older/test fixtures; every reader defaults it to an empty shop */
   shop?: ShopOffer[];
@@ -858,11 +856,11 @@ export function createGameStore(data: GameData) {
   const teamDps = createMemo(() => computeScopedStat(0, "teamDps", allModifiers(), now(), buffCap()));
 
   const unlockedAbilities = createMemo(() =>
-    // "Le Silence des héros" takes every ability away at the source: nothing to activate, nothing
-    // for the "Réflexe" automation to fire, and no combo either — they come through here too.
+    // "Le Silence des héros" takes every ability away at the source: nothing to activate and
+    // nothing for the "Réflexe" automation to fire.
     challengeRules().noAbilities
       ? []
-      : getUnlockedAbilities(ownedCharacterIds(), data.characters, data.combos, evolvedCharacterIds())
+      : getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds())
   );
 
   /** Currency threshold worth one prestige point on reset — kept at the default scale. */
@@ -1570,8 +1568,8 @@ export function createGameStore(data: GameData) {
     const durationLevel = nodeLevelOf("teamDps", 4);
     const duration =
       durationLevel > 0 ? ability.durationMs * (1 + ABILITY_DURATION_BOOST * durationLevel) : ability.durationMs;
-    // One modifier per member: a buff only ever boosts the characters it comes from, which is what
-    // lets every ability and combo run at once (see `computeScopedStat`).
+    // One modifier per scoped character: a buff only ever boosts the character it comes from, which
+    // is what lets every ability run at once (see `computeScopedStat`).
     return ability.effects.flatMap((effect) =>
       characterIds.map((characterId) => ({
         ...effect,

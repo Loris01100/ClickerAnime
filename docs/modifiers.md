@@ -8,17 +8,16 @@ Everything that affects a stat becomes an `ActiveModifier`, and `computeEffectiv
 `(base + flats) * (1 + Σpercents) * Πmultipliers`. That order is a balance decision — changing it
 rebalances the whole game.
 
-**A buff is scoped to the characters it comes from.** An `ActiveModifier` may carry a `scope`: the
+**A buff is scoped to the character it comes from.** An `ActiveModifier` may carry a `scope`: the
 id of the one character it applies to. A character's own base damage is scoped to them, and so is
-every ability buff — a character's ability lands on that character, a combo's on its members, never
-on the rest of the team. `computeScopedStat` folds each scoped group on its own through the usual
+every ability buff — a character's ability lands on that character, never on the rest of the team. `computeScopedStat` folds each scoped group on its own through the usual
 pipeline (with the team-wide *scaling* applied to it as well, and the team-wide flats counted once,
 outside), which is exactly `computeEffectiveStat` while no buff is running, since a percent over a
 sum of flats is the same as that percent over each flat.
 
-That scoping is what lets **every ability and combo run at once**, which is the point: nothing
-blocks anything, an ability and a combo that share a character stack on them, and re-firing an
-ability refreshes its own buff instead of adding a second copy. The old rule was one buff per stat —
+That scoping is what lets **every ability run at once**, which is the point: nothing blocks
+anything, two buffs on the same character stack on them, and re-firing an ability refreshes its own
+buff instead of adding a second copy. The old rule was one buff per stat —
 `replaceModifiersByTarget` plus a same-stat lock on the bar — because a team-wide buff firing
 alongside another stacked into far too much damage. Scoping bounds it structurally instead: a buff
 can never be worth more than the share of the team it names. Two earlier attempts stay rejected:
@@ -30,8 +29,8 @@ percent or multiplier effect is scaled twice before it lands (flats never are �
 whole on its character either way, and so does the tree's node 2):
 
 - `scopedMagnitude(owned, covered)` — the roster over the part of it any ability reaches. ~1 on a
-  grown roster where everyone is in some combo; early, where three characters out of fifteen have an
-  ability, it hands back the climb a single team-wide buff used to carry.
+  grown roster where nearly everyone carries an ability; early, where three characters out of
+  fifteen have one, it hands back the climb a single team-wide buff used to carry.
 - `dutyMagnitude(ability)` — `cooldownMs / durationMs`, sur la recharge **imprimée**. Up an eighth of the time, it hits eight times
   as hard while it lasts; without it a buff on two allies for six seconds is noise.
 
@@ -44,8 +43,7 @@ regroupement en pics. C'est bien de l'uptime en moins (`npm run sim` : 76 → 95
 **`SCOPED_BUFF_CAP` (50) is the ceiling those two are allowed to reach**, applied per character in
 `computeScopedStat`: whatever lands on one character can never lift their own damage past 50x. It is
 not decoration — the first cut shipped without it and a grown save hit ~4.5 Qa against 3T-hp enemies,
-because combos are *all* multipliers (22 of 22) and a dozen of them on the same character multiply,
-compensation included. Stacking buys you *reaching* the ceiling faster and on more allies, never
+because stacked multiplier buffs on the same character multiply, compensation included. Stacking buys you *reaching* the ceiling faster and on more allies, never
 passing it.
 
 ### The ceiling is a ramp, not a number
@@ -53,8 +51,8 @@ passing it.
 That ceiling **is** an ability's strength, for almost the whole game. Measured with `npm run sim`:
 switch the cap off and the run drops from 80 to 32 minutes, and the per-arc ratios show it binding
 from **arc 2 onward and never letting go**. So from the third fight of a fresh run, a buffed
-character dealt exactly `bare * 50` whatever the buff printed — an opening combo and an Ôtsutsuki
-combo were worth the same thing, and the whole ladder the ability data describes was invisible.
+character dealt exactly `bare * 50` whatever the buff printed — an opening ability and an Ôtsutsuki
+ability were worth the same thing, and the whole ladder the ability data describes was invisible.
 
 So the cap climbs with the run: `scopedBuffCap(progress)` interpolates geometrically from
 **`SCOPED_BUFF_CAP_FLOOR` (12)** on the first arc to the full 50 on the last, `progress` being
@@ -110,12 +108,11 @@ character's contributions by hand because the roster asks for it once a row, twi
 
 ## Abilities
 
-Unlocked two ways, both computed from the owned set in `getUnlockedAbilities`: a single character
-that grants one, or owning *every* character a `ComboDefinition` requires. `UnlockedAbility` carries `characterIds` — who the
-buff lands on — which is the character alone, or every member of the combo. Cooldowns are tracked as
-last-used timestamps in a record, not as counters, and they are now the **only** gate: nothing locks
-an ability out any more, so the bar's tooltip names the allies a buff will land on instead of the
-ability blocking it. The "Clic du Narrateur" free trigger picks any ability that isn't already
+Unlocked by owning a character that grants one, computed from the owned set in
+`getUnlockedAbilities`. `UnlockedAbility` carries `characterIds` — who the buff lands on, which is
+that character alone. Cooldowns are tracked as last-used timestamps in a record, not as counters,
+and they are now the **only** gate: nothing locks an ability out any more, so the bar's tooltip
+names the ally a buff will land on instead of the ability blocking it. The "Clic du Narrateur" free trigger picks any ability that isn't already
 running — re-firing one would only refresh a buff the player already has. `readyAbilities` lists
 what is off cooldown and `activateReadyAbilities` fires all of it, which is the bar's « Tout lancer »
 button: with buffs stacking, firing everything is simply the best play, and doing it by hand across

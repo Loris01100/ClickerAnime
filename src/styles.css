@@ -1718,12 +1718,6 @@ small {
   padding: 0.15rem 0;
   font-size: 0.82rem;
 }
-.codex-combo + .codex-combo {
-  margin-top: 0.5rem;
-}
-.codex-combo p {
-  margin: 0.1rem 0;
-}
 .prestige-tree {
   overflow-y: auto;
   max-height: 78vh;

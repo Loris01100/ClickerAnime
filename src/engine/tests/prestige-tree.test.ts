@@ -139,7 +139,6 @@ describe("prestige tree — wired into gameState", () => {
           baseDps: 0,
         },
       ],
-      combos: [],
       items: opts.mobItemId ? [{ id: opts.mobItemId, name: "Item", kind: "common" as const }] : [],
       shop: opts.shop,
     };
@@ -317,7 +316,6 @@ describe("prestige tree — wired into gameState", () => {
           baseDps: 1,
         },
       ],
-      combos: [],
       items: [],
     };
     const character = testData.characters[0];
@@ -804,7 +802,6 @@ describe("automatisation", () => {
           passive,
         },
       ],
-      combos: [],
       items: [common],
     };
   }

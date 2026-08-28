@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { autoFirable, getUnlockedAbilities, isAbilityReady } from "../abilities";
 import type { AbilityPolicy, UnlockedAbility } from "../abilities";
-import type { Character, ComboDefinition } from "../types";
+import type { Character } from "../types";
 
 describe("abilities", () => {
   const base = { animeId: "anime-1", arcIds: [], baseClickPower: 1, baseDps: 1, rarity: "main" as const };
@@ -18,28 +18,16 @@ describe("abilities", () => {
     },
   };
   const plain: Character = { ...base, id: "c2", name: "C2" };
-  const combo: ComboDefinition = {
-    id: "combo-1",
-    name: "Combo 1",
-    requiredCharacterIds: ["c1", "c2"],
-    ability: {
-      id: "ability-combo",
-      name: "Combo ability",
-      cooldownMs: 2000,
-      durationMs: 1000,
-      effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
-    },
-  };
 
   it("unlocks a solo ability when its character is owned", () => {
-    const unlocked = getUnlockedAbilities(["c1"], [withAbility, plain], [combo]);
+    const unlocked = getUnlockedAbilities(["c1"], [withAbility, plain]);
     expect(unlocked.map((u) => u.ability.id)).toEqual(["ability-1"]);
   });
 
-  it("unlocks a combo ability only once every required character is owned", () => {
-    expect(getUnlockedAbilities(["c1", "c2"], [withAbility, plain], [combo]).map((u) => u.ability.id)).toContain(
-      "ability-combo"
-    );
+  it("scopes an ability to the character it comes from", () => {
+    expect(getUnlockedAbilities(["c1", "c2"], [withAbility, plain])).toEqual([
+      { ability: withAbility.ability, sourceId: "c1", characterIds: ["c1"] },
+    ]);
   });
 
   it("swaps a character's ability for their evolution's once evolved", () => {
@@ -61,10 +49,8 @@ describe("abilities", () => {
         },
       },
     };
-    expect(getUnlockedAbilities(["c3"], [evolvable], []).map((u) => u.ability.id)).toEqual(["ability-1"]);
-    expect(getUnlockedAbilities(["c3"], [evolvable], [], ["c3"]).map((u) => u.ability.id)).toEqual([
-      "ability-evolved",
-    ]);
+    expect(getUnlockedAbilities(["c3"], [evolvable]).map((u) => u.ability.id)).toEqual(["ability-1"]);
+    expect(getUnlockedAbilities(["c3"], [evolvable], ["c3"]).map((u) => u.ability.id)).toEqual(["ability-evolved"]);
   });
 
   it("tracks cooldown readiness", () => {

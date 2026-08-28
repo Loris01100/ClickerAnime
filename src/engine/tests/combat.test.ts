@@ -71,7 +71,6 @@ describe("plafond de kills par seconde", () => {
         baseDps: dps,
       },
     ],
-    combos: [],
     items: [{ id: "ta-item", name: "Item", kind: "common" as const }],
   });
 

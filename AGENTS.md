@@ -93,8 +93,8 @@ Key components:
 ### 3. `src/data/` — Content
 
 One **directory** per world plus `index.ts`. Adding a world means adding a directory and an entry in
-`worlds`. A world directory is always the same four files — `arcs.ts`, `characters.ts`, `items.ts`,
-`combos.ts` — plus an `index.ts` holding the short `animes` entry and assembling them.
+`worlds`. A world directory is always the same three files — `arcs.ts`, `characters.ts`, `items.ts`
+— plus an `index.ts` holding the short `animes` entry and assembling them.
 
 - `naruto/` — Naruto part 1, 5 arcs.
 - `shippuden/` — Naruto Shippūden, 15 arcs (generated from a table with a ~1.85 ramp).
@@ -187,7 +187,7 @@ The production artifact is the `dist/` directory produced by `npm run build`. It
 - **Save key bumps**: only when shape breaks.
 - **AniList name mismatches**: fix via `NAME_OVERRIDES` in `ui/anilist.ts`, not by renaming game data.
 - **World-specific UI code**: add data or a hue override in `types.ts`/`data/`, not component branches.
-- **Ability stacking**: every ability and combo can run at once — a buff is scoped to the characters it comes from (`computeScopedStat`), never team-wide.
+- **Ability stacking**: every ability can run at once — a buff is scoped to the character it comes from (`computeScopedStat`), never team-wide.
 - **Synergy outside home arc**: passives are dropped entirely outside a character's own anime unless evolved.
 
 ## Quick Reference

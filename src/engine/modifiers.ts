@@ -32,10 +32,10 @@ export function pruneExpired(modifiers: ActiveModifier[], now: number): ActiveMo
 
 /**
  * How far a character's own damage can be lifted by the buffs running on them, all sources together.
- * Combos are multipliers and a grown roster is covered by a dozen of them at once, so their product
- * ran to thousands of times the enemy's hp — every fight an overkill. The ceiling is deliberately
- * near what a single team-wide buff used to be worth back when only one could run: stacking now buys
- * you *reaching* the ceiling faster and on more characters, not passing it.
+ * Multiplier buffs used to pile onto the same character, and their product ran to thousands of
+ * times the enemy's hp — every fight an overkill. The ceiling is deliberately near what a single
+ * team-wide buff used to be worth back when only one could run: stacking now buys you *reaching* the
+ * ceiling faster and on more characters, not passing it.
  */
 export const SCOPED_BUFF_CAP = 50;
 
@@ -44,13 +44,13 @@ export const SCOPED_BUFF_CAP = 50;
  *
  * A flat 50 made every ability the same ability. Measured with `npm run sim`, the cap starts binding
  * at arc 2 and never stops: from there on a buffed character deals exactly `bare * 50` whatever the
- * buff printed, so an early combo and a late one were worth the same thing, and the whole ladder of
- * abilities the data describes was invisible. Ramping the cap gives the printed values back their
+ * buff printed, so an early ability and a late one were worth the same thing, and the whole ladder
+ * of abilities the data describes was invisible. Ramping the cap gives the printed values back their
  * meaning early — under the floor it is `computeEffectiveStat` doing the work again — and lets a
  * buff grow into the full 50x as the run goes on, which is the arc-by-arc climb the design wants.
  *
- * The **ceiling stays 50**: it is what stops a dozen multiplier combos on one character from running
- * away (see above), and raising it re-opens exactly that. The ramp only lowers the early game.
+ * The **ceiling stays 50**: it is what stops stacked multipliers on one character from running away
+ * (see above), and raising it re-opens exactly that. The ramp only lowers the early game.
  */
 export const SCOPED_BUFF_CAP_FLOOR = 12;
 
@@ -69,9 +69,9 @@ export function scopedBuffCap(progress: number): number {
 
 /**
  * The team's stat, buff by buff, character by character. A modifier carrying a `scope` only applies
- * to that character: their own base damage, and every ability buff, which boosts only the characters
- * it comes from. That is what lets every ability and combo run at once without stacking into an
- * unbounded burst — a buff can never be worth more than its owners' share of the team.
+ * to that character: their own base damage, and every ability buff, which boosts only the character
+ * it comes from. That is what lets every ability run at once without stacking into an unbounded
+ * burst — a buff can never be worth more than its owner's share of the team.
  *
  * Each scoped group is folded on its own through the usual pipeline, with the team-wide *scaling*
  * (percents and multipliers: passives, evolutions, achievements, the tree) applied to it as well;

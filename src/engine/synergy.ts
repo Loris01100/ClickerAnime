@@ -60,7 +60,7 @@ export function characterContributions(
   const passiveScale = passiveGrowth(passiveRank);
 
   const contributions: ActiveModifier[] = [
-    // Scoped to this character: their own damage is what their (and their combos') buffs boost.
+    // Scoped to this character: their own damage is what their own buffs boost.
     {
       sourceId: character.id,
       scope: character.id,

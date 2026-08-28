@@ -21,7 +21,7 @@ resource is spent (gold → shop, prestige → tree, crystals → crossover, pac
 counter is a dead end; the pack tile follows the active arc, since pack points are per world. `Codex.tsx` first presents one card per anime with local discovery counters; choosing one opens only that anime's
 characters and objects, avoiding an ever-growing global list. A roster shortcut still opens directly
 on its character and anime. The character tab shows stats, the passive at level 0 / at cap / right now, abilities,
-evolution, combos and the translated character types used by equipment restrictions. Its second tab uses the same two-pane shell through `ItemCodex.tsx`: every
+evolution and the translated character types used by equipment restrictions. Its second tab uses the same two-pane shell through `ItemCodex.tsx`: every
 item from the selected anime, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
 a passive can be bought from wherever it is read, not only from the team table.

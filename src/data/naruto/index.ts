@@ -4,7 +4,6 @@ import type { GameData } from "../../engine/gameState";
 import { narutoArcs } from "./arcs";
 import { narutoCharacters } from "./characters";
 import { narutoItems } from "./items";
-import { narutoCombos } from "./combos";
 
 export const narutoData: GameData = {
   animes: [
@@ -25,5 +24,4 @@ export const narutoData: GameData = {
   arcs: narutoArcs,
   characters: narutoCharacters,
   items: narutoItems,
-  combos: narutoCombos,
 };

@@ -70,7 +70,6 @@ describe("imagePathsForAnime", () => {
         { id: "item-ration", name: "Ration", kind: "common" as const },
       ],
       characters: [],
-      combos: [],
     };
 
     expect(imagePathsForAnime(data, "a")).toEqual(["/a.jpg", "/items/item-shuriken.png"]);

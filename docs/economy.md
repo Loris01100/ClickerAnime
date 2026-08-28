@@ -243,8 +243,8 @@ nues"). Each names a `goal` in arcs cleared and a `reward` of `ModifierTemplate`
   team is empty (the narrator sets the scene, then goes quiet), which is the whole of the exception.
   Any future rule that touches damage has to keep that floor.
 - **The rules are enforced at the source**, never watched: `click` returns zero damage (and doesn't
-  count as a click for the achievement ladder), `unlockedAbilities` returns an empty list — combos
-  included, since they come through it too — `maybeDropItem` returns before rolling anything, and
+  count as a click for the achievement ladder), `unlockedAbilities` returns an empty list,
+  `maybeDropItem` returns before rolling anything, and
   `canRecruitUnder` gates both ways into the roster (the kill in `defeat` and the shop's character
   offers). See the invariant in `CLAUDE.md`. A refused recruit stays in the arc's pool as an
   ordinary fight, which is exactly what "reste sur le carreau" means.

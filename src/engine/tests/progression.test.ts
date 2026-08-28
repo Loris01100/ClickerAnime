@@ -231,7 +231,6 @@ describe("lisibilité de la progression", () => {
           ...(passive ? { passive } : {}),
         },
       ],
-      combos: [],
       items: [],
     };
   }

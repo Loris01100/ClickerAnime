@@ -18,7 +18,6 @@ import type { GameData } from "../../engine/gameState";
 import { borutoArcs } from "./arcs";
 import { borutoCharacters } from "./characters";
 import { borutoItems } from "./items";
-import { borutoCombos } from "./combos";
 
 export const borutoData: GameData = {
   animes: [
@@ -40,5 +39,4 @@ export const borutoData: GameData = {
   arcs: borutoArcs,
   characters: borutoCharacters,
   items: borutoItems,
-  combos: borutoCombos,
 };

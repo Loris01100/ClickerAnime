@@ -43,7 +43,6 @@ describe("store boot", () => {
           baseClickPower: 3, baseDps: 7,
         },
       ],
-      combos: [],
       items: [],
     };
     const restore = installSave(
@@ -102,7 +101,6 @@ describe("store boot", () => {
         id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const,
         arcIds: ["ta-arc"], baseClickPower: 20, baseDps: 10,
       }],
-      combos: [],
       items: [],
     };
     const restore = installSave(baseSave({ unlockedAnimeIds: ["ta", "tb"] }));
@@ -137,7 +135,6 @@ describe("store boot", () => {
         },
       ],
       characters: [{ id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 1, baseDps: 0 }],
-      combos: [],
       items: [{ id: "unique", name: "Unique", kind: "unique" as const }],
     };
     const restore = installSave(
@@ -162,7 +159,6 @@ describe("store boot", () => {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],
       arcs: [],
       characters: [{ id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 10, baseDps: 0 }],
-      combos: [],
       items: [{
         id: "unique", name: "Unique", kind: "unique" as const,
         effects: [{ target: "clickPower" as const, kind: "multiplier" as const, value: 2 }],
@@ -209,7 +205,6 @@ describe("store boot", () => {
           ability: { id: "ability-a", name: "A", cooldownMs: 10_000, durationMs: 1_000, effects: [] },
         },
       ],
-      combos: [],
       items: [],
     };
     const restore = installSave({ ...baseSave(), abilityLastUsed: { "ability-a": usedAt } });
@@ -233,7 +228,6 @@ describe("store boot", () => {
       characters: [
         { id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 0, baseDps: 10 },
       ],
-      combos: [],
       items: [
         {
           id: "locked-unique",
@@ -363,7 +357,6 @@ describe("store boot", () => {
           baseDps: 0,
         },
       ],
-      combos: [],
       items: [],
     };
     const save = {
@@ -431,21 +424,17 @@ describe("store boot", () => {
     const testData = {
       animes: [],
       arcs: [],
-      characters: [member("ca", ability("ability-a", "percent", 1)), member("cb", ability("ability-b", "percent", 2))],
-      combos: [
-        {
-          id: "combo",
-          name: "Combo",
-          requiredCharacterIds: ["ca", "cb"],
-          ability: ability("ability-combo", "multiplier", 2),
-        },
+      characters: [
+        member("ca", ability("ability-a", "percent", 1)),
+        member("cb", ability("ability-b", "percent", 2)),
+        member("cc", ability("ability-c", "multiplier", 2)),
       ],
       items: [],
     };
     const save = {
       currency: 0,
       lifetimeEarned: 0,
-      ownedCharacterIds: ["ca", "cb"],
+      ownedCharacterIds: ["ca", "cb", "cc"],
       activeArcId: null,
       prestigePoints: 0,
       unlockedAnimeIds: [],
@@ -469,23 +458,23 @@ describe("store boot", () => {
         return createGameStore(testData);
       });
 
-      expect(game.teamDps()).toBe(20); // 10 + 10, no buff yet
+      expect(game.teamDps()).toBe(30); // 10 + 10 + 10, no buff yet
       // Nothing blocks anything any more: the whole bar is firable, which is what "Tout lancer" does.
       expect(game.readyAbilities().length).toBe(3);
-      // A's buff lands on A alone: 10 * (1 + 1) + 10.
+      // A's buff lands on A alone: 10 * (1 + 1) + 10 + 10.
       expect(game.activateAbility("ability-a")).toBe(true);
-      expect(game.teamDps()).toBeCloseTo(30);
+      expect(game.teamDps()).toBeCloseTo(40);
       expect(game.characterStatOf(testData.characters[0], "teamDps")).toBeCloseTo(20);
       expect(game.characterStatOf(testData.characters[0], "clickPower")).toBeCloseTo(20);
       expect(game.characterStatOf(testData.characters[1], "teamDps")).toBeCloseTo(10);
       expect(game.characterStatOf(testData.characters[1], "clickPower")).toBeCloseTo(10);
-      // B's buff targets the same stat and still fires — it only boosts B: 20 + 10 * (1 + 2).
+      // B's buff targets the same stat and still fires — it only boosts B: 20 + 10 * (1 + 2) + 10.
       expect(game.activateAbility("ability-b")).toBe(true);
-      expect(game.teamDps()).toBeCloseTo(50);
-      // The combo boosts both members, on top of their own running buffs: 20 * 2 + 30 * 2.
-      expect(game.activateAbility("ability-combo")).toBe(true);
-      expect(game.teamDps()).toBeCloseTo(100);
-      expect(game.activeBuffs().sort()).toEqual(["ability-a", "ability-b", "ability-combo"]);
+      expect(game.teamDps()).toBeCloseTo(60);
+      // And C's multiplier lands on C alone, on top of the two already running: 20 + 30 + 10 * 2.
+      expect(game.activateAbility("ability-c")).toBe(true);
+      expect(game.teamDps()).toBeCloseTo(70);
+      expect(game.activeBuffs().sort()).toEqual(["ability-a", "ability-b", "ability-c"]);
     } finally {
       disposeRoot();
       (globalThis as { localStorage?: unknown }).localStorage = original;
@@ -525,7 +514,6 @@ describe("store boot", () => {
           ability: ability("ability-weak", 1),
         },
       ],
-      combos: [],
       items: [],
     };
     const save = {
@@ -600,7 +588,7 @@ describe("store boot", () => {
     try {
       const game = createRoot((dispose) => {
         disposeRoot = dispose;
-        return createGameStore({ animes: [], arcs: [], characters: [], combos: [], items: [] });
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
       });
       const blob = (save: unknown) => btoa(JSON.stringify(save));
 
@@ -650,7 +638,6 @@ describe("tick delta clamp et notices du HUD", () => {
           baseDps: dps,
         },
       ],
-      combos: [],
       items: [{ id: "ta-item", name: "Item", kind: "common" as const }],
     };
   }

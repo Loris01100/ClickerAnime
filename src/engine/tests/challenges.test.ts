@@ -58,7 +58,6 @@ describe("défis de run", () => {
           baseDps: 5,
         },
       ],
-      combos: [],
       items: [item],
     };
   }

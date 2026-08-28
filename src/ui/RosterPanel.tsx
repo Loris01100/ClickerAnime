@@ -193,7 +193,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
               }}
             </For>
             <Show when={props.game.unlockedAbilities().length === 0}>
-              <p class="muted pad">Battez des personnages pour débloquer des capacités et des combos.</p>
+              <p class="muted pad">Battez des personnages pour débloquer des capacités.</p>
             </Show>
           </div>
         </Show>

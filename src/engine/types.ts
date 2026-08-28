@@ -159,13 +159,6 @@ export interface CharacterEvolution {
   ability?: AbilityDefinition;
 }
 
-export interface ComboDefinition {
-  id: string;
-  name: string;
-  requiredCharacterIds: string[];
-  ability: AbilityDefinition;
-}
-
 /**
  * A currency purchase offered in the shop panel: either copies of an item or a character.
  * `requiresAnimeId`, if set, gates the offer behind that anime

@@ -163,7 +163,7 @@ Three practical notes, each learned by getting it wrong:
   strict 60-second timer. Seeds 1–4 clear the world in 33.6–33.8 minutes and each records three
   timeouts followed by successful rematches: abilities remain valuable, while the clock creates
   pressure without becoming a wall.
-- **Active ability damage uses the same ceiling in every world.** Character, evolution, and combo
+- **Active ability damage uses the same ceiling in every world.** Character and evolution
   abilities are capped at ×3.5 for multipliers and +50% for additive damage bonuses; lower tiers
   are reduced too rather than only clipping the peak. After applying this to Naruto, Shippuden, and
   Boruto, seeds 1–4 still clear all 34 arcs in 121.7–122.3 minutes without stalling.

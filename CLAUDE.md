@@ -69,12 +69,13 @@ These outrank convenience, and several were learned the hard way. Don't break on
 
 - The modifier fold order is `(base + flats) * (1 + Σpercents) * Πmultipliers`. Changing it
   rebalances the whole game.
-- **A buff is scoped to the characters it comes from.** An ability boosts its own character, a
-  combo boosts its members, and nothing else — which is what lets every ability and combo run at
-  once. Don't make a buff team-wide again, and don't reintroduce a `STACK_FALLOFF`.
-- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth, and it ramps.** Combos are
-  all multipliers, so a dozen landing on the same character multiply into an overkill without it —
-  and because it binds from arc 2 onward it *is* an ability's strength, not a safety net.
+- **A buff is scoped to the character it comes from.** An ability boosts its own character and
+  nothing else — which is what lets every ability run at once. Don't make a buff team-wide again,
+  and don't reintroduce a `STACK_FALLOFF`, and don't reintroduce combos: the combo mechanic was
+  removed, an ability is granted by a character alone.
+- **`SCOPED_BUFF_CAP` bounds what the buffs on one character are worth, and it ramps.** Stacked
+  multipliers on the same character multiply into an overkill without it — and because it binds
+  from arc 2 onward it *is* an ability's strength, not a safety net.
   `scopedBuffCap` climbs it from `SCOPED_BUFF_CAP_FLOOR` (12) on the first arc to the full 50 on the
   last, which is what makes abilities grow over a run instead of arriving at full power. **The
   ceiling stays 50** — raising it re-opens the overkill it exists to stop; the ramp only lowers the
@@ -164,13 +165,12 @@ the shared vocabulary for equipment restrictions; add their French label in `ui/
 thing the app imports (`gameData` = every world concatenated). Adding a world means adding a
 directory and one entry to the `worlds` array there.
 
-A world directory is always the same four files — `arcs.ts`, `characters.ts`, `items.ts`,
-`combos.ts` — each exporting one `GameData["<section>"]` array, plus an `index.ts` that holds the
-short `animes` entry and assembles them into the world's `GameData`. The layout is uniform on
-purpose, whatever a world's size: a predictable path (`data/<world>/characters.ts`) is the point,
-and it matches how the content is actually edited — you balance characters, or write arcs, or add
-combos, rarely a whole world at once. Keep the shape when adding a world; omit a file only when the
-world genuinely has no such section.
+A world directory is always the same three files — `arcs.ts`, `characters.ts`, `items.ts` — each
+exporting one `GameData["<section>"]` array, plus an `index.ts` that holds the short `animes` entry
+and assembles them into the world's `GameData`. The layout is uniform on purpose, whatever a world's
+size: a predictable path (`data/<world>/characters.ts`) is the point, and it matches how the content
+is actually edited — you balance characters, or write arcs, rarely a whole world at once. Keep the
+shape when adding a world; omit a file only when the world genuinely has no such section.
 
 - `naruto/` — **Naruto, partie 1**, 5 arcs, the starting world. Nothing from Shippūden or Boruto.
 - `hunter-x-hunter/` — **Hunter x Hunter (2011)**, 6 arcs and one independent entry world. It
@@ -193,9 +193,8 @@ world genuinely has no such section.
 A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
 shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
 those entry paths, along with every
-id being unique and every reference resolvable). Combos may still span worlds — the team only wipes
-on prestige, not on travel — which is what makes "Le Sommet des Cinq Kage" (Gaara and Tsunade from
-part 1, plus the Shippūden Kage) worth keeping a mixed team for. Every part-1 `rarity: "main"`
+id being unique and every reference resolvable). A mixed team still spans worlds — the team only
+wipes on prestige, not on travel. Every part-1 `rarity: "main"`
 character who is still part of the Shippūden cast (Naruto, Kakashi, Sasuke, Neji, Jiraiya, Tsunade,
 Gaara) gets stronger once fought alongside there — see `docs/progression.md` — but that's the same
 Codex entry growing, never a new recruit. Secondary-rarity part-1 characters get no evolution even

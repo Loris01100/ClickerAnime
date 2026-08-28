@@ -20,7 +20,7 @@ import type { ActiveModifier, ModifierTemplate } from "./types";
 export interface ChallengeRules {
   /** Le Clic du Narrateur n'inflige plus rien — l'autoclic non plus. Voir `clickIsMuted`. */
   noClick?: boolean;
-  /** Aucune capacité ne se débloque, ni individuelle ni de combo. */
+  /** Aucune capacité ne se débloque. */
   noAbilities?: boolean;
   /** Plus aucun objet ne tombe : ni commun (donc aucun rang de passif), ni unique. */
   noItems?: boolean;
@@ -65,7 +65,7 @@ export const CHALLENGES: ChallengeDefinition[] = [
   {
     id: "defi-silence",
     name: "Le Silence des héros",
-    constraint: "Aucune capacité ne se débloque, ni individuelle ni de combo. Rien à activer, jamais.",
+    constraint: "Aucune capacité ne se débloque. Rien à activer, jamais.",
     rules: { noAbilities: true },
     goal: 8,
     reward: [{ target: "teamDps", kind: "percent", value: 0.12 }],
