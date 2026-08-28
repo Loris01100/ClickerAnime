@@ -60,15 +60,32 @@ export function achievementNextThreshold(category: AchievementCategory, count: n
   return category.tiers.find((threshold) => count < threshold) ?? null;
 }
 
-/** One permanent percent modifier per completed tier, on that category's target, folded into `allModifiers` like anything else. */
+/**
+ * What every completed tier is worth, as **one** percent modifier per target.
+ *
+ * It used to emit one modifier per tier — up to 78 objects rebuilt every time the team's modifiers
+ * were, for a pipeline that does nothing with them but `percentSum += value`. Summing them here is
+ * the same number, and the tiers stay individually visible where they are actually read: the
+ * achievements screen goes through `achievementTiersCompleted` and `achievementTierBonus` directly,
+ * and no caller has ever looked at these `sourceId`s.
+ *
+ * The two targets are emitted in the order the categories declare them, and each target's tiers are
+ * summed low to high — the same order the fold added them in, which is what keeps the arithmetic
+ * bit-for-bit identical (float addition is not associative, and `npm run sim` would notice).
+ */
 export function achievementContributions(counts: Record<string, number>): ActiveModifier[] {
-  return ACHIEVEMENT_CATEGORIES.flatMap((category) => {
+  const totals = new Map<ModifierTarget, number>();
+  for (const category of ACHIEVEMENT_CATEGORIES) {
     const completed = achievementTiersCompleted(category, counts[category.id] ?? 0);
-    return Array.from({ length: completed }, (_, tier) => ({
-      sourceId: `achievement:${category.id}:${tier}`,
-      target: category.target,
-      kind: "percent" as const,
-      value: achievementTierBonus(tier),
-    }));
-  });
+    if (completed === 0) continue;
+    let sum = totals.get(category.target) ?? 0;
+    for (let tier = 0; tier < completed; tier++) sum += achievementTierBonus(tier);
+    totals.set(category.target, sum);
+  }
+  return [...totals].map(([target, value]) => ({
+    sourceId: `achievement:${target}`,
+    target,
+    kind: "percent" as const,
+    value,
+  }));
 }

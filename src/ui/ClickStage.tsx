@@ -80,7 +80,7 @@ export default function ClickStage(props: { game: GameStore }) {
   }
 
   const arc = () => props.game.activeArc();
-  const anime = () => props.game.data.animes.find((a) => a.id === arc()?.animeId);
+  const anime = () => props.game.animeOf(arc()?.animeId);
   const enemy = () => props.game.enemy();
   const isBoss = () => !!enemy() && enemy()!.id === arc()?.boss.id;
   const hpRatio = () => (props.game.enemyMaxHp() > 0 ? props.game.enemyHpLeft() / props.game.enemyMaxHp() : 0);

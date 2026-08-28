@@ -20,12 +20,12 @@ const RARITY_LABEL: Record<Character["rarity"], string> = {
  * link from the roster skips the picker but stays inside the same scoped view.
  */
 export default function Codex(props: { game: GameStore; onClose: () => void; initialSelectedId?: string }) {
-  const initialCharacter = () => props.game.data.characters.find((c) => c.id === props.initialSelectedId);
+  const initialCharacter = () => props.game.characterOf(props.initialSelectedId);
   const [selectedAnimeId, setSelectedAnimeId] = createSignal<string | undefined>(initialCharacter()?.animeId);
   const [selectedId, setSelectedId] = createSignal(props.initialSelectedId ?? "");
   const [tab, setTab] = createSignal<"characters" | "items">("characters");
 
-  const selectedAnime = createMemo(() => props.game.data.animes.find((anime) => anime.id === selectedAnimeId()));
+  const selectedAnime = createMemo(() => props.game.animeOf(selectedAnimeId()));
   const characters = createMemo(() =>
     props.game.data.characters.filter((character) => character.animeId === selectedAnimeId()),
   );
@@ -35,9 +35,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
   const rampOf = (character: Character) =>
     props.game.catchUpOf(character) * duplicateGrowth(props.game.duplicatesOf(character.id));
 
-  const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
+  const animeName = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
-    character.arcIds.map((id) => props.game.data.arcs.find((a) => a.id === id)?.name ?? id);
+    character.arcIds.map((id) => props.game.arcOf(id)?.name ?? id);
   const itemsOf = (animeId: string) => {
     const itemIds = new Set(
       props.game.data.arcs

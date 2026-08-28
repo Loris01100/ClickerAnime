@@ -99,11 +99,75 @@ export function computeScopedStat(
     if (group) group.push(mod);
     else byScope.set(mod.scope, [mod]);
   }
+  return foldScopedStat(base, target, global, scaling, byScope.values(), now, cap);
+}
 
+/**
+ * `computeEffectiveStat` over two lists at once, without concatenating them first.
+ *
+ * Purely to avoid the allocation: the fold below runs it twice per scoped group, so a fifty-strong
+ * roster built two hundred throwaway arrays every time the team's dps was read. The lists are
+ * walked `first` then `second`, which is the order the concatenation used to produce — float
+ * addition is not associative, so that order is part of the result, not an implementation detail.
+ *
+ * `permanentOnly` drops every timed modifier from `second` — the "bare" half of the mastery cap,
+ * which asks what this character is worth with no buff running. It deliberately does not apply to
+ * `first`: the team-wide scaling is filtered by expiry like anywhere else, never by being timed.
+ */
+function foldPair(
+  base: number,
+  target: ModifierTarget,
+  first: ActiveModifier[],
+  second: ActiveModifier[],
+  now: number,
+  permanentOnly: boolean
+): number {
+  let flatSum = 0;
+  let percentSum = 0;
+  let multiplierProduct = 1;
+
+  for (const mod of first) {
+    if (mod.target !== target) continue;
+    if (mod.expiresAt !== undefined && mod.expiresAt <= now) continue;
+    if (mod.kind === "flat") flatSum += mod.value;
+    else if (mod.kind === "percent") percentSum += mod.value;
+    else if (mod.kind === "multiplier") multiplierProduct *= mod.value;
+  }
+  for (const mod of second) {
+    if (mod.target !== target) continue;
+    if (mod.expiresAt !== undefined && (permanentOnly || mod.expiresAt <= now)) continue;
+    if (mod.kind === "flat") flatSum += mod.value;
+    else if (mod.kind === "percent") percentSum += mod.value;
+    else if (mod.kind === "multiplier") multiplierProduct *= mod.value;
+  }
+
+  return (base + flatSum) * (1 + percentSum) * multiplierProduct;
+}
+
+/**
+ * The fold `computeScopedStat` performs, over lists that have **already** been split by scope.
+ *
+ * Same arithmetic, same order, same result — it just doesn't re-derive the split. The store keeps
+ * `global`, `scaling` and the scope groups as memos of their own (they change when the roster or a
+ * buff does, not when the clock ticks), so re-filtering the whole modifier list on every read was
+ * pure repetition — and `characterStatOf` pays it once per roster row.
+ *
+ * `groups` is anything iterable, so a `Map`'s `.values()` goes straight in and a single character's
+ * group can be passed as a one-element array.
+ */
+export function foldScopedStat(
+  base: number,
+  target: ModifierTarget,
+  global: ActiveModifier[],
+  scaling: ActiveModifier[],
+  groups: Iterable<ActiveModifier[]>,
+  now: number,
+  cap: number = SCOPED_BUFF_CAP
+): number {
   let total = computeEffectiveStat(base, target, global, now);
-  for (const group of byScope.values()) {
-    const buffed = computeEffectiveStat(0, target, [...scaling, ...group], now);
-    const bare = computeEffectiveStat(0, target, [...scaling, ...group.filter((m) => m.expiresAt === undefined)], now);
+  for (const group of groups) {
+    const buffed = foldPair(0, target, scaling, group, now, false);
+    const bare = foldPair(0, target, scaling, group, now, true);
     total += Math.min(buffed, bare * cap);
   }
   return total;

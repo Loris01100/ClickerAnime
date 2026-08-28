@@ -1,6 +1,6 @@
 import { batch, createMemo, createSignal, onCleanup } from "solid-js";
 import { achievementContributions } from "./achievements";
-import { computeScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
+import { computeScopedStat, foldScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
 import {
   applyPrestige,
   PRESTIGE_SCALE,
@@ -366,6 +366,42 @@ function readSave(): SaveFile | null {
 export function createGameStore(data: GameData) {
   const saved = readSave();
 
+  /**
+   * Id indexes over the content, built once.
+   *
+   * `data` never changes at runtime, and almost every lookup in this file and in the UI was a
+   * `data.<section>.find(...)` — a linear walk of 175 characters, 273 arcs and enemies or 68 items,
+   * several of them per roster row and per kill. Same answers, built once instead of per call. The
+   * accessors below are what the UI reads; nothing here may mutate the maps.
+   */
+  const characterIndex = new Map(data.characters.map((c) => [c.id, c]));
+  const itemIndex = new Map(data.items.map((i) => [i.id, i]));
+  const arcIndex = new Map(data.arcs.map((a) => [a.id, a]));
+  const animeIndex = new Map(data.animes.map((a) => [a.id, a]));
+
+  /**
+   * The arc each character is first met in — `originArcOf`'s answer, precomputed.
+   *
+   * Arcs are walked in data order and the first one to name a character wins, exactly as the scan
+   * it replaces did. It fed `passiveItemOf`, which the roster calls twice per row (directly, and
+   * again through `passiveUpgradeOf`), each call walking every arc's boss and mob list.
+   */
+  const originArcIndex = new Map<string, Arc>();
+  for (const arc of data.arcs) {
+    if (arc.boss.characterId && !originArcIndex.has(arc.boss.characterId)) {
+      originArcIndex.set(arc.boss.characterId, arc);
+    }
+    for (const mob of arc.mobs) {
+      if (mob.characterId && !originArcIndex.has(mob.characterId)) originArcIndex.set(mob.characterId, arc);
+    }
+  }
+
+  /** O(1) content lookups by id — the UI reads these rather than re-scanning `data`. */
+  const characterOf = (id: string | undefined | null) => (id ? characterIndex.get(id) ?? null : null);
+  const itemOf = (id: string | undefined | null) => (id ? itemIndex.get(id) ?? null : null);
+  const arcOf = (id: string | undefined | null) => (id ? arcIndex.get(id) ?? null : null);
+  const animeOf = (id: string | undefined | null) => (id ? animeIndex.get(id) ?? null : null);
+
   const [now, setNow] = createSignal(Date.now());
   // When the last autosave landed, so the topbar can say so — a silent autosave is indistinguishable
   // from a broken one. 0 until the first write; `save()` is the only thing that sets it.
@@ -595,7 +631,7 @@ export function createGameStore(data: GameData) {
     return true;
   }
 
-  const activeArc = createMemo<Arc | null>(() => data.arcs.find((a) => a.id === activeArcId()) ?? null);
+  const activeArc = createMemo<Arc | null>(() => arcOf(activeArcId()));
 
   /**
    * The story's power ramp, read off the cast once (the data never changes at runtime), and how far
@@ -608,7 +644,12 @@ export function createGameStore(data: GameData) {
 
   const unlockedAnimes = createMemo(() => data.animes.filter((a) => prestige().unlockedAnimeIds.includes(a.id)));
 
-  const ownedCharacters = createMemo(() => data.characters.filter((c) => ownedCharacterIds().includes(c.id)));
+  const ownedCharacters = createMemo(() => {
+    // A Set, not `ownedCharacterIds().includes`: that was a walk of the id list per character, i.e.
+    // the whole cast times the roster, on a memo the entire UI hangs off.
+    const ids = new Set(ownedCharacterIds());
+    return data.characters.filter((c) => ids.has(c.id));
+  });
 
   /** True once this character has grown into their evolution — permanent for the rest of the run. */
   const isEvolved = (character: Character) => evolvedCharacterIds().includes(character.id);
@@ -642,19 +683,19 @@ export function createGameStore(data: GameData) {
   function equippedItemOf(character: Character): Item | null {
     const itemId = characterEquipment()[character.id];
     if (!itemId) return null;
-    const item = data.items.find((i) => i.id === itemId);
+    const item = itemOf(itemId);
     return item && item.kind === "unique" ? item : null;
   }
 
   /** The character currently wearing this unique, if any — uniques are single-copy. */
   function wearerOf(itemId: string): Character | null {
     const characterId = Object.keys(characterEquipment()).find((id) => characterEquipment()[id] === itemId);
-    return characterId ? data.characters.find((c) => c.id === characterId) ?? null : null;
+    return characterOf(characterId);
   }
 
   /** Whether this item can be equipped on this character (ownership and restriction checks). */
   function canEquipItem(character: Character, itemId: string): boolean {
-    const item = data.items.find((i) => i.id === itemId);
+    const item = itemOf(itemId);
     if (!item || item.kind !== "unique") return false;
     if ((itemCounts()[itemId] ?? 0) <= 0) return false;
     const restriction = item.equippableBy;
@@ -669,8 +710,8 @@ export function createGameStore(data: GameData) {
 
   /** Equip a unique item on a character, returning true on success. */
   function equipItem(characterId: string, itemId: string): boolean {
-    const character = data.characters.find((c) => c.id === characterId);
-    const item = data.items.find((i) => i.id === itemId);
+    const character = characterOf(characterId);
+    const item = itemOf(itemId);
     if (!character || !item || item.kind !== "unique") return false;
     if (!canEquipItem(character, itemId)) return false;
     // Only an item coming off the shelf counts: moving one between characters isn't a new equip.
@@ -726,7 +767,7 @@ export function createGameStore(data: GameData) {
     const equipment = characterEquipment();
     const equipmentOf = (c: Character) => {
       const itemId = equipment[c.id];
-      const item = itemId ? data.items.find((i) => i.id === itemId) : undefined;
+      const item = itemOf(itemId);
       return item && item.kind === "unique"
         ? [{ ...item, effects: item.effects?.map((effect) => scaledUniqueEffect(effect, uniqueUpgradeLevelOf(item.id))) }]
         : [];
@@ -775,28 +816,49 @@ export function createGameStore(data: GameData) {
       .length;
   });
 
+  /**
+   * Everything the team permanently contributes in the arc being fought — `permanentModifiersFor`
+   * of the *active* arc, kept as a memo of its own.
+   *
+   * It is the expensive half of `allModifiers` (the whole roster back through
+   * `characterContributions`, each one deriving a level off its xp total) and the half that changes
+   * least: a recruit, a level, a rank, an equip. `bossOutlookOf` still calls the function directly,
+   * because the arc it asks about is precisely not this one.
+   */
+  const permanentModifiers = createMemo<ActiveModifier[]>(() => permanentModifiersFor(activeArc()));
+
+  /**
+   * The permanent contributions plus the buffs currently running.
+   *
+   * Deliberately **not** a function of `now()`. An expired buff left in this list changes nothing:
+   * `computeEffectiveStat` skips a modifier whose `expiresAt` has passed against the clock its
+   * caller hands it, and the "bare" half of the mastery cap drops every timed modifier outright —
+   * so expiry is already applied where the arithmetic happens, at full precision. Cutting the list
+   * here as well only meant `modifiersByScope` and `teamWideScaling` were rebuilt five times a
+   * second forever, and with them every roster row that reads them. The tick drops expired buffs
+   * from the signal itself, which keeps the groups from carrying yesterday's abilities around.
+   */
   const allModifiers = createMemo<ActiveModifier[]>(() => {
     const away = awayCharacterIds();
     return [
-      ...permanentModifiersFor(activeArc()),
+      ...permanentModifiers(),
       // A buff whose character has left their world stops applying the moment they arrive, exactly
       // like their passive. Otherwise "a capacity doesn't travel" would be a rule you walk around:
       // fire everything at home, then step into the next world with the buffs still up.
-      ...pruneExpired(temporaryModifiers(), now()).filter((m) => m.scope === undefined || !away.has(m.scope)),
+      ...temporaryModifiers().filter((m) => m.scope === undefined || !away.has(m.scope)),
     ];
   });
 
   /**
-   * What `computeScopedStat` applies to **every** scoped group: the unscoped percents and
-   * multipliers — achievements, the prestige tree, challenge rewards, evolution bonuses. Split out
-   * as a memo because `characterStatOf` needs exactly this list once per roster row, and rebuilding
-   * it per character would walk the whole modifier list on every tick.
+   * The unscoped modifiers, and the subset of them that scales every scoped group — achievements,
+   * the prestige tree, challenge rewards, evolution bonuses. Both are what `foldScopedStat` wants
+   * handed to it: `characterStatOf` needs exactly these once per roster row, and re-deriving them
+   * per character would walk the whole modifier list every time.
    */
-  const teamWideScaling = createMemo(() =>
-    allModifiers().filter((m) => m.scope === undefined && m.kind !== "flat")
-  );
+  const globalModifiers = createMemo(() => allModifiers().filter((m) => m.scope === undefined));
+  const teamWideScaling = createMemo(() => globalModifiers().filter((m) => m.kind !== "flat"));
 
-  /** The scoped modifiers of each character, grouped the way `computeScopedStat` groups them. */
+  /** The scoped modifiers of each character, grouped the way `foldScopedStat` wants them. */
   const modifiersByScope = createMemo(() => {
     const byScope = new Map<string, ActiveModifier[]>();
     for (const mod of allModifiers()) {
@@ -817,18 +879,13 @@ export function createGameStore(data: GameData) {
    * straight away, so anything it reads must already be hoisted.
    */
   function originArcOf(character: Character): Arc | null {
-    return (
-      data.arcs.find(
-        (a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)
-      ) ?? null
-    );
+    return originArcIndex.get(character.id) ?? null;
   }
 
   /** The common item that ranks up this character's passive, i.e. the one their home arc drops. */
   function passiveItemOf(character: Character): Item | null {
     const arc = originArcOf(character);
-    const itemId = arc?.mobs.find((m) => m.itemId)?.itemId;
-    return data.items.find((i) => i.id === itemId) ?? null;
+    return itemOf(arc?.mobs.find((m) => m.itemId)?.itemId);
   }
 
   function passiveCopiesOf(character: Character): number {
@@ -838,8 +895,7 @@ export function createGameStore(data: GameData) {
 
   /** The common item an arc drops — what the "Objets" tree's pity timer and ghost loot hand out. */
   function arcCommonItem(arc: Arc): Item | null {
-    const itemId = arc.mobs.find((m) => m.itemId)?.itemId;
-    return data.items.find((i) => i.id === itemId) ?? null;
+    return itemOf(arc.mobs.find((m) => m.itemId)?.itemId);
   }
 
   /** Repeatable supplies for every accessible arc, priced against what its farm mobs actually pay. */
@@ -879,10 +935,12 @@ export function createGameStore(data: GameData) {
 
   /** Damage of one narrator click. */
   const clickPower = createMemo(() =>
-    computeScopedStat(narratorBase(), "clickPower", allModifiers(), now(), buffCap())
+    foldScopedStat(narratorBase(), "clickPower", globalModifiers(), teamWideScaling(), modifiersByScope().values(), now(), buffCap())
   );
   /** Damage the team deals on its own, per second. */
-  const teamDps = createMemo(() => computeScopedStat(0, "teamDps", allModifiers(), now(), buffCap()));
+  const teamDps = createMemo(() =>
+    foldScopedStat(0, "teamDps", globalModifiers(), teamWideScaling(), modifiersByScope().values(), now(), buffCap())
+  );
 
   const unlockedAbilities = createMemo(() =>
     // "Le Silence des héros" takes every ability away at the source: nothing to activate and
@@ -951,7 +1009,7 @@ export function createGameStore(data: GameData) {
     const arc = activeArc();
     if (!arc) return [];
     return pendingRecruits(arc, ownedCharacterIds())
-      .map((id) => data.characters.find((c) => c.id === id))
+      .map((id) => characterOf(id))
       .filter((c): c is Character => !!c);
   });
 
@@ -1105,7 +1163,7 @@ export function createGameStore(data: GameData) {
       const boostedChance =
         dropChanceLevel > 0 ? Math.min(1, baseChance * (1 + DROP_CHANCE_BOOST * dropChanceLevel)) : baseChance;
       if (rollsDrop({ ...target, dropChance: boostedChance }, Math.random())) {
-        const item = data.items.find((i) => i.id === target.itemId);
+        const item = itemOf(target.itemId);
         if (item) {
           if (item.kind === "unique" && countOf(item.id) > 0) grantUniqueFragment(item);
           else grantItem(item);
@@ -1407,7 +1465,7 @@ export function createGameStore(data: GameData) {
    * character.
    */
   function damageGrowthOf(characterId: string): number {
-    const character = data.characters.find((c) => c.id === characterId);
+    const character = characterOf(characterId);
     return (
       levelGrowth(levelOf(characterId)) *
       duplicateGrowth(duplicatesOf(characterId)) *
@@ -1433,7 +1491,9 @@ export function createGameStore(data: GameData) {
   function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
     const own = modifiersByScope().get(character.id);
     if (!own) return 0;
-    return computeScopedStat(0, target, [...teamWideScaling(), ...own], now(), buffCap());
+    // The base term is 0 and the team-wide flats are deliberately left out: this column answers
+    // "what does *this* character bring", and the flats belong to the team, not to a row.
+    return foldScopedStat(0, target, teamWideScaling(), teamWideScaling(), [own], now(), buffCap());
   }
 
   /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
@@ -1470,9 +1530,9 @@ export function createGameStore(data: GameData) {
       offer,
       cost: discountedShopCost(offer, shopDiscount),
       discounted: shopDiscount > 0,
-      item: offer.kind === "item" ? data.items.find((i) => i.id === offer.targetId) : undefined,
-      character: offer.kind === "character" ? data.characters.find((c) => c.id === offer.targetId) : undefined,
-      arc: offer.arcId ? data.arcs.find((arc) => arc.id === offer.arcId) : undefined,
+      item: offer.kind === "item" ? itemOf(offer.targetId) ?? undefined : undefined,
+      character: offer.kind === "character" ? characterOf(offer.targetId) ?? undefined : undefined,
+      arc: arcOf(offer.arcId) ?? undefined,
       owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
       locked: !shopOfferUnlocked(offer, clearedIds),
       affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), shopDiscount),
@@ -1508,7 +1568,7 @@ export function createGameStore(data: GameData) {
   }
 
   function setActiveArc(arcId: string) {
-    const arc = data.arcs.find((a) => a.id === arcId);
+    const arc = arcOf(arcId);
     if (!arc || !prestige().unlockedAnimeIds.includes(arc.animeId)) return false;
     if (!arcOpen(arc)) return false;
     setActiveArcId(arcId);
@@ -1552,7 +1612,7 @@ export function createGameStore(data: GameData) {
       return true;
     }
     if (autoRankCharacterIds().length >= autoRankCapacity()) return false;
-    const character = data.characters.find((c) => c.id === characterId);
+    const character = characterOf(characterId);
     if (!character?.passive || !ownedCharacterIds().includes(characterId)) return false;
     setAutoRankCharacterIds((ids) => [...ids, characterId]);
     return true;
@@ -1577,9 +1637,9 @@ export function createGameStore(data: GameData) {
 
   /** The anime that has to be cleared first, when this one is still shut behind it. */
   function animeBlockedBy(animeId: string): Anime | null {
-    const required = data.animes.find((a) => a.id === animeId)?.requiresAnimeId;
+    const required = animeOf(animeId)?.requiresAnimeId;
     if (!required || animeAvailable(animeId)) return null;
-    return data.animes.find((a) => a.id === required) ?? null;
+    return animeOf(required);
   }
 
   /** Free move into a new anime: the first pick of the run, or a new world after clearing the last. */
@@ -1597,7 +1657,7 @@ export function createGameStore(data: GameData) {
 
   /** Paid shortcut: enter an anime early, without having finished the current one. */
   function unlockAnime(animeId: string) {
-    const anime = data.animes.find((a) => a.id === animeId);
+    const anime = animeOf(animeId);
     if (!anime || !animeAvailable(animeId)) return false;
     const cost = anime.unlockCost;
     if (!canUnlockAnime(prestige(), animeId, cost)) return false;
@@ -2021,7 +2081,7 @@ export function createGameStore(data: GameData) {
       // deep stack of copies. `rankUpPassive` re-checks affordability, ownership and the cap, so a
       // character who can't be ranked right now is simply skipped.
       for (const id of autoRankCharacterIds().slice(0, autoRankCapacity())) {
-        const character = data.characters.find((c) => c.id === id);
+        const character = characterOf(id);
         if (character) rankUpPassive(character);
       }
     }
@@ -2047,6 +2107,12 @@ export function createGameStore(data: GameData) {
     // Only rebuild the list when something actually expired, so an idle tick stays a no-op.
     if (notices().some((n) => n.expiresAt <= nowMs)) {
       setNotices((list) => list.filter((n) => n.expiresAt > nowMs));
+    }
+    // Same shape, and the one thing that keeps `allModifiers` off the clock honest: the fold
+    // already ignores an expired buff to the millisecond, but nothing else would ever take it back
+    // out of the list, and `modifiersByScope` would carry every ability ever fired this run.
+    if (temporaryModifiers().some((m) => m.expiresAt !== undefined && m.expiresAt <= nowMs)) {
+      setTemporaryModifiers((mods) => pruneExpired(mods, nowMs));
     }
   }
   const interval = setInterval(() => batch(tick), TICK_MS);
@@ -2086,6 +2152,12 @@ export function createGameStore(data: GameData) {
 
   return {
     data,
+    // Id lookups over `data`, backed by the indexes built at the top — the UI used to reach for
+    // `game.data.<section>.find(...)` inside render loops, once per row.
+    characterOf,
+    itemOf,
+    arcOf,
+    animeOf,
     now,
     currency,
     lifetimeEarned,

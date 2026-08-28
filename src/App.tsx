@@ -1,23 +1,32 @@
-import { Show, createEffect, createSignal, onMount } from "solid-js";
+import { Show, Suspense, createEffect, createSignal, lazy, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { gameData } from "./data";
-import AchievementsPanel from "./ui/AchievementsPanel";
 import ClickStage from "./ui/ClickStage";
-import Codex from "./ui/Codex";
-import ChallengePanel from "./ui/ChallengePanel";
-import PrestigeTree from "./ui/PrestigeTree";
 import WorldMap from "./ui/WorldMap";
 import WorldPortal from "./ui/WorldPortal";
 import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
-import ShopPanel from "./ui/ShopPanel";
-import CrossoverPanel from "./ui/CrossoverPanel";
 import Notices from "./ui/Notices";
-import PackPanel from "./ui/PackPanel";
-import ReflexPanel from "./ui/ReflexPanel";
-import ForgePanel from "./ui/ForgePanel";
+
+/*
+ * Les overlays du menu partent dans leur propre chunk : ils ne sont montés qu'a la demande (chaque
+ * `<Show>` plus bas), mais un import statique les mettait quand meme dans le bundle de depart —
+ * pres d'un cinquieme du code pour des ecrans qu'une partie des sessions n'ouvre jamais.
+ *
+ * `WorldPortal` reste en import direct : c'est le premier ecran d'une nouvelle partie (le
+ * `fallback` du `<Show>` principal), le differer retarderait le tout premier rendu.
+ */
+const AchievementsPanel = lazy(() => import("./ui/AchievementsPanel"));
+const Codex = lazy(() => import("./ui/Codex"));
+const ChallengePanel = lazy(() => import("./ui/ChallengePanel"));
+const PrestigeTree = lazy(() => import("./ui/PrestigeTree"));
+const ShopPanel = lazy(() => import("./ui/ShopPanel"));
+const CrossoverPanel = lazy(() => import("./ui/CrossoverPanel"));
+const PackPanel = lazy(() => import("./ui/PackPanel"));
+const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
+const ForgePanel = lazy(() => import("./ui/ForgePanel"));
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
@@ -194,6 +203,12 @@ export default function App() {
         </main>
       </Show>
 
+      {/*
+        Une seule frontiere `Suspense` pour tous les overlays differes : il n'y en a jamais qu'un
+        d'ouvert a la fois, et le fallback est vide — le panneau apparait quand son chunk est la,
+        exactement comme il apparaissait quand son `<Show>` passait a vrai.
+      */}
+      <Suspense>
       <Show when={codexOpen()}>
         <Codex game={game} onClose={() => setCodexOpen(false)} initialSelectedId={codexFocusId()} />
       </Show>
@@ -233,6 +248,7 @@ export default function App() {
       <Show when={challengesOpen()}>
         <ChallengePanel game={game} onClose={() => setChallengesOpen(false)} />
       </Show>
+      </Suspense>
 
       <Notices game={game} />
     </>

@@ -21,7 +21,7 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
   const [drawn, setDrawn] = createSignal<Character[]>([]);
   const [qty, setQty] = createSignal(1);
 
-  const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
+  const animeNameOf = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
 
   /** Worlds worth showing: one currently travelled to, or one still holding points from a past run. */
   const worlds = () =>
@@ -72,7 +72,7 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
 
           <For each={drawn()}>
             {(character) => (
-              <div class="pack-result" style={{ "--world-hue": themeOf(props.game.data.animes.find((a) => a.id === character.animeId)) }}>
+              <div class="pack-result" style={{ "--world-hue": themeOf(props.game.animeOf(character.animeId) ?? undefined) }}>
                 <Sprite name={character.name} kind="character" anime={animeNameOf(character.animeId)} px={9} />
                 <div>
                   <strong>{character.name}</strong>

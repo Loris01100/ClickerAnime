@@ -266,8 +266,19 @@ function readPersisted(): Record<string, string> {
 
 const persisted = readPersisted();
 
-function persist(key: string, url: string) {
-  persisted[key] = url;
+/**
+ * Writes the cache back, at most once per animation frame's worth of resolutions.
+ *
+ * The store is one JSON blob, so every hit re-serialises *all* of it. Opening the Codex resolves a
+ * hundred and seventy portraits within a second or two, and each one was a full stringify plus a
+ * synchronous `localStorage.setItem` on the main thread. Coalescing them costs nothing: the entry
+ * is already live in `persisted`, so a lookup landing before the flush is served from memory, and
+ * `pagehide` forces the write out for the one case the timer would lose — the tab closing first.
+ */
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushPersisted() {
+  flushTimer = null;
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(persisted));
@@ -276,8 +287,32 @@ function persist(key: string, url: string) {
   }
 }
 
+function persist(key: string, url: string) {
+  persisted[key] = url;
+  if (flushTimer === null) flushTimer = setTimeout(flushPersisted, 500);
+}
+
+if (typeof window !== "undefined") {
+  // `pagehide` rather than `beforeunload`, for the reason gameState.ts gives: it is the one event
+  // that fires on a closing tab everywhere, iOS included.
+  window.addEventListener("pagehide", () => {
+    if (flushTimer !== null) clearTimeout(flushTimer);
+    flushPersisted();
+  });
+}
+
 // Dedupes concurrent lookups of the same key within the tab's lifetime, hit or miss alike.
 const inFlight = new Map<string, Promise<string | null>>();
+
+/**
+ * Keys AniList had nothing for, remembered for this session only.
+ *
+ * Deliberately *not* written to `persisted`: only successful hits are baked in, so a transient
+ * failure still gets a fresh try next session — see `readPersisted`. But within one session a miss
+ * was remembered nowhere at all, so every remount of a `Sprite` for a character AniList has no card
+ * for re-ran the whole lookup, cast pages included. Same intent, one session's worth of memory.
+ */
+const missed = new Set<string>();
 
 /**
  * Shared tail of every lookup: serve a persisted hit, dedupe a concurrent miss, persist a new hit.
@@ -285,6 +320,7 @@ const inFlight = new Map<string, Promise<string | null>>();
  */
 function lookup(key: string, fetcher: () => Promise<string | null>): Promise<string | null> {
   if (key in persisted) return Promise.resolve(persisted[key]);
+  if (missed.has(key)) return Promise.resolve(null);
 
   const existing = inFlight.get(key);
   if (existing) return existing;
@@ -292,6 +328,7 @@ function lookup(key: string, fetcher: () => Promise<string | null>): Promise<str
   const promise = fetcher().then((url) => {
     inFlight.delete(key);
     if (url) persist(key, url);
+    else missed.add(key);
     return url;
   });
   inFlight.set(key, promise);

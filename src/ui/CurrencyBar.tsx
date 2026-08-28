@@ -17,7 +17,7 @@ export default function CurrencyBar(props: {
 }) {
   const [open, setOpen] = createSignal(true);
   /** Pack points are per world, so the fourth tile always shows the world being fought in. */
-  const currentAnime = () => props.game.data.animes.find((a) => a.id === props.game.activeArc()?.animeId);
+  const currentAnime = () => props.game.animeOf(props.game.activeArc()?.animeId);
   return (
     <section class="panel">
       <header class="panel-head">

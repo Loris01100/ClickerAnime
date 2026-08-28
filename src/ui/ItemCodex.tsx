@@ -15,7 +15,7 @@ const KIND_LABEL: Record<Item["kind"], string> = {
  * Same two-pane shell as the character tab, so it slots into `Codex.tsx` without its own overlay.
  */
 export default function ItemCodex(props: { game: GameStore; animeId: string }) {
-  const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
+  const animeName = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
   const held = (item: Item) => props.game.countOf(item.id);
 
   /** The arc and the enemy that hand this item over — a mob for a common, the boss for a unique. */
@@ -44,7 +44,7 @@ export default function ItemCodex(props: { game: GameStore; animeId: string }) {
   /** Uniques only: who is wearing it right now, if anyone. */
   const wornBy = (item: Item) => {
     const entry = Object.entries(props.game.characterEquipment()).find(([, itemId]) => itemId === item.id);
-    return entry ? props.game.data.characters.find((c) => c.id === entry[0]) : undefined;
+    return entry ? props.game.characterOf(entry[0]) ?? undefined : undefined;
   };
 
   /** Uniques only: the restriction in prose, or null when anyone can wear it. */
@@ -52,7 +52,7 @@ export default function ItemCodex(props: { game: GameStore; animeId: string }) {
     const rule = item.equippableBy;
     if (!rule) return null;
     if (rule.characterIds)
-      return rule.characterIds.map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id).join(", ");
+      return rule.characterIds.map((id) => props.game.characterOf(id)?.name ?? id).join(", ");
     if (rule.animeIds) return rule.animeIds.map(animeName).join(", ");
     if (rule.tags) return `personnages « ${rule.tags.map(describeCharacterTag).join(" », « ")} »`;
     return null;

@@ -49,12 +49,17 @@ export default function Sprite(props: {
       }
     >
       {(src) => (
+        // `lazy`/`async` : le Codex en affiche des dizaines d'un coup, toutes hors écran au premier
+        // rendu. La boîte est déjà dimensionnée par `width`/`height`, donc rien ne bouge quand
+        // l'image arrive — c'est ce qui rend le chargement différé gratuit ici.
         <img
           class="sprite"
           classList={{ dim: props.dim }}
           src={src()}
           width={width()}
           height={height()}
+          loading="lazy"
+          decoding="async"
           alt=""
         />
       )}

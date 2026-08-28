@@ -40,17 +40,17 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
     [...arc.mobs, arc.boss]
       .map((e) => e.characterId)
       .filter((id): id is string => !!id)
-      .map((id) => props.game.data.characters.find((c) => c.id === id))
+      .map((id) => props.game.characterOf(id))
       .filter((c): c is Character => !!c);
 
   const commonItemOf = (arc: Arc) => {
     const itemId = arc.mobs.find((m) => m.itemId)?.itemId;
-    return props.game.data.items.find((i) => i.id === itemId) ?? null;
+    return props.game.itemOf(itemId);
   };
 
   const uniqueItemOf = (arc: Arc) => {
     const itemId = arc.boss.itemId;
-    return props.game.data.items.find((i) => i.id === itemId) ?? null;
+    return props.game.itemOf(itemId);
   };
 
   function travel() {
@@ -186,7 +186,7 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
   const firstSelectable = () =>
     props.game.data.animes.find((a) => statusOf(props.game, a) !== "locked") ?? props.game.data.animes[0];
   const [selectedId, setSelectedId] = createSignal(firstSelectable()?.id ?? "");
-  const selected = createMemo(() => props.game.data.animes.find((a) => a.id === selectedId()));
+  const selected = createMemo(() => props.game.animeOf(selectedId()) ?? undefined);
 
   function onKeyDown(event: KeyboardEvent) {
     if (event.key === "Escape") props.onClose?.();

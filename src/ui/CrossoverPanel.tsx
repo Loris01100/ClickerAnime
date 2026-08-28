@@ -26,7 +26,7 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
       counts.set(character.animeId, (counts.get(character.animeId) ?? 0) + 1);
     }
     return [...counts].map(([animeId, count]) => ({
-      name: props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId,
+      name: props.game.animeOf(animeId)?.name ?? animeId,
       count,
     }));
   };

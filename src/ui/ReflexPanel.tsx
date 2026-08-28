@@ -86,7 +86,7 @@ export default function ReflexPanel(props: { game: GameStore; onClose: () => voi
                 const current = () => props.game.abilityPolicyOf(unlocked.ability.id);
                 const targets = () =>
                   unlocked.characterIds
-                    .map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id)
+                    .map((id) => props.game.characterOf(id)?.name ?? id)
                     .join(", ");
                 return (
                   <div class="reflex-row" classList={{ ready: ready(unlocked.ability.id) }}>

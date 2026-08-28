@@ -19,7 +19,7 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
   onMount(() => document.addEventListener("keydown", onKeyDown));
   onCleanup(() => document.removeEventListener("keydown", onKeyDown));
 
-  const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
+  const animeNameOf = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
   const entries = createMemo(() => props.game.shopOffers());
   const supplyArcs = createMemo(() =>
     entries()
@@ -29,7 +29,7 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
   const [supplyArcId, setSupplyArcId] = createSignal(props.game.activeArc()?.id ?? "");
   const characterOffers = () => entries().filter((entry) => entry.character && !entry.owned);
   const supplyOffers = () => entries().filter((entry) => entry.arc?.id === supplyArcId());
-  const animeOf = (animeId: string | undefined) => props.game.data.animes.find((anime) => anime.id === animeId);
+  const animeOf = (animeId: string | undefined) => props.game.animeOf(animeId) ?? undefined;
 
   const OfferCard = (rowProps: { entry: () => ReturnType<GameStore["shopOffers"]>[number] }) => {
     const entry = rowProps.entry;

@@ -91,14 +91,26 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
   let teamPanel: HTMLElement | undefined;
   let itemsPanel: HTMLElement | undefined;
 
-  const animeNameOf = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
+  const animeNameOf = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
 
-  const sortedTeam = createMemo(() =>
-    props.game
+  /**
+   * Décorer-trier-défaire, plutôt qu'un comparateur qui recalcule.
+   *
+   * `SORTS[...].value` fait repasser le personnage par tout le pipeline de modificateurs (~20 µs),
+   * et un comparateur l'appelle deux fois par comparaison — environ 400 fois pour une équipe de
+   * cinquante, cinq fois par seconde puisque la valeur lit l'horloge. Une fois par personnage
+   * suffit. Le tri de `Array.prototype.sort` est stable, l'ordre à égalité ne bouge donc pas.
+   */
+  const sortedTeam = createMemo(() => {
+    const value = SORTS[sortKey()].value;
+    const world = worldFilter();
+    return props.game
       .ownedCharacters()
-      .filter((c) => !worldFilter() || c.animeId === worldFilter())
-      .sort((a, b) => SORTS[sortKey()].value(props.game, b) - SORTS[sortKey()].value(props.game, a))
-  );
+      .filter((c) => !world || c.animeId === world)
+      .map((character) => ({ character, key: value(props.game, character) }))
+      .sort((a, b) => b.key - a.key)
+      .map((entry) => entry.character);
+  });
 
   /** Only worlds the team actually draws from — an empty filter option would be a dead end. */
   const teamWorlds = createMemo(() => {
@@ -114,8 +126,12 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
    * buttons out from under the cursor.
    */
   const sortedAbilities = createMemo(() => {
-    const ready = (u: { ability: { id: string } }) => (props.game.abilityCooldownRemaining(u.ability.id) > 0 ? 1 : 0);
-    return [...props.game.unlockedAbilities()].sort((a, b) => ready(a) - ready(b));
+    // Le jeu tient déjà la liste des capacités prêtes en mémo : la lire une fois évite le
+    // `abilityCooldownRemaining` du comparateur, qui retrouvait sa capacité par un parcours
+    // linéaire de toute la barre — à chaque comparaison, et à chaque tick.
+    const ready = new Set(props.game.readyAbilities().map((u) => u.ability.id));
+    const rank = (u: { ability: { id: string } }) => (ready.has(u.ability.id) ? 0 : 1);
+    return [...props.game.unlockedAbilities()].sort((a, b) => rank(a) - rank(b));
   });
 
   const shownItems = createMemo(() =>
@@ -167,7 +183,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
                  */
                 const targets = () =>
                   unlocked.characterIds
-                    .map((id) => props.game.data.characters.find((c) => c.id === id)?.name ?? id)
+                    .map((id) => props.game.characterOf(id)?.name ?? id)
                     .join(", ");
                 const tooltip = () =>
                   [
