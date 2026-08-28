@@ -16,7 +16,9 @@ new optional field, which `?? {}`/`?? []` defaults already absorb without a bump
 existing player's save (a new key means the old one is never read again), so treat it as a last
 resort. `gameState`'s `buildSaveFile` is the one place the on-disk shape is assembled, shared by
 `save`, `exportSave` and `importSave` so they can never drift apart. `exportSave` base64-encodes the
-same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.txt` download);
+same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.txt` download named
+`[Clicker-Anime][YYYY-MM-DD][HHhMM].txt`, local date and time, so a downloads folder sorts them by
+hand and two exports the same day stay distinct);
 `importSave` decodes and shape-checks it exactly like `readSave`, then writes straight to
 `localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
 a setter per field. Equipment is additionally sanitized against the current game data on boot: an

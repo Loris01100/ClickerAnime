@@ -79,7 +79,14 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `clickeranime-save-${Date.now()}.txt`;
+    // Local date and time, not the epoch: the player sorts these by hand in their downloads
+    // folder, and two exports the same day have to be told apart. `h` rather than `:` — Windows
+    // refuses a colon in a filename.
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const time = `${pad(now.getHours())}h${pad(now.getMinutes())}`;
+    link.download = `[Clicker-Anime][${date}][${time}].txt`;
     link.click();
     // Revoking synchronously can cancel the download before the browser has read the blob.
     setTimeout(() => URL.revokeObjectURL(url), 0);
