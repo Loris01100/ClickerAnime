@@ -7,7 +7,8 @@ import ItemCodex from "./ItemCodex";
 import Sprite from "./Sprite";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
 import { fmt } from "./format";
-import { IconStar, IconStarOutline } from "./icons";
+import { themeOf } from "./hue";
+import { IconChevronLeft, IconStar, IconStarOutline } from "./icons";
 
 const RARITY_LABEL: Record<Character["rarity"], string> = {
   main: "Personnage principal",
@@ -15,14 +16,20 @@ const RARITY_LABEL: Record<Character["rarity"], string> = {
 };
 
 /**
- * Every character in the game, met or not, with their stats and what their passive actually does —
- * plus a second tab over the same shell listing every item, see `ItemCodex`.
+ * The player first picks an anime, then browses only that world's characters and items. A direct
+ * link from the roster skips the picker but stays inside the same scoped view.
  */
 export default function Codex(props: { game: GameStore; onClose: () => void; initialSelectedId?: string }) {
-  const [selectedId, setSelectedId] = createSignal(props.initialSelectedId ?? props.game.data.characters[0]?.id ?? "");
+  const initialCharacter = () => props.game.data.characters.find((c) => c.id === props.initialSelectedId);
+  const [selectedAnimeId, setSelectedAnimeId] = createSignal<string | undefined>(initialCharacter()?.animeId);
+  const [selectedId, setSelectedId] = createSignal(props.initialSelectedId ?? "");
   const [tab, setTab] = createSignal<"characters" | "items">("characters");
 
-  const selected = createMemo(() => props.game.data.characters.find((c) => c.id === selectedId()));
+  const selectedAnime = createMemo(() => props.game.data.animes.find((anime) => anime.id === selectedAnimeId()));
+  const characters = createMemo(() =>
+    props.game.data.characters.filter((character) => character.animeId === selectedAnimeId()),
+  );
+  const selected = createMemo(() => characters().find((c) => c.id === selectedId()));
   const owned = (character: Character) => props.game.ownedCharacterIds().includes(character.id);
   /** Ce qui multiplie la stat imprimée hors niveaux : doublons de packs et rattrapage d'histoire. */
   const rampOf = (character: Character) =>
@@ -33,6 +40,27 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
     character.arcIds.map((id) => props.game.data.arcs.find((a) => a.id === id)?.name ?? id);
   const combosOf = (character: Character) =>
     props.game.data.combos.filter((combo) => combo.requiredCharacterIds.includes(character.id));
+
+  const itemsOf = (animeId: string) => {
+    const itemIds = new Set(
+      props.game.data.arcs
+        .filter((arc) => arc.animeId === animeId)
+        .flatMap((arc) => [...arc.mobs.map((mob) => mob.itemId), arc.boss.itemId])
+        .filter((id): id is string => !!id),
+    );
+    return props.game.data.items.filter((item) => itemIds.has(item.id));
+  };
+
+  function chooseAnime(animeId: string) {
+    setSelectedAnimeId(animeId);
+    setSelectedId(props.game.data.characters.find((character) => character.animeId === animeId)?.id ?? "");
+    setTab("characters");
+  }
+
+  function returnToAnimePicker() {
+    setSelectedAnimeId(undefined);
+    setSelectedId("");
+  }
 
   /** The ability currently in effect: the evolved one once grown into, the base one otherwise. */
   const abilityOf = (character: Character) =>
@@ -49,11 +77,8 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
       <div class="modal" role="dialog" aria-modal="true" aria-label="Codex" onClick={(e) => e.stopPropagation()}>
         <header class="panel-head">
           <span>
-            <Show
-              when={tab() === "characters"}
-              fallback={`Codex — ${props.game.foundItems().length} / ${props.game.data.items.length} objets trouvés`}
-            >
-              Codex — {props.game.ownedCharacterIds().length} / {props.game.data.characters.length} rencontrés
+            <Show when={selectedAnime()} fallback="Codex — Choisir un anime">
+              {(anime) => `Codex — ${anime().name}`}
             </Show>
           </span>
           <button onClick={props.onClose} aria-label="Fermer">
@@ -61,23 +86,66 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
           </button>
         </header>
 
-        <div class="tabs">
-          <button classList={{ active: tab() === "characters" }} onClick={() => setTab("characters")}>
-            Personnages
-          </button>
-          <button classList={{ active: tab() === "items" }} onClick={() => setTab("items")}>
-            Objets
-          </button>
-        </div>
+        <Show
+          when={selectedAnime()}
+          fallback={
+            <div class="codex-anime-picker scroll">
+              <p class="muted">Choisissez l'anime dont vous voulez consulter le Codex.</p>
+              <div class="codex-anime-grid">
+                <For each={props.game.data.animes}>
+                  {(anime) => {
+                    const animeCharacters = () =>
+                      props.game.data.characters.filter((character) => character.animeId === anime.id);
+                    const animeItems = () => itemsOf(anime.id);
+                    const metCount = () =>
+                      animeCharacters().filter((character) => props.game.ownedCharacterIds().includes(character.id)).length;
+                    const foundCount = () => animeItems().filter((item) => props.game.countOf(item.id) > 0).length;
+                    return (
+                      <button
+                        class="codex-anime-card"
+                        style={{ "--world-hue": themeOf(anime) }}
+                        onClick={() => chooseAnime(anime.id)}
+                      >
+                        <Sprite name={anime.name} kind="anime" px={7} />
+                        <span class="codex-anime-copy">
+                          <strong>{anime.name}</strong>
+                          <small class="muted">
+                            {metCount()} / {animeCharacters().length} personnages
+                          </small>
+                          <small class="muted">
+                            {foundCount()} / {animeItems().length} objets
+                          </small>
+                        </span>
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+          }
+        >
+          {(anime) => (
+            <>
+              <div class="codex-toolbar">
+                <button class="codex-back" onClick={returnToAnimePicker}>
+                  <IconChevronLeft />
+                  Animes
+                </button>
+                <div class="tabs">
+                  <button classList={{ active: tab() === "characters" }} onClick={() => setTab("characters")}>
+                    Personnages ({characters().length})
+                  </button>
+                  <button classList={{ active: tab() === "items" }} onClick={() => setTab("items")}>
+                    Objets ({itemsOf(anime().id).length})
+                  </button>
+                </div>
+              </div>
 
-        <div class="codex">
-          <Show when={tab() === "characters"} fallback={<ItemCodex game={props.game} />}>
+              <div class="codex">
+                <Show when={tab() === "characters"} fallback={<ItemCodex game={props.game} animeId={anime().id} />}>
           <div class="codex-list scroll">
-            <For each={props.game.data.animes}>
-              {(anime) => (
-                <>
-                  <div class="codex-group">{anime.name}</div>
-                  <For each={props.game.data.characters.filter((c) => c.animeId === anime.id)}>
+                  <div class="codex-group">{anime().name}</div>
+                  <For each={characters()}>
                     {(character) => (
                       <button
                         class="codex-entry"
@@ -90,16 +158,13 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                           anime={animeName(character.animeId)}
                           px={3}
                           dim={!owned(character)}
-                          load={anime.id === selected()?.animeId}
+                          load
                         />
                         <span class="name">{character.name}</span>
                         <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
                       </button>
                     )}
                   </For>
-                </>
-              )}
-            </For>
           </div>
 
           <Show when={selected()}>
@@ -313,8 +378,11 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
               </div>
             )}
           </Show>
-          </Show>
-        </div>
+                </Show>
+              </div>
+            </>
+          )}
+        </Show>
       </div>
     </div>
   );

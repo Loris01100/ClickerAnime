@@ -14,11 +14,7 @@ const KIND_LABEL: Record<Item["kind"], string> = {
  * where it drops, whose passive it ranks up (commons) and what it grants once equipped (uniques).
  * Same two-pane shell as the character tab, so it slots into `Codex.tsx` without its own overlay.
  */
-export default function ItemCodex(props: { game: GameStore }) {
-  const items = () => props.game.data.items;
-  const [selectedId, setSelectedId] = createSignal(items()[0]?.id ?? "");
-  const selected = createMemo(() => items().find((i) => i.id === selectedId()));
-
+export default function ItemCodex(props: { game: GameStore; animeId: string }) {
   const animeName = (animeId: string) => props.game.data.animes.find((a) => a.id === animeId)?.name ?? animeId;
   const held = (item: Item) => props.game.countOf(item.id);
 
@@ -31,6 +27,10 @@ export default function ItemCodex(props: { game: GameStore }) {
     }
     return null;
   }
+
+  const items = () => props.game.data.items.filter((item) => sourceOf(item)?.arc.animeId === props.animeId);
+  const [selectedId, setSelectedId] = createSignal(items()[0]?.id ?? "");
+  const selected = createMemo(() => items().find((i) => i.id === selectedId()));
 
   /**
    * Commons only: the characters whose passive this item ranks up (the cast of its own arc).
@@ -58,17 +58,10 @@ export default function ItemCodex(props: { game: GameStore }) {
     return null;
   }
 
-  /** Items grouped by the world they drop in, uniques first; anything sourceless lands in a trailing group. */
-  const groups = createMemo(() => {
-    const byAnime = new Map<string, Item[]>();
-    for (const item of items()) {
-      const animeId = sourceOf(item)?.arc.animeId ?? "";
-      byAnime.set(animeId, [...(byAnime.get(animeId) ?? []), item]);
-    }
-    for (const list of byAnime.values())
-      list.sort((a, b) => Number(b.kind === "unique") - Number(a.kind === "unique"));
-    return [...byAnime.entries()].sort((a, b) => (a[0] === "" ? 1 : b[0] === "" ? -1 : 0));
-  });
+  /** The anime was picked one screen earlier; only rarity remains useful for ordering this list. */
+  const sortedItems = createMemo(() =>
+    [...items()].sort((a, b) => Number(b.kind === "unique") - Number(a.kind === "unique")),
+  );
 
   /** Items have no portrait to fetch — leur marque tient lieu de portrait, agrandie pour la fiche. */
   const iconOf = (item: Item, px?: number) => <ItemIcon id={item.id} kind={item.kind} px={px} />;
@@ -76,26 +69,20 @@ export default function ItemCodex(props: { game: GameStore }) {
   return (
     <>
       <div class="codex-list scroll">
-        <For each={groups()}>
-          {([animeId, list]) => (
-            <>
-              <div class="codex-group">{animeId ? animeName(animeId) : "Hors monde"}</div>
-              <For each={list}>
-                {(item) => (
-                  <button
-                    class="codex-entry"
-                    classList={{ active: item.id === selectedId(), unmet: held(item) === 0 }}
-                    onClick={() => setSelectedId(item.id)}
-                  >
-                    {iconOf(item)}
-                    <span class="name" classList={{ unique: item.kind === "unique" }}>
-                      {item.name}
-                    </span>
-                    <span class="rarity">{held(item) > 0 ? `x${held(item)}` : ""}</span>
-                  </button>
-                )}
-              </For>
-            </>
+        <div class="codex-group">{animeName(props.animeId)}</div>
+        <For each={sortedItems()}>
+          {(item) => (
+            <button
+              class="codex-entry"
+              classList={{ active: item.id === selectedId(), unmet: held(item) === 0 }}
+              onClick={() => setSelectedId(item.id)}
+            >
+              {iconOf(item)}
+              <span class="name" classList={{ unique: item.kind === "unique" }}>
+                {item.name}
+              </span>
+              <span class="rarity">{held(item) > 0 ? `x${held(item)}` : ""}</span>
+            </button>
           )}
         </For>
       </div>
