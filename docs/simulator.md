@@ -2,12 +2,19 @@
 
 `npm run sim` — playing a whole run headlessly to make a balance change checkable.
 
-`npm run sim:matrix` complements the arc-by-arc report with three five-seed matrices: entry-world
-stability, system ablations from Naruto, and click-cadence sensitivity. It prints Markdown so the
+`npm run sim:matrix` complements the arc-by-arc report with five five-seed matrices: entry-world
+stability, system ablations from Naruto, click-cadence sensitivity, first-experience milestones,
+and a Bleach route-order diagnosis. It prints Markdown so the
 result can be pasted into a balance note or compared in a review. Override the stable default sample
 with `npm run sim:matrix -- --seeds=1,7,42`. Each entry world is deliberately started at tier 0 in
 the first matrix; those rows compare the worlds' own curves, not the difficulty of entering them
 later in a live run.
+
+Every report also carries first-experience timestamps: first recruit, first cleared arc, first item
+actually used (an equipped unique or bought passive rank), and the first moments pending prestige
+reaches 1, 2 and 3 points. `--entry-only` stops after the selected entry world; `--order=a,b,c`
+overrides the usual sequel-first travel preference. Those two controls exist to separate one
+world's own pacing from the power carried into the next one.
 
 
 `npm run sim` plays a whole run headlessly and prints one row per arc: time to clear, kills, copies

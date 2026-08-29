@@ -32,6 +32,10 @@ export interface SimOptions {
   seed: number;
   /** Which world to start on. Defaults to the first entry point in the data. */
   entryAnimeId: string | null;
+  /** Preferred travel order after the entry world; unavailable worlds are skipped. */
+  worldOrder: string[] | null;
+  /** Stop as soon as the chosen entry world is complete, before travelling elsewhere. */
+  stopAfterEntryWorld: boolean;
   packs: boolean;
   abilities: boolean;
   equip: boolean;
@@ -44,6 +48,8 @@ export const defaultSimOptions: SimOptions = {
   stallMinutes: 30,
   seed: 1,
   entryAnimeId: null,
+  worldOrder: null,
+  stopAfterEntryWorld: false,
   packs: true,
   abilities: true,
   equip: true,
@@ -74,6 +80,18 @@ export interface ArcReport {
 export interface SimReport {
   options: SimOptions;
   arcs: ArcReport[];
+  milestones: {
+    firstRecruitMinutes: number | null;
+    firstArcMinutes: number | null;
+    /** First equipped unique or purchased passive rank — a drop the player has actually used. */
+    firstUsefulItemMinutes: number | null;
+    /** First moment a reset would bank at least one prestige point. */
+    firstPrestigeMinutes: number | null;
+    /** First moment a reset could buy the cheapest prestige-tree level. */
+    firstTreePurchaseMinutes: number | null;
+    /** First moment a reset could buy a three-point entry-world shortcut. */
+    firstWorldUnlockMinutes: number | null;
+  };
   totals: {
     minutes: number;
     arcsCleared: number;
@@ -220,9 +238,11 @@ function buyPacks(game: GameStore, animeId: string) {
 }
 
 /** The world to head into next: a sequel of somewhere already played first, else any entry point. */
-function nextWorld(game: GameStore, data: GameData): string | null {
+function nextWorld(game: GameStore, data: GameData, preferredOrder: string[] | null): string | null {
   const entered = new Set(game.unlockedAnimes().map((a) => a.id));
   const open = data.animes.filter((a) => !entered.has(a.id) && game.animeAvailable(a.id));
+  const preferred = preferredOrder?.find((id) => open.some((anime) => anime.id === id));
+  if (preferred) return preferred;
   const sequel = open.find((a) => a.requiresAnimeId && entered.has(a.requiresAnimeId));
   return (sequel ?? open[0])?.id ?? null;
 }
@@ -278,6 +298,32 @@ function play(
   // felled the arc, and an hp table sized on it comes out too heavy.
   let dpsSum = 0;
   let dpsSamples = 0;
+  const milestoneAt: SimReport["milestones"] = {
+    firstRecruitMinutes: null,
+    firstArcMinutes: null,
+    firstUsefulItemMinutes: null,
+    firstPrestigeMinutes: null,
+    firstTreePurchaseMinutes: null,
+    firstWorldUnlockMinutes: null,
+  };
+  const elapsedMinutes = () => (clock.now() - startedAt) / MINUTE_MS;
+
+  const sampleMilestones = () => {
+    if (milestoneAt.firstRecruitMinutes === null && game.ownedCharacters().length > 0) {
+      milestoneAt.firstRecruitMinutes = elapsedMinutes();
+    }
+    const achievements = game.achievementCounts();
+    if (
+      milestoneAt.firstUsefulItemMinutes === null &&
+      ((achievements.uniquesEquipped ?? 0) > 0 || (achievements.passiveRanksBought ?? 0) > 0)
+    ) {
+      milestoneAt.firstUsefulItemMinutes = elapsedMinutes();
+    }
+    const pending = game.pendingPrestigeGain();
+    if (milestoneAt.firstPrestigeMinutes === null && pending >= 1) milestoneAt.firstPrestigeMinutes = elapsedMinutes();
+    if (milestoneAt.firstTreePurchaseMinutes === null && pending >= 2) milestoneAt.firstTreePurchaseMinutes = elapsedMinutes();
+    if (milestoneAt.firstWorldUnlockMinutes === null && pending >= 3) milestoneAt.firstWorldUnlockMinutes = elapsedMinutes();
+  };
 
   const finishArc = (arc: Arc) => {
     const now = counters(game);
@@ -308,7 +354,7 @@ function play(
 
     const arc = game.activeArc();
     if (!arc) {
-      const world = nextWorld(game, data);
+      const world = nextWorld(game, data, options.worldOrder);
       if (!world || !game.travelTo(world)) break;
       continue;
     }
@@ -335,6 +381,7 @@ function play(
       if (options.equip) equipUniques(game);
       if (options.packs) buyPacks(game, arc.animeId);
     }
+    sampleMilestones();
 
     // A boss clock that ran out is the one thing that can actually stop a run: count the retreat
     // and ask for the rematch straight away, so a wall shows up as repeated timeouts, not silence.
@@ -344,12 +391,14 @@ function play(
     }
 
     if (game.arcCleared(arc)) {
+      if (milestoneAt.firstArcMinutes === null) milestoneAt.firstArcMinutes = elapsedMinutes();
       if (!reported.has(arc.id)) {
         reported.add(arc.id);
         finishArc(arc);
       }
       if (game.stepArc(1)) continue;
-      const world = nextWorld(game, data);
+      if (options.stopAfterEntryWorld && arc.animeId === entry) break;
+      const world = nextWorld(game, data, options.worldOrder);
       if (!world || !game.travelTo(world)) break;
       continue;
     }
@@ -364,6 +413,7 @@ function play(
   return {
     options,
     arcs,
+    milestones: milestoneAt,
     totals: {
       minutes: (clock.now() - startedAt) / MINUTE_MS,
       arcsCleared: cleared,

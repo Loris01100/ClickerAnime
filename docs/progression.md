@@ -92,6 +92,24 @@ beside them.
 
 ## Entry worlds all hand off at the same power
 
+### Fresh-save pacing targets
+
+Entry-world balance is measured against the same onboarding windows at 4 deliberate clicks per
+second. These are review targets, not test assertions: a content retune may move a seed slightly,
+but a whole world outside the window needs an explicit design reason.
+
+| Milestone | Target from a fresh save | What counts |
+| --- | --- | --- |
+| First recruit | 0.3–1.0 min | The first character joins the team. |
+| First arc | 0.8–2.0 min | The first boss falls and the next arc opens. |
+| First useful item | 1.0–3.0 min | A unique is equipped or a passive rank is bought; a drop sitting in stock does not count. |
+| First actionable prestige | 8–15 min | A reset would bank at least 2 points, enough for the cheapest tree level. |
+
+The simulator also records the first pending point and the three-point world-unlock threshold for
+diagnosis, but neither replaces the actionable target: one point has no sink, while three points is
+a route choice rather than the first meta-progression purchase. Run `npm run sim:matrix` to compare
+all entry worlds over the stable seed sample.
+
 `reachedArcPower` is a **single scalar for the whole game**, not one per world: it is the deepest
 `arcPower` rung the run has ever stood on, wherever that was. Which means the world a player *ends*
 their first world at sets the difficulty of every world after it — and the tier ramp

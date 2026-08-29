@@ -58,6 +58,12 @@ function parseArgs(argv: string[]): Partial<SimOptions> & { json: boolean } {
         }
         options.entryAnimeId = value;
         break;
+      case "order":
+        options.worldOrder = value.split(",").filter(Boolean);
+        break;
+      case "entry-only":
+        options.stopAfterEntryWorld = true;
+        break;
       case "no-packs":
         options.packs = false;
         break;
@@ -90,6 +96,8 @@ Usage: npm run sim -- [flags]
   --cps=N         clicks per second               (default ${defaultSimOptions.clicksPerSecond})
   --seed=N        rng seed, same seed = same run  (default ${defaultSimOptions.seed})
   --world=id      entry world                     (default: first entry point)
+  --order=a,b,c   preferred travel order after the entry world
+  --entry-only    stop after completing the chosen entry world
   --no-packs      never buy a pack
   --no-abilities  never fire an ability
   --no-equip      never equip a unique

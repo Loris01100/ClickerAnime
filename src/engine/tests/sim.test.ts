@@ -14,7 +14,23 @@ describe("le simulateur de run", () => {
     expect(report.totals.arcsCleared).toBe(report.arcs.length);
     expect(report.totals.teamSize).toBeGreaterThan(0);
     expect(report.totals.lifetimeEarned).toBeGreaterThan(0);
+    expect(report.milestones.firstRecruitMinutes).not.toBeNull();
+    expect(report.milestones.firstArcMinutes).not.toBeNull();
     for (const arc of report.arcs) expect(arc.kills).toBeGreaterThan(0);
+  });
+
+  it("peut isoler le monde d'entrée sans voyager dans le suivant", () => {
+    const report = simulateRun(gameData, {
+      entryAnimeId: "naruto",
+      stopAfterEntryWorld: true,
+      maxMinutes: 30,
+      stallMinutes: 10,
+      seed: 3,
+    });
+
+    expect(report.arcs).toHaveLength(5);
+    expect(new Set(report.arcs.map((arc) => arc.world))).toEqual(new Set(["Naruto"]));
+    expect(report.totals.stalledOn).toBeNull();
   });
 
   it("rend exactement la même run pour la même graine", () => {
