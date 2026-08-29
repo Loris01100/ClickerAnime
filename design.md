@@ -75,8 +75,12 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   unique** côté UI. Les mondes sans art dédié restent automatiquement distincts par le hash ; les
   mondes soignés reçoivent leur teinte sans toucher à un composant. Teintes retenues :
   **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja),
-  **Boruto `205`** (le bleu froid du Karma) et **Hunter x Hunter `142`** (le vert de l'aventure et
-  de l'Examen Hunter).
+  **Boruto `205`** (le bleu froid du Karma), **Hunter x Hunter `142`** (le vert de l'aventure et
+  de l'Examen Hunter) et **Bleach `268`** (le violet spirituel du Hueco Mundo et des portes du
+  Seireitei — l'orange d'Ichigo était la teinte évidente, mais Konoha la tient déjà).
+  Bleach est pour l'instant le seul monde **sans `mapImage`** : faute d'art de carte, ses quinze
+  arcs retombent sur la disposition en serpentin de `layoutArcs`, exactement le cas pour lequel ce
+  repli existe. Le jour où une carte arrive, il faudra poser un `mapX`/`mapY` par arc.
   `src/engine/tests/` vérifie que tout `themeHue` des données reste dans 0..360.
 - **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
   fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.

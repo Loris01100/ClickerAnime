@@ -5,10 +5,11 @@ import { narutoData } from "./naruto";
 import { shippudenData } from "./shippuden";
 import { borutoData } from "./boruto";
 import { hunterXHunterData } from "./hunter-x-hunter";
+import { bleachData } from "./bleach";
 
 // Independent entry worlds stay before sequel chains in the flattened data. Catch-up power is
 // monotone across this authored order, while `requiresAnimeId` still decides the actual route.
-const worlds = [narutoData, hunterXHunterData, shippudenData, borutoData];
+const worlds = [narutoData, hunterXHunterData, bleachData, shippudenData, borutoData];
 
 export const gameData: GameData = {
   animes: worlds.flatMap((w) => w.animes),
@@ -19,5 +20,8 @@ export const gameData: GameData = {
     { id: "shop-pakkun", kind: "character", targetId: "pakkun", cost: 75_000, requiresAnimeId: "naruto" },
     { id: "shop-tonton", kind: "character", targetId: "tonton", cost: 100_000, requiresAnimeId: "naruto" },
     { id: "shop-gamakichi", kind: "character", targetId: "gamakichi", cost: 150_000, requiresAnimeId: "naruto" },
+    { id: "bleach-shop-kon", kind: "character", targetId: "bleach-kon", cost: 75_000, requiresAnimeId: "bleach" },
+    { id: "bleach-shop-ururu", kind: "character", targetId: "bleach-ururu-tsumugiya", cost: 100_000, requiresAnimeId: "bleach" },
+    { id: "bleach-shop-jinta", kind: "character", targetId: "bleach-jinta-hanakari", cost: 150_000, requiresAnimeId: "bleach" },
   ],
 };

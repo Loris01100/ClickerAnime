@@ -181,6 +181,27 @@ Three practical notes, each learned by getting it wrong:
   strict 60-second timer. Seeds 1–4 clear the world in 33.6–33.8 minutes and each records three
   timeouts followed by successful rematches: abilities remain valuable, while the clock creates
   pressure without becoming a wall.
+- **Bleach is the same method again, over fifteen arcs — and it is where the loop was actually run
+  end to end.** Also an entry point, also outside the geometric test, but long enough that a single
+  ramp does not fit it: the opening is a cliff (mob hp ×55, then ×4.1, ×2.6, ×2.0 over the first
+  four arcs, because a team goes from four members to thirty-three in that stretch) and only then
+  does it settle. From arc 4 on the table is close to geometric at **~1.6x an arc for mob hp**,
+  which is the measured team-dps ramp (**~1.45x**) times the 1.10x an arc the *target* clock grows
+  by. Note how far below the sequel worlds' 2.12x that dps ramp is: Bleach's printed `baseDps`
+  climbs only 1.24x an arc (`src/data/bleach/index.ts` says why), so nearly all of its dps growth
+  comes from the roster deepening — 111 recruits — rather than from recruits being individually
+  stronger. **Boss hp was then fit last from `avgDps`, per arc, at `avgDps × timer / 1.5`**, which
+  is the whole reason the margins hold flat: a constant boss-to-mob hp ratio would have let them
+  drift by that same 1.10x an arc — 3.7x across the world. Clocks are 60s for arcs 0–7, 75s for 8–11 and 90s
+  for 12–14. Result at 4 clicks/s: **15/15 arcs in 39.8–40.0 minutes on seeds 1, 2, 3 and 7, with
+  no boss timeout anywhere**, every arc within 4–6% of its target, and arcs rising 1.15 → 4.87
+  minutes.
+- **The loop really does take five passes, and the boss fights are ~20% of an arc.** Measuring
+  Bleach's mob table with the bosses left in place kept poisoning the fit — a boss that cannot fall
+  re-farms its arc, and even one that can adds its own time to the arc's minutes. Both were solved
+  by measuring in two stages: a *probe* run with deliberately harmless bosses (hp = 8× the arc's mob
+  hp, ten-minute clocks) to read `avgDps` and the mob table's pacing alone, then the real bosses
+  fitted on top and one final correction pass for the ~19% uniform stretch they add.
 - **Active ability damage uses the same ceiling in every world.** Character and evolution
   abilities are capped at ×3.5 for multipliers and +50% for additive damage bonuses; lower tiers
   are reduced too rather than only clipping the peak. After applying this to Naruto, Shippuden, and

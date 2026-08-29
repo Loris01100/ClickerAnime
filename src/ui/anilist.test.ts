@@ -167,6 +167,38 @@ describe("portraitUrl", () => {
     );
   });
 
+  it("pins Bleach's id and sends the Blood War cast to the sequel's own AniList entry", async () => {
+    // Both ids are pinned in `ANIME_ID_OVERRIDES`, so no `Media(search:)` ever runs here — every
+    // call is a cast page, and the id it carries is what this test is actually about.
+    const casts: Record<number, { name: { full: string }; image: { large: string } }[]> = {
+      269: [
+        { name: { full: "Kuroud" }, image: { large: "https://example.com/kurodo.jpg" } },
+        { name: { full: "Toushirou Hitsugaya" }, image: { large: "https://example.com/hitsugaya.jpg" } },
+      ],
+      116674: [{ name: { full: "Yhwach" }, image: { large: "https://example.com/yhwach.jpg" } }],
+    };
+    const requestedIds: number[] = [];
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init!.body as string) as { query: string; variables: { id: number } };
+      expect(body.query).toContain("characters(");
+      requestedIds.push(body.variables.id);
+      return Response.json({ data: { Media: { characters: { nodes: casts[body.variables.id] ?? [] } } } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // The one Bleach name the vowel normalization can't line up on its own: AniList writes Kurōdo
+    // as "Kuroud", which collapses to "kurod" against the game's "kurodo".
+    await expect(portraitUrl("Kurôdo", "character", "Bleach")).resolves.toBe("https://example.com/kurodo.jpg");
+    await expect(portraitUrl("Tôshirô Hitsugaya", "character", "Bleach")).resolves.toBe(
+      "https://example.com/hitsugaya.jpg"
+    );
+    // Yhwach is on none of Bleach's eight cast pages — the Blood War is a separate entry there,
+    // while it is just this world's last arc here.
+    await expect(portraitUrl("Yhwach", "character", "Bleach")).resolves.toBe("https://example.com/yhwach.jpg");
+
+    expect(new Set(requestedIds)).toEqual(new Set([269, 116674]));
+  });
+
   it("applies a name override even when it's only part of a longer display name (a boss's subtitle)", async () => {
     // A boss can carry a fight-specific subtitle ("Sasuke Uchiwa — Vallée de la Fin") that an exact
     // dictionary lookup on the full string would miss — the override has to apply as a substring.

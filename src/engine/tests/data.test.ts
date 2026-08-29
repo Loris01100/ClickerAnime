@@ -36,6 +36,57 @@ describe("game data", () => {
 
   });
 
+  it("covers Bleach's fifteen anime arcs, the manga-only duplicate of the last one aside", () => {
+    const arcs = gameData.arcs.filter((arc) => arc.animeId === "bleach").sort((a, b) => a.order - b.order);
+    expect(arcs.map((arc) => arc.name)).toEqual([
+      "Arc du Shinigami Remplaçant",
+      "Arc de la Soul Society",
+      "Arc des Bounts",
+      "Arc des Arrancars",
+      "Arc des Arrancars, Assaut du Hueco Mundo",
+      "Arc des Arrancars, La Lutte acharnée",
+      "Arc du Nouveau Capitaine, Shûsuke Amagai",
+      "Arc des Arrancars contre les Shinigamis",
+      "Arc du Passé",
+      "Arc des Arrancars, La Bataille de Karakura",
+      "Arc du Conte Inconnu des Zanpakutôs",
+      "Arc de la Destruction des Arrancars",
+      "Arc de l'Armée Envahissante du Gotei 13",
+      "Arc du Fullbringer, Le Shinigami Remplaçant Disparu",
+      "Arc de la Guerre sanglante Millénaire",
+    ]);
+    // The source list names the last arc twice — "Guerre sanglante Millénaire" for the anime,
+    // "Arc Quincy" for the manga. Same story, so it is one arc here, not two.
+    expect(arcs.some((arc) => arc.name.includes("Quincy"))).toBe(false);
+
+    const anime = gameData.animes.find((entry) => entry.id === "bleach");
+    expect(anime?.requiresAnimeId).toBeUndefined(); // an entry world, like Naruto and Hunter x Hunter
+    expect(anime?.mapImage).toBeUndefined(); // no key art yet, so the snake layout places the arcs
+
+    // The debut-power ramp is deliberately flat (~1.24x an arc where every other world runs ~1.85).
+    // `reachedArcPower` is one scalar shared by every world, so an entry world has to hand off at
+    // the same height as the other two — Naruto ends at 78, Hunter x Hunter at 120, Shippūden opens
+    // at 130. Fifteen arcs at 1.85x would end near 20 000. See `src/data/bleach/index.ts`.
+    const debutPower = arcs.map((arc) =>
+      Math.max(...gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((c) => c.baseDps))
+    );
+    expect(debutPower[0]).toBe(6);
+    expect(debutPower[debutPower.length - 1]).toBe(125);
+    for (let n = 1; n < debutPower.length; n++) expect(debutPower[n]).toBeGreaterThan(debutPower[n - 1]);
+
+    // The cohort floor (`docs/progression.md`): no recruit below 0.6 of the strongest one debuting
+    // beside them. Held here from the start, which the older worlds predate.
+    for (const arc of arcs) {
+      const cohort = gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((c) => c.baseDps);
+      expect(Math.min(...cohort) / Math.max(...cohort), `${arc.id} : plancher de cohorte`).toBeGreaterThanOrEqual(0.6);
+    }
+
+    // Boss clocks are fit last, at ~1.5x over the time-to-kill the simulator measures, and never
+    // shorten as the world goes on (`docs/combat.md`).
+    const timers = arcs.map((arc) => arc.boss.timerMs);
+    expect(timers).toEqual([...Array(8).fill(60_000), ...Array(4).fill(75_000), ...Array(3).fill(90_000)]);
+  });
+
   it("caps active ability damage gains in every world", () => {
     const abilities = [
       ...gameData.characters.flatMap((character) => character.ability ? [character.ability] : []),

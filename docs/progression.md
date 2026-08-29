@@ -90,6 +90,35 @@ Keep new content on the same floor — and if you add a character stronger than 
 lead, remember that they redefine `arcPower` for that arc and quietly demote everyone debuting
 beside them.
 
+## Entry worlds all hand off at the same power
+
+`reachedArcPower` is a **single scalar for the whole game**, not one per world: it is the deepest
+`arcPower` rung the run has ever stood on, wherever that was. Which means the world a player *ends*
+their first world at sets the difficulty of every world after it — and the tier ramp
+(`difficultyMultiplier`, 2.5x per world entered) is nothing next to it.
+
+So an entry point has a **budget**, not just a ramp. Naruto's five arcs end at **78**, Hunter x
+Hunter's six at **120**, and Shippūden — the first sequel world anyone reaches — opens at **130**:
+whichever entry world you pick, you arrive at the second world at roughly the same height, which is
+what makes the 2.5x tier step mean anything.
+
+Bleach is where that stopped being free. Fifteen arcs at the story's usual ~1.85x would end near
+**20 000**, 170x above the other two entry points, and every world after it would fold — a Bleach
+player would walk into a 2.5x-tier world with a team sized for a 39x one. Its debut-power ramp is
+therefore deliberately flat, **~1.24x an arc, 6 → 125**, landing it beside Hunter x Hunter.
+
+Nothing is lost by that, which is the part worth remembering: `baseDps` is only ever read
+*relatively* — `catchUpGrowth` divides the ramp out and re-applies it at the arc reached, and
+`arcPowerTable` reads a cohort's maximum. A flat ramp means a new recruit is not dramatically
+stronger than the veteran beside them, and that is what `CATCH_UP` spends its whole existence
+undoing anyway. What actually makes Bleach's fifteenth arc harder than its first is the hp table
+(`docs/combat.md`), and *that* rises 1.6x an arc because the team's dps really does — from the
+roster deepening, not from the printed numbers.
+
+**A world added after this one has the same choice to make.** Long entry world: flatten the ramp to
+fit the budget. Sequel world: keep 1.85x, because it starts where the previous world's budget left
+off and the whole chain is already sized for it.
+
 Algebraically the inflation is bounded and does **not** grow with roster size: summing
 `D^(1-CATCH_UP)` over a geometric ramp converges for any `CATCH_UP < 1`, at roughly 3.3x the old
 sum here. Do not set it to 1 — there the sum is linear in the number of characters owned, and a
@@ -110,9 +139,10 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   *cleared* first, and `isAnimeAvailable` gates both routes into a world — free travel and the paid
   shortcut alike. Prestige buys an early entry, never a way to read a sequel first: Shippūden sits
   behind part 1, and Boruto is meant to sit behind Shippūden. An anime with no `requiresAnimeId` is
-  an entry point, i.e. a world the player may start a run on. Naruto and Hunter x Hunter are the
-  current entry points; Hunter x Hunter is one continuous world because the anime has no sequel
-  part in this data model.
+  an entry point, i.e. a world the player may start a run on. Naruto, Hunter x Hunter and Bleach are
+  the current entry points; the latter two are each one continuous world because neither has a
+  sequel part in this data model — Bleach's Thousand-Year Blood War is a separate series on AniList
+  but is this world's fifteenth arc here, not a world of its own.
 - The player picks their first world freely among the entry points and travels freely after each
   clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige
   points to enter early — but only into a world whose prerequisite is already cleared.

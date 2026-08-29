@@ -54,6 +54,9 @@ const NAME_OVERRIDES: [from: string, to: string][] = [
   ["Alluka Zoldik", "Alluka Zoldyck"],
   ["Zeno Zoldik", "Zeno Zoldyck"],
   ["Geretta", "Gereta"],
+  // AniList écrit la voyelle longue de Kurōdo en "ou" *sans* la doubler ("Kuroud"), ce que la
+  // normalisation ne rattrape pas : "kurodo" contre "kurod". Le seul nom de Bleach dans ce cas.
+  ["Kurôdo", "Kuroud"],
 ];
 
 // The arc *enemies* go through the same table. They used to be anonymous by design ("Garde de
@@ -83,6 +86,10 @@ const ANIME_ID_OVERRIDES: Record<string, number> = {
   // BORUTO: NARUTO THE MOVIE (21220), not the 293-episode TV series the game's cast comes from.
   Boruto: 97938,
   "Hunter x Hunter": 11061,
+  Bleach: 269,
+  // La Guerre sanglante Millénaire est une série à part sur AniList, avec sa propre fiche de
+  // casting : aucun Sternritter ni membre de la Division Zéro n'apparaît sur celle de Bleach.
+  "BLEACH: Sennen Kessen-hen": 116674,
 };
 
 // A character's own story can span a spin-off movie the game's data doesn't model as a separate
@@ -91,6 +98,30 @@ const ANIME_ID_OVERRIDES: Record<string, number> = {
 // cast lookup at the right title instead of the `anime` prop passed by the caller.
 const CHARACTER_ANIME_OVERRIDES: Record<string, string> = {
   "Toneri Ôtsutsuki": "The Last: Naruto the Movie",
+  // Le dernier arc de Bleach porte `animeId: "bleach"` — c'est un arc du monde, pas un monde à part
+  // — mais son casting n'existe que sur la fiche de la Guerre sanglante Millénaire. Chacun de ces
+  // noms est absent des huit pages de casting de Bleach ; y ajouter une entrée est la seule chose
+  // qui les fasse résoudre.
+  ...Object.fromEntries(
+    [
+      "Yhwach",
+      "Jugram Haschwalth",
+      "As Nodt",
+      "Bambietta Basterbine",
+      "Bazz-B",
+      "Mask De Masculine",
+      "NaNaNa Najahkoop",
+      "Quilge Opie",
+      "Driscoll Berci",
+      "Asguiaro Ebern",
+      "Ichibê Hyôsube",
+      "Ôetsu Nimaiya",
+      "Senjumaru Shutara",
+      "Tenjirô Kirinji",
+      "Kirio Hikifune",
+      "Ryûnosuke Yuki",
+    ].map((name) => [name, "BLEACH: Sennen Kessen-hen"])
+  ),
 };
 
 

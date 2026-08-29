@@ -77,6 +77,14 @@ points — one run buying the whole tree. Dropping the exponent to 0.16 puts a f
 without moving the early game (a Naruto-only clear goes 5 points → 4). Re-run this arithmetic
 whenever a world is added; `npm run sim` prints the banked total on every run.
 
+**Bleach was re-checked and needed nothing.** Its fifteen arcs take the game from 34 to 49, so the
+dilution half bit as designed — a Naruto + Shippūden clear falls from 20/28 to 20/49, and the
+simulator's seed-1 run drops from 26 banked points to 20. The other half barely moved: Bleach earns
+**4.45e8** over a whole world at tier 0, which even entered last (tier 4, ×39) is ~1.7e10 against a
+full clear's 3.21e12 — **+0.5%**, i.e. ×1.008 through a 0.16 exponent. That is the shape to look for
+when the next world lands: an entry world sits at the *bottom* of the difficulty ramp, so its
+earnings are noise next to the last world's, and only the arc count really moves.
+
 `prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
 tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
