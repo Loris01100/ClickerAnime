@@ -219,6 +219,8 @@ Two consequences worth knowing before changing build config:
 - **AniList name mismatches**: fix via `NAME_OVERRIDES` in `ui/anilist.ts`, not by renaming game data.
 - **World-specific UI code**: add data or a hue override in `types.ts`/`data/`, not component branches.
 - **Ability stacking**: every ability can run at once — a buff is scoped to the character it comes from (`computeScopedStat`), never team-wide.
+- **Pack eligibility**: packs draw only characters already recruited in the current run. Pack points
+  and existing duplicates survive prestige, but the eligible pool resets with the roster.
 - **Synergy outside home arc**: passives *and* active abilities are dropped entirely outside the anime where a character is present (`animeId`, `appearanceAnimeIds`, or an unlocked evolution) — one `isHomeArc` test, and a crossover doesn't lift it. `fullSynergyAnimeIds` grants 1.0 across a whole later anime but never changes where the character is recruited.
 
 ## Quick Reference

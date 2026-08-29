@@ -61,6 +61,7 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
           <p class="muted small pad">
             Un point par combat gagné, dans le monde où il a été gagné. Chaque doublon ajoute{" "}
             {Math.round(DUPLICATE_DAMAGE_STEP * 100)}% des dégâts de base du personnage — clic et DPS, sans limite.
+            Seuls les personnages déjà recrutés peuvent sortir d'un pack.
           </p>
 
           <div class="row">
@@ -103,6 +104,9 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
                     </Show>
                   )}
                 </For>
+                <Show when={props.game.packPoolOf(anime.id, "main").length === 0 && props.game.packPoolOf(anime.id, "secondary").length === 0}>
+                  <span class="muted small">Recrutez un personnage de cet anime pour ouvrir ses packs.</span>
+                </Show>
               </div>
             )}
           </For>

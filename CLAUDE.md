@@ -118,6 +118,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.
+- A pack only draws among characters already recruited in the current run; it never reveals a
+  future story character. Existing duplicates still survive prestige while eligibility resets with the roster.
 - Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance).
 - **A challenge constraint is enforced, never watched.** Every rule in `challenges.ts` is something
   the engine *refuses to do* — no click damage, no ability, no drop, no recruit past the cap — and

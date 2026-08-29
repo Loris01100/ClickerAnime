@@ -1554,8 +1554,9 @@ export function createGameStore(data: GameData) {
     return foldScopedStat(0, target, teamWideScaling(), teamWideScaling(), [own], now(), buffCap());
   }
 
-  /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
-  const packPoolOf = (animeId: string, rarity: Rarity) => packPool(data.characters, animeId, rarity);
+  /** Recruited members of this world's rarity — future story characters never leak through packs. */
+  const packPoolOf = (animeId: string, rarity: Rarity) =>
+    packPool(data.characters, animeId, rarity, ownedCharacterIds());
 
   /**
    * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.

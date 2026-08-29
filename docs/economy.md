@@ -315,7 +315,10 @@ won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws
 world's `rarity: "main"` cast, `PACK_COST.secondary` (250) from its secondary cast. `packPool` and
 `drawPack` are pure and take the 0..1 roll as an argument, like `rollsDrop`; `openPack` in
 `gameState` is the only caller of `Math.random()` and returns the character drawn so `PackPanel` can
-show it. The pool is **not** filtered by the team: a copy of someone not met yet is banked for later.
+show it. The pool is filtered by the current roster: only characters already recruited in this
+adventure are eligible. This prevents a pack from revealing or strengthening a character before
+their story encounter. After prestige, a character becomes eligible again when recruited again;
+duplicates already held remain banked meanwhile.
 
 Points and duplicates are meta-progression like `achievementCounts` and `prestigeTreeRanks` —
 `prestigeReset` spares both, only `hardReset` wipes them. Both are optional save fields, so no

@@ -19,11 +19,17 @@ export const DUPLICATE_DAMAGE_STEP = 0.25;
 export const duplicateGrowth = (copies: number) => 1 + copies * DUPLICATE_DAMAGE_STEP;
 
 /**
- * What a pack can hand out: one world's cast at one rarity, owned or not. Not filtered by the
- * team — duplicates survive prestige, so a copy of someone not met yet is banked, never wasted.
+ * What a pack can hand out: recruited characters from one world at one rarity. A pack must never
+ * reveal or strengthen someone the player has not reached in the current story yet.
  */
-export function packPool(characters: Character[], animeId: string, rarity: Rarity): Character[] {
-  return characters.filter((c) => c.animeId === animeId && c.rarity === rarity);
+export function packPool(
+  characters: Character[],
+  animeId: string,
+  rarity: Rarity,
+  ownedCharacterIds: string[]
+): Character[] {
+  const owned = new Set(ownedCharacterIds);
+  return characters.filter((c) => c.animeId === animeId && c.rarity === rarity && owned.has(c.id));
 }
 
 /** Draws one character; `roll` is the 0..1 draw, passed in so the odds stay testable. */

@@ -96,10 +96,12 @@ describe("packs", () => {
     { id: "o1", name: "O1", animeId: "tb", rarity: "main", arcIds: [], baseClickPower: 10, baseDps: 10 },
   ];
 
-  it("packPool keeps one world's cast at one rarity, and drawPack picks by the roll", () => {
-    expect(packPool(cast, "ta", "main").map((c) => c.id)).toEqual(["m1", "m2"]);
-    expect(packPool(cast, "ta", "secondary").map((c) => c.id)).toEqual(["s1"]);
-    const pool = packPool(cast, "ta", "main");
+  it("packPool keeps only recruited characters from one world and rarity", () => {
+    const recruited = ["m1", "s1", "o1"];
+    expect(packPool(cast, "ta", "main", recruited).map((c) => c.id)).toEqual(["m1"]);
+    expect(packPool(cast, "ta", "secondary", recruited).map((c) => c.id)).toEqual(["s1"]);
+    expect(packPool(cast, "ta", "main", [])).toEqual([]);
+    const pool = packPool(cast, "ta", "main", ["m1", "m2"]);
     expect(drawPack(pool, 0)?.id).toBe("m1");
     expect(drawPack(pool, 0.99)?.id).toBe("m2");
     // A roll of exactly 1 must not fall off the end of the pool.
@@ -133,7 +135,10 @@ describe("packs", () => {
           name: "Arc",
           order: 0,
           mobsToBoss: 100_000,
-          mobs: [{ id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 }],
+          mobs: [
+            { id: "ta-recruit", name: "S1", baseHp: 1, reward: 1, characterId: "s1" },
+            { id: "ta-mob", name: "Mob", baseHp: 1, reward: 1 },
+          ],
           boss: { id: "ta-boss", name: "Boss", baseHp: 1_000_000, reward: 1 },
         },
       ],
@@ -155,12 +160,14 @@ describe("packs", () => {
       game.travelTo("ta");
 
       expect(game.openPack("ta", "secondary")).toBeNull(); // no points yet
+      expect(game.packPoolOf("ta", "secondary")).toEqual([]); // s1 is still ahead in the story
       // Clicking until the pack is affordable rather than a fixed count: one click can fell several
       // 1-hp mobs once an achievement tier has lifted the click's damage (overkill carries over).
       while (game.worldPointsOf("ta") < PACK_COST.secondary) {
         game.click();
         vi.advanceTimersByTime(200);
       }
+      expect(game.ownedCharacterIds()).toContain("s1");
       const banked = game.worldPointsOf("ta");
       expect(banked).toBeGreaterThanOrEqual(PACK_COST.secondary);
       // No main-rarity character in this world: that pack can't be drawn at all.
