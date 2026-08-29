@@ -32,6 +32,8 @@ All commands run from the project root.
 - `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
   check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
   See `docs/simulator.md`.
+- `npm run deploy` — `wrangler deploy`, a manual push to the Cloudflare Worker. Rarely what you
+  want: merging into `main` deploys on its own (see **Deployment**).
 
 A `PostToolUse` hook (`.claude/hooks/verify-edit.mjs`, wired in `.claude/settings.json`) runs the
 suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit under `src/ui/`. A
@@ -180,7 +182,32 @@ looking at the result.
 
 ## Deployment
 
-The production artifact is the `dist/` directory produced by `npm run build`. It is a static SPA; serve `dist/index.html` from any static host. There is no server-side rendering.
+The production artifact is the `dist/` directory produced by `npm run build`. It is a static SPA with
+no server-side rendering, and it is served by a **Cloudflare Worker with static assets** — no Worker
+code, just `wrangler.jsonc` pointing at `dist/`. `not_found_handling: "single-page-application"`
+answers any unmatched route with `index.html` and a 200.
+
+**Nothing in this repository deploys.** Cloudflare Workers Builds is connected to the GitHub repo and
+does it:
+
+| Event | Result |
+|---|---|
+| push to `development` | build + `wrangler versions upload` → a preview URL |
+| pull request into `main` | `.github/workflows/ci.yml` runs tests and the build |
+| merge into `main` | build + `wrangler deploy` → production, `clickeranime.reesch.com` |
+
+Two consequences worth knowing before changing build config:
+
+- **`wrangler.jsonc`'s `name` must stay `clickeranime`.** It is what `wrangler deploy` targets, and
+  the custom domain is bound to that Worker. Renaming it silently creates a second Worker and the
+  domain keeps serving the old one.
+- **`base` in `vite.config.ts` must stay `/`.** The SPA fallback serves `index.html` from any path,
+  so relative asset paths (`./assets/…`, and `index.html`'s favicon links) would resolve against the
+  requested route rather than the site root. This is why `base: "./"` — correct for the old GitHub
+  Pages sub-directory deployment — was removed.
+
+`npm run deploy` (`wrangler deploy`) exists for a manual push from a workstation; it needs
+`wrangler login` first and is not the normal route.
 
 ## Common Pitfalls
 
