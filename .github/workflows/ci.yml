@@ -1,8 +1,11 @@
+# GitHub ne fait plus que vérifier le code : c'est Cloudflare Workers Builds qui déploie — sur
+# `main` pour la production (clickeranime.reesch.com), sur les autres branches pour une URL de
+# prévisualisation. Le job `deploy` vers GitHub Pages a été retiré avec ce changement.
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, development]
   pull_request:
 
 jobs:
@@ -17,28 +20,3 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: dist
-      - id: deployment
-        uses: actions/deploy-pages@v5

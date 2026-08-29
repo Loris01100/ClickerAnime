@@ -108,7 +108,7 @@ Shippūden's map already carries.
 
 The site icon lives in `public/`: `favicon.png` is the lightweight 64px browser-tab asset and
 `site-icon.png` is its 512px source for home-screen shortcuts. `index.html` references both with
-relative paths so the GitHub Pages subdirectory deployment keeps working.
+absolute paths from the site root, which is where Cloudflare serves it.
 
 **Portraits are fetched live from AniList, in the player's own browser.** `ui/anilist.ts` is a
 small best-effort client: `portraitUrl(name, kind)` queries `graphql.anilist.co` by character or
@@ -262,12 +262,21 @@ on an outside click by itself). The world-dependent entries stay behind the same
 
 ## Paths into `public/`
 
-Anything under `public/` is referenced by an absolute path in the source (`/portraits/x.webp`,
-`/naruto-map.jpg`, `/resources/currency-gold.png`) and must go through `ui/asset.ts`'s `asset()`
-before it reaches an `src`. The site is served from a sub-directory on GitHub Pages
-(`/ClickerAnime/`), where a leading `/` points at the domain root instead; Vite rewrites `url()` in
-CSS and static imports, but never a string built at runtime, so the `BASE_URL` prefix has to be
-explicit. The two call sites are `WorldMap.tsx`'s `mapImage` and `CurrencyBar.tsx`'s four coins.
+Anything under `public/` is referenced by an absolute path in the source (`/bleach-map.jpg`,
+`/naruto-map.jpg`, `/resources/currency-gold.png`) and goes through `ui/asset.ts`'s `asset()` before
+it reaches an `src`. Four call sites: `WorldMap.tsx`'s `mapImage`, `Coin.tsx`'s four coins,
+`ItemIcon.tsx`'s item art and `preload.ts`'s warming pass.
+
+`asset()` is the identity function today, and deliberately kept anyway. It exists because Vite
+rewrites `url()` in CSS and static imports but **never a string built at runtime**, so a site served
+from a sub-directory needs the `BASE_URL` prefix spelled out — which is what GitHub Pages required
+under `/ClickerAnime/`. Cloudflare serves the game at the root of `clickeranime.reesch.com`, so
+`base` is back to `/` and the prefix is empty; the indirection stays so that moving under a
+sub-path again is one line in `vite.config.ts` rather than a hunt for broken `src` attributes.
+
+The same reasoning is why `index.html` links its favicon as `/favicon.png` rather than
+`./favicon.png`: Cloudflare's SPA fallback answers *any* unmatched route with `index.html`, and a
+relative path in it would resolve against that route's directory instead of the site root.
 
 ## Coins
 
