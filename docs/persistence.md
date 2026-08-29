@@ -21,7 +21,10 @@ same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.t
 hand and two exports the same day stay distinct);
 `importSave` decodes and shape-checks it exactly like `readSave`, then writes straight to
 `localStorage` and reloads the page — simplest way to get every signal back in sync without exposing
-a setter per field. Equipment is additionally sanitized against the current game data on boot: an
+a setter per field. Once that write succeeds, autosave is suspended for the few milliseconds before
+reload: both `pagehide` and the store cleanup normally save the current run during teardown, and
+would otherwise overwrite the newly imported file with the old in-memory signals. A failed import
+re-enables autosave immediately. Equipment is additionally sanitized against the current game data on boot: an
 unknown, unowned, restricted or duplicate unique is discarded rather than granting a bonus. There is
 no offline-progress catch-up. Combat still restarts on a reload, except for ability cooldown start
 times: they are saved so Ctrl+F5 cannot turn a cooling ability into a ready one.

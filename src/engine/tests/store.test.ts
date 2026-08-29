@@ -677,6 +677,62 @@ describe("store boot", () => {
       (globalThis as { localStorage?: unknown }).localStorage = original;
     }
   });
+
+  it("does not overwrite an imported save with the old run during reload cleanup", () => {
+    const imported = {
+      version: 10,
+      currency: 12_345,
+      lifetimeEarned: 98_765,
+      ownedCharacterIds: ["naruto-uzumaki", "rock-lee"],
+      activeArcId: "shippuden-kazekage",
+      prestigePoints: 17,
+      unlockedAnimeIds: ["naruto", "shippuden"],
+      arcKills: { "shippuden-kazekage": 23 },
+      clearedArcIds: ["naruto-vagues", "naruto-chunin"],
+      characterXp: { "naruto-uzumaki": 4_200 },
+      itemCounts: { "item-fil": 8 },
+      passiveRanks: { "rock-lee": 3 },
+      evolvedCharacterIds: ["naruto-uzumaki"],
+      achievementCounts: { kills: 321 },
+      prestigeTreeRanks: { xp: [1, 2, 0, 0, 0] },
+      crossoverCrystals: 4,
+      worldPoints: { naruto: 6 },
+      characterDuplicates: { "naruto-uzumaki": 2 },
+      autoClickEnabled: false,
+      automationOff: { ability: true },
+      autoRankCharacterIds: ["rock-lee"],
+      abilityPolicy: { "ability-portes": "boss" as const },
+      abilityLastUsed: { "ability-portes": 123_000 },
+      uniqueFragments: { "item-fil": 5 },
+      uniqueUpgradeRanks: { "item-fil": 2 },
+      activeChallengeId: null,
+      completedChallengeIds: ["challenge-a"],
+      characterEquipment: {},
+    };
+    let stored: string | null = null;
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => { stored = value; },
+      removeItem: () => { stored = null; },
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
+      });
+      expect(game.importSave(btoa(JSON.stringify(imported)))).toBe(true);
+
+      // `pagehide` and onCleanup both take this path while location.reload() tears the page down.
+      game.save();
+      disposeRoot();
+      expect(JSON.parse(stored!)).toEqual(imported);
+    } finally {
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
 });
 
 describe("tick delta clamp et notices du HUD", () => {

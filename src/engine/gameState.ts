@@ -1950,7 +1950,13 @@ export function createGameStore(data: GameData) {
     };
   }
 
+  // An import deliberately reloads the page after replacing localStorage. `pagehide` and Solid's
+  // cleanup both call `save()` during that reload; without this guard they immediately wrote the
+  // still-running old signals over the imported file, making a successful import look ignored.
+  let importedSavePendingReload = false;
+
   function save() {
+    if (importedSavePendingReload) return;
     if (typeof localStorage === "undefined") return;
     localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveFile()));
     setLastSavedAt(Date.now());
@@ -1969,10 +1975,13 @@ export function createGameStore(data: GameData) {
     try {
       const parsed: unknown = JSON.parse(atob(text.trim()));
       if (!isValidSave(parsed)) return false;
+      importedSavePendingReload = true;
       if (typeof localStorage !== "undefined") localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
       if (typeof location !== "undefined") location.reload();
       return true;
     } catch {
+      // A failed write/reload must not silently disable autosaves for the current run.
+      importedSavePendingReload = false;
       return false;
     }
   }
