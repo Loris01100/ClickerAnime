@@ -36,6 +36,13 @@ challenges after the first prestige. Travel follows its real availability. Lifet
 a learned surface visible after a prestige reset, so disclosure teaches once rather than making the
 dashboard flicker between runs. Newly mounted panels use `.progressive-reveal`, disabled under
 `prefers-reduced-motion`.
+
+`ObjectiveTrail.tsx` occupies one compact panel above combat during that same first learning pass.
+It exposes exactly one contextual action at a time — recruit a character, clear the first arc,
+collect six copies of that arc's common, then buy a passive rank — with real item/character names
+and live progress. `ui/objective.ts` is the pure four-step state machine. Achievement counters make
+the trail permanent across reloads and prestige without adding tutorial state to the save; after
+the first passive rank it unmounts for good.
 The Codex modal keeps the same fixed responsive frame on its anime picker, character tab and item
 tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
 and detail page therefore uses and scrolls through all the remaining space inside that frame, while

@@ -12,6 +12,7 @@ import Notices from "./ui/Notices";
 import { PACK_COST } from "./engine/packs";
 import { deriveDisclosure } from "./ui/disclosure";
 import { PRESTIGE_TREE_CATEGORIES } from "./engine/prestigeTree";
+import ObjectiveTrail from "./ui/ObjectiveTrail";
 
 /*
  * Les overlays du menu partent dans leur propre chunk : ils ne sont montés qu'a la demande (chaque
@@ -251,6 +252,7 @@ export default function App() {
         <main class="game" style={{ "--world-hue": themeOf(activeAnime()) }}>
           <RosterPanel game={game} disclosure={disclosure} onSelectCharacter={openCodexOn} />
           <div class="column">
+            <ObjectiveTrail game={game} />
             <Show when={disclosure().resources}>
               <CurrencyBar
                 game={game}

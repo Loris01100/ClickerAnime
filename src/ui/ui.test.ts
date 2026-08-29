@@ -3,6 +3,7 @@ import { spriteHue, themeOf } from "./hue";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
 import { imagePathsForAnime, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./preload";
 import { deriveDisclosure, type DisclosureFacts } from "./disclosure";
+import { tutorialObjective, type ObjectiveFacts } from "./objective";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -147,5 +148,38 @@ describe("progressive disclosure", () => {
   it("waits until a pack is affordable before revealing its currency", () => {
     expect(deriveDisclosure({ ...emptyDisclosureFacts, maxWorldPoints: 249 }, 250).packs).toBe(false);
     expect(deriveDisclosure({ ...emptyDisclosureFacts, maxWorldPoints: 250 }, 250).packs).toBe(true);
+  });
+});
+
+describe("first-run objective trail", () => {
+  const facts: ObjectiveFacts = {
+    recruits: 0,
+    arcsCleared: 0,
+    passiveRanksBought: 0,
+    arcName: "Le premier arc",
+    arcKills: 0,
+    arcKillsNeeded: 14,
+    itemName: "Shuriken émoussé",
+    itemArcName: "Le premier arc",
+    itemCopies: 0,
+    passiveCharacterName: "Sakura Haruno",
+  };
+
+  it("walks through recruit, arc, copies and passive in order", () => {
+    expect(tutorialObjective(facts)?.step).toBe(1);
+    expect(tutorialObjective({ ...facts, recruits: 1 })?.step).toBe(2);
+    expect(tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1 })?.step).toBe(3);
+    expect(tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1, itemCopies: 6 })?.step).toBe(4);
+    expect(
+      tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1, itemCopies: 6, passiveRanksBought: 1 })
+    ).toBeNull();
+  });
+
+  it("names the current arc, common item and compatible character", () => {
+    expect(tutorialObjective({ ...facts, recruits: 1 })?.title).toContain("Le premier arc");
+    expect(tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1 })?.title).toContain("Shuriken émoussé");
+    expect(tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1, itemCopies: 6 })?.detail).toContain(
+      "Sakura Haruno"
+    );
   });
 });

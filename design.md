@@ -35,6 +35,11 @@ un onglet si elle peut tenir sur l'écran. Conséquences concrètes déjà en pl
   premier prestige pour les défis. Les compteurs de succès, permanents, empêchent une fonction déjà
   apprise de redisparaître au prestige. Ce dévoilement progressif est l'unique exception à « tout
   visible » : il réduit le bruit d'apprentissage, jamais l'accès à une action devenue pertinente.
+- **Un seul prochain geste, jamais une checklist.** Pendant ce premier dévoilement, un panneau
+  compact au-dessus du combat enchaîne quatre objectifs : recruter, terminer l'arc, réunir six
+  copies du commun de cet arc, acheter un rang de passif. Il affiche les vrais noms et une jauge,
+  puis disparaît définitivement. Une liste de quatre tâches aurait remis dès le départ le bruit que
+  le dévoilement cherche précisément à retirer.
 - **Rien n'est jamais gratuitement gros.** Une icône, un chiffre, une barre — le seul élément qui
   a le droit à une grande taille visuelle est l'ennemi combattu (`.stage`), parce que c'est
   l'unique zone d'interaction directe (clic).

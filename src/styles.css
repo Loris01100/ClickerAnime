@@ -1156,6 +1156,35 @@ small {
 .currency:last-child {
   border-right: none;
 }
+
+/* --- first-run objective trail --- */
+.objective-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem 0.65rem;
+}
+.objective-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+.objective-copy strong,
+.objective-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.objective-count {
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+}
+.objective-bar {
+  grid-column: 1 / -1;
+  height: 7px;
+}
 /*
  * Pastille d'une monnaie en image (`public/resources/`, composant `Coin.tsx`) plutôt qu'en SVG : ces
  * quatre-là sont les seuls objets du jeu qu'on regarde en permanence, ils méritent leur propre
