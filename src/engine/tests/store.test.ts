@@ -244,6 +244,81 @@ describe("store boot", () => {
     }
   });
 
+  it("keeps a unique's forge level through prestige and restores it on the next drop", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [{
+        id: "ta-arc",
+        animeId: "ta",
+        name: "Arc",
+        order: 0,
+        mobsToBoss: 0,
+        mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+        boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1, itemId: "unique" },
+      }],
+      characters: [],
+      items: [{ id: "unique", name: "Unique", kind: "unique" as const }],
+    };
+    const restore = installSave(baseSave({
+      ownedCharacterIds: [],
+      itemCounts: { unique: 1 },
+      uniqueFragments: { unique: 12 },
+      uniqueUpgradeRanks: { unique: 5 },
+    }));
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+
+      game.prestigeReset();
+      expect(game.countOf("unique")).toBe(0);
+      expect(game.uniqueFragmentsOf("unique")).toBe(0);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+
+      expect(game.travelTo("ta")).toBe(true);
+      game.click();
+      expect(game.countOf("unique")).toBe(1);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+
+      game.hardReset();
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(0);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("loads a remembered forge level while its unique is absent after prestige", () => {
+    const data = {
+      animes: [],
+      arcs: [],
+      characters: [],
+      items: [{ id: "unique", name: "Unique", kind: "unique" as const }],
+    };
+    const restore = installSave(baseSave({
+      ownedCharacterIds: [],
+      activeArcId: null,
+      unlockedAnimeIds: [],
+      itemCounts: {},
+      uniqueUpgradeRanks: { unique: 5 },
+    }));
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      expect(game.countOf("unique")).toBe(0);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+    } finally {
+      restore();
+    }
+  });
+
   it("keeps ability cooldowns across a reload", () => {
     const usedAt = Date.now();
     const data = {

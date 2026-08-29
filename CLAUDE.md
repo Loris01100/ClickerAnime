@@ -140,7 +140,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   recruit. Regular characters are recruitable in exactly one arc;
   shop-exclusive companions must have exactly one character offer instead.
 - `prestigeReset` wipes the run but spares the meta-progression: prestige points, passive ranks,
-  achievement counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
+  unique forge levels, achievement counts, prestige-tree levels, pack points and duplicates. Only
+  `hardReset` clears those.
 
 **Persistence**
 

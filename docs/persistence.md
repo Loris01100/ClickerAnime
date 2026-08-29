@@ -29,9 +29,11 @@ unknown, unowned, restricted or duplicate unique is discarded rather than granti
 no offline-progress catch-up. Combat still restarts on a reload, except for ability cooldown start
 times: they are saved so Ctrl+F5 cannot turn a cooling ability into a ready one.
 
-The optional `uniqueFragments` and `uniqueUpgradeRanks` maps are run-scoped forge progress. Missing
-rank data is migrated in memory to rank 4 for every owned unique, preserving saves made before the
-forge; a newly found unique starts at rank 1.
+The optional `uniqueFragments` map is run-scoped forge progress; `uniqueUpgradeRanks` is permanent
+mastery. Prestige removes the unique and its fragments but keeps its explicit stored rank, including
+while the item is absent. The next copy found recovers that rank. Missing rank data is migrated in
+memory to rank 4 only for an owned unique, preserving saves made before the forge without granting
+free levels to unseen items; a newly found unique starts at rank 1.
 
 `passiveRanks` is meta-progression even though the common items used to buy those ranks are
 run-scoped. A prestige leaves the map intact while removing the roster; the stored rank becomes

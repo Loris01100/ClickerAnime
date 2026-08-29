@@ -55,7 +55,9 @@ Every unique begins at forge rank 1 (50% of its former contribution). Ranks 2–
 84%, 100% and 116%; rank 4 is exactly the pre-forge power, so existing saves keep their balance.
 After its first drop, defeating that arc's replayable boss awards one fragment of that unique instead
 of another copy. The forge consumes 5, 10, 15 then 25 fragments for ranks 2–5 (rank 1 is granted
-with the first unique) and is reset with the run alongside uniques themselves.
+with the first unique). The unique itself and unspent fragments are run-scoped, but its forge rank
+is permanent mastery: after prestige, the next copy found immediately recovers its former rank.
+Only `hardReset` clears that rank.
 
 **A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
@@ -94,8 +96,8 @@ full clear's 3.21e12 — **+0.5%**, i.e. ×1.008 through a 0.16 exponent. That i
 when the next world lands: an entry world sits at the *bottom* of the difficulty ramp, so its
 earnings are noise next to the last world's, and only the arc count really moves.
 
-`prestigeReset()` wipes everything but the prestige points, passive ranks, achievement counts, the prestige
-tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, kills, cleared arcs
+`prestigeReset()` wipes everything but the prestige points, passive ranks, unique forge levels,
+achievement counts, the prestige tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, kills, cleared arcs
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what

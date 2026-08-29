@@ -164,8 +164,8 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
 - The player picks their first world freely among the entry points and travels freely after each
   clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige
   points to enter early — but only into a world whose prerequisite is already cleared.
-- Meta-progression survives `prestigeReset`: prestige points, passive ranks, achievements, tree
-  levels, pack points and duplicates. Kill counts, cleared arcs, the worlds entered and the team all
+- Meta-progression survives `prestigeReset`: prestige points, passive ranks, unique forge levels,
+  achievements, tree levels, pack points and duplicates. Kill counts, cleared arcs, the worlds entered and the team all
   go, and the player picks an entry world again from scratch. Tier is the
   index in `unlockedAnimeIds`, so the difficulty ramp restarts with it.
 

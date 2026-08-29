@@ -163,6 +163,8 @@ looking at the result.
 - Save key: `clicker-anime:save:v10` in `localStorage`.
 - Passive ranks are permanent mastery: `prestigeReset` keeps them even while the roster is empty;
   recruiting the character again restores the passive at its former rank. Only `hardReset` clears them.
+- Unique forge levels follow the same rule: prestige removes the unique and its fragments, but the
+  next copy found recovers its former level. Only `hardReset` clears that level.
 - `buildSaveFile` in `gameState.ts` is the single source of truth for the on-disk shape.
 - `readSave` shape-checks via `isValidSave` and falls back to a fresh run instead of throwing.
 - **Bump the save-key version** only when a field is renamed or retyped. New optional fields can be absorbed with `??` defaults. Bumping wipes all existing saves.

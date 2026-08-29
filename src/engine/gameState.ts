@@ -312,11 +312,20 @@ function isValidSave(value: unknown): value is SaveFile {
 
 function uniqueRanksFromSave(data: GameData, saved: SaveFile | null): Record<string, number> {
   const ranks = saved?.uniqueUpgradeRanks;
-  return Object.fromEntries(
-    data.items
-      .filter((item) => item.kind === "unique" && (saved?.itemCounts?.[item.id] ?? 0) > 0)
-      .map((item) => [item.id, Math.max(1, Math.min(5, Math.floor(ranks?.[item.id] ?? 4)))])
-  );
+  const entries: [string, number][] = [];
+  for (const item of data.items) {
+    if (item.kind !== "unique") continue;
+    const savedRank = ranks?.[item.id];
+    // Explicit ranks are permanent forge mastery and therefore survive even while the unique is
+    // absent after prestige. The rank-4 fallback is only the legacy migration for an owned unique
+    // from before forge ranks existed; applying it to every unseen unique would grant free levels.
+    if (savedRank !== undefined) {
+      entries.push([item.id, Math.max(1, Math.min(5, Math.floor(savedRank)))]);
+    } else if ((saved?.itemCounts?.[item.id] ?? 0) > 0) {
+      entries.push([item.id, 4]);
+    }
+  }
+  return Object.fromEntries(entries);
 }
 
 function scaledUniqueEffect(effect: ModifierTemplate, level: number): ModifierTemplate {
@@ -426,6 +435,8 @@ export function createGameStore(data: GameData) {
   const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
   const [uniqueFragments, setUniqueFragments] = createSignal<Record<string, number>>(saved?.uniqueFragments ?? {});
+  // Forge levels are permanent mastery. Prestige removes the unique and its fragments, but the
+  // next copy found recovers this level. Only hardReset wipes the map.
   const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(uniqueRanksFromSave(data, saved));
   // Passive ranks are permanent mastery: a prestige removes the team and its item stock, but a
   // character recovers every bought rank when recruited again. Only hardReset wipes them.
@@ -676,7 +687,7 @@ export function createGameStore(data: GameData) {
 
   const progressOf = (characterId: string) => xpProgress(xpOf(characterId), effectiveXpGrowth());
 
-  /** Items found this run; wiped by a prestige along with the ranks they bought. Commons stack. */
+  /** Items found this run; wiped by prestige. Forge ranks survive separately. Commons stack. */
   const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
 
   const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
@@ -1880,8 +1891,8 @@ export function createGameStore(data: GameData) {
 
   /**
    * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared and items
-   * all go. Passive ranks survive with the other meta-progression: once a character is recruited
-   * again, their mastered passive returns at the rank previously bought.
+   * all go. Passive ranks and unique forge levels survive with the other meta-progression: once a
+   * character or unique is obtained again, its previously bought mastery returns.
    * The whole point is to redo the climb faster.
    */
   function prestigeReset() {
@@ -1898,7 +1909,6 @@ export function createGameStore(data: GameData) {
     setAbilityLastUsed({});
     setItemCounts({});
     setUniqueFragments({});
-    setUniqueUpgradeRanks({});
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
