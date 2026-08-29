@@ -2,6 +2,32 @@ import { describe, expect, it } from "vitest";
 import { spriteHue, themeOf } from "./hue";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
 import { imagePathsForAnime, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./preload";
+import { deriveDisclosure, type DisclosureFacts } from "./disclosure";
+
+const emptyDisclosureFacts: DisclosureFacts = {
+  kills: 0,
+  recruits: 0,
+  ownedCharacters: 0,
+  unlockedAbilities: 0,
+  abilitiesActivated: 0,
+  foundItems: 0,
+  commonItemsCollected: 0,
+  bossesKilled: 0,
+  uniquesEquipped: 0,
+  arcsCleared: 0,
+  pendingPrestige: 0,
+  prestigePoints: 0,
+  prestiges: 0,
+  treeLevels: 0,
+  maxWorldPoints: 0,
+  packsOpened: 0,
+  crossoverCrystals: 0,
+  crossoversActivated: 0,
+  mixedTeam: false,
+  canTravel: false,
+  activeChallenge: false,
+  completedChallenges: 0,
+};
 
 describe("spriteHue", () => {
   it("gives the same hue for the same id, every time", () => {
@@ -80,5 +106,46 @@ describe("preload paths", () => {
   it("keeps the optional prestige art out of the startup batch", () => {
     expect(STARTUP_IMAGE_PATHS).not.toContain("/prestige-tree-background.png");
     expect(PRESTIGE_IMAGE_PATHS).toContain("/prestige-tree-background.png");
+  });
+});
+
+describe("progressive disclosure", () => {
+  it("starts with every secondary system hidden", () => {
+    expect(Object.values(deriveDisclosure(emptyDisclosureFacts, 250))).not.toContain(true);
+  });
+
+  it("reveals learned systems from lifetime facts so prestige cannot hide them again", () => {
+    const state = deriveDisclosure(
+      {
+        ...emptyDisclosureFacts,
+        recruits: 1,
+        abilitiesActivated: 1,
+        bossesKilled: 1,
+        arcsCleared: 1,
+        prestiges: 1,
+        packsOpened: 1,
+        crossoversActivated: 1,
+      },
+      250
+    );
+
+    expect(state).toMatchObject({
+      team: true,
+      abilities: true,
+      items: true,
+      codex: true,
+      worlds: true,
+      shop: true,
+      achievements: true,
+      prestige: true,
+      challenges: true,
+      packs: true,
+      crossover: true,
+    });
+  });
+
+  it("waits until a pack is affordable before revealing its currency", () => {
+    expect(deriveDisclosure({ ...emptyDisclosureFacts, maxWorldPoints: 249 }, 250).packs).toBe(false);
+    expect(deriveDisclosure({ ...emptyDisclosureFacts, maxWorldPoints: 250 }, 250).packs).toBe(true);
   });
 });

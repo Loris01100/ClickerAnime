@@ -1,15 +1,17 @@
-import { For, Show, createMemo, createSignal } from "solid-js";
+import { For, Show, createMemo, createSignal, type Accessor } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { fmt, seconds } from "./format";
 import Coin from "./Coin";
 import { IconCheck, IconChevronRight, IconLock, IconTarget } from "./icons";
+import type { DisclosureState } from "./disclosure";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
 /** Right column: the arc list per world, travel, and the prestige track. */
 export default function ProgressPanel(props: {
   game: GameStore;
+  disclosure: Accessor<DisclosureState>;
   onOpenPrestige: () => void;
   onOpenChallenges: () => void;
   onOpenForge: () => void;
@@ -106,8 +108,8 @@ export default function ProgressPanel(props: {
         )}
       </For>
 
-      <Show when={otherAnimes().length > 0}>
-        <section class="panel">
+      <Show when={props.disclosure().travel && otherAnimes().length > 0}>
+        <section class="panel progressive-reveal">
           <header class="panel-head">
             <PanelTitle open={travelOpen()} onToggle={() => setTravelOpen(!travelOpen())}>
               Voyager
@@ -148,7 +150,8 @@ export default function ProgressPanel(props: {
         </section>
       </Show>
 
-      <section class="panel">
+      <Show when={props.disclosure().prestige}>
+      <section class="panel progressive-reveal">
         <header class="panel-head">
           <PanelTitle open={prestigeOpen()} onToggle={() => setPrestigeOpen(!prestigeOpen())}>
             Prestige
@@ -176,18 +179,20 @@ export default function ProgressPanel(props: {
           {/* Même famille que le bouton de l'arbre — une vue qu'on ouvre, pas une action qui
               s'exécute — parce qu'un défi part lui aussi d'une réinitialisation : sa place est ici,
               contre le CTA de prestige, et nulle part ailleurs. */}
-          <button class="tree-open" onClick={props.onOpenChallenges}>
-            <IconTarget />
-            Défis de run
-            <Show when={props.game.activeChallenge()}>
-              {(challenge) => (
-                <small class="muted">
-                  {challenge().name} · {props.game.challengeProgressOf()?.cleared ?? 0}/{challenge().goal}
-                </small>
-              )}
-            </Show>
-            <IconChevronRight class="tree-open-go" />
-          </button>
+          <Show when={props.disclosure().challenges}>
+            <button class="tree-open" onClick={props.onOpenChallenges}>
+              <IconTarget />
+              Défis de run
+              <Show when={props.game.activeChallenge()}>
+                {(challenge) => (
+                  <small class="muted">
+                    {challenge().name} · {props.game.challengeProgressOf()?.cleared ?? 0}/{challenge().goal}
+                  </small>
+                )}
+              </Show>
+              <IconChevronRight class="tree-open-go" />
+            </button>
+          </Show>
           <p class="muted small">
             Complétion : {Math.round(props.game.runCompletion() * 100)}% des arcs terminés — plus elle est
             haute, plus la réinitialisation rapporte de points.
@@ -199,6 +204,7 @@ export default function ProgressPanel(props: {
         </div>
         </Show>
       </section>
+      </Show>
 
       <Show when={props.game.forgeableUniques().length > 0}>
         <section class="panel">

@@ -1,4 +1,4 @@
-import { Show, Suspense, createEffect, createSignal, lazy, onMount } from "solid-js";
+import { Show, Suspense, createEffect, createMemo, createSignal, lazy, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { gameData } from "./data";
@@ -9,6 +9,9 @@ import CurrencyBar from "./ui/CurrencyBar";
 import RosterPanel from "./ui/RosterPanel";
 import ProgressPanel from "./ui/ProgressPanel";
 import Notices from "./ui/Notices";
+import { PACK_COST } from "./engine/packs";
+import { deriveDisclosure } from "./ui/disclosure";
+import { PRESTIGE_TREE_CATEGORIES } from "./engine/prestigeTree";
 
 /*
  * Les overlays du menu partent dans leur propre chunk : ils ne sont montés qu'a la demande (chaque
@@ -76,6 +79,41 @@ export default function App() {
   /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
   const activeAnime = () => game.data.animes.find((a) => a.id === game.activeArc()?.animeId);
 
+  /**
+   * A fresh run starts with the fight and its immediate objective, then the shell grows with the
+   * player's vocabulary. Lifetime counters keep a learned surface visible across prestige resets.
+   */
+  const disclosure = createMemo(() => {
+    const counts = game.achievementCounts();
+    return deriveDisclosure(
+      {
+        kills: (counts.mobsKilled ?? 0) + (counts.bossesKilled ?? 0),
+        recruits: counts.charactersRecruited ?? 0,
+        ownedCharacters: game.ownedCharacters().length,
+        unlockedAbilities: game.unlockedAbilities().length,
+        abilitiesActivated: counts.abilitiesActivated ?? 0,
+        foundItems: game.foundItems().length,
+        commonItemsCollected: counts.commonItemsCollected ?? 0,
+        bossesKilled: counts.bossesKilled ?? 0,
+        uniquesEquipped: counts.uniquesEquipped ?? 0,
+        arcsCleared: counts.arcsCleared ?? 0,
+        pendingPrestige: game.pendingPrestigeGain(),
+        prestigePoints: game.prestige().prestigePoints,
+        prestiges: counts.prestiges ?? 0,
+        treeLevels: PRESTIGE_TREE_CATEGORIES.reduce((sum, category) => sum + game.branchLevelsOf(category.id), 0),
+        maxWorldPoints: Math.max(0, ...game.data.animes.map((anime) => game.worldPointsOf(anime.id))),
+        packsOpened: counts.packsOpened ?? 0,
+        crossoverCrystals: game.crossoverCrystals(),
+        crossoversActivated: counts.crossoversActivated ?? 0,
+        mixedTeam: game.teamIsMixed(),
+        canTravel: game.canTravel(),
+        activeChallenge: Boolean(game.activeChallenge()),
+        completedChallenges: game.completedChallengeIds().length,
+      },
+      Math.min(PACK_COST.main, PACK_COST.secondary)
+    );
+  });
+
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
   function openCodexOn(characterId?: string) {
     setCodexFocusId(characterId);
@@ -140,20 +178,49 @@ export default function App() {
           <details ref={menu} class="startmenu" onFocusOut={onMenuFocusOut}>
             <summary>Menu</summary>
             <div class="startmenu-items">
-              <button onClick={() => runFromMenu(() => openCodexOn(undefined))}>Codex</button>
+              <Show when={disclosure().codex}>
+                <button onClick={() => runFromMenu(() => openCodexOn(undefined))}>Codex</button>
+              </Show>
               <Show when={game.unlockedAnimes().length > 0}>
-                <button onClick={() => runFromMenu(() => setPortalOpen(true))}>Mondes</button>
-                <button onClick={() => runFromMenu(() => setShopOpen(true))}>Boutique</button>
-                <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
-                <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
-                <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
+                <Show when={disclosure().worlds}>
+                  <button onClick={() => runFromMenu(() => setPortalOpen(true))}>Mondes</button>
+                </Show>
+                <Show when={disclosure().shop}>
+                  <button onClick={() => runFromMenu(() => setShopOpen(true))}>Boutique</button>
+                </Show>
+                <Show when={disclosure().packs}>
+                  <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
+                </Show>
+                <Show when={disclosure().crossover}>
+                  <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
+                </Show>
+                <Show when={disclosure().challenges}>
+                  <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
+                </Show>
                 <Show when={game.automationLevelOf("ability") > 0}>
                   <button onClick={() => runFromMenu(() => setReflexOpen(true))}>Plans</button>
                 </Show>
               </Show>
-              <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
-              <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>
-              <hr />
+              <Show when={disclosure().achievements}>
+                <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
+              </Show>
+              <Show when={disclosure().prestige}>
+                <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>
+              </Show>
+              <Show
+                when={
+                  disclosure().codex ||
+                  disclosure().worlds ||
+                  disclosure().shop ||
+                  disclosure().packs ||
+                  disclosure().crossover ||
+                  disclosure().challenges ||
+                  disclosure().achievements ||
+                  disclosure().prestige
+                }
+              >
+                <hr />
+              </Show>
               <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
               <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
               <button class="danger" onClick={() => runFromMenu(onHardReset)}>
@@ -182,20 +249,24 @@ export default function App() {
         fallback={<WorldPortal game={game} />}
       >
         <main class="game" style={{ "--world-hue": themeOf(activeAnime()) }}>
-          <RosterPanel game={game} onSelectCharacter={openCodexOn} />
+          <RosterPanel game={game} disclosure={disclosure} onSelectCharacter={openCodexOn} />
           <div class="column">
-            <CurrencyBar
-              game={game}
-              onOpenShop={() => setShopOpen(true)}
-              onOpenPrestige={() => setPrestigeTreeOpen(true)}
-              onOpenCrossover={() => setCrossoverOpen(true)}
-              onOpenPacks={() => setPacksOpen(true)}
-            />
+            <Show when={disclosure().resources}>
+              <CurrencyBar
+                game={game}
+                disclosure={disclosure}
+                onOpenShop={() => setShopOpen(true)}
+                onOpenPrestige={() => setPrestigeTreeOpen(true)}
+                onOpenCrossover={() => setCrossoverOpen(true)}
+                onOpenPacks={() => setPacksOpen(true)}
+              />
+            </Show>
             <ClickStage game={game} />
             <WorldMap game={game} />
           </div>
           <ProgressPanel
             game={game}
+            disclosure={disclosure}
             onOpenPrestige={() => setPrestigeTreeOpen(true)}
             onOpenChallenges={() => setChallengesOpen(true)}
             onOpenForge={() => setForgeOpen(true)}

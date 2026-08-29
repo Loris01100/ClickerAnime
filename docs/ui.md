@@ -4,7 +4,7 @@ The shell, the panels, the art direction and the theming. `design.md` holds the 
 this file holds how it is wired.
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
-PokéClicker's density: many small stacked panels, everything visible at once. Left is the
+PokéClicker's density: many small stacked panels, every learned system visible at once. Left is the
 roster (abilities, sortable team table, item table), middle is resources + the fight + the world
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
@@ -25,6 +25,17 @@ evolution and the translated character types used by equipment restrictions. Its
 item from the selected anime, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
 a passive can be bought from wherever it is read, not only from the team table.
+
+**A fresh save uses progressive disclosure.** `ui/disclosure.ts` is the presentation-only truth
+table, fed by current state plus lifetime achievement counters in `App.tsx`. The fight, current arc,
+map and local recruit list are the initial vocabulary. Gold appears after the first kill; team and
+Codex after the first recruit; abilities when one is actually unlocked; items after the first drop
+or boss; worlds and shop after the first cleared arc; prestige when a reset would bank a point;
+packs only once the cheapest pack is affordable; crossover with a mixed team or crystals; and
+challenges after the first prestige. Travel follows its real availability. Lifetime counters keep
+a learned surface visible after a prestige reset, so disclosure teaches once rather than making the
+dashboard flicker between runs. Newly mounted panels use `.progressive-reveal`, disabled under
+`prefers-reduced-motion`.
 The Codex modal keeps the same fixed responsive frame on its anime picker, character tab and item
 tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
 and detail page therefore uses and scrolls through all the remaining space inside that frame, while

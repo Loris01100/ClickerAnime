@@ -436,6 +436,17 @@ button.tree-open:hover:not(:disabled) {
   overflow: hidden;
   box-shadow: var(--ink-shadow);
 }
+
+/* A newly learned system joins the dashboard without competing with combat feedback. */
+.progressive-reveal {
+  animation: panel-reveal 240ms ease-out both;
+}
+@keyframes panel-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
 /*
  * L'en-tête est la seule surface qui porte la DA du monde : trames de vitesse, dégradé sur
  * `--world-hue`, liseré d'accent à gauche. Titre en capitales sur la police d'affichage — c'est ce
@@ -1119,7 +1130,7 @@ small {
 /* --- currency row --- */
 .currency-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
 }
 .currency {
   display: flex;
@@ -2496,6 +2507,7 @@ small {
  * follows this pattern for the damage numbers.
  */
 @media (prefers-reduced-motion: reduce) {
+  .progressive-reveal,
   .enemy .sprite,
   .enemy.boss::before,
   .enemy.spawning,

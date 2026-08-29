@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal } from "solid-js";
+import { For, Show, createMemo, createSignal, type Accessor } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { SCOPED_BUFF_CAP } from "../engine/modifiers";
 import { passiveGrowth } from "../engine/growth";
@@ -9,6 +9,7 @@ import { describeAbility, describeItem, describeModifier } from "./describe";
 import { fmt, seconds } from "./format";
 import ItemIcon from "./ItemIcon";
 import { IconGear, IconStar, IconStarOutline } from "./icons";
+import type { DisclosureState } from "./disclosure";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
 
@@ -64,7 +65,11 @@ function readView(): { sort: SortKey; world: string; itemSort: ItemSortKey; item
 }
 
 /** Left column: abilities, the sortable team list, and the item collection. */
-export default function RosterPanel(props: { game: GameStore; onSelectCharacter?: (id: string) => void }) {
+export default function RosterPanel(props: {
+  game: GameStore;
+  disclosure: Accessor<DisclosureState>;
+  onSelectCharacter?: (id: string) => void;
+}) {
   const view = readView();
   const [sortKey, setSortKey] = createSignal<SortKey>(view.sort);
   /** "" = tous les mondes. Le filtre devient indispensable à 60+ personnages. */
@@ -148,7 +153,8 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
 
   return (
     <div class="column">
-      <section ref={abilitiesPanel} class="panel roster-resizable-panel" classList={{ collapsed: !abilitiesOpen() }}>
+      <Show when={props.disclosure().abilities}>
+      <section ref={abilitiesPanel} class="panel roster-resizable-panel progressive-reveal" classList={{ collapsed: !abilitiesOpen() }}>
         <header class="panel-head">
           <PanelTitle onToggle={() => { abilitiesPanel?.style.removeProperty("height"); setAbilitiesOpen(!abilitiesOpen()); }} open={abilitiesOpen()}>
             Capacités
@@ -223,8 +229,10 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
           </div>
         </Show>
       </section>
+      </Show>
 
-      <section ref={teamPanel} class="panel roster-resizable-panel" classList={{ collapsed: !teamOpen() }}>
+      <Show when={props.disclosure().team}>
+      <section ref={teamPanel} class="panel roster-resizable-panel progressive-reveal" classList={{ collapsed: !teamOpen() }}>
         <header class="panel-head">
           <PanelTitle onToggle={() => { teamPanel?.style.removeProperty("height"); setTeamOpen(!teamOpen()); }} open={teamOpen()}>
             Équipe ({sortedTeam().length}
@@ -374,6 +382,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </div>
         </Show>
       </section>
+      </Show>
 
       <Show when={props.game.arcRecruits().length > 0}>
         <section class="panel">
@@ -402,7 +411,8 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </section>
       </Show>
 
-      <section ref={itemsPanel} class="panel roster-resizable-panel" classList={{ collapsed: !itemsOpen() }}>
+      <Show when={props.disclosure().items}>
+      <section ref={itemsPanel} class="panel roster-resizable-panel progressive-reveal" classList={{ collapsed: !itemsOpen() }}>
         <header class="panel-head">
           <PanelTitle onToggle={() => { itemsPanel?.style.removeProperty("height"); setItemsOpen(!itemsOpen()); }} open={itemsOpen()}>
             Objets ({shownItems().length}
@@ -473,6 +483,7 @@ export default function RosterPanel(props: { game: GameStore; onSelectCharacter?
         </div>
         </Show>
       </section>
+      </Show>
     </div>
   );
 }

@@ -21,12 +21,20 @@ petits panels empilés, tout est visible en permanence, aucune information n'est
 un onglet si elle peut tenir sur l'écran. Conséquences concrètes déjà en place et à préserver :
 
 - **Pas de modal pour le cœur du jeu.** Roster, combat et progression sont trois colonnes
-  toujours visibles (`RosterPanel` / `ClickStage` + `WorldMap` / `ProgressPanel`). Les `.overlay`
+  toujours disponibles (`RosterPanel` / `ClickStage` + `WorldMap` / `ProgressPanel`). Les `.overlay`
   + `.modal` (`Codex`, `WorldPortal`, `PrestigeTree`) sont réservés à ce qui est consulté
   ponctuellement, jamais à une action qu'on répète en boucle.
 - **Tableaux compacts, pas de cartes larges.** `.table-head` + lignes sur la même grille CSS
   (`member-grid`, `item-grid`) : chiffres alignés en colonnes, scannables d'un coup d'œil, comme
   l'écran d'équipe de PokéClicker.
+- **Tout ce que le joueur a appris reste visible, pas tout ce qu'il ignore encore.** Une sauvegarde
+  neuve montre le combat, la carte, l'arc et ses recrues. Les panneaux et destinations apparaissent
+  sur l'événement qui leur donne un sens : premier kill pour l'or, première recrue pour l'équipe et
+  le Codex, première capacité disponible, premier objet, premier arc pour mondes/boutique, premier
+  point potentiel pour le prestige, premier pack abordable, première équipe mixte pour le crossover,
+  premier prestige pour les défis. Les compteurs de succès, permanents, empêchent une fonction déjà
+  apprise de redisparaître au prestige. Ce dévoilement progressif est l'unique exception à « tout
+  visible » : il réduit le bruit d'apprentissage, jamais l'accès à une action devenue pertinente.
 - **Rien n'est jamais gratuitement gros.** Une icône, un chiffre, une barre — le seul élément qui
   a le droit à une grande taille visuelle est l'ennemi combattu (`.stage`), parce que c'est
   l'unique zone d'interaction directe (clic).
