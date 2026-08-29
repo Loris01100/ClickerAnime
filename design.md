@@ -78,9 +78,23 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   **Boruto `205`** (le bleu froid du Karma), **Hunter x Hunter `142`** (le vert de l'aventure et
   de l'Examen Hunter) et **Bleach `268`** (le violet spirituel du Hueco Mundo et des portes du
   Seireitei — l'orange d'Ichigo était la teinte évidente, mais Konoha la tient déjà).
-  Bleach est pour l'instant le seul monde **sans `mapImage`** : faute d'art de carte, ses quinze
-  arcs retombent sur la disposition en serpentin de `layoutArcs`, exactement le cas pour lequel ce
-  repli existe. Le jour où une carte arrive, il faudra poser un `mapX`/`mapY` par arc.
+  La carte de Bleach (`/bleach-map.jpg`) n'est pas un **itinéraire** comme celles de Naruto ou de
+  Hunter x Hunter, mais la **cosmologie** de la série : la Garganta et les mondes qu'elle relie,
+  légendés de 1 à 9. Ses quinze arcs sont donc épinglés sur le *lieu où ils se jouent* — six en
+  Soul Society, quatre à Karakura, trois au Hueco Mundo — et non à la suite les uns des autres.
+  C'est le premier monde où `mapX`/`mapY` sert à situer plutôt qu'à tracer, et ça marche parce que
+  rien dans `WorldMap` n'impose un ordre : la ligne de liaison suit l'ordre des arcs, les pins
+  suivent les données. Trois contraintes tenues par `src/engine/tests/` : dans le cercle blanc,
+  à gauche de la légende, et jamais deux pins à moins de 0,07 l'un de l'autre (l'écart le plus
+  serré que la carte de Shippûden fait déjà tenir).
+- **Le fond de combat vient d'AniList, pour tous les mondes, sans exception.** `ClickStage` pose la
+  bannière de la série derrière le combat (`.stage-backdrop`, voilée par un `radial-gradient` sans
+  quoi le sprite devient illisible). Un monde qui arrive n'a donc rien à fournir : il lui faut
+  seulement son id épinglé dans `ANIME_ID_OVERRIDES`, faute de quoi une recherche textuelle peut
+  tomber sur un film de la même franchise et servir sa clé d'art. Bleach (269) en a une comme les
+  quatre autres. **Ne pas ajouter de champ local pour ça** — la carte du monde n'est pas une clé
+  d'art, et une image du panneau Carte réutilisée en fond de combat donne un diagramme flou derrière
+  l'ennemi, pas une scène.
   `src/engine/tests/` vérifie que tout `themeHue` des données reste dans 0..360.
 - **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
   fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.

@@ -31,6 +31,11 @@ export const bleachData: GameData = {
       name: "Bleach",
       unlockCost: 3,
       themeHue: 268, // le violet spirituel du Hueco Mundo et des portes du Seireitei
+      // La carte n'est pas un itinéraire mais la cosmologie de Bleach — la Garganta et les mondes
+      // qu'elle relie. Chaque arc est donc épinglé sur le **lieu où il se joue** plutôt qu'à la
+      // suite du précédent : six en Soul Society, quatre à Karakura, trois au Hueco Mundo, un au
+      // Dangai, un au Palais Royal, un dans la Vallée des Cris.
+      mapImage: "/bleach-map.jpg",
 
       description:
         "Ichigo Kurosaki hérite des pouvoirs d'un Shinigami et se retrouve chargé d'escorter les " +

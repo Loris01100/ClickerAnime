@@ -61,7 +61,23 @@ describe("game data", () => {
 
     const anime = gameData.animes.find((entry) => entry.id === "bleach");
     expect(anime?.requiresAnimeId).toBeUndefined(); // an entry world, like Naruto and Hunter x Hunter
-    expect(anime?.mapImage).toBeUndefined(); // no key art yet, so the snake layout places the arcs
+    expect(anime?.mapImage).toBe("/bleach-map.jpg");
+
+    // Every arc is hand-placed on that map, and the placement has three constraints: inside the
+    // Garganta circle the art draws, clear of the legend down the right-hand third, and far enough
+    // apart that two pins don't overlap — 0.070 is the tightest pair Shippūden's map already holds.
+    const pins = arcs.map((arc) => [arc.mapX, arc.mapY] as const);
+    expect(pins.every(([x, y]) => x !== undefined && y !== undefined)).toBe(true);
+    for (const [x, y] of pins) {
+      expect(((x! - 0.35) / 0.33) ** 2 + ((y! - 0.5) / 0.47) ** 2, "hors du cercle de la Garganta").toBeLessThan(0.85);
+      expect(x!, "sur la légende de la carte").toBeLessThan(0.66);
+    }
+    for (let a = 0; a < pins.length; a++) {
+      for (let b = a + 1; b < pins.length; b++) {
+        const distance = Math.hypot(pins[a][0]! - pins[b][0]!, pins[a][1]! - pins[b][1]!);
+        expect(distance, `${arcs[a].id} et ${arcs[b].id} se chevauchent`).toBeGreaterThanOrEqual(0.07);
+      }
+    }
 
     // The debut-power ramp is deliberately flat (~1.24x an arc where every other world runs ~1.85).
     // `reachedArcPower` is one scalar shared by every world, so an entry world has to hand off at

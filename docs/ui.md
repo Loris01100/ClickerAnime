@@ -56,6 +56,16 @@ Maps start at 80% of their full width so combat remains the main visual mass; th
 `Agrandir` button restores the full map without cropping or moving its percentage-based markers.
 The toggle disappears below 700px, where the map already uses the available mobile width.
 
+**And a map need not be a route.** Bleach's is the series' cosmology rather than a journey — the
+Garganta with the worlds it links, legended 1 to 9 — so its fifteen arcs are pinned on *where each
+one happens* (six in the Soul Society, four in Karakura, three in Hueco Mundo) instead of trailing
+one after the other. Nothing in `WorldMap` had to change for that: the linking line follows arc
+order, the pins follow the data, and the two are allowed to disagree. What it does need is
+discipline about crowding, since six pins on one circle is a very different problem from fifteen
+along a road — `src/engine/tests/` holds the placement to three rules: inside the drawn circle,
+clear of the legend down the right-hand third, and no two pins closer than 0.07, the tightest pair
+Shippūden's map already carries.
+
 The site icon lives in `public/`: `favicon.png` is the lightweight 64px browser-tab asset and
 `site-icon.png` is its 512px source for home-screen shortcuts. `index.html` references both with
 relative paths so the GitHub Pages subdirectory deployment keeps working.
@@ -89,6 +99,12 @@ enough to matter), `runQuery`, the `inFlight` dedupe and the same `localStorage`
 `portraitUrl` — never rejects, `null` on any miss — and a show may legitimately have no banner at
 all, so `ClickStage` renders the element only when the URL exists and otherwise falls through to the
 plain `--stage-bg` gradient.
+
+**Every world gets one, and none of them ship the art.** The five shows all have a banner on
+AniList, so a new world needs nothing beyond an `ANIME_ID_OVERRIDES` entry pinning its id — pinning
+is what stops a franchise's similarly-titled movie from supplying the backdrop. Resist the
+temptation to add a local override field for it: the one time it looked necessary (Bleach), the
+banner was already resolving and the field only got in its way.
 
 Under the fight, `ClickStage`'s four-tile `.stat-grid` is followed by one full-width `.kill-rate`
 line: the cadence the fight is actually resolving at, against `MAX_KILLS_PER_SECOND`. It exists

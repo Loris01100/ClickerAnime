@@ -6,6 +6,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc du Shinigami Remplaçant",
     order: 0,
+    mapX: 0.34,
+    mapY: 0.235,
     mobsToBoss: 18,
     mobs: [
       { id: "bleach-shinigami-remplacant-mob-1", itemId: "bleach-item-insigne", dropChance: 0.12, name: "Fishbone D", baseHp: 28, reward: 4 },
@@ -33,6 +35,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc de la Soul Society",
     order: 1,
+    mapX: 0.128,
+    mapY: 0.5,
     mobsToBoss: 24,
     mobs: [
       { id: "bleach-soul-society-mob-1", itemId: "bleach-item-laissez-passer", dropChance: 0.12, name: "Jidanbô Ikkanzaka", baseHp: 1_550, reward: 24 },
@@ -66,6 +70,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc des Bounts",
     order: 2,
+    mapX: 0.43,
+    mapY: 0.51,
     mobsToBoss: 28,
     mobs: [
       { id: "bleach-bounts-mob-1", itemId: "bleach-item-poupee", dropChance: 0.12, name: "Yoshi", baseHp: 6_290, reward: 95 },
@@ -94,6 +100,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc des Arrancars",
     order: 3,
+    mapX: 0.425,
+    mapY: 0.255,
     mobsToBoss: 32,
     mobs: [
       { id: "bleach-arrancars-mob-1", itemId: "bleach-item-fragment-masque", dropChance: 0.12, name: "Shawlong Qu Fong", baseHp: 16_300, reward: 380 },
@@ -120,6 +128,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc des Arrancars, Assaut du Hueco Mundo",
     order: 4,
+    mapX: 0.408,
+    mapY: 0.735,
     mobsToBoss: 36,
     mobs: [
       { id: "bleach-hueco-mundo-mob-1", itemId: "bleach-item-sable", dropChance: 0.12, name: "Loly Aivirrne", baseHp: 33_000, reward: 1_500 },
@@ -145,6 +155,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc des Arrancars, La Lutte acharnée",
     order: 5,
+    mapX: 0.505,
+    mapY: 0.76,
     mobsToBoss: 40,
     mobs: [
       { id: "bleach-lutte-acharnee-mob-1", itemId: "bleach-item-eclat-espada", dropChance: 0.12, name: "Tesla Lindocruz", baseHp: 53_400, reward: 3_000 },
@@ -172,6 +184,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc du Nouveau Capitaine, Shûsuke Amagai",
     order: 6,
+    mapX: 0.215,
+    mapY: 0.52,
     mobsToBoss: 42,
     mobs: [
       { id: "bleach-nouveau-capitaine-mob-1", itemId: "bleach-item-sceau-kasumioji", dropChance: 0.12, name: "Izaemon Tôdô", baseHp: 92_900, reward: 6_000 },
@@ -196,6 +210,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc des Arrancars contre les Shinigamis",
     order: 7,
+    mapX: 0.448,
+    mapY: 0.845,
     mobsToBoss: 44,
     mobs: [
       { id: "bleach-arrancars-shinigamis-mob-1", itemId: "bleach-item-plume-exequias", dropChance: 0.12, name: "Nirgge Parduoc", baseHp: 154_000, reward: 12_000 },
@@ -220,6 +236,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc du Passé",
     order: 8,
+    mapX: 0.118,
+    mapY: 0.59,
     mobsToBoss: 46,
     mobs: [
       { id: "bleach-le-passe-mob-1", itemId: "bleach-item-carnet", dropChance: 0.12, name: "Hiyosu", baseHp: 213_000, reward: 24_000 },
@@ -248,6 +266,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc des Arrancars, La Bataille de Karakura",
     order: 9,
+    mapX: 0.335,
+    mapY: 0.345,
     mobsToBoss: 48,
     mobs: [
       { id: "bleach-bataille-karakura-mob-1", itemId: "bleach-item-pilier", dropChance: 0.12, name: "Ayon", baseHp: 334_000, reward: 48_000 },
@@ -279,6 +299,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc du Conte Inconnu des Zanpakutôs",
     order: 10,
+    mapX: 0.21,
+    mapY: 0.615,
     mobsToBoss: 50,
     mobs: [
       { id: "bleach-conte-zanpakutos-mob-1", itemId: "bleach-item-fourreau", dropChance: 0.12, name: "Narunosuke", baseHp: 599_000, reward: 96_000 },
@@ -309,6 +331,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc de la Destruction des Arrancars",
     order: 11,
+    mapX: 0.275,
+    mapY: 0.452,
     mobsToBoss: 52,
     mobs: [
       { id: "bleach-destruction-arrancars-mob-1", itemId: "bleach-item-eclat-hogyoku", dropChance: 0.12, name: "Marechiyo Ômaeda", baseHp: 1_060_000, reward: 192_000 },
@@ -334,6 +358,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc de l'Armée Envahissante du Gotei 13",
     order: 12,
+    mapX: 0.16,
+    mapY: 0.69,
     mobsToBoss: 54,
     mobs: [
       { id: "bleach-armee-envahissante-mob-1", itemId: "bleach-item-noyau-reigai", dropChance: 0.12, name: "Yasochika Iemura", baseHp: 1_710_000, reward: 384_000 },
@@ -357,6 +383,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc du Fullbringer, Le Shinigami Remplaçant Disparu",
     order: 13,
+    mapX: 0.428,
+    mapY: 0.352,
     mobsToBoss: 56,
     mobs: [
       { id: "bleach-fullbring-mob-1", itemId: "bleach-item-catalyseur", dropChance: 0.12, name: "Moe Shishigawara", baseHp: 2_260_000, reward: 768_000 },
@@ -384,6 +412,8 @@ export const bleachArcs: GameData["arcs"] = [
     animeId: "bleach",
     name: "Arc de la Guerre sanglante Millénaire",
     order: 14,
+    mapX: 0.17,
+    mapY: 0.402,
     mobsToBoss: 58,
     mobs: [
       { id: "bleach-guerre-sanglante-mob-1", itemId: "bleach-item-croix-quincy", dropChance: 0.12, name: "Driscoll Berci", baseHp: 3_380_000, reward: 1_540_000 },
