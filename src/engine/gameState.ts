@@ -189,6 +189,8 @@ export const UNIQUE_FORGE_MULTIPLIERS = [0, 0.5, 2 / 3, 5 / 6, 1, 7 / 6] as cons
 export const UNIQUE_FORGE_FRAGMENT_COSTS = [0, 1, 5, 10, 15, 25] as const;
 // v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
 export const SAVE_KEY = "clicker-anime:save:v10";
+/** Last known-good primary save, rotated automatically before every successful write. */
+export const SAVE_BACKUP_KEY = `${SAVE_KEY}:backup`;
 /** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
 const SAVE_VERSION = 10;
 
@@ -366,10 +368,10 @@ function sanitizedEquipment(
   return cleaned;
 }
 
-function readSave(): SaveFile | null {
-  if (typeof localStorage === "undefined") return null;
+/** Parses, validates and migrates one stored save without ever letting a bad blob escape. */
+function parseSave(raw: string | null): SaveFile | null {
   try {
-    const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null");
+    const parsed = JSON.parse(raw ?? "null");
     if (!isValidSave(parsed)) return null;
     // Migration v9: the "resource" prestige branch was renamed to "destin". Copy old progress over
     // so players don't lose their bought levels when the branch identity changed.
@@ -383,8 +385,46 @@ function readSave(): SaveFile | null {
   }
 }
 
+function storedRaw(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+interface LoadedSave {
+  save: SaveFile | null;
+  recoveredFromBackup: boolean;
+}
+
+/**
+ * Reads the primary slot first, then repairs it from the last known-good backup when necessary.
+ * A corrupt primary is never copied over the backup: recovery must remain possible even if a
+ * browser extension, manual edit or interrupted write damaged the current slot.
+ */
+function readSave(): LoadedSave {
+  if (typeof localStorage === "undefined") return { save: null, recoveredFromBackup: false };
+  const primary = parseSave(storedRaw(SAVE_KEY));
+  if (primary) return { save: primary, recoveredFromBackup: false };
+
+  const backupRaw = storedRaw(SAVE_BACKUP_KEY);
+  const backup = parseSave(backupRaw);
+  if (!backup || !backupRaw) return { save: null, recoveredFromBackup: false };
+  try {
+    localStorage.setItem(SAVE_KEY, backupRaw);
+  } catch {
+    // The valid backup can still boot the current session even if storage is temporarily full.
+  }
+  return { save: backup, recoveredFromBackup: true };
+}
+
 export function createGameStore(data: GameData) {
-  const saved = readSave();
+  const loadedSave = readSave();
+  const saved = loadedSave.save;
+  const [hasBackupSave, setHasBackupSave] = createSignal(
+    typeof localStorage !== "undefined" && parseSave(storedRaw(SAVE_BACKUP_KEY)) !== null
+  );
 
   /**
    * Id indexes over the content, built once.
@@ -1967,11 +2007,26 @@ export function createGameStore(data: GameData) {
   // still-running old signals over the imported file, making a successful import look ignored.
   let importedSavePendingReload = false;
 
+  /** Writes a new primary only after preserving the current valid primary in the backup slot. */
+  function writePrimarySave(serialized: string): boolean {
+    if (typeof localStorage === "undefined") return false;
+    try {
+      const currentRaw = localStorage.getItem(SAVE_KEY);
+      if (parseSave(currentRaw) && currentRaw) {
+        localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
+        setHasBackupSave(true);
+      }
+      localStorage.setItem(SAVE_KEY, serialized);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function save() {
     if (importedSavePendingReload) return;
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveFile()));
-    setLastSavedAt(Date.now());
+    if (writePrimarySave(JSON.stringify(buildSaveFile()))) setLastSavedAt(Date.now());
   }
 
   /** A portable blob the player can download and hand back later — same shape `readSave` already trusts. */
@@ -1988,7 +2043,10 @@ export function createGameStore(data: GameData) {
       const parsed: unknown = JSON.parse(atob(text.trim()));
       if (!isValidSave(parsed)) return false;
       importedSavePendingReload = true;
-      if (typeof localStorage !== "undefined") localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
+      if (!writePrimarySave(JSON.stringify(parsed))) {
+        importedSavePendingReload = false;
+        return false;
+      }
       if (typeof location !== "undefined") location.reload();
       return true;
     } catch {
@@ -1998,9 +2056,35 @@ export function createGameStore(data: GameData) {
     }
   }
 
+  /**
+   * Swaps the current and backup slots so restoring is reversible until the next autosave. A bad
+   * current slot is simply replaced; it is never allowed to destroy the valid backup.
+   */
+  function restoreBackup(): boolean {
+    if (typeof localStorage === "undefined") return false;
+    const backupRaw = storedRaw(SAVE_BACKUP_KEY);
+    if (!parseSave(backupRaw) || !backupRaw) return false;
+    try {
+      const currentRaw = localStorage.getItem(SAVE_KEY);
+      const currentValid = parseSave(currentRaw) !== null;
+      importedSavePendingReload = true;
+      localStorage.setItem(SAVE_KEY, backupRaw);
+      if (currentValid && currentRaw) localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
+      if (typeof location !== "undefined") location.reload();
+      return true;
+    } catch {
+      importedSavePendingReload = false;
+      return false;
+    }
+  }
+
   /** Wipes the save and every bit of progress, prestige and worlds included. */
   function hardReset() {
-    if (typeof localStorage !== "undefined") localStorage.removeItem(SAVE_KEY);
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(SAVE_BACKUP_KEY);
+    }
+    setHasBackupSave(false);
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
@@ -2374,6 +2458,9 @@ export function createGameStore(data: GameData) {
     prestigeReset,
     save,
     lastSavedAt,
+    hasBackupSave,
+    recoveredFromBackup: () => loadedSave.recoveredFromBackup,
+    restoreBackup,
     exportSave,
     importSave,
     hardReset,

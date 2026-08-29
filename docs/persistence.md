@@ -29,6 +29,15 @@ unknown, unowned, restricted or duplicate unique is discarded rather than granti
 no offline-progress catch-up. Combat still restarts on a reload, except for ability cooldown start
 times: they are saved so Ctrl+F5 cannot turn a cooling ability into a ready one.
 
+Every successful write first rotates the current valid primary into
+`clicker-anime:save:v10:backup`. On boot, a missing, malformed or wrong-shaped primary is repaired
+from that slot before the store creates any signal; the corrupt value is never copied over a valid
+backup. The menu exposes **Restaurer la copie de secours** as soon as that slot exists. Restoration
+swaps primary and backup rather than overwriting both, so the operation itself remains reversible
+until the next autosave. Import uses the same rotation path, which means the run from before an
+import remains recoverable. `hardReset` is the deliberate exception: « Tout effacer » removes both
+slots. A recovery notice tells the player when boot had to use the fallback.
+
 The optional `uniqueFragments` map is run-scoped forge progress; `uniqueUpgradeRanks` is permanent
 mastery. Prestige removes the unique and its fragments but keeps its explicit stored rank, including
 while the item is absent. The next copy found recovers that rank. Missing rank data is migrated in

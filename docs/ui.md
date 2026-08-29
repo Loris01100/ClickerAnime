@@ -3,6 +3,16 @@
 The shell, the panels, the art direction and the theming. `design.md` holds the visual/UX intent;
 this file holds how it is wired.
 
+## Browser journey test
+
+`npm run test:e2e` starts the local app and runs `tests/e2e/critical-player-journey.spec.ts` in
+Firefox. It selects a first world, fights through the visible click target, exports and imports a
+real `.txt` save, boots a second tab from a deliberately damaged primary slot, performs prestige
+through the confirmation UI, verifies permanent passive/forge mastery, then restores the backup
+from the menu. CI installs Playwright's Firefox build and runs this after unit tests and the
+production build. This is deliberately one high-value journey rather than a duplicate browser test
+for every engine rule; pure rules remain faster and more precise in Vitest.
+
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density: many small stacked panels, every learned system visible at once. Left is the
 roster (abilities, sortable team table, item table), middle is resources + the fight + the world

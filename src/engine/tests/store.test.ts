@@ -1,10 +1,71 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
-import { createGameStore, MAX_KILLS_PER_SECOND } from "../gameState";
+import { createGameStore, MAX_KILLS_PER_SECOND, SAVE_BACKUP_KEY, SAVE_KEY } from "../gameState";
 import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("repairs a corrupt primary save from the automatic backup", () => {
+    const backup = baseSave({ currency: 4321, ownedCharacterIds: [] });
+    const storage = new Map<string, string>([
+      [SAVE_KEY, "{broken"],
+      [SAVE_BACKUP_KEY, JSON.stringify(backup)],
+    ]);
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
+      });
+      expect(game.currency()).toBe(4321);
+      expect(game.recoveredFromBackup()).toBe(true);
+      expect(JSON.parse(storage.get(SAVE_KEY)!)).toEqual(backup);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("rotates the current save into the backup and lets the player swap back", () => {
+    const current = baseSave({ currency: 100, ownedCharacterIds: [] });
+    const backup = baseSave({ currency: 50, ownedCharacterIds: [] });
+    const storage = new Map<string, string>([
+      [SAVE_KEY, JSON.stringify(current)],
+      [SAVE_BACKUP_KEY, JSON.stringify(backup)],
+    ]);
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
+      });
+      game.save();
+      expect(JSON.parse(storage.get(SAVE_BACKUP_KEY)!).currency).toBe(100);
+
+      storage.set(SAVE_BACKUP_KEY, JSON.stringify(backup));
+      expect(game.restoreBackup()).toBe(true);
+      expect(JSON.parse(storage.get(SAVE_KEY)!).currency).toBe(50);
+      expect(JSON.parse(storage.get(SAVE_BACKUP_KEY)!).currency).toBe(100);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
   it("keeps a character's passive rank through prestige and restores it on recruitment", () => {
     const data = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],

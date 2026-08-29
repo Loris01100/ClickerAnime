@@ -11,6 +11,8 @@ the deep rationale per system lives in `docs/`, one file per area, read on deman
 - `npm run dev` — Vite dev server
 - `npm run build` — `tsc --noEmit` typecheck, then Vite build
 - `npm test` — `vitest run` (node environment, only `src/**/*.test.ts`)
+- `npm run test:e2e` — critical player journey in Playwright Firefox
+- `npm run validate:data` — validates all authored ids, references, arcs and sequel presences
 - Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — plays a whole run headlessly and prints its pacing (`docs/simulator.md`)
 
@@ -151,6 +153,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   defaults. Bumping wipes every existing player's save; treat it as a last resort.
 - `importSave` is a real trust boundary: it runs a player-supplied file through `isValidSave` and
   writes it straight to `localStorage`.
+- Every primary write rotates the previous valid save into `SAVE_BACKUP_KEY`. Invalid primary data
+  falls back to that backup at boot; hard reset alone clears both slots.
 - Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved.
 
 **UI**
@@ -176,6 +180,7 @@ the shared vocabulary for equipment restrictions; add their French label in `ui/
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
 | UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |
+| Content validation | `docs/content-validation.md` | Semantic validation of ids, references, recruitment and sequel presence |
 | Simulator | `docs/simulator.md` | `npm run sim`: playing a run headlessly to check a balance change |
 
 ## Content

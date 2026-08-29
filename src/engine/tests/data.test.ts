@@ -4,8 +4,35 @@ import { getUnlockedAbilities } from "../abilities";
 import { layoutArcs, MAP_COLS } from "../mapLayout";
 import { defaultSynergyConfig, isHomeArc, synergyMultiplier } from "../synergy";
 import { makeArc } from "./helpers";
+import { formatContentIssues, validateGameData } from "../dataValidation";
 
 describe("game data", () => {
+  it("passes the complete content graph validation", () => {
+    const issues = validateGameData(gameData);
+    expect(issues, formatContentIssues(issues)).toEqual([]);
+  });
+
+  it("names broken arc, recruit and sequel-presence references precisely", () => {
+    const brokenData = {
+      ...gameData,
+      characters: gameData.characters.map((character) =>
+        character.id === "naruto-uzumaki"
+          ? { ...character, arcIds: [...character.arcIds, "arc-inexistant"], appearanceAnimeIds: ["bleach"] }
+          : character
+      ),
+      arcs: gameData.arcs.map((arc) =>
+        arc.id === "bleach-shinigami-remplacant"
+          ? { ...arc, boss: { ...arc.boss, characterId: "naruto-uzumaki" } }
+          : arc
+      ),
+    };
+    const issues = validateGameData(brokenData);
+    expect(issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["unknown-arc", "unrelated-appearance", "wrong-recruit-anime", "duplicate-recruit"])
+    );
+    expect(formatContentIssues(issues)).toContain("arc-inexistant");
+    expect(formatContentIssues(issues)).toContain("bleach");
+  });
   it("keeps the Naruto cast present across its sequel anime without duplicating recruits", () => {
     const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
     const sequelArcs = gameData.arcs.filter((arc) => arc.animeId === "shippuden" || arc.animeId === "boruto");

@@ -56,6 +56,9 @@ export default function App() {
   let menu: HTMLDetailsElement | undefined;
 
   onMount(() => {
+    if (game.recoveredFromBackup()) {
+      game.announceUnlock("Sauvegarde principale réparée depuis la copie de secours");
+    }
     preloadImages(STARTUP_IMAGE_PATHS);
     createEffect(() => {
       const animeId = game.activeArc()?.animeId;
@@ -181,6 +184,11 @@ export default function App() {
     game.hardReset();
   }
 
+  function onRestoreBackup() {
+    if (!confirm("Remplacer la partie actuelle par la copie de secours ? La partie actuelle restera disponible comme copie de retour.")) return;
+    if (!game.restoreBackup()) alert("Aucune copie de secours valide n’est disponible.");
+  }
+
   async function onImportFile(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
@@ -255,6 +263,9 @@ export default function App() {
               </Show>
               <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
               <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
+              <Show when={game.hasBackupSave()}>
+                <button onClick={() => runFromMenu(onRestoreBackup)}>Restaurer la copie de secours</button>
+              </Show>
               <button class="danger" onClick={() => runFromMenu(onHardReset)}>
                 Tout effacer
               </button>

@@ -13,10 +13,10 @@ The app is a static SPA with no backend. Save data lives in `localStorage`; port
 | Layer | Tech |
 |---|---|
 | Framework | SolidJS 1.9 |
-| Build tool | Vite 5.4 + `vite-plugin-solid` |
-| Language | TypeScript 5.6 (ES2020, DOM, `jsx: preserve`, `jsxImportSource: solid-js`) |
+| Build tool | Vite 8 + `vite-plugin-solid` |
+| Language | TypeScript 7 (ES2020, DOM, `jsx: preserve`, `jsxImportSource: solid-js`) |
 | Styling | Hand-written `src/styles.css`; no UI framework (no Tailwind, no Bootstrap) |
-| Testing | Vitest 2.1 (Node environment) |
+| Testing | Vitest 4 (Node environment) + Playwright Firefox |
 | Package manager | npm |
 | Runtime | Browser only; `localStorage` for persistence |
 
@@ -28,6 +28,8 @@ All commands run from the project root.
 - `npm run build` — run `tsc --noEmit` typecheck, then Vite production build. Output goes to `dist/`.
 - `npm run preview` — preview the production build locally.
 - `npm test` — run the full Vitest suite (`src/**/*.test.ts`).
+- `npm run test:e2e` — run the critical player journey in Playwright Firefox.
+- `npm run validate:data` — validate all content ids, references, arcs and sequel presences.
 - Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
   check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
@@ -40,7 +42,7 @@ suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit unde
 failure comes straight back instead of waiting for the next build. It is a safety net, not a
 substitute for running `npm test` yourself before declaring work done.
 
-The project currently has **129 passing tests** across three test files:
+The project currently has **216 passing unit tests** across 13 test files, plus one critical browser journey:
 
 - `src/engine/tests/` — engine rules, one file per area (combat, progression, economy, modifiers, prestige-tree, challenges, store, data…), shared fixtures in `helpers.ts`
 - `src/ui/ui.test.ts` — small UI utilities
@@ -68,6 +70,7 @@ Key modules:
 - `abilities.ts` — ability unlocking, cooldowns, same-stat sharing.
 - `achievements.ts` — lifetime counters and tiered bonuses, paid into `clickPower` or `teamDps` per category.
 - `shop.ts` — currency shop offers.
+- `dataValidation.ts` — semantic validation of the complete authored content graph.
 
 ### 2. `src/ui/` — Presentation Only
 
