@@ -56,6 +56,24 @@ Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
 change — by default only bosses carry one, because timed mobs would break idling.
 
+### Experimental boss traits
+
+`Enemy.bossTrait` adds one data-driven rule to selected bosses. `combat.ts` is the single source of
+truth: `damageMultiplierAgainst` reduces only the named source, while `enemyHp` folds a shield into
+max hp. `dealDamage`, the live hp-bar estimate and `bossOutlookOf` all use those helpers, so the
+warning shown before a fight cannot disagree with the fight itself. Overkill remains raw damage as
+it crosses enemies, then the replacement's own multiplier is applied.
+
+The three first-arc experiments deliberately teach different responses:
+
+- Zabuza, **Brume épaisse**: narrator clicks deal 50% less; recruited team DPS is the answer.
+- Hisoka, **Provocation**: passive team DPS deals 25% less; deliberate clicks keep full value.
+- Renji, **Garde du zanpakutō**: 20% extra max hp; both sources work, but the damage check is longer.
+
+They are announced in the arc list and in a persistent strip above combat before the boss appears;
+the strip switches from `Boss à venir` to `Trait actif` when the encounter begins. This is an
+experiment on the entry arcs, not a requirement that every boss carry a trait.
+
 Damage has two sources, both modifier-driven: `clickPower` (one narrator click, based on
 `narratorClickPower`) and `teamDps` (applied every tick as `dps * delta`). **Overkill carries over
 to the next enemy**: `dealDamage` loops, spending the leftover on the replacement `spawnNext` puts

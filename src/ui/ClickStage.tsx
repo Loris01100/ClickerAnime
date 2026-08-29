@@ -158,6 +158,19 @@ export default function ClickStage(props: { game: GameStore }) {
         )}
       </Show>
 
+      <Show when={arc()?.boss.bossTrait}>
+        {(trait) => (
+          <div class="boss-intel" classList={{ active: isBoss() }}>
+            <IconCrown />
+            <div>
+              <small>{isBoss() ? "Trait actif" : `Boss à venir · ${arc()?.boss.name}`}</small>
+              <strong>{trait().name}</strong>
+            </div>
+            <span>{trait().description}</span>
+          </div>
+        )}
+      </Show>
+
       <AutomationBar game={props.game} />
 
       <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour combattre.</div>}>

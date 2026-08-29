@@ -214,7 +214,15 @@ Restent des pistes, non faites :
 - **Nœud d'arbre qui se débloque.** Voir §5 — le seul endroit où une vraie « célébration »
   (particules courtes, pulse coloré) a un sens, parce que c'est un achat rare et définitif, pas
   un événement qui se répète 10 fois par seconde comme un clic.
-### 4.1 Les notices du HUD (`ui/Notices.tsx`)
+### 4.1 Traits de boss annoncés
+
+Un trait de boss modifie la lecture du combat, donc il ne doit jamais être une pénalité surprise.
+Sur un arc ouvert, son nom tient dans une pastille bordée par `--boss`. Dans le panneau de combat,
+un bandeau permanent indique `Boss à venir`, le nom du boss, le trait et sa conséquence chiffrée ;
+il devient `Trait actif` quand le boss apparaît. Ce bandeau reste compact, ne bloque aucune action
+et emploie seulement les tokens du thème.
+
+### 4.2 Les notices du HUD (`ui/Notices.tsx`)
 
 Un drop, un recrutement, un arc terminé ou une fonction nouvellement accessible se produisaient en
 silence : le seul accusé de réception était un compteur ou un panneau qui apparaissait tout seul.

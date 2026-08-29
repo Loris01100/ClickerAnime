@@ -28,6 +28,12 @@ export const bleachArcs: GameData["arcs"] = [
       reward: 130,
       timerMs: 60_000,
       characterId: "bleach-renji-abarai",
+      bossTrait: {
+        kind: "shield",
+        name: "Garde du zanpakutō",
+        description: "Renji commence le combat avec une réserve de PV augmentée de 20 %.",
+        multiplier: 0.2,
+      },
     },
   },
   {

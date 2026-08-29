@@ -28,7 +28,17 @@ import {
   scopedMagnitude,
 } from "./abilities";
 import type { AbilityPolicy, UnlockedAbility } from "./abilities";
-import { enemyHp, enemyReward, killRateOf, nextEnemy, pendingRecruits, rollsDrop, timeToKillMs } from "./combat";
+import {
+  damageMultiplierAgainst,
+  enemyHp,
+  enemyReward,
+  killRateOf,
+  nextEnemy,
+  pendingRecruits,
+  rollsDrop,
+  timeToKillMs,
+  type DamageSource,
+} from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
@@ -1249,28 +1259,35 @@ export function createGameStore(data: GameData) {
    * enemy in front of us. It can leave one on nothing for a fraction of a second — the budget
    * refills a kill every tick — and the next call fells it.
    */
-  function dealDamage(amount: number) {
+  function dealDamage(amount: number, source: DamageSource) {
     if (paused() || !enemy() || amount <= 0) return 0;
     let remaining = amount;
+    const firstTarget = enemy();
+    const reportedDamage = firstTarget ? amount * damageMultiplierAgainst(firstTarget, source) : amount;
     const allowance = Math.min(MAX_KILLS_PER_HIT, Math.floor(killBudget()));
     let spent = 0;
     while (spent < allowance) {
       const target = enemy();
       if (!target || remaining <= 0) break;
-      const left = enemyHpLeft() - remaining;
+      const multiplier = damageMultiplierAgainst(target, source);
+      const effective = remaining * multiplier;
+      const left = enemyHpLeft() - effective;
       if (left > 0) {
         setEnemyHpLeft(left);
         remaining = 0;
         break;
       }
-      remaining = -left;
+      // Carry the unused *raw* damage into the replacement, whose trait may use another multiplier.
+      remaining = multiplier > 0 ? -left / multiplier : 0;
       spent++;
       defeat(target);
     }
     // Damage still in hand once the budget is out — it lands, it just can't fell anything.
-    if (remaining > 0 && enemy()) setEnemyHpLeft(Math.max(0, enemyHpLeft() - remaining));
+    if (remaining > 0 && enemy()) {
+      setEnemyHpLeft(Math.max(0, enemyHpLeft() - remaining * damageMultiplierAgainst(enemy()!, source)));
+    }
     if (spent > 0) setKillBudget((budget) => budget - spent);
-    return amount;
+    return reportedDamage;
   }
 
   /**
@@ -1293,7 +1310,7 @@ export function createGameStore(data: GameData) {
     bumpAchievement("clicks");
     const critLevel = nodeLevelOf("narratorClick", 3);
     const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
-    const dealt = dealDamage(crit ? clickPower() * CRIT_MULTIPLIER : clickPower());
+    const dealt = dealDamage(crit ? clickPower() * CRIT_MULTIPLIER : clickPower(), "click");
 
     const cooldownLevel = nodeLevelOf("narratorClick", 4);
     if (cooldownLevel > 0) {
@@ -1349,7 +1366,11 @@ export function createGameStore(data: GameData) {
   }
 
   /** Time the team needs to fell the enemy in front of it right now — `Infinity` at 0 dps. */
-  const timeToKill = createMemo(() => timeToKillMs(enemyHpLeft(), teamDps()));
+  const timeToKill = createMemo(() => {
+    const target = enemy();
+    const dps = target ? teamDps() * damageMultiplierAgainst(target, "teamDps") : teamDps();
+    return timeToKillMs(enemyHpLeft(), dps);
+  });
 
   /**
    * The kill cadence of the farm on screen, and what `MAX_KILLS_PER_SECOND` is throwing away — or
@@ -1392,7 +1413,9 @@ export function createGameStore(data: GameData) {
     // own passive percent to the *whole* team's flat damage, so a 40-strong roster came out an
     // order of magnitude above the dps it will actually bring, and every boss was announced
     // winnable. This is the same fold `teamDps` uses, minus the running buffs.
-    const dps = computeScopedStat(0, "teamDps", permanentModifiersFor(arc), 0, buffCap());
+    const dps =
+      computeScopedStat(0, "teamDps", permanentModifiersFor(arc), 0, buffCap()) *
+      damageMultiplierAgainst(arc.boss, "teamDps");
     const ttkMs = timeToKillMs(enemyHp(arc.boss, difficultyOf(arc.animeId)), dps);
     return { ttkMs, timerMs: timerMs ?? null, winnable: timerMs ? ttkMs <= timerMs : Number.isFinite(ttkMs) };
   }
@@ -2029,7 +2052,7 @@ export function createGameStore(data: GameData) {
     // Refill before spending, and never above the cap: banking an idle minute into one burst would
     // hand back exactly the spike this budget exists to remove.
     setKillBudget((budget) => Math.min(MAX_KILLS_PER_SECOND, budget + deltaSeconds * MAX_KILLS_PER_SECOND));
-    dealDamage(teamDps() * deltaSeconds);
+    dealDamage(teamDps() * deltaSeconds, "teamDps");
     checkTimer(nowMs);
 
     const autoClickLevel = nodeLevelOf("narratorClick", 2);
@@ -2040,11 +2063,11 @@ export function createGameStore(data: GameData) {
       const accumMs = autoClickAccumMs() + deltaMs;
       if (accumMs >= interval) {
         const damage = clickPower();
-        dealDamage(damage);
+        const dealt = dealDamage(damage, "click");
         bumpAchievement("clicks");
         // Announced, not just dealt: an autoclick that lands in silence is indistinguishable from a
         // perk that isn't working. `ClickStage` turns each pulse into a damage pop-up of its own.
-        setAutoClickPulse({ id: autoClickPulse().id + 1, damage });
+        setAutoClickPulse({ id: autoClickPulse().id + 1, damage: dealt });
         setAutoClickAccumMs(accumMs % interval);
       } else {
         setAutoClickAccumMs(accumMs);

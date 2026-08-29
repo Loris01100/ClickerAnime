@@ -2650,6 +2650,17 @@ button.danger {
   color: var(--panel);
   font-size: 0.7rem;
 }
+.boss-trait-chip {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--boss);
+  border-radius: 4px;
+  color: var(--boss);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
 
 /* The first passive purchase is the farming tutorial's payoff: frame it until it is clicked. */
 .tutorial-passive-ready {
@@ -2742,6 +2753,41 @@ button.danger {
 .challenge-banner small {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Read before the boss spawns, then stays in place as confirmation while the trait is active. */
+.boss-intel {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem 0.55rem;
+  padding: 0.38rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--boss);
+  background: var(--panel-2);
+  font-size: 0.75rem;
+}
+.boss-intel.active {
+  background: var(--active-tint);
+}
+.boss-intel > svg {
+  color: var(--boss);
+}
+.boss-intel > div {
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+}
+.boss-intel > div small {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+.boss-intel > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
 }
 
 /* Une carte de défi dans son panneau : relevée = discrète, en cours = soulignée par la teinte. */

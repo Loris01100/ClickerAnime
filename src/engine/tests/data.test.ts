@@ -114,6 +114,19 @@ describe("game data", () => {
     expect(Math.max(...percents.map((effect) => effect.value))).toBe(0.5);
   });
 
+  it("keeps the experimental boss traits limited and numerically safe", () => {
+    const traits = gameData.arcs.flatMap((arc) => (arc.boss.bossTrait ? [{ arc, trait: arc.boss.bossTrait }] : []));
+    expect(traits.map(({ arc }) => arc.id).sort()).toEqual(
+      ["naruto-vagues", "hxh-examen", "bleach-shinigami-remplacant"].sort()
+    );
+    for (const { arc, trait } of traits) {
+      expect(arc.order, `${arc.id} doit rester un test de premier arc`).toBe(0);
+      expect(trait.multiplier, `${arc.id} : multiplicateur positif`).toBeGreaterThan(0);
+      expect(trait.multiplier, `${arc.id} : multiplicateur borné`).toBeLessThanOrEqual(1);
+      expect(trait.description.length).toBeGreaterThan(20);
+    }
+  });
+
   it("keeps every id unique and every reference resolvable", () => {
     const dupes = (ids: string[]) => ids.filter((id, i) => ids.indexOf(id) !== i);
     expect(dupes(gameData.characters.map((c) => c.id))).toEqual([]);

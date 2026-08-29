@@ -26,6 +26,12 @@ export const hunterXHunterArcs: GameData["arcs"] = [
       reward: 130,
       timerMs: 60_000,
       characterId: "hxh-hisoka",
+      bossTrait: {
+        kind: "dps-resistance",
+        name: "Provocation",
+        description: "Le DPS automatique de l’équipe est réduit de 25 % ; les clics restent intacts.",
+        multiplier: 0.75,
+      },
     },
   },
   {

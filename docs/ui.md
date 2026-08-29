@@ -61,6 +61,10 @@ current UI can offer (recruit, passive, equipment, ready ability, or farming). T
 that action; its tooltip retains the exact estimated kill time and timer. When the kill cap bites,
 the stage tells the player to advance or deliberately stay for item farming instead of foregrounding
 an abstract percentage of discarded DPS.
+
+Boss traits are never surprise penalties. An open arc prints the trait name as a compact chip, and
+`ClickStage` keeps a `Boss à venir` strip visible from the moment the arc is entered. It names the
+boss, the trait and its exact consequence, then changes to `Trait actif` during the boss fight.
 The Codex modal keeps the same fixed responsive frame on its anime picker, character tab and item
 tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
 and detail page therefore uses and scrolls through all the remaining space inside that frame, while

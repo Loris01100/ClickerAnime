@@ -77,6 +77,30 @@ export interface EquippableBy {
 
 export type CharacterTag = string;
 
+/** One readable rule that makes a boss play differently without creating a second combat model. */
+export type BossTrait =
+  | {
+      kind: "click-resistance";
+      name: string;
+      description: string;
+      /** share of narrator-click damage that gets through, 0..1 */
+      multiplier: number;
+    }
+  | {
+      kind: "dps-resistance";
+      name: string;
+      description: string;
+      /** share of passive team DPS that gets through, 0..1 */
+      multiplier: number;
+    }
+  | {
+      kind: "shield";
+      name: string;
+      description: string;
+      /** extra max hp as a fraction of the boss's printed base hp */
+      multiplier: number;
+    };
+
 /** Anything the player fights. Enemies never deal damage — they only have to fall. */
 export interface Enemy {
   id: string;
@@ -93,6 +117,8 @@ export interface Enemy {
   dropChance?: number;
   /** must be defeated within this window or it comes back at full hp; bosses only, by default */
   timerMs?: number;
+  /** optional, data-driven boss rule; currently used only by selected experimental bosses */
+  bossTrait?: BossTrait;
 }
 
 export interface Arc {

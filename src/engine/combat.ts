@@ -3,8 +3,19 @@ import type { Arc, Enemy } from "./types";
 /** Ordinary fights between two boss victories in a cleared arc. */
 export const BOSS_REPLAY_KILLS = 50;
 
+export type DamageSource = "click" | "teamDps";
+
+/** How much of one damage source reaches this enemy. Non-bosses and unrelated traits stay at 1. */
+export function damageMultiplierAgainst(enemy: Enemy, source: DamageSource): number {
+  const trait = enemy.bossTrait;
+  if (trait?.kind === "click-resistance" && source === "click") return trait.multiplier;
+  if (trait?.kind === "dps-resistance" && source === "teamDps") return trait.multiplier;
+  return 1;
+}
+
 export function enemyHp(enemy: Enemy, difficulty: number): number {
-  return Math.ceil(enemy.baseHp * difficulty);
+  const shield = enemy.bossTrait?.kind === "shield" ? 1 + enemy.bossTrait.multiplier : 1;
+  return Math.ceil(enemy.baseHp * shield * difficulty);
 }
 
 export function enemyReward(enemy: Enemy, difficulty: number): number {

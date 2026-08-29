@@ -104,6 +104,13 @@ export default function ProgressPanel(props: {
                         <IconLock />{" "}
                       </Show>
                       {arc.name}
+                      <Show when={open() && arc.boss.bossTrait}>
+                        {(trait) => (
+                          <small class="boss-trait-chip" title={`${arc.boss.name} : ${trait().description}`}>
+                            {trait().name}
+                          </small>
+                        )}
+                      </Show>
                       {/* Le marqueur donne le prochain geste, le title garde les chiffres précis. */}
                       <Show when={open() && !cleared() && !outlook().winnable}>
                         <small class="arc-hard" title={outlookLabel()}>

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND } from "../gameState";
-import { BOSS_REPLAY_KILLS, encounterPool, enemyHp, killRateOf, nextEnemy, pendingRecruits } from "../combat";
+import { BOSS_REPLAY_KILLS, damageMultiplierAgainst, encounterPool, enemyHp, killRateOf, nextEnemy, pendingRecruits } from "../combat";
 import type { Enemy } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
@@ -13,6 +13,37 @@ describe("combat", () => {
   it("scales hp with the world difficulty", () => {
     expect(enemyHp(mob, 1)).toBe(10);
     expect(enemyHp(mob, 2.5)).toBe(25);
+  });
+
+  it("applies experimental boss traits only to their advertised source", () => {
+    const mist: Enemy = {
+      ...mob,
+      bossTrait: {
+        kind: "click-resistance",
+        name: "Brume",
+        description: "Clic réduit",
+        multiplier: 0.5,
+      },
+    };
+    const guard: Enemy = {
+      ...mob,
+      bossTrait: {
+        kind: "dps-resistance",
+        name: "Garde",
+        description: "DPS réduit",
+        multiplier: 0.75,
+      },
+    };
+    const shield: Enemy = {
+      ...mob,
+      bossTrait: { kind: "shield", name: "Bouclier", description: "PV augmentés", multiplier: 0.2 },
+    };
+
+    expect(damageMultiplierAgainst(mist, "click")).toBe(0.5);
+    expect(damageMultiplierAgainst(mist, "teamDps")).toBe(1);
+    expect(damageMultiplierAgainst(guard, "teamDps")).toBe(0.75);
+    expect(damageMultiplierAgainst(guard, "click")).toBe(1);
+    expect(enemyHp(shield, 2)).toBe(24);
   });
 
   it("stops offering a character encounter once they have joined", () => {

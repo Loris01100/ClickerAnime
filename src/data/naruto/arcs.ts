@@ -20,7 +20,20 @@ export const narutoArcs: GameData["arcs"] = [
       { id: "vagues-kakashi", name: "Kakashi Hatake", baseHp: 82, reward: 40, characterId: "kakashi-hatake" },
       { id: "vagues-haku", name: "Haku", baseHp: 122, reward: 50, characterId: "haku" },
     ],
-    boss: { id: "vagues-zabuza", itemId: "item-kubikiri", name: "Zabuza Momochi", baseHp: 294, reward: 130, timerMs: BOSS_TIMER_MS },
+    boss: {
+      id: "vagues-zabuza",
+      itemId: "item-kubikiri",
+      name: "Zabuza Momochi",
+      baseHp: 294,
+      reward: 130,
+      timerMs: BOSS_TIMER_MS,
+      bossTrait: {
+        kind: "click-resistance",
+        name: "Brume épaisse",
+        description: "Les clics du Narrateur infligent 50 % de dégâts en moins.",
+        multiplier: 0.5,
+      },
+    },
   },
   {
     id: "naruto-chunin",
