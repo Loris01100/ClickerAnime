@@ -9,10 +9,10 @@ export const defaultSynergyConfig: SynergyConfig = {
 };
 
 /**
- * A character is strongest in the arcs listed in `arcIds`, weaker elsewhere in the same anime
- * (different arc of their own story), and weakest when the active arc belongs to an entirely
- * different anime — unless that anime is the one their evolution grows into, and they've grown
- * into it (`evolved`): that world counts as home too, same as any other arc of their own anime.
+ * A character is strongest in the arcs listed in `arcIds` and in a later anime explicitly marked
+ * as covering their whole story. They are weaker elsewhere in an anime where they appear, and
+ * weakest in an anime they do not appear in. Recruitment, presence and evolution are separate:
+ * being recruited in part 1 must not make a recurring character foreign to every sequel.
  */
 export function synergyMultiplier(
   character: Character,
@@ -21,21 +21,28 @@ export function synergyMultiplier(
   evolved = false
 ): number {
   if (character.arcIds.includes(activeArc.id)) return config.matchingArcMultiplier;
+  if (character.fullSynergyAnimeIds?.includes(activeArc.animeId)) return config.matchingArcMultiplier;
   if (character.animeId === activeArc.animeId) return config.sameAnimeMalus;
+  if (character.appearanceAnimeIds?.includes(activeArc.animeId)) return config.sameAnimeMalus;
   if (evolved && character.evolution?.animeId === activeArc.animeId) return config.sameAnimeMalus;
   return config.otherAnimeMalus;
 }
 
 /**
- * Whether this arc is one the character calls home: an arc of their own anime, or of the anime their
- * evolution grows into once they've grown into it. Anything else is the "different world entirely"
+ * Whether this arc is one the character calls home: their recruitment anime, a later anime where
+ * they appear, or the anime their evolution grows into once they've grown into it. Anything else is the "different world entirely"
  * tier — `otherAnimeMalus` on damage, and no passive and no ability at all (see
  * `characterContributions` and `getUnlockedAbilities`). One definition, because those three rules
  * have to agree: a character weakened for being abroad is exactly a character whose story abilities
  * stay behind.
  */
 export function isHomeArc(character: Character, arc: Arc, evolved = false): boolean {
-  return character.animeId === arc.animeId || (evolved && character.evolution?.animeId === arc.animeId);
+  return (
+    character.animeId === arc.animeId ||
+    character.appearanceAnimeIds?.includes(arc.animeId) === true ||
+    character.fullSynergyAnimeIds?.includes(arc.animeId) === true ||
+    (evolved && character.evolution?.animeId === arc.animeId)
+  );
 }
 
 /**

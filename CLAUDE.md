@@ -109,8 +109,9 @@ These outrank convenience, and several were learned the hard way. Don't break on
   characters recruited five minutes apart. It only ever raises a `secondary`, and it is free:
   `arcPowerTable` reads a cohort's **maximum**, so raising a minimum moves no `debutPower`. Hold new
   content to it (`docs/progression.md`).
-- **A story ability doesn't travel.** Outside every world a character calls home — their own anime,
-  or their evolution's once evolved, the single `isHomeArc` test — their passive *and* their active
+- **A story ability doesn't travel.** Outside every world a character calls home — their recruitment
+  anime, a declared later appearance, or their evolution's once evolved, through the single
+  `isHomeArc` test — their passive *and* their active
   ability shut off entirely rather than being malused. `getUnlockedAbilities` won't list the
   ability, so it can't be fired nor automated, and `allModifiers` filters out a buff of theirs still
   running on arrival. A crossover window buys the damage malus back and never these.
@@ -135,7 +136,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   because it starts where the previous one left off (`docs/progression.md`).
 - Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
   sequel anime, enforced in `src/engine/tests/`.
-- A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
+- A character belongs to exactly one recruitment world. Later appearances never create another
+  recruit. Regular characters are recruitable in exactly one arc;
   shop-exclusive companions must have exactly one character offer instead.
 - `prestigeReset` wipes the run but spares the meta-progression: prestige points, achievement
   counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
@@ -211,7 +213,9 @@ shape when adding a world; omit a file only when the world genuinely has no such
   again** rather than copied from here — and sized against the dps the team has *after* crossing the
   border, which is far below what it ends the previous world with (`docs/combat.md`).
 
-A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
+A character belongs to exactly one recruitment world. `appearanceAnimeIds` keeps story abilities
+active in later series without duplicating the recruit; `fullSynergyAnimeIds` is reserved for a
+character who spans a later anime strongly enough to receive 1.0 throughout it. Regular characters are recruitable in exactly one arc;
 shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
 those entry paths, along with every
 id being unique and every reference resolvable). A mixed team still spans worlds — the team only

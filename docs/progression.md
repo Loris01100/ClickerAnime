@@ -176,7 +176,7 @@ scales both `clickPower` and `teamDps` contributions: a character deals full dam
 weakest in another anime's arc (`otherAnimeMalus`, 0.5). Tuning `defaultSynergyConfig` is the main
 balance knob.
 
-Outside their own anime entirely, two things stop rather than shrink, because both are story
+Outside every anime in which they are present, two things stop rather than shrink, because both are story
 abilities and neither travels:
 
 - the **passive** — `characterContributions` drops it altogether, not just malused;
@@ -185,11 +185,19 @@ abilities and neither travels:
   `allModifiers` on arrival (`awayCharacterIds`). Walk home and the buff resumes for whatever is
   left of its duration: travelling suspends an ability, it never spends one.
 
-Both read the same `isHomeArc` test, deliberately one function — a character weakened for being
-abroad has to be exactly the character whose story abilities stayed behind. And neither is lifted by
-a crossover window, which buys damage back and nothing else. An evolved character is the one
-exception to "abroad": the anime their evolution grows into counts as home for all three — see
-below.
+Presence is independent from recruitment. `Character.animeId` remains the one world where the
+character is recruited; `appearanceAnimeIds` lists later anime where the same Codex entry remains
+part of the cast, so its passive and active ability stay available there. This prevents a Naruto
+part-1 recruit such as Rock Lee from becoming falsely "foreign" on entering Shippūden. The narrower
+`arcIds` still grants 1.0 only in the character's strongest story arcs, while other arcs of a
+declared appearance anime use the usual 0.85 tier. `fullSynergyAnimeIds` is the explicit exception
+for a recurring lead whose story spans a later anime end to end; Naruto receives 1.0 throughout
+Shippūden and Boruto.
+
+All three rules read the same `isHomeArc` test, deliberately one function — a character weakened
+for being abroad has to be exactly the character whose story abilities stayed behind. None is
+lifted by a crossover window, which buys damage back and nothing else. An evolution remains another
+route into a home anime — see below — but is no longer used as the complete cast-presence model.
 
 ## Evolutions
 

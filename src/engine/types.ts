@@ -148,6 +148,10 @@ export interface Character {
   rarity: Rarity;
   /** arcs (within its own anime) this character is strong in */
   arcIds: string[];
+  /** later anime where this same character is present, without becoming a second recruit */
+  appearanceAnimeIds?: string[];
+  /** later anime whose whole arc list is a major part of this character's story */
+  fullSynergyAnimeIds?: string[];
   /** click damage at level 0; every level adds `LEVEL_DAMAGE_STEP` times this much again */
   baseClickPower: number;
   /** dps at level 0; every level adds `LEVEL_DAMAGE_STEP` times this much again */

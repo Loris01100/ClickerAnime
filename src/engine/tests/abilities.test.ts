@@ -50,6 +50,13 @@ describe("abilities", () => {
     expect(getUnlockedAbilities(["c1"], [withAbility], [], arcIn("anime-2"))).toEqual([]);
   });
 
+  it("garde la capacité dans un anime ultérieur où le personnage apparaît", () => {
+    const recurring: Character = { ...withAbility, appearanceAnimeIds: ["anime-2"] };
+    expect(getUnlockedAbilities(["c1"], [recurring], [], arcIn("anime-2")).map((u) => u.ability.id)).toEqual([
+      "ability-1",
+    ]);
+  });
+
   it("rend la capacité dans le monde de son évolution, une fois évolué", () => {
     const evolvable: Character = {
       ...base,

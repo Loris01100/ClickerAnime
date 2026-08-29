@@ -239,7 +239,10 @@ export default function RosterPanel(props: {
               <p class="muted pad small">
                 {props.game.sleepingAbilityCount()} capacité
                 {props.game.sleepingAbilityCount() > 1 ? "s en sommeil" : " en sommeil"} : leurs personnages
-                sont hors de leur monde.
+                sont absents de cet anime. {props.game.sleepingAbilities().map((unlocked) => {
+                  const character = props.game.characterOf(unlocked.sourceId);
+                  return `${unlocked.ability.name} (${character?.name ?? unlocked.sourceId})`;
+                }).join(", ")}.
               </p>
             </Show>
           </div>

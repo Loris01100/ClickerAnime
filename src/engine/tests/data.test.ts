@@ -1,9 +1,30 @@
 import { describe, expect, it } from "vitest";
 import { gameData } from "../../data";
+import { getUnlockedAbilities } from "../abilities";
 import { layoutArcs, MAP_COLS } from "../mapLayout";
+import { defaultSynergyConfig, isHomeArc, synergyMultiplier } from "../synergy";
 import { makeArc } from "./helpers";
 
 describe("game data", () => {
+  it("keeps the Naruto cast present across its sequel anime without duplicating recruits", () => {
+    const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
+    const sequelArcs = gameData.arcs.filter((arc) => arc.animeId === "shippuden" || arc.animeId === "boruto");
+    expect(sequelArcs.length).toBeGreaterThan(0);
+    for (const arc of sequelArcs) {
+      expect(isHomeArc(naruto, arc, true), `${arc.id} should be home for Naruto`).toBe(true);
+      expect(synergyMultiplier(naruto, arc, defaultSynergyConfig, true), `${arc.id} should give Naruto full synergy`).toBe(1);
+    }
+
+    const shippudenArc = gameData.arcs.find((arc) => arc.animeId === "shippuden")!;
+    const rockLee = gameData.characters.find((character) => character.id === "rock-lee")!;
+    expect(getUnlockedAbilities([rockLee.id], [rockLee], [], shippudenArc).map((entry) => entry.ability.id)).toEqual([
+      "ability-portes",
+    ]);
+
+    const haku = gameData.characters.find((character) => character.id === "haku")!;
+    expect(isHomeArc(haku, shippudenArc)).toBe(false);
+  });
+
   it("uses Mû as the Confrontation boss", () => {
     expect(gameData.arcs.find((arc) => arc.id === "shippuden-confrontation")?.boss.name).toBe("Mû, le Second Tsuchikage");
   });
@@ -149,6 +170,21 @@ describe("game data", () => {
       expect(arc.mobs.some((m) => m.itemId)).toBe(true);
     }
     const animeIds = gameData.animes.map((a) => a.id);
+    for (const character of gameData.characters) {
+      for (const animeId of character.appearanceAnimeIds ?? []) {
+        expect(animeIds, `${character.id} appears in an unknown anime`).toContain(animeId);
+        expect(animeId, `${character.id} must not repeat its recruitment anime as an appearance`).not.toBe(
+          character.animeId,
+        );
+      }
+      for (const animeId of character.fullSynergyAnimeIds ?? []) {
+        expect(animeIds, `${character.id} has full synergy in an unknown anime`).toContain(animeId);
+        expect(
+          [...(character.appearanceAnimeIds ?? []), character.evolution?.animeId],
+          `${character.id} needs a presence or evolution before full sequel synergy`,
+        ).toContain(animeId);
+      }
+    }
     for (const offer of gameData.shop ?? []) {
       expect(offer.kind === "item" ? itemIds : characterIds).toContain(offer.targetId);
       if (offer.requiresAnimeId) expect(animeIds).toContain(offer.requiresAnimeId);

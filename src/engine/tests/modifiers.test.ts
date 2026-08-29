@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeEffectiveStat, computeScopedStat, scopedBuffCap, SCOPED_BUFF_CAP, SCOPED_BUFF_CAP_FLOOR } from "../modifiers";
-import { synergyMultiplier, defaultSynergyConfig } from "../synergy";
+import { synergyMultiplier, defaultSynergyConfig, isHomeArc } from "../synergy";
 import { crossoverSynergyConfig, isMixedTeam } from "../crossover";
 import type { ActiveModifier, Character } from "../types";
 import { makeArc } from "./helpers";
@@ -150,6 +150,30 @@ describe("synergyMultiplier", () => {
   it("gives the other-anime malus when from a different anime", () => {
     const character: Character = { ...base, id: "c3", animeId: "anime-2", arcIds: ["arc-x"] };
     expect(synergyMultiplier(character, arc, defaultSynergyConfig)).toBe(defaultSynergyConfig.otherAnimeMalus);
+  });
+
+  it("treats a later appearance as home without granting full arc synergy", () => {
+    const character: Character = {
+      ...base,
+      id: "c-appears",
+      animeId: "anime-2",
+      arcIds: ["arc-x"],
+      appearanceAnimeIds: ["anime-1"],
+    };
+    expect(synergyMultiplier(character, arc, defaultSynergyConfig)).toBe(defaultSynergyConfig.sameAnimeMalus);
+    expect(isHomeArc(character, arc)).toBe(true);
+  });
+
+  it("grants full synergy when the character spans the whole later anime", () => {
+    const character: Character = {
+      ...base,
+      id: "c-recurring-lead",
+      animeId: "anime-2",
+      arcIds: ["arc-x"],
+      fullSynergyAnimeIds: ["anime-1"],
+    };
+    expect(synergyMultiplier(character, arc, defaultSynergyConfig)).toBe(defaultSynergyConfig.matchingArcMultiplier);
+    expect(isHomeArc(character, arc)).toBe(true);
   });
 
   it("treats the evolution's anime as home once evolved, but not before", () => {

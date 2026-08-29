@@ -823,11 +823,13 @@ export function createGameStore(data: GameData) {
    * entirely, so without this the roster would just quietly shrink on arrival in a new world and
    * the player would have no way to tell a travelled ability from one never unlocked.
    */
-  const sleepingAbilityCount = createMemo(() => {
+  const sleepingAbilities = createMemo(() => {
     const away = awayCharacterIds();
-    return ownedCharacters().filter((c) => away.has(c.id) && ((isEvolved(c) && c.evolution?.ability) || c.ability))
-      .length;
+    return getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds()).filter((unlocked) =>
+      away.has(unlocked.sourceId)
+    );
   });
+  const sleepingAbilityCount = createMemo(() => sleepingAbilities().length);
 
   /**
    * Everything the team permanently contributes in the arc being fought — `permanentModifiersFor`
@@ -2256,6 +2258,7 @@ export function createGameStore(data: GameData) {
     crossoverAdvised,
     activateCrossover,
     unlockedAbilities,
+    sleepingAbilities,
     sleepingAbilityCount,
     activeBuffs,
     readyAbilities,
