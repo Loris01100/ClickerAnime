@@ -6,6 +6,28 @@ import type { Rarity } from "./types";
  */
 export const PASSIVE_LEVEL_CAP: Record<Rarity, number> = { main: 10, secondary: 5 };
 
+export interface FirstPassiveDropFacts {
+  hasClearedArc: boolean;
+  passiveRanksBought: number;
+  copies: number;
+  copiesNeeded: number;
+  hasCompatiblePassive: boolean;
+}
+
+/**
+ * The first passive teaches farming, so it must ask for several kills without being held hostage
+ * by RNG. Once the first arc is clear, eligible common-carrying enemies drop until the first rank
+ * can be bought. The rule switches off forever as soon as that lesson has been completed.
+ */
+export function firstPassiveDropChance(baseChance: number, facts: FirstPassiveDropFacts): number {
+  return facts.hasClearedArc &&
+    facts.passiveRanksBought < 1 &&
+    facts.hasCompatiblePassive &&
+    facts.copies < facts.copiesNeeded
+    ? 1
+    : baseChance;
+}
+
 /**
  * Passives are not levelled by xp: the player spends the common item of the arc the character comes
  * from, so deepening one means going back to farm that zone — and choosing who gets the copies.

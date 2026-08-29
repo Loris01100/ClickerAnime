@@ -1,9 +1,9 @@
 import { For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import type { GameStore } from "../engine/gameState";
-import { IconBookmark, IconCheck, IconStar } from "./icons";
+import { IconBookmark, IconCheck, IconSparkle, IconStar } from "./icons";
 
-const NOTICE_ICON = { item: IconBookmark, recruit: IconStar, arc: IconCheck };
+const NOTICE_ICON = { item: IconBookmark, recruit: IconStar, arc: IconCheck, unlock: IconSparkle };
 
 /**
  * The floating stack of "you just gained something" pop-ups. Drops, recruits and cleared arcs used

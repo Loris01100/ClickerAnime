@@ -40,6 +40,11 @@ un onglet si elle peut tenir sur l'écran. Conséquences concrètes déjà en pl
   copies du commun de cet arc, acheter un rang de passif. Il affiche les vrais noms et une jauge,
   puis disparaît définitivement. Une liste de quatre tâches aurait remis dès le départ le bruit que
   le dévoilement cherche précisément à retirer.
+- **Une icône ne doit jamais être le seul nom d'une monnaie.** La barre Ressources écrit Or, Points
+  de prestige, Cristaux crossover et Points de pack à côté du montant ; l'image sert à reconnaître,
+  le texte à comprendre. De même, un diagnostic visible donne une action (« Améliore un passif »,
+  « Équipe un objet », « Farme l'arc actuel »), tandis que ses chiffres exacts restent dans le
+  `title`. Le joueur doit savoir quoi faire avant de savoir pourquoi la formule l'a décidé.
 - **Rien n'est jamais gratuitement gros.** Une icône, un chiffre, une barre — le seul élément qui
   a le droit à une grande taille visuelle est l'ennemi combattu (`.stage`), parce que c'est
   l'unique zone d'interaction directe (clic).
@@ -211,15 +216,19 @@ Restent des pistes, non faites :
   un événement qui se répète 10 fois par seconde comme un clic.
 ### 4.1 Les notices du HUD (`ui/Notices.tsx`)
 
-Un drop, un recrutement et un arc terminé se produisaient en silence : le seul accusé de réception
-était un compteur qui bougeait tout seul dans un panel. `Notices.tsx` est la pile flottante en bas
-à droite qui comble ce vide — trois `kind` (`item`, `recruit`, `arc`), chacun reconnaissable à la
-couleur de sa bordure gauche (`--blue`, `--gold`, `--good`) et à son icône d'`icons.tsx`. Elle ne
+Un drop, un recrutement, un arc terminé ou une fonction nouvellement accessible se produisaient en
+silence : le seul accusé de réception était un compteur ou un panneau qui apparaissait tout seul.
+`Notices.tsx` est la pile flottante en bas à droite qui comble ce vide — quatre `kind` (`item`,
+`recruit`, `arc`, `unlock`), chacun reconnaissable à la couleur de sa bordure gauche et à son icône
+d'`icons.tsx`. Les déblocages emploient `--accent` et `--active-tint`, les trois gains gardent
+`--blue`, `--gold` et `--good`. Elle ne
 bloque rien et ne se ferme pas : cohérent avec « tout visible », contrairement à une modale.
 
 La file vit dans le store (`gameState`'s `notices`), pas dans le composant, parce que les trois
-événements naissent dans le moteur (`grantItem`, `defeat`) et qu'un composant n'a aucun moyen de
-les observer autrement. Elle est **purgée par le tick 200ms existant**, pas par un `setTimeout` par
+événements de gain naissent dans le moteur (`grantItem`, `defeat`) et qu'un composant n'a aucun
+moyen de les observer autrement. Les déblocages de surface sont détectés dans `App.tsx` par une
+transition `false → true` de `DisclosureState`, jamais au chargement d'une sauvegarde déjà avancée.
+La file est **purgée par le tick 200ms existant**, pas par un `setTimeout` par
 notice — aucun timer ne peut survivre au store — et plafonnée à `MAX_NOTICES` (4), la plus vieille
 tombant en premier. Deux événements de même type et de même texte fusionnent dans la notice déjà
 visible (`×N`) et repoussent son expiration ; un clic la retire tout de suite (`dismissNotice`).

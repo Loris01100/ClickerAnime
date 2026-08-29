@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal, type Accessor } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, type Accessor } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { SCOPED_BUFF_CAP } from "../engine/modifiers";
 import { passiveGrowth } from "../engine/growth";
@@ -151,6 +151,22 @@ export default function RosterPanel(props: {
       .foundItems()
       .filter((item): item is Item => item.kind === "unique" && props.game.canEquipItem(character, item.id));
 
+  /** The first affordable passive is the tutorial's payoff, so it cannot hide in a dense row. */
+  const tutorialPassiveId = createMemo(() => {
+    const ranksBought =
+      props.game.achievementCounts().passiveRanksBought ??
+      props.game.ownedCharacters().reduce((sum, character) => sum + props.game.passiveRankOf(character), 0);
+    if (ranksBought > 0) return null;
+    return (
+      props.game
+        .ownedCharacters()
+        .find((character) => character.passive && props.game.passiveUpgradeOf(character).affordable)?.id ?? null
+    );
+  });
+  createEffect(() => {
+    if (tutorialPassiveId()) setTeamOpen(true);
+  });
+
   return (
     <div class="column">
       <Show when={props.disclosure().abilities}>
@@ -232,12 +248,19 @@ export default function RosterPanel(props: {
       </Show>
 
       <Show when={props.disclosure().team}>
-      <section ref={teamPanel} class="panel roster-resizable-panel progressive-reveal" classList={{ collapsed: !teamOpen() }}>
+      <section
+        ref={teamPanel}
+        class="panel roster-resizable-panel progressive-reveal"
+        classList={{ collapsed: !teamOpen(), "tutorial-passive-ready": Boolean(tutorialPassiveId()) }}
+      >
         <header class="panel-head">
           <PanelTitle onToggle={() => { teamPanel?.style.removeProperty("height"); setTeamOpen(!teamOpen()); }} open={teamOpen()}>
             Équipe ({sortedTeam().length}
             <Show when={worldFilter()}>/{props.game.ownedCharacters().length}</Show>)
           </PanelTitle>
+          <Show when={tutorialPassiveId()}>
+            <small class="tutorial-ready-chip">Passif prêt</small>
+          </Show>
           <Show when={teamWorlds().length > 1}>
             <select
               value={worldFilter()}
@@ -346,6 +369,7 @@ export default function RosterPanel(props: {
                       >
                         <button
                           class="rank-up"
+                          classList={{ "tutorial-rank-up": tutorialPassiveId() === character.id }}
                           disabled={!passive().affordable}
                           title={`${passiveItem()?.name ?? "—"} : ${fmt(passive().copies)} en poche`}
                           onClick={() => props.game.rankUpPassive(character)}

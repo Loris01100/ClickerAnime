@@ -43,6 +43,24 @@ collect six copies of that arc's common, then buy a passive rank — with real i
 and live progress. `ui/objective.ts` is the pure four-step state machine. Achievement counters make
 the trail permanent across reloads and prestige without adding tutorial state to the save; after
 the first passive rank it unmounts for good.
+
+When that first rank becomes affordable, the team panel reopens if necessary, gains an accent
+frame and labels itself `Passif prêt`; the compatible `+1` button is the only pulsing control and a
+one-shot notice names the character to improve. The effect ends immediately after purchase and
+respects `prefers-reduced-motion`.
+
+`Notices.tsx` also announces newly disclosed systems (`Ressources`, `Équipe et Codex`, abilities,
+items, worlds/shop, prestige, packs, crossover and challenges). `App.tsx` compares successive
+`DisclosureState` values and never replays already-visible systems when loading a save. These
+announcements reuse the bounded, dismissible notice queue used by drops and recruits.
+
+Resource tiles always print their names beside their art: Or, Points de prestige, Cristaux
+crossover and Points de pack. Icons remain recognition shortcuts, never the only vocabulary.
+`ui/advice.ts` similarly turns a boss that fails `bossOutlookOf` into the best immediate action the
+current UI can offer (recruit, passive, equipment, ready ability, or farming). The arc row prints
+that action; its tooltip retains the exact estimated kill time and timer. When the kill cap bites,
+the stage tells the player to advance or deliberately stay for item farming instead of foregrounding
+an abstract percentage of discarded DPS.
 The Codex modal keeps the same fixed responsive frame on its anime picker, character tab and item
 tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
 and detail page therefore uses and scrolls through all the remaining space inside that frame, while

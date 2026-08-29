@@ -6,7 +6,7 @@ import { characterContributions, defaultSynergyConfig } from "../synergy";
 import { CROSSOVER_COST } from "../crossover";
 import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeAvailable, isAnimeComplete, isArcUnlocked } from "../progression";
 import { timeToKillMs } from "../combat";
-import { arcPowerTable, CATCH_UP, catchUpGrowth, isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
+import { arcPowerTable, CATCH_UP, catchUpGrowth, firstPassiveDropChance, isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
 import type { Anime, Arc, Character } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
@@ -45,6 +45,20 @@ describe("world progression", () => {
 });
 
 describe("character growth", () => {
+  it("guarantees only the remaining drops needed for the first passive lesson", () => {
+    const learning = {
+      hasClearedArc: true,
+      passiveRanksBought: 0,
+      copies: 5,
+      copiesNeeded: 6,
+      hasCompatiblePassive: true,
+    };
+    expect(firstPassiveDropChance(0.12, learning)).toBe(1);
+    expect(firstPassiveDropChance(0.12, { ...learning, copies: 6 })).toBe(0.12);
+    expect(firstPassiveDropChance(0.12, { ...learning, passiveRanksBought: 1 })).toBe(0.12);
+    expect(firstPassiveDropChance(0.12, { ...learning, hasClearedArc: false })).toBe(0.12);
+  });
+
   const main: Character = {
     id: "m", name: "Main", animeId: "a", rarity: "main", arcIds: [], baseClickPower: 2, baseDps: 3,
     passive: { target: "clickPower", kind: "percent", value: 0.1 },

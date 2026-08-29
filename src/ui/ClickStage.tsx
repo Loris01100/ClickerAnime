@@ -290,7 +290,9 @@ export default function ClickStage(props: { game: GameStore }) {
             </span>
             <Show when={rate().efficiency < 1}>
               <span class="kill-rate-loss">
-                — plafond atteint, {Math.round((1 - rate().efficiency) * 100)}% du DPS perdu ici
+                {cleared()
+                  ? "— change d’arc, sauf si tu farmes ses objets"
+                  : "— les mobs sont dépassés : fonce jusqu’au boss"}
               </span>
             </Show>
           </p>

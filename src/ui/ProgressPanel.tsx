@@ -5,6 +5,7 @@ import { fmt, seconds } from "./format";
 import Coin from "./Coin";
 import { IconCheck, IconChevronRight, IconLock, IconTarget } from "./icons";
 import type { DisclosureState } from "./disclosure";
+import { bossAdvice } from "./advice";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -34,6 +35,18 @@ export default function ProgressPanel(props: {
       (a) => !props.game.prestige().unlockedAnimeIds.includes(a.id) && !props.game.animeBlockedBy(a.id)
     );
 
+  const affordablePassive = createMemo(() =>
+    props.game.ownedCharacters().some((character) => props.game.passiveUpgradeOf(character).affordable)
+  );
+  const equippableUnique = createMemo(() =>
+    props.game.foundItems().some(
+      (item) =>
+        item.kind === "unique" &&
+        !props.game.wearerOf(item.id) &&
+        props.game.ownedCharacters().some((character) => props.game.canEquipItem(character, item.id))
+    )
+  );
+
   return (
     <div class="column">
       <For each={props.game.unlockedAnimes()}>
@@ -61,13 +74,22 @@ export default function ProgressPanel(props: {
                  * le memo ramène ça à une fois par arc.
                  */
                 const outlook = createMemo(() => props.game.bossOutlookOf(arc));
+                const advice = createMemo(() =>
+                  bossAdvice({
+                    teamSize: props.game.ownedCharacters().length,
+                    affordablePassive: affordablePassive(),
+                    equippableUnique: equippableUnique(),
+                    readyAbility: props.game.readyAbilities().length > 0,
+                    isActiveArc: props.game.activeArc()?.id === arc.id,
+                  })
+                );
                 /** Ce que l'équipe vaut face au boss de cet arc — le seul mur du jeu. */
                 const outlookLabel = createMemo(() => {
                   const { ttkMs, timerMs, winnable } = outlook();
-                  if (!Number.isFinite(ttkMs)) return "Boss : aucun DPS pour l'instant";
+                  if (!Number.isFinite(ttkMs)) return `Boss : aucun DPS pour l'instant. Conseil : ${advice().detail}`;
                   const base = `Boss : ${seconds(ttkMs)} pour l'abattre`;
                   if (!timerMs) return base;
-                  return `${base} · limite ${seconds(timerMs)}${winnable ? "" : " — trop dur pour l'instant"}`;
+                  return `${base} · limite ${seconds(timerMs)}${winnable ? "" : `. Conseil : ${advice().detail}`}`;
                 });
                 return (
                   <button
@@ -82,11 +104,10 @@ export default function ProgressPanel(props: {
                         <IconLock />{" "}
                       </Show>
                       {arc.name}
-                      {/* Un arc ouvert mais dont le boss est hors de portée doit se voir sans
-                          survoler : c'est l'info qui dit « reviens plus tard ». */}
+                      {/* Le marqueur donne le prochain geste, le title garde les chiffres précis. */}
                       <Show when={open() && !cleared() && !outlook().winnable}>
                         <small class="arc-hard" title={outlookLabel()}>
-                          trop dur
+                          {advice().short}
                         </small>
                       </Show>
                     </span>

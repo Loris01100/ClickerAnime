@@ -70,8 +70,10 @@ exposes it for the current enemy (`timeToKill`, printed on the hp bar) and, per 
 `bossOutlookOf` — the boss's hp at that world's frozen difficulty against the dps the team would
 deal **there**, not here (synergy makes those very different), measured against the boss's own
 `timerMs` with the tree's boost applied exactly as `spawnNext` applies it. That comparison is what
-`ProgressPanel` turns into the "trop dur" marker, since the boss clock is the only thing in the game
-that can actually stop a run.
+`ProgressPanel` turns into a concrete next-action marker, since the boss clock is the only thing in
+the game that can actually stop a run. The tooltip keeps the exact time comparison; the visible row
+instead says what to do now — recruit, buy an affordable passive, equip an available unique, fire a
+ready ability, or farm levels.
 
 That dps goes through the **whole modifier pipeline** — `permanentModifiersFor(arc)` rebuilds every
 permanent contribution as if that arc were the one being fought, and `computeScopedStat` folds it

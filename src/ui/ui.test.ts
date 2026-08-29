@@ -4,6 +4,8 @@ import { describeAbility, describeCharacterTag, describeModifier } from "./descr
 import { imagePathsForAnime, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./preload";
 import { deriveDisclosure, type DisclosureFacts } from "./disclosure";
 import { tutorialObjective, type ObjectiveFacts } from "./objective";
+import { bossAdvice } from "./advice";
+import { newlyUnlocked } from "./unlocks";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -181,5 +183,45 @@ describe("first-run objective trail", () => {
     expect(tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1, itemCopies: 6 })?.detail).toContain(
       "Sakura Haruno"
     );
+  });
+});
+
+describe("boss advice", () => {
+  const base = {
+    teamSize: 1,
+    affordablePassive: false,
+    equippableUnique: false,
+    readyAbility: false,
+    isActiveArc: true,
+  };
+
+  it("prioritizes actions the player can take immediately", () => {
+    expect(bossAdvice({ ...base, teamSize: 0 }).short).toBe("Recrute un héros");
+    expect(bossAdvice({ ...base, affordablePassive: true }).short).toBe("Améliore un passif");
+    expect(bossAdvice({ ...base, equippableUnique: true }).short).toBe("Équipe un objet");
+    expect(bossAdvice({ ...base, readyAbility: true }).short).toBe("Lance une capacité");
+  });
+
+  it("sends the player farming when no immediate upgrade exists", () => {
+    expect(bossAdvice({ ...base, isActiveArc: false }).short).toBe("Farme l’arc actuel");
+    expect(bossAdvice(base).short).toBe("Gagne des niveaux");
+  });
+});
+
+describe("unlock notices", () => {
+  it("announces only surfaces that just became visible", () => {
+    const before = deriveDisclosure(emptyDisclosureFacts, 100);
+    const after = deriveDisclosure({ ...emptyDisclosureFacts, kills: 1, recruits: 1, ownedCharacters: 1 }, 100);
+    expect(newlyUnlocked(before, after)).toEqual([
+      "Ressources débloquées",
+      "Équipe et Codex débloqués",
+    ]);
+    expect(newlyUnlocked(after, after)).toEqual([]);
+  });
+
+  it("groups the world portal and shop into one announcement", () => {
+    const before = deriveDisclosure(emptyDisclosureFacts, 100);
+    const after = deriveDisclosure({ ...emptyDisclosureFacts, arcsCleared: 1 }, 100);
+    expect(newlyUnlocked(before, after)).toContain("Portail des mondes et boutique débloqués");
   });
 });

@@ -1,4 +1,4 @@
-import { Show, Suspense, createEffect, createMemo, createSignal, lazy, onMount } from "solid-js";
+import { Show, Suspense, createEffect, createMemo, createSignal, lazy, on, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { gameData } from "./data";
@@ -13,6 +13,7 @@ import { PACK_COST } from "./engine/packs";
 import { deriveDisclosure } from "./ui/disclosure";
 import { PRESTIGE_TREE_CATEGORIES } from "./engine/prestigeTree";
 import ObjectiveTrail from "./ui/ObjectiveTrail";
+import { newlyUnlocked } from "./ui/unlocks";
 
 /*
  * Les overlays du menu partent dans leur propre chunk : ils ne sont montés qu'a la demande (chaque
@@ -114,6 +115,36 @@ export default function App() {
       Math.min(PACK_COST.main, PACK_COST.secondary)
     );
   });
+
+  // Do not replay old unlocks on load: only false -> true transitions during this session deserve
+  // a pop-up. Several systems may open on one event, so they enter the existing bounded queue.
+  createEffect(
+    on(
+      disclosure,
+      (current, previous) => {
+        if (!previous) return;
+        for (const message of newlyUnlocked(previous, current)) game.announceUnlock(message);
+      },
+      { defer: true }
+    )
+  );
+
+  const firstAffordablePassive = createMemo(() => {
+    const ranksBought =
+      game.achievementCounts().passiveRanksBought ??
+      game.ownedCharacters().reduce((sum, character) => sum + game.passiveRankOf(character), 0);
+    if (ranksBought > 0) return null;
+    return game.ownedCharacters().find((character) => character.passive && game.passiveUpgradeOf(character).affordable) ?? null;
+  });
+  createEffect(
+    on(
+      firstAffordablePassive,
+      (character, previous) => {
+        if (character && !previous) game.announceUnlock(`Premier passif prêt : améliore ${character.name}`);
+      },
+      { defer: true }
+    )
+  );
 
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
   function openCodexOn(characterId?: string) {

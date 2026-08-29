@@ -39,6 +39,7 @@ import {
   reachedArcPower,
   narratorClickPower,
   passiveUpgrade,
+  firstPassiveDropChance,
   PASSIVE_LEVEL_CAP,
   XP_GROWTH,
   XP_PER_KILL_REWARD,
@@ -147,7 +148,7 @@ const MAX_NOTICES = 4;
 /** One "you just gained something" event, popped up by the HUD and pruned by the main tick. */
 export interface Notice {
   id: number;
-  kind: "item" | "recruit" | "arc";
+  kind: "item" | "recruit" | "arc" | "unlock";
   text: string;
   count: number;
   expiresAt: number;
@@ -557,6 +558,8 @@ export function createGameStore(data: GameData) {
       return [...list, { id: noticeId++, kind, text, count: 1, expiresAt }].slice(-MAX_NOTICES);
     });
   }
+  /** Presentation unlocks share the same bounded, dismissible HUD queue as gameplay events. */
+  const announceUnlock = (text: string) => pushNotice("unlock", text);
   const dismissNotice = (id: number) => setNotices((list) => list.filter((n) => n.id !== id));
 
   // Combat is transient: the current fight restarts from scratch on reload rather than being saved.
@@ -1162,8 +1165,25 @@ export function createGameStore(data: GameData) {
       const baseChance = target.dropChance ?? 1;
       const boostedChance =
         dropChanceLevel > 0 ? Math.min(1, baseChance * (1 + DROP_CHANCE_BOOST * dropChanceLevel)) : baseChance;
-      if (rollsDrop({ ...target, dropChance: boostedChance }, Math.random())) {
-        const item = itemOf(target.itemId);
+      const item = itemOf(target.itemId);
+      const compatibleUpgrades =
+        item?.kind === "common"
+          ? ownedCharacters()
+              .filter((character) => character.passive && passiveItemOf(character)?.id === item.id)
+              .map(passiveUpgradeOf)
+          : [];
+      const dropChance = item
+        ? firstPassiveDropChance(boostedChance, {
+            hasClearedArc: clearedArcIds().length > 0,
+            passiveRanksBought:
+              achievementCounts().passiveRanksBought ??
+              Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0),
+            copies: countOf(item.id),
+            copiesNeeded: Math.min(...compatibleUpgrades.map((upgrade) => upgrade.cost)),
+            hasCompatiblePassive: compatibleUpgrades.length > 0,
+          })
+        : boostedChance;
+      if (rollsDrop({ ...target, dropChance }, Math.random())) {
         if (item) {
           if (item.kind === "unique" && countOf(item.id) > 0) grantUniqueFragment(item);
           else grantItem(item);
@@ -2225,6 +2245,7 @@ export function createGameStore(data: GameData) {
     // HUD notices
     notices,
     dismissNotice,
+    announceUnlock,
     // prestige tree
     branchLevelsOf,
     nodeLevelOf,

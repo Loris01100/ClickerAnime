@@ -35,6 +35,12 @@ Codex lists the whole cast, met or not). It refuses on the same grounds a charac
 `passive` at all** — `Character.passive` is optional (Naruto's kit is an ability plus an evolution),
 and the item Codex used to offer a rank-up on the whole cast of the arc, passive or not. Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
+
+The first rank is a bounded onboarding exception, not a free reward. After the player's first arc
+clear and only until one lifetime passive rank has been bought, every defeated enemy carrying the
+compatible common drops it while the stack is below the next rank's cost. The player still repeats
+the arc and sees six pickups, but a bad RNG seed cannot hide the farming loop. Normal drop chances
+resume as soon as the stack is sufficient, even before the purchase.
 Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
 
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in

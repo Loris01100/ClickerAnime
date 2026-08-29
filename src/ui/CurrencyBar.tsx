@@ -31,12 +31,12 @@ export default function CurrencyBar(props: {
       <div class="currency-row">
         <button class="currency" title="Dépenser à la boutique" onClick={props.onOpenShop}>
           <Coin kind="gold" px={24} />
-          <strong>{fmt(props.game.currency())}</strong>
+          <span class="currency-copy"><small>Or</small><strong>{fmt(props.game.currency())}</strong></span>
         </button>
         <Show when={props.disclosure().prestigeResource}>
           <button class="currency" title="Dépenser dans l'arbre de prestige" onClick={props.onOpenPrestige}>
             <Coin kind="prestige" px={24} />
-            <strong>{props.game.prestige().prestigePoints}</strong>
+            <span class="currency-copy"><small>Points de prestige</small><strong>{props.game.prestige().prestigePoints}</strong></span>
           </button>
         </Show>
         {/*
@@ -56,7 +56,7 @@ export default function CurrencyBar(props: {
             onClick={props.onOpenCrossover}
           >
             <Coin kind="crystal" px={24} />
-            <strong>{props.game.crossoverCrystals()}</strong>
+            <span class="currency-copy"><small>Cristaux crossover</small><strong>{props.game.crossoverCrystals()}</strong></span>
           </button>
         </Show>
         <Show when={props.disclosure().packs}>
@@ -66,7 +66,7 @@ export default function CurrencyBar(props: {
             onClick={props.onOpenPacks}
           >
             <Coin kind="pack" px={24} />
-            <strong>{fmt(props.game.worldPointsOf(currentAnime()?.id ?? ""))}</strong>
+            <span class="currency-copy"><small>Points de pack</small><strong>{fmt(props.game.worldPointsOf(currentAnime()?.id ?? ""))}</strong></span>
           </button>
         </Show>
       </div>
