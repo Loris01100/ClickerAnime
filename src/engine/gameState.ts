@@ -427,6 +427,8 @@ export function createGameStore(data: GameData) {
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
   const [uniqueFragments, setUniqueFragments] = createSignal<Record<string, number>>(saved?.uniqueFragments ?? {});
   const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(uniqueRanksFromSave(data, saved));
+  // Passive ranks are permanent mastery: a prestige removes the team and its item stock, but a
+  // character recovers every bought rank when recruited again. Only hardReset wipes them.
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
   const [evolvedCharacterIds, setEvolvedCharacterIds] = createSignal<string[]>(saved?.evolvedCharacterIds ?? []);
   // Lifetime totals for the achievement ladders (see achievements.ts) — never decrease and, unlike
@@ -1877,9 +1879,9 @@ export function createGameStore(data: GameData) {
   }
 
   /**
-   * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared, items and
-   * passive ranks all go. Only the prestige points survive — plus the meta-progression the run
-   * never owned: achievement counts, tree levels, and the pack points and duplicates (see packs.ts).
+   * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared and items
+   * all go. Passive ranks survive with the other meta-progression: once a character is recruited
+   * again, their mastered passive returns at the rank previously bought.
    * The whole point is to redo the climb faster.
    */
   function prestigeReset() {
@@ -1897,7 +1899,6 @@ export function createGameStore(data: GameData) {
     setItemCounts({});
     setUniqueFragments({});
     setUniqueUpgradeRanks({});
-    setPassiveRanks({});
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);

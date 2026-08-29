@@ -161,6 +161,8 @@ looking at the result.
 ## Persistence & Save Format
 
 - Save key: `clicker-anime:save:v10` in `localStorage`.
+- Passive ranks are permanent mastery: `prestigeReset` keeps them even while the roster is empty;
+  recruiting the character again restores the passive at its former rank. Only `hardReset` clears them.
 - `buildSaveFile` in `gameState.ts` is the single source of truth for the on-disk shape.
 - `readSave` shape-checks via `isValidSave` and falls back to a fresh run instead of throwing.
 - **Bump the save-key version** only when a field is renamed or retyped. New optional fields can be absorbed with `??` defaults. Bumping wipes all existing saves.

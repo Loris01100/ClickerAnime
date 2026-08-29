@@ -41,7 +41,10 @@ clear and only until one lifetime passive rank has been bought, every defeated e
 compatible common drops it while the stack is below the next rank's cost. The player still repeats
 the arc and sees six pickups, but a bad RNG seed cannot hide the farming loop. Normal drop chances
 resume as soon as the stack is sufficient, even before the purchase.
-Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
+The items that paid for ranks are run-scoped, but the ranks themselves are character mastery:
+`prestigeReset` wipes the common-item stock and the roster, while keeping `passiveRanks`. When the
+character is recruited again in a later adventure, their passive immediately returns at its former
+rank. Only `hardReset` wipes that mastery.
 
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
@@ -91,8 +94,8 @@ full clear's 3.21e12 — **+0.5%**, i.e. ×1.008 through a 0.16 exponent. That i
 when the next world lands: an entry world sits at the *bottom* of the difficulty ramp, so its
 earnings are noise next to the last world's, and only the arc count really moves.
 
-`prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
-tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
+`prestigeReset()` wipes everything but the prestige points, passive ranks, achievement counts, the prestige
+tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, kills, cleared arcs
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what

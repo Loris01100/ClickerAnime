@@ -5,6 +5,62 @@ import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("keeps a character's passive rank through prestige and restores it on recruitment", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [{
+        id: "ta-arc",
+        animeId: "ta",
+        name: "Arc",
+        order: 0,
+        mobsToBoss: 10,
+        mobs: [
+          { id: "hero-fight", name: "Itachi", baseHp: 1, reward: 1, characterId: "itachi" },
+          { id: "plain", name: "Ninja", baseHp: 1, reward: 1 },
+        ],
+        boss: { id: "boss", name: "Boss", baseHp: 100, reward: 10 },
+      }],
+      characters: [{
+        id: "itachi",
+        name: "Itachi Uchiwa",
+        animeId: "ta",
+        rarity: "main" as const,
+        arcIds: ["ta-arc"],
+        baseClickPower: 1,
+        baseDps: 10,
+        passive: { target: "teamDps" as const, kind: "percent" as const, value: 0.2 },
+      }],
+      items: [],
+    };
+    const restore = installSave(baseSave({
+      ownedCharacterIds: ["itachi"],
+      passiveRanks: { itachi: 5 },
+    }));
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      const itachi = data.characters[0];
+      expect(game.passiveRankOf(itachi)).toBe(5);
+
+      game.prestigeReset();
+      expect(game.ownedCharacterIds()).not.toContain("itachi");
+      expect(game.passiveRankOf(itachi)).toBe(5);
+
+      expect(game.travelTo("ta")).toBe(true);
+      game.click();
+      expect(game.ownedCharacterIds()).toContain("itachi");
+      expect(game.passiveRankOf(itachi)).toBe(5);
+      expect(game.characterStatOf(itachi, "teamDps")).toBeGreaterThan(itachi.baseDps);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
   it("le DPS affiché par personnage additionne exactement le DPS de l'équipe", () => {
     // La panne que ce test garde : `characterStatOf` ne pliait que les modificateurs du personnage,
     // alors que `teamDps` applique en plus tout ce qui est global (succès, arbre de prestige, bonus

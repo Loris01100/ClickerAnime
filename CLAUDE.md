@@ -139,8 +139,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - A character belongs to exactly one recruitment world. Later appearances never create another
   recruit. Regular characters are recruitable in exactly one arc;
   shop-exclusive companions must have exactly one character offer instead.
-- `prestigeReset` wipes the run but spares the meta-progression: prestige points, achievement
-  counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
+- `prestigeReset` wipes the run but spares the meta-progression: prestige points, passive ranks,
+  achievement counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
 
 **Persistence**
 

@@ -33,6 +33,11 @@ The optional `uniqueFragments` and `uniqueUpgradeRanks` maps are run-scoped forg
 rank data is migrated in memory to rank 4 for every owned unique, preserving saves made before the
 forge; a newly found unique starts at rank 1.
 
+`passiveRanks` is meta-progression even though the common items used to buy those ranks are
+run-scoped. A prestige leaves the map intact while removing the roster; the stored rank becomes
+active again as soon as its character is recruited. `hardReset` remains the only operation that
+clears it. This is a behavior change only, not a save-shape change, so it requires no key bump.
+
 Two optional fields carry the prestige tree's "Automatisation" branch, and neither needed a key
 bump. `automationOff` holds the automations the player switched **off**, keyed by `AutomationKey` —
 the off-set rather than the on-set precisely so an absent entry, which is every save written before
