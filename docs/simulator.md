@@ -2,6 +2,13 @@
 
 `npm run sim` — playing a whole run headlessly to make a balance change checkable.
 
+`npm run sim:matrix` complements the arc-by-arc report with three five-seed matrices: entry-world
+stability, system ablations from Naruto, and click-cadence sensitivity. It prints Markdown so the
+result can be pasted into a balance note or compared in a review. Override the stable default sample
+with `npm run sim:matrix -- --seeds=1,7,42`. Each entry world is deliberately started at tier 0 in
+the first matrix; those rows compare the worlds' own curves, not the difficulty of entering them
+later in a live run.
+
 
 `npm run sim` plays a whole run headlessly and prints one row per arc: time to clear, kills, copies
 of the arc's common **per kill**, team size, average level, dps, click power and boss timeouts, then
