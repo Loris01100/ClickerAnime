@@ -219,7 +219,10 @@ Restent des pistes, non faites :
 Un trait de boss modifie la lecture du combat, donc il ne doit jamais être une pénalité surprise.
 Sur un arc ouvert, son nom tient dans une pastille bordée par `--boss`. Dans le panneau de combat,
 un bandeau permanent indique `Boss à venir`, le nom du boss, le trait et sa conséquence chiffrée ;
-il devient `Trait actif` quand le boss apparaît. Ce bandeau reste compact, ne bloque aucune action
+avant l'apparition, sa seconde ligne donne la réponse adaptée au trait, compare le temps automatique
+au chrono et propose une seule prochaine action si l'équipe n'est pas prête. Elle précise que les
+clics ne sont pas inclus dans l'estimation. Le bandeau devient `Trait actif` quand le boss apparaît
+et abandonne alors les conseils de préparation. Il reste compact, ne bloque aucune action
 et emploie seulement les tokens du thème.
 
 ### 4.2 Les notices du HUD (`ui/Notices.tsx`)

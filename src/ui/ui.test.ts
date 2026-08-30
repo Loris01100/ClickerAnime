@@ -4,7 +4,7 @@ import { describeAbility, describeCharacterTag, describeModifier } from "./descr
 import { imagePathsForAnime, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./preload";
 import { deriveDisclosure, type DisclosureFacts } from "./disclosure";
 import { tutorialObjective, type ObjectiveFacts } from "./objective";
-import { bossAdvice } from "./advice";
+import { bossAdvice, bossTraitCounter } from "./advice";
 import { newlyUnlocked } from "./unlocks";
 
 const emptyDisclosureFacts: DisclosureFacts = {
@@ -205,6 +205,12 @@ describe("boss advice", () => {
   it("sends the player farming when no immediate upgrade exists", () => {
     expect(bossAdvice({ ...base, isActiveArc: false }).short).toBe("Farme l’arc actuel");
     expect(bossAdvice(base).short).toBe("Gagne des niveaux");
+  });
+
+  it("gives one concrete counter for every experimental boss trait", () => {
+    expect(bossTraitCounter("click-resistance")).toContain("DPS de l’équipe");
+    expect(bossTraitCounter("dps-resistance")).toContain("Clique activement");
+    expect(bossTraitCounter("shield")).toContain("davantage de PV");
   });
 });
 

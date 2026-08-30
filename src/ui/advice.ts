@@ -11,6 +11,15 @@ export interface BossAdvice {
   detail: string;
 }
 
+export type BossTraitKind = "click-resistance" | "dps-resistance" | "shield";
+
+/** Concrete response to the authored trait, kept beside the dynamic upgrade advice. */
+export function bossTraitCounter(kind: BossTraitKind): string {
+  if (kind === "click-resistance") return "Mise sur le DPS de l’équipe : tes clics seront réduits.";
+  if (kind === "dps-resistance") return "Clique activement : le Clic du Narrateur garde toute sa force.";
+  return "Prépare un pic de dégâts : le boss possède davantage de PV.";
+}
+
 /** Turns a failed boss estimate into the next concrete action already available to the player. */
 export function bossAdvice(facts: BossAdviceFacts): BossAdvice {
   if (facts.teamSize === 0) {

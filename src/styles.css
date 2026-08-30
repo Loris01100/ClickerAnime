@@ -2940,6 +2940,47 @@ button.danger {
   white-space: nowrap;
   color: var(--muted);
 }
+.boss-preparation {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.12rem 0.55rem;
+  padding-top: 0.32rem;
+  border-top: 1px solid var(--line);
+}
+.boss-preparation > strong {
+  grid-row: 1 / span 2;
+  white-space: nowrap;
+}
+.boss-preparation > strong.good {
+  color: var(--good);
+}
+.boss-preparation > strong.bad {
+  color: var(--bad);
+}
+.boss-preparation > span,
+.boss-preparation > small {
+  min-width: 0;
+  color: var(--muted);
+}
+.boss-preparation > small:last-child {
+  grid-column: 2;
+}
+@media (max-width: 620px) {
+  .boss-intel {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .boss-intel > span {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+  .boss-preparation {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 
 /* Une carte de défi dans son panneau : relevée = discrète, en cours = soulignée par la teinte. */
 .codex-block.challenge.done {

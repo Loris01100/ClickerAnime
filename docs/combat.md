@@ -74,6 +74,14 @@ They are announced in the arc list and in a persistent strip above combat before
 the strip switches from `Boss à venir` to `Trait actif` when the encounter begins. This is an
 experiment on the entry arcs, not a requirement that every boss carry a trait.
 
+Before the encounter, that strip is also the preparation check. It translates each trait kind into
+its concrete counter (team DPS against click resistance, active clicking against DPS resistance, a
+damage burst against a shield), compares permanent team DPS with the real boss timer, explicitly
+excludes manual clicks from that estimate, and labels the team ready or recommends the next
+available upgrade. A ready ability is suggested only for an immediate rematch: firing a short buff
+while ordinary mobs still separate the player from the boss would be false advice. Once the boss
+spawns, the preparation rows disappear and the unchanged strip confirms the active rule.
+
 Damage has two sources, both modifier-driven: `clickPower` (one narrator click, based on
 `narratorClickPower`) and `teamDps` (applied every tick as `dps * delta`). **Overkill carries over
 to the next enemy**: `dealDamage` loops, spending the leftover on the replacement `spawnNext` puts
