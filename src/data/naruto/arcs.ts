@@ -1,8 +1,9 @@
 import type { GameData } from "../../engine/gameState";
+import { withBossTraits } from "../bossTraits";
 
 const BOSS_TIMER_MS = 45_000;
 
-export const narutoArcs: GameData["arcs"] = [
+const arcs: GameData["arcs"] = [
   {
     id: "naruto-vagues",
     mapX: 0.655,
@@ -118,3 +119,5 @@ export const narutoArcs: GameData["arcs"] = [
     boss: { id: "sasuke-vallee", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 4_970_000, reward: 90_000, timerMs: 90_000 },
   },
 ];
+
+export const narutoArcs = withBossTraits(arcs, 0);

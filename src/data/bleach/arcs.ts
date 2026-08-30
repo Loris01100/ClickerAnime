@@ -1,6 +1,7 @@
 import type { GameData } from "../../engine/gameState";
+import { withBossTraits } from "../bossTraits";
 
-export const bleachArcs: GameData["arcs"] = [
+const arcs: GameData["arcs"] = [
   {
     id: "bleach-shinigami-remplacant",
     animeId: "bleach",
@@ -449,3 +450,5 @@ export const bleachArcs: GameData["arcs"] = [
     },
   },
 ];
+
+export const bleachArcs = withBossTraits(arcs, 4);

@@ -13,6 +13,7 @@ describe("anonymous telemetry worker", () => {
         animeId: "naruto",
         arcId: "naruto-vagues",
         value: 1,
+        durationMinutes: 12.5,
       }),
     });
 
@@ -21,7 +22,7 @@ describe("anonymous telemetry worker", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["progression"],
       blobs: ["progression", "arc_1", "naruto", "naruto-vagues", "v1", "clickeranime.reesch.com"],
-      doubles: [1, 0, 0],
+      doubles: [1, 0, 12.5],
     });
   });
 
@@ -41,6 +42,7 @@ describe("anonymous telemetry worker", () => {
     expect((await send({ event: "progression", milestone: "arc_1" }, "https://example.com")).status).toBe(403);
     expect((await send({ event: "progression", milestone: "arc_1", playerId: "secret" })).status).toBe(400);
     expect((await send({ event: "progression", milestone: "arc_999" })).status).toBe(400);
+    expect((await send({ event: "progression", milestone: "arc_1", durationMinutes: -1 })).status).toBe(400);
     expect(writeDataPoint).not.toHaveBeenCalled();
   });
 });

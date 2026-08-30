@@ -102,8 +102,9 @@ These outrank convenience, and several were learned the hard way. Don't break on
   turn cleared arcs back into boss-free farms.
 - **Boss traits are data, not component branches.** `Enemy.bossTrait` names one readable rule;
   `combat.ts` applies its hp or source-specific damage multiplier, and every estimate uses those
-  same helpers. A trait must be announced before the boss spawns. Do not special-case a boss id in
-  `gameState` or the UI.
+  same helpers. Every production boss has one: a bespoke authored trait wins, otherwise
+  `data/bossTraits.ts` supplies a mild rotating preset. A trait must be announced before the boss
+  spawns. Do not special-case a boss id in `gameState` or the UI.
 - **A character's `baseDps` is a ramp times a strength, and only the strength is a design
   statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
   the arc the player has reached, so an early recruit never becomes dead weight. Two characters
@@ -167,6 +168,9 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - Nothing is sent until explicit consent. Never add a player, device, installation or session id.
 - The schema is a fixed milestone allowlist. Reject unknown fields at the Worker boundary and never
   persist IP addresses, user agents, saves or free-form player text.
+- Progression milestones carry accumulated active-play minutes from one local stopwatch. Closed,
+  sleeping and hidden tabs do not advance it; only a half-minute bucket is sent, once per milestone,
+  after consent.
 
 **UI**
 

@@ -94,6 +94,7 @@ test("joue réellement le premier arc de Naruto jusqu'au boss et ouvre le suivan
   await expect(secondArc).toBeEnabled();
   await secondArc.click();
   await expect(page.locator(".arc-current")).toHaveText("L'Examen Chûnin");
+  await expect(page.locator(".boss-intel").getByText("Pression écrasante", { exact: true })).toBeVisible();
 
   // A reload proves that the naturally earned progress crossed the persistence boundary too.
   await page.reload();

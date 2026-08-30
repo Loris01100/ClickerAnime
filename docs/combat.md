@@ -56,23 +56,32 @@ Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
 change — by default only bosses carry one, because timed mobs would break idling.
 
-### Experimental boss traits
+### Generalized boss traits
 
-`Enemy.bossTrait` adds one data-driven rule to selected bosses. `combat.ts` is the single source of
+`Enemy.bossTrait` adds one data-driven rule to every production boss. `combat.ts` is the single source of
 truth: `damageMultiplierAgainst` reduces only the named source, while `enemyHp` folds a shield into
 max hp. `dealDamage`, the live hp-bar estimate and `bossOutlookOf` all use those helpers, so the
 warning shown before a fight cannot disagree with the fight itself. Overkill remains raw damage as
 it crosses enemies, then the replacement's own multiplier is applied.
 
-The three first-arc experiments deliberately teach different responses:
+The first three bespoke traits deliberately teach different responses:
 
 - Zabuza, **Brume épaisse**: narrator clicks deal 50% less; recruited team DPS is the answer.
 - Hisoka, **Provocation**: passive team DPS deals 25% less; deliberate clicks keep full value.
 - Renji, **Garde du zanpakutō**: 20% extra max hp; both sources work, but the damage check is longer.
 
-They are announced in the arc list and in a persistent strip above combat before the boss appears;
+Every otherwise plain boss receives one of six mild rotating presets from `data/bossTraits.ts`:
+two click resistances (20–25%), two team-DPS resistances (10–15%) and two shields (10–15% extra
+hp). World offsets avoid the same sequence repeating at every border. A trait written beside a boss
+always wins over the preset, which is how a story-specific rule can be stronger without branching
+the engine or UI. A generated resistance/shield extends the boss clock by the same factor as its
+automatic time-to-kill, rounds up to five seconds, then keeps clocks non-decreasing inside the world. The counter remains
+faster, but a mild default cannot turn an already winnable boss into a new wall. `data.test.ts`
+requires complete coverage, all three mechanics and safe values.
+
+Traits are announced in the arc list and in a persistent strip above combat before the boss appears;
 the strip switches from `Boss à venir` to `Trait actif` when the encounter begins. This is an
-experiment on the entry arcs, not a requirement that every boss carry a trait.
+ordinary part of boss readability now, not an entry-arc experiment.
 
 Before the encounter, that strip is also the preparation check. It translates each trait kind into
 its concrete counter (team DPS against click resistance, active clicking against DPS resistance, a
@@ -206,9 +215,9 @@ Three practical notes, each learned by getting it wrong:
   stay outside the geometric sequel-table test. Its 30 recruits made the first table collapse in
   under ten minutes: kill budgets now rise from 20 to 52, enemy hp is roughly twice the original
   curve, and recruit damage after the opening arc is roughly halved. Every boss now uses the same
-  strict 60-second timer. Seeds 1–4 clear the world in 33.6–33.8 minutes and each records three
-  timeouts followed by successful rematches: abilities remain valuable, while the clock creates
-  pressure without becoming a wall.
+  strict 60-second base timer. Hisoka keeps that bespoke clock; generalized traits extend the next
+  five effective clocks to 75 seconds so their automatic-DPS margin stays intact. Abilities remain
+  valuable, while the clock creates pressure without a default trait becoming a new wall.
 - **Bleach is the same method again, over fifteen arcs — and it is where the loop was actually run
   end to end.** Also an entry point, also outside the geometric test, but long enough that a single
   ramp does not fit it: the opening is a cliff (mob hp ×55, then ×4.1, ×2.6, ×2.0 over the first
@@ -220,8 +229,10 @@ Three practical notes, each learned by getting it wrong:
   comes from the roster deepening — 111 recruits — rather than from recruits being individually
   stronger. **Boss hp was then fit last from `avgDps`, per arc, at `avgDps × timer / 1.5`**, which
   is the whole reason the margins hold flat: a constant boss-to-mob hp ratio would have let them
-  drift by that same 1.10x an arc — 3.7x across the world. Clocks are 60s for arcs 0–7, 75s for 8–11 and 90s
-  for 12–14. Result at 4 clicks/s: **15/15 arcs in 39.8–40.0 minutes on seeds 1, 2, 3 and 7, with
+  drift by that same 1.10x an arc — 3.7x across the world. The authored base clocks are 60s for
+  arcs 0–7, 75s for 8–11 and 90s for 12–14; generalized traits turn those into
+  **60 / 70 / 75 / 85 / 110-second plateaus** while preserving the same safety margin. Result at
+  4 clicks/s after generalization: **15/15 arcs in about 40.7 minutes on seeds 1, 2, 3 and 7, with
   no boss timeout anywhere**, every arc within 4–6% of its target, and arcs rising 1.15 → 4.87
   minutes.
 - **The loop really does take five passes, and the boss fights are ~20% of an arc.** Measuring

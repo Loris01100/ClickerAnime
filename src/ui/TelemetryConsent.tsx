@@ -8,8 +8,9 @@ export default function TelemetryConsent() {
         <div>
           <strong>Aider à équilibrer le jeu ?</strong>
           <span>
-            Envoyer des jalons agrégés comme « premier arc » ou « premier prestige ». Aucun nom,
-            identifiant de joueur, sauvegarde ou historique de navigation n’est transmis.
+            Envoyer des jalons agrégés comme « premier arc » ou « premier prestige », avec le temps
+            de jeu actif nécessaire pour les atteindre. Aucun nom, identifiant de joueur, sauvegarde
+            ou historique de navigation n’est transmis.
           </span>
           <small>
             Conservation : 3 mois chez Cloudflare. Ce choix reste modifiable dans le menu.

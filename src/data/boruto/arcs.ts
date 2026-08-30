@@ -1,7 +1,8 @@
 import type { GameData } from "../../engine/gameState";
+import { withBossTraits } from "../bossTraits";
 
 
-export const borutoArcs: GameData["arcs"] = [
+const arcs: GameData["arcs"] = [
   {
     id: "boruto-academie",
     mapX: 0.512,
@@ -209,3 +210,5 @@ export const borutoArcs: GameData["arcs"] = [
     },
   },
 ];
+
+export const borutoArcs = withBossTraits(arcs, 2);

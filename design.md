@@ -217,6 +217,10 @@ Restent des pistes, non faites :
 ### 4.1 Traits de boss annoncés
 
 Un trait de boss modifie la lecture du combat, donc il ne doit jamais être une pénalité surprise.
+Tous les boss de production en possèdent désormais un. Les trois traits d’ouverture restent écrits
+sur mesure ; les autres reçoivent un preset léger et tournant depuis `data/bossTraits.ts`, avec un
+décalage par monde pour éviter cinq séquences identiques. Un futur trait narratif se déclare dans
+les données du boss et remplace automatiquement ce preset.
 Sur un arc ouvert, son nom tient dans une pastille bordée par `--boss`. Dans le panneau de combat,
 un bandeau permanent indique `Boss à venir`, le nom du boss, le trait et sa conséquence chiffrée ;
 avant l'apparition, sa seconde ligne donne la réponse adaptée au trait, compare le temps automatique

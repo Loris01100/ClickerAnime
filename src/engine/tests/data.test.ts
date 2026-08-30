@@ -75,7 +75,7 @@ describe("game data", () => {
     // faster than enemy health. Keep both the longer kill budgets and the rebuilt boss curve.
     expect(arcs.map((arc) => arc.mobsToBoss)).toEqual([20, 28, 34, 40, 46, 52]);
     expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 1_800_000, 6_000_000, 16_000_000]);
-    expect(arcs.every((arc) => arc.boss.timerMs === 60_000)).toBe(true);
+    expect(arcs.map((arc) => arc.boss.timerMs)).toEqual([60_000, 75_000, 75_000, 75_000, 75_000, 75_000]);
 
     const debutPower = arcs.map((arc) =>
       Math.max(...gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((character) => character.baseDps))
@@ -148,7 +148,13 @@ describe("game data", () => {
     // Boss clocks are fit last, at ~1.5x over the time-to-kill the simulator measures, and never
     // shorten as the world goes on (`docs/combat.md`).
     const timers = arcs.map((arc) => arc.boss.timerMs);
-    expect(timers).toEqual([...Array(8).fill(60_000), ...Array(4).fill(75_000), ...Array(3).fill(90_000)]);
+    expect(timers).toEqual([
+      60_000,
+      ...Array(5).fill(70_000),
+      ...Array(3).fill(75_000),
+      ...Array(3).fill(85_000),
+      ...Array(3).fill(110_000),
+    ]);
   });
 
   it("caps active ability damage gains in every world", () => {
@@ -162,13 +168,13 @@ describe("game data", () => {
     expect(Math.max(...percents.map((effect) => effect.value))).toBe(0.5);
   });
 
-  it("keeps the experimental boss traits limited and numerically safe", () => {
+  it("gives every boss one readable and numerically safe trait", () => {
     const traits = gameData.arcs.flatMap((arc) => (arc.boss.bossTrait ? [{ arc, trait: arc.boss.bossTrait }] : []));
-    expect(traits.map(({ arc }) => arc.id).sort()).toEqual(
-      ["naruto-vagues", "hxh-examen", "bleach-shinigami-remplacant"].sort()
+    expect(traits).toHaveLength(gameData.arcs.length);
+    expect(new Set(traits.map(({ trait }) => trait.kind))).toEqual(
+      new Set(["click-resistance", "dps-resistance", "shield"])
     );
     for (const { arc, trait } of traits) {
-      expect(arc.order, `${arc.id} doit rester un test de premier arc`).toBe(0);
       expect(trait.multiplier, `${arc.id} : multiplicateur positif`).toBeGreaterThan(0);
       expect(trait.multiplier, `${arc.id} : multiplicateur borné`).toBeLessThanOrEqual(1);
       expect(trait.description.length).toBeGreaterThan(20);

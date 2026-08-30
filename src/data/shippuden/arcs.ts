@@ -1,7 +1,8 @@
 import type { GameData } from "../../engine/gameState";
+import { withBossTraits } from "../bossTraits";
 
 
-export const shippudenArcs: GameData["arcs"] = [
+const arcs: GameData["arcs"] = [
   {
     id: "shippuden-kazekage",
     mapX: 0.285,
@@ -377,3 +378,5 @@ export const shippudenArcs: GameData["arcs"] = [
     },
   },
 ];
+
+export const shippudenArcs = withBossTraits(arcs, 1);

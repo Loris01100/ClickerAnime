@@ -1,6 +1,7 @@
 import type { GameData } from "../../engine/gameState";
+import { withBossTraits } from "../bossTraits";
 
-export const hunterXHunterArcs: GameData["arcs"] = [
+const arcs: GameData["arcs"] = [
   {
     id: "hxh-examen",
     animeId: "hunter-x-hunter",
@@ -172,3 +173,5 @@ export const hunterXHunterArcs: GameData["arcs"] = [
     },
   },
 ];
+
+export const hunterXHunterArcs = withBossTraits(arcs, 3);

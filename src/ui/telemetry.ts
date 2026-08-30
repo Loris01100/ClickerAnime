@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, onCleanup } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { ProgressionMilestone, TelemetryPayload } from "../telemetrySchema";
 
@@ -6,7 +6,10 @@ export type TelemetryConsent = "pending" | "enabled" | "disabled";
 
 const PREFERENCE_KEY = "clicker-anime:telemetry:preference:v1";
 const SENT_KEY = "clicker-anime:telemetry:sent:v1";
+const ACTIVE_MS_KEY = "clicker-anime:telemetry:active-ms:v1";
 const ENDPOINT = "/api/telemetry";
+const MAX_ACTIVE_SAMPLE_MS = 1_000;
+const ACTIVE_PERSIST_STEP_MS = 5_000;
 
 function stored(key: string): string | null {
   if (typeof localStorage === "undefined") return null;
@@ -48,6 +51,31 @@ function markSent(keys: Set<string>) {
   } catch {
     // Sending remains best effort; gameplay must never depend on storage reserved for analytics.
   }
+}
+
+function loadActivePlayMs(): number {
+  const parsed = Number(stored(ACTIVE_MS_KEY));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function persistActivePlayMs(value: number) {
+  try {
+    localStorage.setItem(ACTIVE_MS_KEY, String(Math.max(0, value)));
+  } catch {
+    // The stopwatch is best effort and must never interfere with gameplay.
+  }
+}
+
+/** One visible tick's contribution to active play time; sleeping/hidden tabs cannot add hours. */
+export function activePlayDeltaMs(previousAt: number, observedAt: number, visible = true): number {
+  if (!visible || !Number.isFinite(previousAt) || !Number.isFinite(observedAt)) return 0;
+  return Math.min(MAX_ACTIVE_SAMPLE_MS, Math.max(0, observedAt - previousAt));
+}
+
+/** Half-minute buckets keep pacing useful without emitting a high-precision behavioral trace. */
+export function milestoneDurationMinutes(activePlayMs: number): number {
+  if (!Number.isFinite(activePlayMs) || activePlayMs <= 0) return 0;
+  return Math.max(0.5, Math.round((activePlayMs / 60_000) * 2) / 2);
 }
 
 export function sendTelemetry(payload: TelemetryPayload) {
@@ -97,6 +125,26 @@ export function progressionCandidates(facts: {
 export function setupTelemetry(game: GameStore) {
   const sent = sentMilestones();
   let lastReportedPrestige = 0;
+  let activePlayMs = loadActivePlayMs();
+  let persistedActivePlayMs = activePlayMs;
+  let lastObservedAt = game.now();
+
+  createEffect(() => {
+    const observedAt = game.now();
+    const visible = typeof document === "undefined" || document.visibilityState === "visible";
+    activePlayMs += activePlayDeltaMs(lastObservedAt, observedAt, visible);
+    lastObservedAt = observedAt;
+    if (activePlayMs - persistedActivePlayMs >= ACTIVE_PERSIST_STEP_MS) {
+      persistActivePlayMs(activePlayMs);
+      persistedActivePlayMs = activePlayMs;
+    }
+  });
+
+  if (typeof window !== "undefined") {
+    const persist = () => persistActivePlayMs(activePlayMs);
+    window.addEventListener("pagehide", persist);
+    onCleanup(() => window.removeEventListener("pagehide", persist));
+  }
 
   createEffect(() => {
     if (telemetryConsent() !== "enabled") return;
@@ -119,6 +167,7 @@ export function setupTelemetry(game: GameStore) {
         animeId: arc?.animeId,
         arcId: arc?.id,
         value: candidate.value,
+        durationMinutes: milestoneDurationMinutes(activePlayMs),
       });
       sent.add(candidate.key);
     }

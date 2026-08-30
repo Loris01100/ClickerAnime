@@ -117,7 +117,7 @@ export interface Enemy {
   dropChance?: number;
   /** must be defeated within this window or it comes back at full hp; bosses only, by default */
   timerMs?: number;
-  /** optional, data-driven boss rule; currently used only by selected experimental bosses */
+  /** data-driven boss rule; production content gives every boss exactly one */
   bossTrait?: BossTrait;
 }
 
