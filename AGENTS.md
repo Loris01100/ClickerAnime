@@ -48,11 +48,12 @@ suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit unde
 failure comes straight back instead of waiting for the next build. It is a safety net, not a
 substitute for running `npm test` yourself before declaring work done.
 
-The project currently has **222 passing unit tests** across 15 test files, plus one critical browser journey:
+The project currently has **222 passing unit tests** across 15 test files, plus two critical browser journeys:
 
 - `src/engine/tests/` — engine rules, one file per area (combat, progression, economy, modifiers, prestige-tree, challenges, store, data…), shared fixtures in `helpers.ts`
 - `src/ui/ui.test.ts` — small UI utilities
 - `src/ui/anilist.test.ts` — AniList name matching logic
+- `tests/e2e/critical-player-journey.spec.ts` — a naturally played first Naruto arc plus the save/import/backup/prestige journey
 
 ## Architecture
 

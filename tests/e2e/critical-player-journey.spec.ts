@@ -35,6 +35,78 @@ async function importSave(page: Page, save: Record<string, any>) {
     .toBe(save.currency);
 }
 
+/**
+ * Drive the real combat surface until one visible game outcome is reached. The short waits are
+ * intentional: kills are capped per second, so a synthetic wall of instantaneous clicks would
+ * only test that the cap refuses them instead of playing the arc like a browser does.
+ */
+async function fightUntil(page: Page, label: string, done: () => Promise<boolean>, rounds = 240) {
+  const stage = page.getByLabel("Clic du Narrateur");
+  for (let round = 0; round < rounds; round++) {
+    if (await done()) return;
+    await stage.click({ clickCount: 5, delay: 5 });
+    await page.waitForTimeout(75);
+  }
+  throw new Error(`Le combat n'a pas atteint « ${label} » après ${rounds} séries de clics.`);
+}
+
+test("joue réellement le premier arc de Naruto jusqu'au boss et ouvre le suivant", async ({ page }) => {
+  test.setTimeout(60_000);
+
+  // Drops are the only random part of this journey. Pinning the roll keeps the browser test
+  // repeatable while every state transition still goes through the visible game actions.
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Refuser" }).click();
+
+  await page.getByRole("button", { name: /Naruto.*Disponible/ }).click();
+  await page.getByRole("button", { name: "Partir", exact: true }).click();
+  await expect(page.getByText("Recrute ton premier personnage", { exact: true })).toBeVisible();
+
+  const narutoInTeam = page.locator("button.name-link", { hasText: "Naruto Uzumaki" });
+  await fightUntil(page, "la première recrue", () => narutoInTeam.isVisible());
+  await expect(page.getByText(/Termine Prologue \/ Le Pays des Vagues/)).toBeVisible();
+
+  const activeTrait = page.getByText("Trait actif", { exact: true });
+  await fightUntil(page, "le boss Zabuza", () => activeTrait.isVisible());
+  await expect(page.locator(".boss-intel.active").getByText("Brume épaisse", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Multiclonage Supra/ }).click();
+
+  const firstArc = page.locator("button.arc", { hasText: "Prologue / Le Pays des Vagues" });
+  await fightUntil(page, "la victoire sur le premier arc", async () =>
+    (await firstArc.getByText("terminé", { exact: true }).count()) > 0
+  );
+  await expect(firstArc.getByText("terminé", { exact: true })).toBeVisible();
+  await expect(page.locator(".item-row", { hasText: "Kubikiribôchô" })).toBeVisible();
+
+  // The objective trail deliberately keeps "Termine l'arc" in front until the boss falls. With
+  // deterministic drops, its six-copy step is already satisfied and it can now teach the spend.
+  const affordablePassive = page.locator("button.tutorial-rank-up:enabled");
+  const passiveObjective = page.locator(".objective-panel").getByText("Améliore un passif", { exact: true });
+  await expect(passiveObjective).toBeVisible();
+  await expect(affordablePassive.first()).toBeVisible();
+  await affordablePassive.first().click();
+  await expect(passiveObjective).toHaveCount(0);
+
+  const secondArc = page.locator("button.arc", { hasText: "L'Examen Chûnin" });
+  await expect(secondArc).toBeEnabled();
+  await secondArc.click();
+  await expect(page.locator(".arc-current")).toHaveText("L'Examen Chûnin");
+
+  // A reload proves that the naturally earned progress crossed the persistence boundary too.
+  await page.reload();
+  const save = await exportedSave(page);
+  expect(save.clearedArcIds).toContain("naruto-vagues");
+  expect(save.activeArcId).toBe("naruto-chunin");
+  expect(save.ownedCharacterIds).toEqual(
+    expect.arrayContaining(["naruto-uzumaki", "sakura-haruno", "kakashi-hatake", "haku"])
+  );
+  expect(save.itemCounts["item-kubikiri"]).toBe(1);
+  expect(Object.values(save.passiveRanks).some((rank) => Number(rank) >= 1)).toBe(true);
+});
+
 test("nouvelle partie → export/import → secours → prestige", async ({ page, context }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Portail des mondes" })).toBeVisible();
