@@ -32,15 +32,19 @@ const CrossoverPanel = lazy(() => import("./ui/CrossoverPanel"));
 const PackPanel = lazy(() => import("./ui/PackPanel"));
 const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
 const ForgePanel = lazy(() => import("./ui/ForgePanel"));
+const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
 import { imagePathsForAnime, preloadImages, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./ui/preload";
+import TelemetryConsent from "./ui/TelemetryConsent";
+import { setTelemetryConsent, setupTelemetry, telemetryConsent } from "./ui/telemetry";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
 export default function App() {
   const game = createGameStore(gameData);
+  setupTelemetry(game);
   const [codexOpen, setCodexOpen] = createSignal(false);
   const [codexFocusId, setCodexFocusId] = createSignal<string | undefined>();
   const [portalOpen, setPortalOpen] = createSignal(false);
@@ -263,6 +267,14 @@ export default function App() {
               </Show>
               <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
               <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
+              <button
+                title="Jalons de progression agrégés, sans identifiant de joueur"
+                onClick={() =>
+                  runFromMenu(() => setTelemetryConsent(telemetryConsent() === "enabled" ? "disabled" : "enabled"))
+                }
+              >
+                Mesure anonyme : {telemetryConsent() === "enabled" ? "activée" : "désactivée"}
+              </button>
               <Show when={game.hasBackupSave()}>
                 <button onClick={() => runFromMenu(onRestoreBackup)}>Restaurer la copie de secours</button>
               </Show>
@@ -363,9 +375,16 @@ export default function App() {
       <Show when={challengesOpen()}>
         <ChallengePanel game={game} onClose={() => setChallengesOpen(false)} />
       </Show>
+
+      <Show when={game.lastPrestigeReport()}>
+        {(report) => (
+          <PrestigeReportPanel game={game} report={report()} onClose={game.dismissPrestigeReport} />
+        )}
+      </Show>
       </Suspense>
 
       <Notices game={game} />
+      <TelemetryConsent />
     </>
   );
 }

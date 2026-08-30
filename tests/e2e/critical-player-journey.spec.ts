@@ -38,6 +38,7 @@ async function importSave(page: Page, save: Record<string, any>) {
 test("nouvelle partie → export/import → secours → prestige", async ({ page, context }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Portail des mondes" })).toBeVisible();
+  await page.getByRole("button", { name: "Refuser" }).click();
 
   await page.getByRole("button", { name: "Partir", exact: true }).click();
   await expect(page.getByLabel("Clic du Narrateur")).toBeVisible();
@@ -90,6 +91,13 @@ test("nouvelle partie → export/import → secours → prestige", async ({ page
   await importSave(page, progressed);
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: /Prestige \(\+\d+\)/ }).click();
+
+  const report = page.getByRole("dialog", { name: "Bilan de prestige" });
+  await expect(report).toBeVisible();
+  await expect(report.getByText("Prestige accompli")).toBeVisible();
+  await expect(report.getByText("Maîtrises conservées")).toBeVisible();
+  await expect(report.getByText("5 rangs de passif")).toBeVisible();
+  await report.getByRole("button", { name: "Fermer" }).click();
 
   const afterPrestige = await exportedSave(page);
   expect(afterPrestige.ownedCharacterIds).toEqual([]);

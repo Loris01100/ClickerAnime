@@ -8,7 +8,8 @@ this file holds how it is wired.
 `npm run test:e2e` starts the local app and runs `tests/e2e/critical-player-journey.spec.ts` in
 Firefox. It selects a first world, fights through the visible click target, exports and imports a
 real `.txt` save, boots a second tab from a deliberately damaged primary slot, performs prestige
-through the confirmation UI, verifies permanent passive/forge mastery, then restores the backup
+through the confirmation UI, verifies the detailed report and permanent passive/forge mastery,
+then restores the backup
 from the menu. CI installs Playwright's Firefox build and runs this after unit tests and the
 production build. This is deliberately one high-value journey rather than a duplicate browser test
 for every engine rule; pure rules remain faster and more precise in Vitest.
@@ -19,7 +20,11 @@ roster (abilities, sortable team table, item table), middle is resources + the f
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`. `Notices.tsx` is the exception to the overlay rule: a fixed,
+`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`, `PrestigeReportPanel.tsx`. The prestige report
+is built from a frozen pre-reset snapshot: it shows the duration and completion of the adventure,
+points banked, combat and economy actions, final power, worlds and arcs cleared, and the permanent
+passive/forge mastery carried into the next run. It is transient — closing or reloading dismisses it
+without adding presentation state to the save. `Notices.tsx` is the exception to the overlay rule: a fixed,
 non-blocking stack of pop-ups fed by the store's `notices` queue, which `grantItem` and `defeat`
 push to so that a drop, a recruit and a cleared arc stop happening in silence. The queue lives in
 the store because those events are born in the engine, and it is expired by the existing 200ms tick
@@ -63,6 +68,17 @@ respects `prefers-reduced-motion`.
 items, worlds/shop, prestige, packs, crossover and challenges). `App.tsx` compares successive
 `DisclosureState` values and never replays already-visible systems when loading a save. These
 announcements reuse the bounded, dismissible notice queue used by drops and recruits.
+
+`TelemetryConsent.tsx` is a fixed, compact consent banner shown once until the player chooses. It
+states the aggregate milestones collected, the categories never sent, the three-month retention and
+the permanent menu switch used to withdraw or grant consent later. The client does not contact the
+telemetry endpoint while the state is pending or refused.
+
+The ability bar keeps every owned ability visible. Disabled cards print their precise state rather
+than an aggregate warning: character absent from the current anime plus the anime list where the
+ability works, active challenge and its constraint, exact cooldown, or remaining active duration.
+Ready cards remain first, followed by active, cooldown and blocked cards, without tick-by-tick
+reordering within each group.
 
 Resource tiles always print their names beside their art: Or, Points de prestige, Cristaux
 crossover and Points de pack. Icons remain recognition shortcuts, never the only vocabulary.

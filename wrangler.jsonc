@@ -7,18 +7,27 @@
   // clickeranime.reesch.com resterait branché sur l'ancien.
   "name": "clickeranime",
   "compatibility_date": "2026-08-29",
+  "main": "./src/worker.ts",
 
   // Les builds des branches non-production tournent `wrangler versions upload`, qui rend une URL
   // de prévisualisation par version — c'est ce qui donne à `development` son adresse de test.
   "preview_urls": true,
 
-  // Pas de champ `main` : ce Worker ne sert que des fichiers statiques, il n'exécute aucun code.
-  // `single-page-application` renvoie `index.html` avec un **200** pour toute route qui ne
-  // correspond à aucun fichier de `dist/`. Le jeu n'a pas encore de routeur, mais c'est aussi ce
-  // qui rend le `base: "/"` de Vite obligatoire : en `base: "./"`, un `/un/chemin` inconnu servirait
-  // un index.html dont les `./assets/…` se résoudraient sous `/un/`, donc en 404.
+  // Les fichiers restent servis directement par Static Assets. Seul `/api/*` passe d'abord par le
+  // Worker, pour recevoir les jalons de progression anonymes ; aucune navigation ni asset du jeu
+  // ne paie ce passage. `single-page-application` garde le repli index.html des routes front-end.
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Le dataset est créé automatiquement par Cloudflare à sa première écriture.
+  "analytics_engine_datasets": [
+    {
+      "binding": "GAME_ANALYTICS",
+      "dataset": "clickeranime_progression"
+    }
+  ]
 }

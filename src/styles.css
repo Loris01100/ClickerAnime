@@ -1329,6 +1329,16 @@ small {
   font-size: 0.65rem;
   color: var(--muted);
 }
+.ability-reason {
+  margin-top: 0.12rem;
+  color: var(--muted);
+  font-size: 0.62rem;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 /* Le bouton « Tout lancer » du panel-head : discret, mais c'est le geste principal. */
 .fire-all {
   font-size: 0.7rem;
@@ -2128,6 +2138,100 @@ small {
 .prestige-modal {
   width: min(1360px, 98vw);
 }
+.prestige-report-modal {
+  width: min(780px, 96vw);
+}
+.prestige-report-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  background: var(--speedlines), linear-gradient(120deg, var(--active-tint), transparent), var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+.prestige-report-hero > .icon {
+  color: var(--gold);
+  font-size: 2.8rem;
+}
+.prestige-report-hero > div {
+  display: flex;
+  flex-direction: column;
+}
+.prestige-report-hero strong {
+  font-family: var(--font-impact);
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+}
+.prestige-report-lucky {
+  margin-left: auto;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--gold);
+  font-weight: 700;
+}
+.prestige-report-scroll {
+  max-height: 68vh;
+  padding: 0.8rem;
+}
+.prestige-report-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.prestige-report-summary > div,
+.prestige-report-activity > div {
+  display: flex;
+  flex-direction: column;
+  padding: 0.45rem 0.55rem;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.prestige-report-summary small,
+.prestige-report-activity span {
+  color: var(--muted);
+}
+.prestige-report-section {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+.prestige-report-section h3,
+.prestige-report-section p {
+  margin: 0 0 0.45rem;
+}
+.prestige-report-activity {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+.prestige-report-kept {
+  padding: 0.65rem;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.prestige-report-kept h3 {
+  color: var(--gold);
+}
+.prestige-report-arcs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.prestige-report-arcs span {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+@media (max-width: 700px) {
+  .prestige-report-summary,
+  .prestige-report-activity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .codex-modal {
   /* Every Codex route shares one frame so its navigation never jumps when switching between the
      short anime picker and the longer character/item lists. */
@@ -2612,6 +2716,53 @@ small {
   from {
     transform: translateX(1rem);
     opacity: 0;
+  }
+}
+
+.telemetry-consent {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--ink-shadow);
+}
+.telemetry-consent > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.telemetry-consent span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.telemetry-consent small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.telemetry-consent button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.telemetry-consent button.primary {
+  width: auto;
+}
+@media (max-width: 620px) {
+  .telemetry-consent {
+    flex-wrap: wrap;
+  }
+  .telemetry-consent > div {
+    flex-basis: 100%;
   }
 }
 

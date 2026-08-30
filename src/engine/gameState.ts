@@ -22,12 +22,13 @@ import {
   autoFirable,
   cooldownOf,
   cooldownRemaining,
+  diagnoseAbility,
   dutyMagnitude,
   getUnlockedAbilities,
   isAbilityReady,
   scopedMagnitude,
 } from "./abilities";
-import type { AbilityPolicy, UnlockedAbility } from "./abilities";
+import type { AbilityDiagnostic, AbilityPolicy, UnlockedAbility } from "./abilities";
 import {
   damageMultiplierAgainst,
   enemyHp,
@@ -40,6 +41,7 @@ import {
   type DamageSource,
 } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
+import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   arcPowerTable,
@@ -252,6 +254,10 @@ interface SaveFile {
   activeChallengeId?: string | null;
   /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
   completedChallengeIds?: string[];
+  /** start of the current run, used only to time the next prestige report */
+  runStartedAt?: number;
+  /** lifetime counters as they stood when this run began, for per-run report deltas */
+  runAchievementBaseline?: Record<string, number>;
 }
 
 const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
@@ -305,6 +311,8 @@ function isValidSave(value: unknown): value is SaveFile {
     opt(c.uniqueUpgradeRanks, (v) => isRecordOf(v, isNumber)) &&
     opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
     opt(c.completedChallengeIds, isStringArray) &&
+    opt(c.runStartedAt, isNumber) &&
+    opt(c.runAchievementBaseline, (v) => isRecordOf(v, isNumber)) &&
     opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
     opt(c.prestigeTreeRanks, (v) =>
       isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
@@ -487,6 +495,11 @@ export function createGameStore(data: GameData) {
   const [achievementCounts, setAchievementCounts] = createSignal<Record<string, number>>(
     saved?.achievementCounts ?? {}
   );
+  const [runStartedAt, setRunStartedAt] = createSignal(saved?.runStartedAt ?? Date.now());
+  const [runAchievementBaseline, setRunAchievementBaseline] = createSignal<Record<string, number>>(
+    saved?.runAchievementBaseline ?? saved?.achievementCounts ?? {}
+  );
+  const [lastPrestigeReport, setLastPrestigeReport] = createSignal<PrestigeReport | null>(null);
   // Levels bought per node of the prestige skill tree (see prestigeTree.ts) — meta-progression like
   // prestige points themselves: survives prestigeReset, only hardReset wipes it.
   const [prestigeTreeRanks, setPrestigeTreeRanks] = createSignal<Record<string, number[]>>(
@@ -871,6 +884,11 @@ export function createGameStore(data: GameData) {
     return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, isEvolved(c))).map((c) => c.id));
   });
 
+  /** Every ability granted by the roster, before the current anime or challenge filters it. */
+  const ownedAbilities = createMemo(() =>
+    getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds())
+  );
+
   /**
    * How many abilities are asleep because their character is abroad. The bar filters them out
    * entirely, so without this the roster would just quietly shrink on arrival in a new world and
@@ -878,9 +896,7 @@ export function createGameStore(data: GameData) {
    */
   const sleepingAbilities = createMemo(() => {
     const away = awayCharacterIds();
-    return getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds()).filter((unlocked) =>
-      away.has(unlocked.sourceId)
-    );
+    return ownedAbilities().filter((unlocked) => away.has(unlocked.sourceId));
   });
   const sleepingAbilityCount = createMemo(() => sleepingAbilities().length);
 
@@ -1883,6 +1899,26 @@ export function createGameStore(data: GameData) {
     return [...new Set(live.map((m) => m.sourceId))];
   });
 
+  /** Every owned ability with the exact reason it is ready, cooling, active or unavailable. */
+  const abilityDiagnostics = createMemo<AbilityDiagnostic[]>(() => {
+    const running = new Set(activeBuffs());
+    return ownedAbilities().flatMap((unlocked) => {
+      const character = characterOf(unlocked.sourceId);
+      if (!character) return [];
+      return [
+        diagnoseAbility(unlocked, character, {
+          activeArc: activeArc(),
+          evolved: isEvolved(character),
+          challengeId: activeChallengeId(),
+          noAbilities: challengeRules().noAbilities === true,
+          lastActivatedAt: abilityLastUsed()[unlocked.ability.id],
+          now: now(),
+          active: running.has(unlocked.ability.id),
+        }),
+      ];
+    });
+  });
+
   // --- défis de run (`challenges.ts`) ---
 
   const isChallengeDone = (id: string) => completedChallengeIds().includes(id);
@@ -1913,7 +1949,7 @@ export function createGameStore(data: GameData) {
   function startChallenge(id: string): boolean {
     const challenge = challengeById(id);
     if (!challenge || activeChallengeId() || isChallengeDone(id)) return false;
-    prestigeReset();
+    prestigeReset(false);
     setActiveChallengeId(id);
     return true;
   }
@@ -1926,7 +1962,7 @@ export function createGameStore(data: GameData) {
   function abandonChallenge(): boolean {
     if (!activeChallengeId()) return false;
     setActiveChallengeId(null);
-    prestigeReset();
+    prestigeReset(false);
     return true;
   }
 
@@ -1936,12 +1972,42 @@ export function createGameStore(data: GameData) {
    * character or unique is obtained again, its previously bought mastery returns.
    * The whole point is to redo the climb faster.
    */
-  function prestigeReset() {
+  function prestigeReset(showReport = true) {
     // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
     const doubleLevel = nodeLevelOf("destin", 5);
     const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
-    setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier));
+    const endedAt = Date.now();
+    const before = prestige();
+    const after = applyPrestige(before, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier);
+    if (showReport) {
+      setLastPrestigeReport(
+        buildPrestigeReport({
+          startedAt: runStartedAt(),
+          endedAt,
+          prestigeBefore: before.prestigePoints,
+          prestigeAfter: after.prestigePoints,
+          gainMultiplier,
+          lifetimeEarned: lifetimeEarned(),
+          completion: runCompletion(),
+          clearedArcIds: clearedArcIds(),
+          unlockedAnimeIds: before.unlockedAnimeIds,
+          ownedCharacterCount: ownedCharacterIds().length,
+          levels: ownedCharacterIds().map(levelOf),
+          teamDps: teamDps(),
+          clickPower: clickPower(),
+          uniqueItemsFound: foundItems().filter((item) => item.kind === "unique").length,
+          passiveRanksKept: Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0),
+          forgedUniquesKept: Object.values(uniqueUpgradeRanks()).filter((rank) => rank > 1).length,
+          achievementCounts: achievementCounts(),
+          achievementBaseline: runAchievementBaseline(),
+          challengeName: activeChallenge()?.name ?? null,
+        })
+      );
+    }
+    setPrestige(after);
     bumpAchievement("prestiges");
+    setRunAchievementBaseline({ ...achievementCounts() });
+    setRunStartedAt(endedAt);
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
@@ -1999,6 +2065,8 @@ export function createGameStore(data: GameData) {
       abilityLastUsed: abilityLastUsed(),
       activeChallengeId: activeChallengeId(),
       completedChallengeIds: completedChallengeIds(),
+      runStartedAt: runStartedAt(),
+      runAchievementBaseline: runAchievementBaseline(),
     };
   }
 
@@ -2102,6 +2170,9 @@ export function createGameStore(data: GameData) {
     setBossRetreatArcIds([]);
     setEvolvedCharacterIds([]);
     setAchievementCounts({});
+    setRunStartedAt(Date.now());
+    setRunAchievementBaseline({});
+    setLastPrestigeReport(null);
     setPrestigeTreeRanks({});
     setCharacterEquipment({});
     setKillsSinceDrop({});
@@ -2363,6 +2434,7 @@ export function createGameStore(data: GameData) {
     crossoverAdvised,
     activateCrossover,
     unlockedAbilities,
+    abilityDiagnostics,
     sleepingAbilities,
     sleepingAbilityCount,
     activeBuffs,
@@ -2456,6 +2528,8 @@ export function createGameStore(data: GameData) {
     buffCap,
     abilityCooldownRemaining,
     prestigeReset,
+    lastPrestigeReport,
+    dismissPrestigeReport: () => setLastPrestigeReport(null),
     save,
     lastSavedAt,
     hasBackupSave,

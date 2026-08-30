@@ -107,6 +107,13 @@ of the tree's **"Destin"** branch, see below. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.
 
+Immediately before wiping the run, `buildPrestigeReport` freezes a plain snapshot: duration,
+completion, points gained and new total, final click/DPS, recruited character levels, worlds and
+arcs cleared, items, per-run achievement deltas, and the passive/unique mastery that survives. The
+store resets only after this snapshot exists, then exposes it transiently to the UI. Starting or
+abandoning a challenge uses the same reset mechanics with report display disabled; only the
+player's explicit prestige produces the recap.
+
 ## The prestige tree (`prestigeTree.ts`)
 
 Six independent branches — Clic du Narrateur, DPS Équipe, XP, Objets, Destin, Automatisation —

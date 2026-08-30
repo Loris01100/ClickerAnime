@@ -49,6 +49,13 @@ run-scoped. A prestige leaves the map intact while removing the roster; the stor
 active again as soon as its character is recruited. `hardReset` remains the only operation that
 clears it. This is a behavior change only, not a save-shape change, so it requires no key bump.
 
+`runStartedAt` and `runAchievementBaseline` are optional bookkeeping for the prestige report. The
+first is the current adventure's start timestamp; the second snapshots lifetime counters at that
+moment so the report can derive only the actions performed during this run. Old saves default both
+at load time, so their first report measures from the first boot after this feature rather than
+pretending to reconstruct history. A prestige resets both after building the report; the report
+itself stays transient and is deliberately absent from the save.
+
 Two optional fields carry the prestige tree's "Automatisation" branch, and neither needed a key
 bump. `automationOff` holds the automations the player switched **off**, keyed by `AutomationKey` —
 the off-set rather than the on-set precisely so an absent entry, which is every save written before

@@ -6,7 +6,11 @@ This file is the first thing an AI coding agent should read before touching the 
 
 ClickerAnime is a browser idle/clicker prototype built with **SolidJS + Vite + TypeScript**. The live UI is in French, but engine identifiers, comments, and this guide are in English. The Naruto universe runs from `Naruto` through `Naruto Shippūden` to `Boruto`; `Hunter x Hunter` is a separate entry world. More worlds are meant to be added later.
 
-The app is a static SPA with no backend. Save data lives in `localStorage`; portraits are fetched live from AniList in the player's own browser. Alongside the Naruto universe, Hunter x Hunter (2011) is an independent starting world covering the animated story through the Chairman Election.
+The app is a static SPA whose gameplay and saves remain entirely browser-side. A narrow Cloudflare
+Worker endpoint records consented anonymous progression milestones; it stores no game state. Save
+data lives in `localStorage`; portraits are fetched live from AniList in the player's own browser.
+Alongside the Naruto universe, Hunter x Hunter (2011) is an independent starting world covering the
+animated story through the Chairman Election.
 
 ## Technology Stack
 
@@ -19,6 +23,7 @@ The app is a static SPA with no backend. Save data lives in `localStorage`; port
 | Testing | Vitest 4 (Node environment) + Playwright Firefox |
 | Package manager | npm |
 | Runtime | Browser only; `localStorage` for persistence |
+| Telemetry | Cloudflare Worker + Workers Analytics Engine (explicit opt-in) |
 
 ## Build & Development Commands
 
@@ -30,6 +35,7 @@ All commands run from the project root.
 - `npm test` — run the full Vitest suite (`src/**/*.test.ts`).
 - `npm run test:e2e` — run the critical player journey in Playwright Firefox.
 - `npm run validate:data` — validate all content ids, references, arcs and sequel presences.
+- `npm run check:worker` — dry-run the Worker bundle and bindings without deploying.
 - Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
   check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
@@ -42,7 +48,7 @@ suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit unde
 failure comes straight back instead of waiting for the next build. It is a safety net, not a
 substitute for running `npm test` yourself before declaring work done.
 
-The project currently has **216 passing unit tests** across 13 test files, plus one critical browser journey:
+The project currently has **221 passing unit tests** across 15 test files, plus one critical browser journey:
 
 - `src/engine/tests/` — engine rules, one file per area (combat, progression, economy, modifiers, prestige-tree, challenges, store, data…), shared fixtures in `helpers.ts`
 - `src/ui/ui.test.ts` — small UI utilities
@@ -68,6 +74,7 @@ Key modules:
 - `prestige.ts` — prestige point gain and anime unlock shortcuts.
 - `prestigeTree.ts` — five-branch prestige skill tree; 25 nodes, each rebuyable 5 times.
 - `abilities.ts` — ability unlocking, cooldowns, same-stat sharing.
+- `prestigeReport.ts` — pure pre-reset snapshot and per-run recap.
 - `achievements.ts` — lifetime counters and tiered bonuses, paid into `clickPower` or `teamDps` per category.
 - `shop.ts` — currency shop offers.
 - `dataValidation.ts` — semantic validation of the complete authored content graph.
@@ -87,6 +94,8 @@ Key components:
 - `WorldPortal.tsx` — world selection overlay.
 - `PrestigeTree.tsx` — prestige skill tree overlay.
 - `AchievementsPanel.tsx` — achievements overlay.
+- `PrestigeReportPanel.tsx` — detailed recap shown after an explicit prestige.
+- `TelemetryConsent.tsx` — explicit anonymous-measurement choice.
 - `Sprite.tsx` — AniList portrait wrapper with empty fallback.
 - `icons.tsx` — SVG icon set (factory pattern; never materialize JSX at module load).
 - `describe.ts` — turns modifiers/abilities into French prose.
@@ -186,13 +195,16 @@ looking at the result.
 - Save import decodes and shape-checks before writing to `localStorage`. Keep it that way; never `eval` or execute imported data.
 - AniList/Jikan images are copyrighted official artwork. The current project is a personal/non-commercial prototype; verify licensing before any public distribution or monetization.
 - Do not store credentials or private keys in the repo.
+- Telemetry is explicit opt-in and allowlisted. Never add identifiers, IP/user-agent storage, saves
+  or free-form text; keep Analytics Engine query credentials outside the repository.
 
 ## Deployment
 
 The production artifact is the `dist/` directory produced by `npm run build`. It is a static SPA with
-no server-side rendering, and it is served by a **Cloudflare Worker with static assets** — no Worker
-code, just `wrangler.jsonc` pointing at `dist/`. `not_found_handling: "single-page-application"`
-answers any unmatched route with `index.html` and a 200.
+no server-side rendering, served by a **Cloudflare Worker with static assets**. Assets and SPA
+navigation bypass Worker code; `assets.run_worker_first` routes only `/api/*` through
+`src/worker.ts` for anonymous telemetry. `not_found_handling: "single-page-application"` answers
+any unmatched front-end route with `index.html` and a 200.
 
 **Nothing in this repository deploys.** Cloudflare Workers Builds is connected to the GitHub repo and
 does it:
@@ -238,9 +250,12 @@ Two consequences worth knowing before changing build config:
 | `src/engine/synergy.ts` | Home-arc bonuses/malus |
 | `src/engine/progression.ts` | World/arc unlock order |
 | `src/engine/prestigeTree.ts` | Prestige skill tree |
+| `src/engine/prestigeReport.ts` | Detailed pre-reset recap |
 | `src/data/index.ts` | World aggregation + shop |
 | `src/App.tsx` | Root layout |
+| `src/worker.ts` | Validated anonymous telemetry endpoint |
+| `src/telemetrySchema.ts` | Shared telemetry allowlist and validation |
 | `src/styles.css` | All styling |
 | `CLAUDE.md` | Layers, invariants, and the map of `docs/` |
-| `docs/` | One file per system: combat, progression, economy, modifiers, ui, persistence, simulator |
+| `docs/` | One file per system, including telemetry and content validation |
 | `design.md` | Visual/UX design intent |

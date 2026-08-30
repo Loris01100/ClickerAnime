@@ -12,6 +12,7 @@
     "validate:data": "vite-node -c vite.sim.config.ts scripts/validate-data.ts",
     "sim": "vite-node -c vite.sim.config.ts src/engine/sim.cli.ts",
     "deploy": "wrangler deploy",
+    "check:worker": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "sim:matrix": "vite-node -c vite.sim.config.ts src/engine/sim.matrix.cli.ts"
   },
   "dependencies": {

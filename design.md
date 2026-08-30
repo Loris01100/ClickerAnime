@@ -286,11 +286,11 @@ toutes les capacités tournent en même temps, et le `title` nomme l'allié vis�
 (« Cible : Naruto ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
 et pas par temps restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
 
-Une capacité **ne voyage pas** : hors de son monde, le personnage n'a pas la sienne et son bouton
-disparaît de la grille, comme son passif s'éteint. La barre le **dit** — « N capacités en sommeil :
-leurs personnages sont hors de leur monde » (`sleepingAbilityCount`) — parce qu'une grille qui perd
-la moitié de ses boutons en changeant de monde, sans un mot, se lit comme un bug et pas comme une
-règle. C'est le même parti pris que `.save-state` : la raison d'un silence vaut d'être écrite.
+Une capacité **ne voyage pas**, mais son bouton non plus ne disparaît plus. Hors de son monde, la
+carte reste visible, atténuée, et nomme le personnage, l'anime actuel et tous les anime où elle
+redevient utilisable. Le même espace explique aussi le défi qui interdit les capacités, la recharge
+exacte ou le temps d'effet restant. La règle cesse ainsi de ressembler à une perte de sauvegarde :
+chaque silence a une cause concrète et une issue lisible.
 
 Comme tout se cumule, la barre finit à une quarantaine de boutons : elle est donc une **grille dense**
 (`repeat(auto-fill, minmax(6.5rem, 1fr))`, noms tronqués sur une ligne) à **hauteur plafonnée** avec
@@ -669,6 +669,14 @@ code écrit à la main.
   format de sauvegarde, et une valeur illisible retombe simplement sur le défaut. Les préférences
   ajoutées après coup (celles des objets) retombent **champ par champ** sur leur défaut, sinon la
   première lecture d'une valeur déjà écrite jetterait aussi celles de l'équipe.
+- **La mesure de progression demande un choix explicite.** Son bandeau reste compact mais écrit la
+  finalité, ce qui n'est jamais transmis, la durée de conservation et le chemin de retrait. Refuser
+  et autoriser ont la même accessibilité ; la couleur primaire indique l'action utile sans déguiser
+  le refus. Le choix vit dans sa propre préférence locale et peut être inversé depuis le menu.
+- **Le prestige se conclut par un bilan, pas par un écran vide.** Après confirmation, un overlay
+  résume le temps, la complétion, les points gagnés, l'activité de combat et d'économie, la puissance
+  finale et surtout les maîtrises conservées. Les valeurs sont figées avant la remise à zéro : le
+  joueur comprend immédiatement ce qu'il a accompli et ce qu'il emporte dans l'aventure suivante.
 - **Le panneau `Objets` a les mêmes deux `<select>` que le panneau `Équipe`**, au même endroit de
   l'en-tête et sans style dédié : filtre à gauche, tri à droite, et le titre affiche
   « (montrés/total) » dès qu'un filtre est actif. Une collection qui dépasse la trentaine d'entrées

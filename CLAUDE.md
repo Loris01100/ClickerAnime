@@ -13,6 +13,7 @@ the deep rationale per system lives in `docs/`, one file per area, read on deman
 - `npm test` — `vitest run` (node environment, only `src/**/*.test.ts`)
 - `npm run test:e2e` — critical player journey in Playwright Firefox
 - `npm run validate:data` — validates all authored ids, references, arcs and sequel presences
+- `npm run check:worker` — dry-run the telemetry Worker and its Analytics Engine binding
 - Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — plays a whole run headlessly and prints its pacing (`docs/simulator.md`)
 
@@ -53,6 +54,10 @@ accessors.
 PokéClicker's density; everything else is an overlay it owns. Each component takes `game: GameStore`
 as its only prop. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
 See `docs/ui.md`.
+
+**`src/worker.ts` — one deliberately narrow edge endpoint.** Static assets still bypass code; only
+`/api/*` runs the Worker. `/api/telemetry` validates the fixed anonymous event schema and writes
+aggregate progression points to Cloudflare Analytics Engine. It owns no save or gameplay state.
 
 ## Invariants
 
@@ -157,6 +162,12 @@ These outrank convenience, and several were learned the hard way. Don't break on
   falls back to that backup at boot; hard reset alone clears both slots.
 - Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved.
 
+**Telemetry**
+
+- Nothing is sent until explicit consent. Never add a player, device, installation or session id.
+- The schema is a fixed milestone allowlist. Reject unknown fields at the Worker boundary and never
+  persist IP addresses, user agents, saves or free-form player text.
+
 **UI**
 
 - Never hard-code a colour in a rule. Every colour comes from a token defined in the bare `:root`
@@ -180,6 +191,7 @@ the shared vocabulary for equipment restrictions; add their French label in `ui/
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
 | UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |
+| Telemetry | `docs/telemetry.md` | Opt-in progression milestones, Worker validation, Analytics Engine schema and queries |
 | Content validation | `docs/content-validation.md` | Semantic validation of ids, references, recruitment and sequel presence |
 | Simulator | `docs/simulator.md` | `npm run sim`: playing a run headlessly to check a balance change |
 
