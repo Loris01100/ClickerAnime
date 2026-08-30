@@ -116,7 +116,7 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   `src/engine/tests/` vérifie que tout `themeHue` des données reste dans 0..360.
 - **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
   fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.
-  Il pose **`--world-hue`** sur son conteneur (`themeOf(...)`), et `styles.css` fait le reste avec
+  Il pose **`--world-hue`** sur son conteneur (`themeOf(...)`), et les modules CSS font le reste avec
   `hsl(var(--world-hue) ... / var(--world-strength))`. Posée à trois endroits parce que le monde
   *affiché* n'est pas toujours le monde *actif* : `App.tsx` sur `.game` (monde de l'arc en cours),
   `WorldMap.tsx` sur `.map-canvas` (l'onglet de carte peut être épinglé ailleurs),
@@ -138,7 +138,7 @@ une raison d'ajouter du code spécifique.
 
 ## 3. Système de couleur
 
-Le thème clair/sombre (`styles.css:1-71`, documenté dans `docs/ui.md`) reste la seule source de
+Le thème clair/sombre (`styles/foundation.css`, documenté dans `docs/ui.md`) reste la seule source de
 vérité pour les couleurs *fonctionnelles* (fond, texte, accent, bon/mauvais...). Aucune couleur
 codée en dur en dehors de `:root` — règle déjà en place, à ne pas relâcher en ajoutant la DA par
 anime : `themeOf(anime)` produit une **teinte** (nombre 0..360) combinée à `hsl()`, jamais une
@@ -176,10 +176,10 @@ Le jeu a aujourd'hui trois animations : le pop de dégâts (`rise`, `.pop`), les
 largeur des barres (`.bar-fill`, `width 0.1–0.2s linear`), et le déplacement du marqueur de carte
 (`left/top 0.3s ease`). C'est un bon socle à généraliser plutôt qu'à remplacer. Règle commune à
 toute nouvelle animation : **respecter `prefers-reduced-motion`**, exactement comme `.pop` le
-fait déjà (bascule vers un simple fade, `styles.css:463-472`) — c'est le patron à copier, pas à
+fait déjà (bascule vers un simple fade dans `styles/panels-and-shop.css`) — c'est le patron à copier, pas à
 réinventer.
 
-**Fait** (tout dans `styles.css`, déclenché par des signaux locaux à `ClickStage.tsx` — aucun
+**Fait** (dans les modules de `src/styles/`, déclenché par des signaux locaux à `ClickStage.tsx` — aucun
 changement moteur, rien dans le tick 200ms) :
 
 | Effet | Où | Déclencheur |
@@ -602,7 +602,7 @@ code écrit à la main.
   agent IA pour le reconstruire. Utile comme **point de départ visuel/structurel** pour un panel
   qu'on peine à esquisser (disposition d'un tableau, d'un tooltip, d'un toast — voir §4 « Notification
   de recrutement »), jamais comme source à copier telle quelle : le projet n'a pas de dépendance UI
-  (`CLAUDE.md` : « un `src/styles.css` écrit à la main, pas de framework UI ») et toute vue générée
+  (`CLAUDE.md` : « CSS écrit à la main, pas de framework UI ») et toute vue générée
   via un prompt 21st.dev doit être retraduite en `.panel`/`.panel-head`/tokens CSS du thème (§3, §7)
   avant d'entrer dans le repo — pas de classes Tailwind ni de palette propre au composant copié.
 
@@ -875,7 +875,7 @@ densité, là où Zen Kaku Gothic New reste lisible en petit tout en changeant l
 `latin-700` puis `latin-ext-700` produit donc deux `@font-face` aux descripteurs identiques, et le
 dernier gagne pour *tous* les caractères — le poids 700 se retrouvait servi par le sous-ensemble
 latin-ext, qui ne contient aucun caractère ASCII. Les `@font-face` sont donc tous écrits à la main
-en tête de `styles.css`, avec leur `unicode-range` explicite, ce qui laisse le navigateur combiner
+en tête de `styles/foundation.css`, avec leur `unicode-range` explicite, ce qui laisse le navigateur combiner
 les deux sous-ensembles et ne télécharger que ce dont la page a besoin. Vite résout les `url()` qui
 pointent vers le paquet (`@fontsource/.../files/*.woff2`) et inline les plus petits fichiers.
 

@@ -238,7 +238,7 @@ AniList de leur anime : ils se résolvent comme une recrue, et il n'y a plus d'a
 `themeOf(anime)` — `anime.themeHue ?? spriteHue(anime.id)` — is the single entry point, so a world
 with a hand-picked `Anime.themeHue` gets it and any other world stays automatically distinct. A
 component never builds a colour string: it sets the **`--world-hue`** custom property on a container
-and `styles.css` does the rest with `hsl(var(--world-hue) … / var(--world-strength))`. It is set in
+and the modules imported by `styles.css` do the rest with `hsl(var(--world-hue) … / var(--world-strength))`. It is set in
 three places because the world being *shown* is not always the one being *fought*: `App.tsx` on
 `.game`, `WorldMap.tsx` on `.map-canvas` (its tab can be pinned to another world),
 `WorldPortal.tsx` on `.portal-hero`/`.portal-card`. A default in the bare `:root` keeps any rule
@@ -260,13 +260,14 @@ malus, suppress a passive outside its home anime, and update for scoped ability 
 expiry under the same mastery cap as the team totals. The ability bar drops the buttons of every
 character who is abroad for the same reason, and prints `sleepingAbilityCount` under the grid so a
 world change reads as a rule rather than as a bug. The separate Syn. column keeps the multiplier
-visible so the reason for the drop is explicit. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+visible so the reason for the drop is explicit. Styling stays hand-written and framework-free:
+`src/styles.css` is the ordered manifest, while `src/styles/` groups rules by responsibility.
 
 ## L'écran de secours
 
 `src/index.tsx` enveloppe `<App />` dans un `<ErrorBoundary>` de `solid-js`. Une exception dans un
 composant donnait sinon une page blanche : plus de jeu, et surtout aucun moyen de sortir la
-sauvegarde. Le fallback (`.crash` dans `styles.css`) affiche la pile et le contenu brut de
+sauvegarde. Le fallback (`.crash` dans `styles/feedback-and-automation.css`) affiche la pile et le contenu brut de
 `localStorage[SAVE_KEY]` dans un `<textarea>` en lecture seule — le joueur copie, recharge, et peut
 réimporter. C'est la seule raison pour laquelle `SAVE_KEY` est exporté par `gameState.ts`.
 

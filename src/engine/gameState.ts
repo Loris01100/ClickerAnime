@@ -30,6 +30,18 @@ import {
 } from "./abilities";
 import type { AbilityDiagnostic, AbilityPolicy, UnlockedAbility } from "./abilities";
 import {
+  clearSaveSlots,
+  decodeSave,
+  encodeSave,
+  hasValidBackup,
+  readSave,
+  restoreBackupSlots,
+  SAVE_VERSION,
+  writeSave,
+  type SaveFile,
+} from "./persistence";
+export { SAVE_BACKUP_KEY, SAVE_KEY } from "./persistence";
+import {
   damageMultiplierAgainst,
   enemyHp,
   enemyReward,
@@ -42,6 +54,14 @@ import {
 } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
+import {
+  sanitizedEquipment,
+  scaledUniqueEffect,
+  UNIQUE_FORGE_FRAGMENT_COSTS,
+  UNIQUE_FORGE_MULTIPLIERS,
+  uniqueRanksFromSave,
+} from "./forge";
+export { UNIQUE_FORGE_FRAGMENT_COSTS, UNIQUE_FORGE_MULTIPLIERS } from "./forge";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   arcPowerTable,
@@ -186,253 +206,10 @@ export const MAX_KILLS_PER_SECOND = 5;
 export const CURRENCY_REWARD_MULTIPLIER = 0.75;
 /** Price of one current-arc common item, measured in ordinary victories. */
 export const SUPPLY_KILLS_PER_COPY = 15;
-/** Boss uniques start at rank 1; rank 4 preserves the power they had before the forge existed. */
-export const UNIQUE_FORGE_MULTIPLIERS = [0, 0.5, 2 / 3, 5 / 6, 1, 7 / 6] as const;
-export const UNIQUE_FORGE_FRAGMENT_COSTS = [0, 1, 5, 10, 15, 25] as const;
-// v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
-export const SAVE_KEY = "clicker-anime:save:v10";
-/** Last known-good primary save, rotated automatically before every successful write. */
-export const SAVE_BACKUP_KEY = `${SAVE_KEY}:backup`;
-/** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
-const SAVE_VERSION = 10;
-
-interface SaveFile {
-  /**
-   * Shape version, carried inside the save rather than only in `SAVE_KEY`. A key bump means every
-   * existing player is wiped (the old key is never read again); a version field means the next
-   * breaking change can be *migrated* in `readSave` instead. Absent on any save written before this
-   * field existed, which `readSave` treats as `SAVE_VERSION` — those are v10 by definition, since
-   * the key they live under says so.
-   */
-  version?: number;
-  currency: number;
-  lifetimeEarned: number;
-  ownedCharacterIds: string[];
-  activeArcId: string | null;
-  prestigePoints: number;
-  unlockedAnimeIds: string[];
-  arcKills: Record<string, number>;
-  clearedArcIds: string[];
-  characterXp: Record<string, number>;
-  itemCounts: Record<string, number>;
-  passiveRanks: Record<string, number>;
-  evolvedCharacterIds: string[];
-  /** absent on a save from before achievements existed; every reader defaults it to {} */
-  achievementCounts?: Record<string, number>;
-  /** absent on a save from before the prestige tree existed; every reader defaults it to {} */
-  prestigeTreeRanks?: Record<string, number[]>;
-  /** absent on a save from before equipment existed; every reader defaults it to {} */
-  characterEquipment?: Record<string, string>;
-  /** absent on a save from before crossover crystals existed; every reader defaults it to 0 */
-  crossoverCrystals?: number;
-  /** pack points held per world; absent on an older save, defaults to {} */
-  worldPoints?: Record<string, number>;
-  /** pack copies held per character; absent on an older save, defaults to {} */
-  characterDuplicates?: Record<string, number>;
-  /** whether the bought autoclicker runs; absent on an older save, defaults to on */
-  autoClickEnabled?: boolean;
-  /**
-   * Automations the player has switched **off**, by `AutomationKey`. Stored as the off-set rather
-   * than the on-set so an absent entry — every save written before the branch existed — reads as
-   * "on", the same default the autoclicker gets.
-   */
-  automationOff?: Record<string, boolean>;
-  /** characters handed to the "Intendance" node; run-scoped like the roster, defaults to [] */
-  autoRankCharacterIds?: string[];
-  /**
-   * Per-ability plan for the "Réflexe" automation, by ability id. Only the non-default entries are
-   * written; an absent one — every save from before this existed — reads as `"always"`.
-   */
-  abilityPolicy?: Record<string, AbilityPolicy>;
-  /** cooldown start times survive a reload so refreshing cannot make abilities ready early */
-  abilityLastUsed?: Record<string, number>;
-  /** fragments dropped by a boss after its unique has already been found */
-  uniqueFragments?: Record<string, number>;
-  /** forge rank of each unique; absent saves keep their former rank-4 strength */
-  uniqueUpgradeRanks?: Record<string, number>;
-  /** the challenge being played right now, if any; absent on an older save, defaults to none */
-  activeChallengeId?: string | null;
-  /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
-  completedChallengeIds?: string[];
-  /** start of the current run, used only to time the next prestige report */
-  runStartedAt?: number;
-  /** lifetime counters as they stood when this run began, for per-run report deltas */
-  runAchievementBaseline?: Record<string, number>;
-}
-
-const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
-const isStringArray = (v: unknown) => Array.isArray(v) && v.every((e) => typeof e === "string");
-/** A plain `Record<string, T>` — rejects arrays and null, which `typeof === "object"` would let through. */
-function isRecordOf(v: unknown, valueOk: (value: unknown) => boolean): boolean {
-  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
-  return Object.values(v as Record<string, unknown>).every(valueOk);
-}
-
-/**
- * Full shape check, not a smoke test: `importSave` feeds this an arbitrary file the player supplied,
- * and whatever passes is written straight to `localStorage` before a reload — a half-checked blob
- * would persist a broken run the player can't get out of without a hard reset.
- *
- * What it enforces is the *type* of every field that is present, not the presence of every field:
- * each reader below already defaults a missing one (`saved?.x ?? []`), which is what lets a save
- * written by an older build still load. A field of the wrong type is the one thing those defaults
- * can't absorb — `arcKills: "abc"` sails past `?? {}` and poisons the run.
- */
-function isValidSave(value: unknown): value is SaveFile {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const c = value as Record<string, unknown>;
-  const opt = (v: unknown, ok: (value: unknown) => boolean) => v === undefined || ok(v);
-
-  // The two that identify the blob as a save at all.
-  if (!isNumber(c.currency) || !isStringArray(c.ownedCharacterIds)) return false;
-
-  return (
-    opt(c.version, isNumber) &&
-    opt(c.lifetimeEarned, isNumber) &&
-    opt(c.prestigePoints, isNumber) &&
-    opt(c.crossoverCrystals, isNumber) &&
-    opt(c.activeArcId, (v) => v === null || typeof v === "string") &&
-    opt(c.unlockedAnimeIds, isStringArray) &&
-    opt(c.clearedArcIds, isStringArray) &&
-    opt(c.evolvedCharacterIds, isStringArray) &&
-    opt(c.arcKills, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.characterXp, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.itemCounts, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.passiveRanks, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.achievementCounts, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.worldPoints, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.characterDuplicates, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.autoClickEnabled, (v) => typeof v === "boolean") &&
-    opt(c.automationOff, (v) => isRecordOf(v, (on) => typeof on === "boolean")) &&
-    opt(c.autoRankCharacterIds, isStringArray) &&
-    opt(c.abilityPolicy, (v) => isRecordOf(v, (p) => p === "always" || p === "boss" || p === "sync")) &&
-    opt(c.abilityLastUsed, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.uniqueFragments, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.uniqueUpgradeRanks, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
-    opt(c.completedChallengeIds, isStringArray) &&
-    opt(c.runStartedAt, isNumber) &&
-    opt(c.runAchievementBaseline, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
-    opt(c.prestigeTreeRanks, (v) =>
-      isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
-    )
-  );
-}
-
-function uniqueRanksFromSave(data: GameData, saved: SaveFile | null): Record<string, number> {
-  const ranks = saved?.uniqueUpgradeRanks;
-  const entries: [string, number][] = [];
-  for (const item of data.items) {
-    if (item.kind !== "unique") continue;
-    const savedRank = ranks?.[item.id];
-    // Explicit ranks are permanent forge mastery and therefore survive even while the unique is
-    // absent after prestige. The rank-4 fallback is only the legacy migration for an owned unique
-    // from before forge ranks existed; applying it to every unseen unique would grant free levels.
-    if (savedRank !== undefined) {
-      entries.push([item.id, Math.max(1, Math.min(5, Math.floor(savedRank)))]);
-    } else if ((saved?.itemCounts?.[item.id] ?? 0) > 0) {
-      entries.push([item.id, 4]);
-    }
-  }
-  return Object.fromEntries(entries);
-}
-
-function scaledUniqueEffect(effect: ModifierTemplate, level: number): ModifierTemplate {
-  const strength = UNIQUE_FORGE_MULTIPLIERS[level] ?? UNIQUE_FORGE_MULTIPLIERS[1];
-  return { ...effect, value: effect.kind === "multiplier" ? 1 + (effect.value - 1) * strength : effect.value * strength };
-}
-
-/** Imported equipment also has to be meaningful for the current game data, not merely well-typed. */
-function sanitizedEquipment(
-  data: GameData,
-  equipment: Record<string, string> | undefined,
-  itemCounts: Record<string, number>,
-  ownedIds: string[]
-): Record<string, string> {
-  const cleaned: Record<string, string> = {};
-  const worn = new Set<string>();
-  for (const [characterId, itemId] of Object.entries(equipment ?? {})) {
-    const character = data.characters.find((c) => c.id === characterId);
-    const item = data.items.find((i) => i.id === itemId);
-    const restriction = item?.equippableBy;
-    const allowed =
-      !restriction ||
-      ((!restriction.characterIds || restriction.characterIds.includes(characterId)) &&
-        (!restriction.animeIds || restriction.animeIds.includes(character?.animeId ?? "")) &&
-        (!restriction.tags || restriction.tags.some((tag) => character?.tags?.includes(tag))));
-    if (
-      character &&
-      ownedIds.includes(characterId) &&
-      item?.kind === "unique" &&
-      itemCounts[itemId] > 0 &&
-      allowed &&
-      !worn.has(itemId)
-    ) {
-      cleaned[characterId] = itemId;
-      worn.add(itemId);
-    }
-  }
-  return cleaned;
-}
-
-/** Parses, validates and migrates one stored save without ever letting a bad blob escape. */
-function parseSave(raw: string | null): SaveFile | null {
-  try {
-    const parsed = JSON.parse(raw ?? "null");
-    if (!isValidSave(parsed)) return null;
-    // Migration v9: the "resource" prestige branch was renamed to "destin". Copy old progress over
-    // so players don't lose their bought levels when the branch identity changed.
-    if (parsed.prestigeTreeRanks && "resource" in parsed.prestigeTreeRanks && !("destin" in parsed.prestigeTreeRanks)) {
-      parsed.prestigeTreeRanks = { ...parsed.prestigeTreeRanks, destin: parsed.prestigeTreeRanks.resource };
-      delete parsed.prestigeTreeRanks.resource;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function storedRaw(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-interface LoadedSave {
-  save: SaveFile | null;
-  recoveredFromBackup: boolean;
-}
-
-/**
- * Reads the primary slot first, then repairs it from the last known-good backup when necessary.
- * A corrupt primary is never copied over the backup: recovery must remain possible even if a
- * browser extension, manual edit or interrupted write damaged the current slot.
- */
-function readSave(): LoadedSave {
-  if (typeof localStorage === "undefined") return { save: null, recoveredFromBackup: false };
-  const primary = parseSave(storedRaw(SAVE_KEY));
-  if (primary) return { save: primary, recoveredFromBackup: false };
-
-  const backupRaw = storedRaw(SAVE_BACKUP_KEY);
-  const backup = parseSave(backupRaw);
-  if (!backup || !backupRaw) return { save: null, recoveredFromBackup: false };
-  try {
-    localStorage.setItem(SAVE_KEY, backupRaw);
-  } catch {
-    // The valid backup can still boot the current session even if storage is temporarily full.
-  }
-  return { save: backup, recoveredFromBackup: true };
-}
-
 export function createGameStore(data: GameData) {
   const loadedSave = readSave();
   const saved = loadedSave.save;
-  const [hasBackupSave, setHasBackupSave] = createSignal(
-    typeof localStorage !== "undefined" && parseSave(storedRaw(SAVE_BACKUP_KEY)) !== null
-  );
+  const [hasBackupSave, setHasBackupSave] = createSignal(hasValidBackup());
 
   /**
    * Id indexes over the content, built once.
@@ -485,7 +262,9 @@ export function createGameStore(data: GameData) {
   const [uniqueFragments, setUniqueFragments] = createSignal<Record<string, number>>(saved?.uniqueFragments ?? {});
   // Forge levels are permanent mastery. Prestige removes the unique and its fragments, but the
   // next copy found recovers this level. Only hardReset wipes the map.
-  const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(uniqueRanksFromSave(data, saved));
+  const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(
+    uniqueRanksFromSave(data.items, saved)
+  );
   // Passive ranks are permanent mastery: a prestige removes the team and its item stock, but a
   // character recovers every bought rank when recruited again. Only hardReset wipes them.
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
@@ -566,7 +345,13 @@ export function createGameStore(data: GameData) {
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
   // characterId -> itemId for equipped unique items.
   const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
-    sanitizedEquipment(data, saved?.characterEquipment, saved?.itemCounts ?? {}, saved?.ownedCharacterIds ?? [])
+    sanitizedEquipment(
+      data.characters,
+      data.items,
+      saved?.characterEquipment,
+      saved?.itemCounts ?? {},
+      saved?.ownedCharacterIds ?? []
+    )
   );
   // Cristaux de crossover: earned on kills with a team spanning two worlds, spent to lift the
   // synergy malus for a while (see crossover.ts). Run-scoped like items — prestigeReset wipes them.
@@ -2075,31 +1860,14 @@ export function createGameStore(data: GameData) {
   // still-running old signals over the imported file, making a successful import look ignored.
   let importedSavePendingReload = false;
 
-  /** Writes a new primary only after preserving the current valid primary in the backup slot. */
-  function writePrimarySave(serialized: string): boolean {
-    if (typeof localStorage === "undefined") return false;
-    try {
-      const currentRaw = localStorage.getItem(SAVE_KEY);
-      if (parseSave(currentRaw) && currentRaw) {
-        localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
-        setHasBackupSave(true);
-      }
-      localStorage.setItem(SAVE_KEY, serialized);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   function save() {
     if (importedSavePendingReload) return;
-    if (typeof localStorage === "undefined") return;
-    if (writePrimarySave(JSON.stringify(buildSaveFile()))) setLastSavedAt(Date.now());
+    if (writeSave(buildSaveFile(), () => setHasBackupSave(true))) setLastSavedAt(Date.now());
   }
 
   /** A portable blob the player can download and hand back later — same shape `readSave` already trusts. */
   function exportSave(): string {
-    return btoa(JSON.stringify(buildSaveFile()));
+    return encodeSave(buildSaveFile());
   }
 
   /**
@@ -2107,21 +1875,15 @@ export function createGameStore(data: GameData) {
    * simplest way to get every signal back in sync, rather than exposing a setter per field here.
    */
   function importSave(text: string): boolean {
-    try {
-      const parsed: unknown = JSON.parse(atob(text.trim()));
-      if (!isValidSave(parsed)) return false;
-      importedSavePendingReload = true;
-      if (!writePrimarySave(JSON.stringify(parsed))) {
-        importedSavePendingReload = false;
-        return false;
-      }
-      if (typeof location !== "undefined") location.reload();
-      return true;
-    } catch {
-      // A failed write/reload must not silently disable autosaves for the current run.
+    const parsed = decodeSave(text);
+    if (!parsed) return false;
+    importedSavePendingReload = true;
+    if (!writeSave(parsed, () => setHasBackupSave(true))) {
       importedSavePendingReload = false;
       return false;
     }
+    if (typeof location !== "undefined") location.reload();
+    return true;
   }
 
   /**
@@ -2129,29 +1891,18 @@ export function createGameStore(data: GameData) {
    * current slot is simply replaced; it is never allowed to destroy the valid backup.
    */
   function restoreBackup(): boolean {
-    if (typeof localStorage === "undefined") return false;
-    const backupRaw = storedRaw(SAVE_BACKUP_KEY);
-    if (!parseSave(backupRaw) || !backupRaw) return false;
-    try {
-      const currentRaw = localStorage.getItem(SAVE_KEY);
-      const currentValid = parseSave(currentRaw) !== null;
-      importedSavePendingReload = true;
-      localStorage.setItem(SAVE_KEY, backupRaw);
-      if (currentValid && currentRaw) localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
-      if (typeof location !== "undefined") location.reload();
-      return true;
-    } catch {
+    importedSavePendingReload = true;
+    if (!restoreBackupSlots()) {
       importedSavePendingReload = false;
       return false;
     }
+    if (typeof location !== "undefined") location.reload();
+    return true;
   }
 
   /** Wipes the save and every bit of progress, prestige and worlds included. */
   function hardReset() {
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem(SAVE_KEY);
-      localStorage.removeItem(SAVE_BACKUP_KEY);
-    }
+    clearSaveSlots();
     setHasBackupSave(false);
     setCurrency(0);
     setLifetimeEarned(0);

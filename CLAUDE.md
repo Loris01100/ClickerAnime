@@ -50,9 +50,14 @@ sleeping machine or a throttled tab would otherwise hand the first tick back hou
 returned actions (`click`, `recruitCharacter`, `activateAbility`, `prestigeReset`, …) and read its
 accessors.
 
+**`src/engine/persistence.ts` — the save trust boundary.** It owns the save shape, validation,
+migrations, storage keys and backup recovery. `gameState.ts` assembles live signals into that shape
+but does not redefine the format.
+
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density; everything else is an overlay it owns. Each component takes `game: GameStore`
-as its only prop. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+as its only prop. Styling is hand-written CSS split by responsibility under `src/styles/`, imported
+in cascade order by `src/styles.css`; no UI framework.
 See `docs/ui.md`.
 
 **`src/worker.ts` — one deliberately narrow edge endpoint.** Static assets still bypass code; only
@@ -176,8 +181,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
 
 - Never hard-code a colour in a rule. Every colour comes from a token defined in the bare `:root`
   block, so the light/dark flip works.
-- A component never builds a colour string: it sets `--world-hue` on a container and `styles.css`
-  does the rest.
+- A component never builds a colour string: it sets `--world-hue` on a container and the imported
+  CSS modules do the rest.
 - UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.
 
 ## The systems

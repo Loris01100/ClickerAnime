@@ -1,6 +1,8 @@
 # Persistence
 
-The save file, its version, and the trust boundary `importSave` sits on.
+The save file, its version, and the trust boundary `importSave` sits on. The schema, validation,
+migrations, storage keys and backup boot recovery live in `src/engine/persistence.ts`; the reactive
+store only assembles its current signals into `SaveFile` and exposes the player-facing actions.
 
 
 The save is a flat `SaveFile` in `localStorage` under the key `clicker-anime:save:v10`, and carries
@@ -14,7 +16,7 @@ absorb. It is a real trust boundary: `importSave` runs an arbitrary player-suppl
 and writes whatever passes straight to `localStorage` before reloading. Bump the key version when the shape *breaks* — an old field renamed or retyped, not a
 new optional field, which `?? {}`/`?? []` defaults already absorb without a bump; bumping wipes every
 existing player's save (a new key means the old one is never read again), so treat it as a last
-resort. `gameState`'s `buildSaveFile` is the one place the on-disk shape is assembled, shared by
+resort. `gameState`'s `buildSaveFile` is the one place the live state is assembled into the on-disk shape, shared by
 `save`, `exportSave` and `importSave` so they can never drift apart. `exportSave` base64-encodes the
 same `SaveFile` into a portable blob (`App.tsx` hands it to the browser as a `.txt` download named
 `[Clicker-Anime][YYYY-MM-DD][HHhMM].txt`, local date and time, so a downloads folder sorts them by

@@ -51,7 +51,8 @@ rank. Only `hardReset` wipes that mastery.
 
 ## Forge
 
-Every unique begins at forge rank 1 (50% of its former contribution). Ranks 2–5 contribute 67%,
+The pure forge and equipment rules live in `src/engine/forge.ts`; `gameState.ts` only wires them to
+the reactive inventory. Every unique begins at forge rank 1 (50% of its former contribution). Ranks 2–5 contribute 67%,
 84%, 100% and 116%; rank 4 is exactly the pre-forge power, so existing saves keep their balance.
 After its first drop, defeating that arc's replayable boss awards one fragment of that unique instead
 of another copy. The forge consumes 5, 10, 15 then 25 fragments for ranks 2–5 (rank 1 is granted

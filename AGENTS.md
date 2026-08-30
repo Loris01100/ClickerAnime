@@ -19,7 +19,7 @@ animated story through the Chairman Election.
 | Framework | SolidJS 1.9 |
 | Build tool | Vite 8 + `vite-plugin-solid` |
 | Language | TypeScript 7 (ES2020, DOM, `jsx: preserve`, `jsxImportSource: solid-js`) |
-| Styling | Hand-written `src/styles.css`; no UI framework (no Tailwind, no Bootstrap) |
+| Styling | Hand-written CSS modules imported by `src/styles.css`; no UI framework |
 | Testing | Vitest 4 (Node environment) + Playwright Firefox |
 | Package manager | npm |
 | Runtime | Browser only; `localStorage` for persistence |
@@ -66,9 +66,11 @@ No SolidJS imports (except `gameState.ts`, which is the seam). Every file export
 Key modules:
 
 - `gameState.ts` — the only reactive seam. `createGameStore(data)` creates all signals, wires pure functions into memos, runs the 200 ms tick, and autosaves every 5 s.
+- `persistence.ts` — save schema, validation, migrations, keys and backup recovery. It has no reactive state.
 - `types.ts` — shared domain types (`Anime`, `Arc`, `Character`, `Enemy`, `Item`, `AbilityDefinition`, `ShopOffer`, etc.).
 - `combat.ts` — enemy spawning, HP/reward scaling, drop rolls.
 - `growth.ts` — levels, XP curve, passives, narrator click power.
+- `forge.ts` — unique forge ranks, effect scaling and equipment sanitization.
 - `modifiers.ts` — `computeEffectiveStat` pipeline: `(base + flats) * (1 + Σpercents) * Πmultipliers`.
 - `synergy.ts` — the "characters weaken outside their home arc/anime" multiplier.
 - `progression.ts` — arc/world unlock order, difficulty tier (`DIFFICULTY_GROWTH = 2.5`).
@@ -120,7 +122,7 @@ One **directory** per world plus `index.ts`. Adding a world means adding a direc
 ## Code Style Guidelines
 
 - **Language split**: engine/comments/documentation in English; UI-visible strings in French.
-- **No UI framework**: styling is hand-written CSS in `src/styles.css`. Every color must come from a CSS token defined in `:root` (light) and repeated in both dark blocks.
+- **No UI framework**: `src/styles.css` is the ordered manifest for the hand-written modules in `src/styles/`. Every color must come from a CSS token defined in `foundation.css`'s `:root` (light) and repeated in both dark blocks.
 - **No hard-coded colors**: gradients, tints, and shadows must use existing tokens or a world hue derived from `themeOf(anime)` / `spriteHue(id)`.
 - **No game logic in components**: if a displayed value is derived, add a pure helper in `engine/` and expose it on `GameStore`.
 - **Prefer pure functions**: especially in `engine/`. RNG is only called in `gameState.ts`; `rollsDrop(enemy, roll)` takes the roll as an argument so tests don't stub `Math.random`.
@@ -135,7 +137,7 @@ These come from `design.md` and are enforced in the existing components. Any new
 - **Panel anatomy**: `.panel` + `.panel-head` (title left, counter/chip/select right). Every panel is collapsible via `<PanelTitle>`.
 - **Compact tables**: `.table-head` + rows sharing the same grid class, inside `.scroll`. No native `<table>`, no pagination.
 - **Overlay behavior**: Escape to close, click backdrop to close, click content does not propagate.
-- **Animations**: CSS/`@keyframes` or Solid signals only. Every animation must respect `prefers-reduced-motion` (see `.pop` in `styles.css` as the reference).
+- **Animations**: CSS/`@keyframes` or Solid signals only. Every animation must respect `prefers-reduced-motion` (see `.pop` in `styles/gameplay.css` as the reference).
 - **World tint**: `spriteHue(anime.id)` gives a deterministic HSL hue. Extend it rather than adding `if (anime.id === "...")` branches. Optional `themeHue` on `Anime` is the override point.
 - **Glypths**: no raw Unicode symbols in JSX. Use `icons.tsx`.
 
@@ -243,7 +245,9 @@ Two consequences worth knowing before changing build config:
 
 | File | Responsibility |
 |---|---|
-| `src/engine/gameState.ts` | Signals, tick, autosave, store API |
+| `src/engine/gameState.ts` | Signals, tick, store orchestration and public API |
+| `src/engine/persistence.ts` | Save schema, validation, migrations and backup recovery |
+| `src/engine/forge.ts` | Unique forge and equipment rules |
 | `src/engine/types.ts` | Domain types |
 | `src/engine/combat.ts` | Spawning, drops |
 | `src/engine/growth.ts` | Levels, XP, passives |
@@ -256,7 +260,8 @@ Two consequences worth knowing before changing build config:
 | `src/App.tsx` | Root layout |
 | `src/worker.ts` | Validated anonymous telemetry endpoint |
 | `src/telemetrySchema.ts` | Shared telemetry allowlist and validation |
-| `src/styles.css` | All styling |
+| `src/styles.css` | Ordered stylesheet manifest |
+| `src/styles/` | Styling split by foundation and feature family |
 | `CLAUDE.md` | Layers, invariants, and the map of `docs/` |
 | `docs/` | One file per system, including telemetry and content validation |
 | `design.md` | Visual/UX design intent |

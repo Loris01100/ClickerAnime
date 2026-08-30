@@ -1,0 +1,699 @@
+/* --- panels --- */
+.panel {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--ink-shadow);
+}
+
+/* A newly learned system joins the dashboard without competing with combat feedback. */
+.progressive-reveal {
+  animation: panel-reveal 240ms ease-out both;
+}
+@keyframes panel-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+/*
+ * L'en-tête est la seule surface qui porte la DA du monde : trames de vitesse, dégradé sur
+ * `--world-hue`, liseré d'accent à gauche. Titre en capitales sur la police d'affichage — c'est ce
+ * qui distingue un panneau de jeu d'un panneau d'admin.
+ */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--speedlines),
+    linear-gradient(
+      90deg,
+      hsl(var(--world-hue) 70% 55% / calc(var(--world-strength) * 1.5)),
+      transparent 65%
+    ),
+    var(--panel-2);
+  border-bottom: 2px solid var(--line);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.panel-head select {
+  padding: 0.1rem 0.3rem;
+  font-size: 0.75rem;
+}
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+}
+.panel-title .icon {
+  transition: transform 0.15s ease;
+}
+.panel-title .icon.collapsed {
+  transform: rotate(-90deg);
+}
+.pad {
+  padding: 0.5rem 0.6rem;
+}
+.muted {
+  color: var(--muted);
+}
+.small,
+small {
+  font-size: 0.75rem;
+}
+
+/* Header row above a compact table, sharing the grid of the rows below it. */
+.table-head {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.scroll {
+  max-height: 260px;
+  overflow-y: auto;
+}
+.roster-resizable-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 10rem;
+  max-height: 70vh;
+  resize: vertical;
+}
+.roster-resizable-panel.collapsed {
+  min-height: 0;
+  resize: none;
+}
+.roster-resizable-panel > .scroll,
+.roster-resizable-panel > .ability-bar {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
+.scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.row:last-child {
+  border-bottom: none;
+}
+
+/* --- shop --- */
+.shop-modal {
+  width: min(980px, calc(100vw - 2rem));
+}
+.shop-head-actions,
+.shop-balance {
+  display: flex;
+  align-items: center;
+}
+.shop-head-actions {
+  gap: 0.55rem;
+}
+.shop-balance {
+  gap: 0.3rem;
+  padding: 0.18rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--gold);
+  letter-spacing: normal;
+}
+.shop-balance small {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.shop-balance strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+.shop-body {
+  max-height: 76vh;
+  padding: 0.8rem;
+}
+.shop-section + .shop-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--line);
+}
+.shop-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.6rem;
+}
+.shop-section-title > div {
+  flex: 1;
+  min-width: 0;
+}
+.shop-section-title h3,
+.shop-section-title p,
+.shop-offer-copy h4,
+.shop-offer-copy p {
+  margin: 0;
+}
+.shop-section-title h3 {
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.shop-section-title p {
+  margin-top: 0.12rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.shop-section-title > span {
+  display: grid;
+  place-items: center;
+  min-width: 1.7rem;
+  height: 1.7rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.shop-supply-head {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.shop-supply-head .shop-section-title {
+  flex: 1;
+  margin-bottom: 0;
+}
+.shop-supply-head select {
+  max-width: 25rem;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.shop-offer {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-rows: minmax(4.5rem, auto) auto;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background:
+    linear-gradient(
+      120deg,
+      hsl(var(--world-hue) 70% 55% / calc(var(--world-strength) * 0.7)),
+      transparent 58%
+    ),
+    var(--panel-2);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--line) 70%, transparent);
+}
+.shop-offer.locked {
+  background: var(--panel-2);
+}
+.shop-offer.unavailable .shop-offer-visual {
+  opacity: 0.72;
+}
+.shop-offer-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, hsl(var(--world-hue) 60% 55%) 35%, var(--line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+}
+.shop-offer.locked .shop-offer-visual {
+  filter: grayscale(0.8);
+  opacity: 0.55;
+}
+.shop-amount {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.2rem;
+  padding: 0.05rem 0.28rem;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--gold);
+  font-size: 0.72rem;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.shop-offer-copy {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.shop-offer-copy h4 {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shop-offer-copy p {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.shop-offer-copy small {
+  line-height: 1.25;
+}
+.shop-offer-action {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.shop-offer-action button {
+  flex: 1;
+  min-width: 0;
+  padding-block: 0.35rem;
+}
+.shop-offer-action s {
+  opacity: 0.72;
+}
+.shop-lock {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.shop-locked-price {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+  .shop-supply-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .shop-supply-head select {
+    max-width: none;
+    width: 100%;
+  }
+}
+@media (max-width: 440px) {
+  .shop-balance small {
+    display: none;
+  }
+  .shop-body {
+    padding: 0.55rem;
+  }
+}
+
+.forge-modal {
+  width: min(62rem, calc(100vw - 2rem));
+  height: min(47rem, 88vh);
+  background: var(--panel);
+}
+.forge-scene {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-position: center;
+  background-size: cover;
+  isolation: isolate;
+}
+.forge-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--panel) 25%, transparent), color-mix(in srgb, var(--panel) 68%, transparent)),
+    linear-gradient(to right, color-mix(in srgb, var(--panel) 52%, transparent), transparent 38% 62%, color-mix(in srgb, var(--panel) 52%, transparent));
+}
+.forge-intro {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  text-shadow: var(--label-shadow);
+}
+.forge-workbench {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 0;
+  padding: 1rem;
+}
+.forge-selection-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: min(44rem, 100%);
+  padding: 0.4rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  backdrop-filter: blur(2px);
+}
+.forge-selection-head span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.forge-selection-head button {
+  padding: 0.2rem 0.5rem;
+  color: var(--gold);
+  font-size: 0.7rem;
+  background: color-mix(in srgb, var(--panel-2) 82%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+}
+.forge-process {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(10rem, 13rem) 8.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: min(44rem, 100%);
+  padding: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+  box-shadow: var(--ink-shadow);
+  backdrop-filter: blur(2px);
+}
+.forge-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 8.5rem;
+  padding: 1.45rem 0.4rem 0.4rem;
+  overflow: hidden;
+  text-align: center;
+  border: 2px solid color-mix(in srgb, var(--line) 82%, var(--gold));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-2) 88%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--panel) 65%, transparent);
+}
+.forge-slot.ready {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 22px color-mix(in srgb, var(--gold) 18%, transparent), 0 0 14px color-mix(in srgb, var(--gold) 24%, transparent);
+}
+.forge-slot.empty {
+  color: var(--muted);
+  border-style: dashed;
+  background: color-mix(in srgb, var(--panel-2) 62%, transparent);
+}
+.forge-slot-button {
+  color: var(--text);
+  cursor: pointer;
+}
+.forge-slot-button:hover,
+.forge-slot-button:focus-visible {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--panel-2) 92%, transparent);
+}
+.forge-empty-mark {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.forge-slot-label {
+  position: absolute;
+  inset: 0 0 auto;
+  padding: 0.25rem 0.45rem;
+  color: var(--text);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+.forge-slot b {
+  margin-top: 0.15rem;
+  color: var(--gold);
+  font-size: 0.78rem;
+  line-height: 1.1;
+}
+.forge-slot small {
+  color: var(--muted);
+  font-size: 0.62rem;
+  line-height: 1.15;
+}
+.forge-fragment-art,
+.forge-result-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 4.15rem;
+}
+.forge-fragment-art .item-icon {
+  opacity: 0.72;
+  filter: saturate(0.7) drop-shadow(0 2px 3px color-mix(in srgb, var(--panel) 70%, transparent));
+  clip-path: polygon(4% 8%, 42% 0, 55% 24%, 89% 13%, 79% 50%, 100% 70%, 61% 80%, 48% 100%, 26% 78%, 0 91%, 12% 49%);
+}
+.forge-fragment-art strong {
+  position: absolute;
+  right: -0.2rem;
+  bottom: 0;
+  min-width: 1.55rem;
+  padding: 0.08rem 0.25rem;
+  color: var(--text);
+  font-size: 0.72rem;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+}
+.forge-result-art .item-icon {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--gold) 45%, transparent));
+}
+.forge-action {
+  display: grid;
+  justify-items: stretch;
+  gap: 0.45rem;
+}
+.forge-action-line {
+  position: relative;
+  height: 2px;
+  margin: 0 0.85rem;
+  background: linear-gradient(90deg, var(--line), var(--gold));
+}
+.forge-action-line::after {
+  content: "";
+  position: absolute;
+  right: -0.1rem;
+  top: 50%;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-top: 2px solid var(--gold);
+  border-right: 2px solid var(--gold);
+  transform: translateY(-50%) rotate(45deg);
+}
+.forge-action button {
+  min-height: 2.15rem;
+  padding-inline: 0.5rem;
+  font-size: 0.72rem;
+}
+.forge-picker {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  width: min(31rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow: hidden;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  box-shadow: var(--ink-shadow);
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(8px);
+}
+.forge-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.forge-picker-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  min-height: 0;
+  max-height: none;
+  padding: 0.5rem;
+}
+.forge-picker-item {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.4rem;
+  text-align: left;
+  background: color-mix(in srgb, var(--panel-2) 88%, transparent);
+}
+.forge-picker-item:hover,
+.forge-picker-item.selected {
+  border-color: var(--gold);
+}
+.forge-picker-item span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.forge-picker-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+.forge-picker-item small {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+@media (max-width: 680px) {
+  .forge-modal {
+    width: calc(100vw - 1rem);
+    height: calc(100vh - 1rem);
+    max-height: none;
+  }
+  .forge-process {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .forge-selection-head {
+    align-items: flex-start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.15rem;
+  }
+  .forge-selection-head span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .forge-selection-head button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .forge-slot {
+    width: 8.5rem;
+    min-height: 8.5rem;
+  }
+  .forge-action {
+    width: min(13rem, 100%);
+  }
+  .forge-action-line {
+    width: 2px;
+    height: 1.5rem;
+    margin: 0 auto;
+    background: linear-gradient(var(--line), var(--gold));
+  }
+  .forge-action-line::after {
+    right: 50%;
+    top: auto;
+    bottom: -0.05rem;
+    transform: translateX(50%) rotate(135deg);
+  }
+  .forge-picker-list {
+    grid-template-columns: 1fr;
+  }
+}
+.name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.name-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.name-link:hover {
+  color: var(--accent);
+}
+.sprite {
+  flex: none;
+  object-fit: contain;
+}
+/* No portrait: a silhouette in the world's own hue rather than an empty grey box. */
+.sprite-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-2);
+  border-radius: 4px;
+  color: hsl(var(--world-hue) 45% 55% / 0.5);
+}
+.sprite.dim {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+.rarity {
+  color: var(--gold);
+}
+.synergy.good {
+  color: var(--good);
+}
+.synergy.bad {
+  color: var(--bad);
+}
+.unique {
+  color: var(--gold);
+}
+
