@@ -6,6 +6,7 @@ import { deriveDisclosure, type DisclosureFacts } from "./disclosure";
 import { tutorialObjective, type ObjectiveFacts } from "./objective";
 import { bossAdvice, bossTraitCounter } from "./advice";
 import { newlyUnlocked } from "./unlocks";
+import { termsOf } from "./presentation";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -39,6 +40,20 @@ describe("spriteHue", () => {
 
   it("gives different hues to different ids", () => {
     expect(spriteHue("char-a1")).not.toBe(spriteHue("char-a2"));
+  });
+});
+
+describe("world presentation vocabulary", () => {
+  it("keeps combat defaults and accepts a data-driven social vocabulary", () => {
+    expect(termsOf().boss).toBe("Boss");
+    expect(
+      termsOf({
+        id: "social",
+        name: "Social",
+        unlockCost: 0,
+        presentation: { bossLabel: "Épreuve", healthLabel: "Tension" },
+      })
+    ).toMatchObject({ boss: "Épreuve", health: "Tension", teamDps: "DPS équipe" });
   });
 });
 

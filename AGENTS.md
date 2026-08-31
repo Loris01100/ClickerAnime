@@ -4,13 +4,13 @@ This file is the first thing an AI coding agent should read before touching the 
 
 ## Project Overview
 
-ClickerAnime is a browser idle/clicker prototype built with **SolidJS + Vite + TypeScript**. The live UI is in French, but engine identifiers, comments, and this guide are in English. The Naruto universe runs from `Naruto` through `Naruto Shippūden` to `Boruto`; `Hunter x Hunter` is a separate entry world. More worlds are meant to be added later.
+ClickerAnime is a browser idle/clicker prototype built with **SolidJS + Vite + TypeScript**. The live UI is in French, but engine identifiers, comments, and this guide are in English. The Naruto universe runs from `Naruto` through `Naruto Shippūden` to `Boruto`; `Hunter x Hunter`, `Bleach`, and `Horimiya` are separate entry worlds. More worlds are meant to be added later.
 
 The app is a static SPA whose gameplay and saves remain entirely browser-side. A narrow Cloudflare
 Worker endpoint records consented anonymous progression milestones; it stores no game state. Save
 data lives in `localStorage`; portraits are fetched live from AniList in the player's own browser.
-Alongside the Naruto universe, Hunter x Hunter (2011) is an independent starting world covering the
-animated story through the Chairman Election.
+Alongside the Naruto universe, Hunter x Hunter (2011), Bleach, and Horimiya are independent starting
+worlds. Horimiya folds the 2021 series and The Missing Pieces into one chronological school-life world.
 
 ## Technology Stack
 
@@ -117,6 +117,8 @@ One **directory** per world plus `index.ts`. Adding a world means adding a direc
 - `shippuden/` — Naruto Shippūden, 15 arcs (generated from a table with a ~1.85 ramp).
 - `boruto/` — Boruto, 8 arcs.
 - `hunter-x-hunter/` — Hunter x Hunter (2011), 6 arcs in one world; no unadapted Dark Continent.
+- `bleach/` — Bleach, 15 arcs in one independent entry world.
+- `horimiya/` — Horimiya plus The Missing Pieces, 6 arcs in one independent entry world.
 - `index.ts` — concatenates all worlds into `gameData` and defines shop offers.
 
 ## Code Style Guidelines

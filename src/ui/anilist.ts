@@ -87,6 +87,7 @@ const ANIME_ID_OVERRIDES: Record<string, number> = {
   Boruto: 97938,
   "Hunter x Hunter": 11061,
   Bleach: 269,
+  Horimiya: 124080,
   // La Guerre sanglante Millénaire est une série à part sur AniList, avec sa propre fiche de
   // casting : aucun Sternritter ni membre de la Division Zéro n'apparaît sur celle de Bleach.
   "BLEACH: Sennen Kessen-hen": 116674,

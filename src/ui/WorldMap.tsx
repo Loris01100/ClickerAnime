@@ -6,7 +6,7 @@ import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { asset } from "./asset";
 import { fmt } from "./format";
-import { IconCheck, IconLock, IconPin } from "./icons";
+import { IconCheck, IconLock, IconPin, IconStar } from "./icons";
 
 /** The route map of one world: its arcs on a generated snake path, with a marker on the active one. */
 export default function WorldMap(props: { game: GameStore }) {
@@ -122,7 +122,12 @@ export default function WorldMap(props: { game: GameStore }) {
                       onClick={() => props.game.setActiveArc(node.arc.id)}
                     >
                       <Show when={open()} fallback={<span class="map-lock"><IconLock /></span>}>
-                        <Sprite name={node.arc.boss.name} kind="character" anime={anime().name} px={anime().mapImage ? 2.6 : 4} dim={!open()} />
+                        <Show
+                          when={!anime().presentation}
+                          fallback={<span class="map-moment"><IconStar /></span>}
+                        >
+                          <Sprite name={node.arc.boss.name} kind="character" anime={anime().name} px={anime().mapImage ? 2.6 : 4} dim={!open()} />
+                        </Show>
                       </Show>
                       <span class="map-name">{node.arc.name}</span>
                       <small class="muted">{cleared() ? "terminé" : `${kills()}/${node.arc.mobsToBoss}`}</small>

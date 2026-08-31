@@ -269,6 +269,21 @@
   font-size: 1.6rem;
   line-height: 32px;
 }
+
+.map-moment {
+  display: grid;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 50%;
+  color: hsl(var(--world-hue) 72% 52%);
+  background: var(--panel-2);
+}
+
+.map-moment svg {
+  width: 65%;
+  height: 65%;
+}
 .map-marker {
   position: absolute;
   transform: translate(-50%, -120%);

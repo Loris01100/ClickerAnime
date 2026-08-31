@@ -13,7 +13,7 @@ import { simulateRun, type SimOptions, type SimReport } from "./sim";
 declare const process: { argv: string[]; exit(code?: number): never };
 
 const DEFAULT_SEEDS = [1, 7, 42, 99, 20260829];
-const ENTRY_WORLDS = ["naruto", "hunter-x-hunter", "bleach"];
+const ENTRY_WORLDS = gameData.animes.filter((anime) => !anime.requiresAnimeId).map((anime) => anime.id);
 
 interface MatrixRun {
   label: string;
@@ -197,6 +197,7 @@ const cadence = runScenarios(
 const entryOnly = runScenarios(seeds, [
   { label: "Naruto", options: { entryAnimeId: "naruto", stopAfterEntryWorld: true } },
   { label: "Bleach", options: { entryAnimeId: "bleach", stopAfterEntryWorld: true } },
+  { label: "Horimiya", options: { entryAnimeId: "horimiya", stopAfterEntryWorld: true } },
 ]);
 
 const narutoThenBleach = runScenarios(seeds, [

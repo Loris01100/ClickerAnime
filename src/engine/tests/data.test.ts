@@ -84,6 +84,36 @@ describe("game data", () => {
 
   });
 
+  it("folds Horimiya and The Missing Pieces into one balanced entry world", () => {
+    const arcs = gameData.arcs.filter((arc) => arc.animeId === "horimiya").sort((a, b) => a.order - b.order);
+    expect(arcs.map((arc) => arc.name)).toEqual([
+      "Les secrets partagés",
+      "Une place parmi les autres",
+      "Des sentiments difficiles à dire",
+      "Le quotidien du lycée",
+      "Les pièces manquantes",
+      "Noël et la remise des diplômes",
+    ]);
+    expect(arcs.map((arc) => arc.mobsToBoss)).toEqual([20, 28, 34, 40, 46, 52]);
+    expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 1_800_000, 3_000_000, 8_000_000]);
+    expect(arcs.every((arc) => arc.mapX !== undefined && arc.mapY !== undefined)).toBe(true);
+
+    const anime = gameData.animes.find((entry) => entry.id === "horimiya");
+    expect(anime?.requiresAnimeId).toBeUndefined();
+    expect(anime?.mapImage).toBe("/horimiya-map.png");
+    expect(anime?.presentation?.bossLabel).toBe("Épreuve");
+
+    const debutPower = arcs.map((arc) =>
+      gameData.characters
+        .filter((character) => character.arcIds[0] === arc.id)
+        .map((character) => character.baseDps)
+    );
+    expect(debutPower.map((cohort) => Math.max(...cohort))).toEqual([6, 12, 24, 48, 82, 120]);
+    for (const [index, cohort] of debutPower.entries()) {
+      expect(Math.min(...cohort) / Math.max(...cohort), `${arcs[index].id} : plancher de cohorte`).toBeGreaterThanOrEqual(0.6);
+    }
+  });
+
   it("covers Bleach's fifteen anime arcs, the manga-only duplicate of the last one aside", () => {
     const arcs = gameData.arcs.filter((arc) => arc.animeId === "bleach").sort((a, b) => a.order - b.order);
     expect(arcs.map((arc) => arc.name)).toEqual([

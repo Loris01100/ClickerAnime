@@ -116,12 +116,12 @@ their first world at sets the difficulty of every world after it — and the tie
 (`difficultyMultiplier`, 2.5x per world entered) is nothing next to it.
 
 So an entry point has a **budget**, not just a ramp. Naruto's five arcs end at **78**, Hunter x
-Hunter's six at **120**, and Shippūden — the first sequel world anyone reaches — opens at **130**:
+Hunter's and Horimiya's six at **120**, and Shippūden — the first sequel world anyone reaches — opens at **130**:
 whichever entry world you pick, you arrive at the second world at roughly the same height, which is
 what makes the 2.5x tier step mean anything.
 
 Bleach is where that stopped being free. Fifteen arcs at the story's usual ~1.85x would end near
-**20 000**, 170x above the other two entry points, and every world after it would fold — a Bleach
+**20 000**, 170x above the shorter entry points, and every world after it would fold — a Bleach
 player would walk into a 2.5x-tier world with a team sized for a 39x one. Its debut-power ramp is
 therefore deliberately flat, **~1.24x an arc, 6 → 125**, landing it beside Hunter x Hunter.
 
@@ -157,9 +157,9 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   *cleared* first, and `isAnimeAvailable` gates both routes into a world — free travel and the paid
   shortcut alike. Prestige buys an early entry, never a way to read a sequel first: Shippūden sits
   behind part 1, and Boruto is meant to sit behind Shippūden. An anime with no `requiresAnimeId` is
-  an entry point, i.e. a world the player may start a run on. Naruto, Hunter x Hunter and Bleach are
-  the current entry points; the latter two are each one continuous world because neither has a
-  sequel part in this data model — Bleach's Thousand-Year Blood War is a separate series on AniList
+  an entry point, i.e. a world the player may start a run on. Naruto, Hunter x Hunter, Bleach and
+  Horimiya are the current entry points; the latter three are each one continuous world because
+  none has a sequel part in this data model — Bleach's Thousand-Year Blood War is a separate series on AniList
   but is this world's fifteenth arc here, not a world of its own.
 - The player picks their first world freely among the entry points and travels freely after each
   clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige

@@ -352,6 +352,21 @@
   width: 220px;
   height: 220px;
 }
+
+/* Non-combat worlds turn abstract encounters into a readable emblem instead of an empty portrait. */
+.encounter-symbol {
+  display: grid;
+  place-items: center;
+  width: 8rem;
+  height: 8rem;
+  color: hsl(var(--world-hue) 72% 52%);
+  filter: drop-shadow(0 3px 6px var(--enemy-ground));
+}
+
+.encounter-symbol svg {
+  width: 72%;
+  height: 72%;
+}
 .enemy.boss .sprite {
   width: 260px;
   height: 260px;

@@ -94,8 +94,9 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   mondes soignés reçoivent leur teinte sans toucher à un composant. Teintes retenues :
   **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja),
   **Boruto `205`** (le bleu froid du Karma), **Hunter x Hunter `142`** (le vert de l'aventure et
-  de l'Examen Hunter) et **Bleach `268`** (le violet spirituel du Hueco Mundo et des portes du
-  Seireitei — l'orange d'Ichigo était la teinte évidente, mais Konoha la tient déjà).
+  de l'Examen Hunter), **Bleach `268`** (le violet spirituel du Hueco Mundo et des portes du
+  Seireitei — l'orange d'Ichigo était la teinte évidente, mais Konoha la tient déjà), et
+  **Horimiya `338`** (le rose corail des liens et des cerisiers).
   La carte de Bleach (`/bleach-map.jpg`) n'est pas un **itinéraire** comme celles de Naruto ou de
   Hunter x Hunter, mais la **cosmologie** de la série : la Garganta et les mondes qu'elle relie,
   légendés de 1 à 9. Ses quinze arcs sont donc épinglés sur le *lieu où ils se jouent* — six en
@@ -145,6 +146,11 @@ anime : `themeOf(anime)` produit une **teinte** (nombre 0..360) combinée à `hs
 couleur fixe indépendante du thème clair/sombre (la luminosité/saturation utilisées doivent
 rester cohérentes avec `--panel-2`/`--line` du thème actif, comme le fait déjà
 `spriteHue` + `hsl(... 70% 55% / 0.15)` dans `WorldMap`).
+
+Le même principe vaut pour le genre narratif : `Anime.presentation` peut renommer Combat/PV/Boss/
+Clic/DPS avec un vocabulaire de monde. Horimiya devient Liens/Tension/Épreuve/Courage/Soutien, mais
+les calculs et la sauvegarde restent identiques. Les composants lisent `termsOf(anime)` ; ils ne
+branchent jamais sur `anime.id`.
 
 Palette fonctionnelle actuelle (rappel, ne pas dupliquer ailleurs) :
 

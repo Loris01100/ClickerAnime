@@ -218,6 +218,9 @@ Three practical notes, each learned by getting it wrong:
   strict 60-second base timer. Hisoka keeps that bespoke clock; generalized traits extend the next
   five effective clocks to 75 seconds so their automatic-DPS margin stays intact. Abilities remain
   valuable, while the clock creates pressure without a default trait becoming a new wall.
+- **Horimiya reuses Hunter x Hunter's six-arc opening curve.** Its social encounters are a
+  presentation layer over the same combat model, so the established kill budgets, boss hp and
+  reward milestones remain comparable while its recruit ramp ends at the same `120` power budget.
 - **Bleach is the same method again, over fifteen arcs — and it is where the loop was actually run
   end to end.** Also an entry point, also outside the geometric test, but long enough that a single
   ramp does not fit it: the opening is a cliff (mob hp ×55, then ×4.1, ×2.6, ×2.0 over the first

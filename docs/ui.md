@@ -124,6 +124,11 @@ Maps start at 80% of their full width so combat remains the main visual mass; th
 `Agrandir` button restores the full map without cropping or moving its percentage-based markers.
 The toggle disappears below 700px, where the map already uses the available mobile width.
 
+**A world can also carry presentation vocabulary.** Optional `Anime.presentation` labels the stage,
+health bar, boss, click power, team DPS and encounters. `ui/presentation.ts` supplies the combat
+defaults and merges overrides, so Horimiya can display Liens, Tension, Épreuve, Courage and Soutien
+without an `anime.id` branch, a second rules engine, or any save-format field.
+
 **And a map need not be a route.** Bleach's is the series' cosmology rather than a journey — the
 Garganta with the worlds it links, legended 1 to 9 — so its fifteen arcs are pinned on *where each
 one happens* (six in the Soul Society, four in Karakura, three in Hueco Mundo) instead of trailing
@@ -168,7 +173,7 @@ enough to matter), `runQuery`, the `inFlight` dedupe and the same `localStorage`
 all, so `ClickStage` renders the element only when the URL exists and otherwise falls through to the
 plain `--stage-bg` gradient.
 
-**Every world gets one, and none of them ship the art.** The five shows all have a banner on
+**Every world gets one, and none of them ship the art.** The six shows all have a banner on
 AniList, so a new world needs nothing beyond an `ANIME_ID_OVERRIDES` entry pinning its id — pinning
 is what stops a franchise's similarly-titled movie from supplying the backdrop. Resist the
 temptation to add a local override field for it: the one time it looked necessary (Bleach), the

@@ -146,7 +146,7 @@ These outrank convenience, and several were learned the hard way. Don't break on
   the live completed-count — that is what stops a cleared anime from un-clearing itself.
 - **Every entry world ends at roughly the same `arcPower`.** `reachedArcPower` is one scalar for the
   whole game, so where a player's *first* world leaves them sets the difficulty of every world after
-  it — Naruto ends at 78, Hunter x Hunter at 120, Bleach at 125, and Shippūden opens at 130. A long
+  it — Naruto ends at 78, Hunter x Hunter and Horimiya at 120, Bleach at 125, and Shippūden opens at 130. A long
   entry world flattens its debut-power ramp to stay inside that budget; a sequel world keeps ~1.85x
   because it starts where the previous one left off (`docs/progression.md`).
 - Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
@@ -228,6 +228,10 @@ shape when adding a world; omit a file only when the world genuinely has no such
   so it appears once. Hand-authored like the other entry worlds. **Its recruits' `baseDps` ramps
   only ~1.24x an arc where every other world runs ~1.85** — an entry world has a power *budget*, not
   just a ramp (`docs/progression.md`); don't "fix" it upward.
+
+- `horimiya/` — **Horimiya**, 6 arcs and an independent entry world. The 2021 adaptation and
+  **The Missing Pieces** share one chronological route; its abstract social encounters use
+  `Anime.presentation` to change UI vocabulary without changing combat rules or save data.
 - `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~5.4 minutes an arc against
   Shippūden's ~2.3. Generated from a table like Shippūden, on the **same** ramps (boss hp ~2.31,
   mob hp ~2.17, rewards and recruit stats ~1.85) — it needed its own steeper table only before

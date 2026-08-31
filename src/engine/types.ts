@@ -48,6 +48,21 @@ export interface Anime {
    * own aspect ratio, and arcs are placed with `Arc.mapX`/`mapY` instead of the snake layout.
    */
   mapImage?: string;
+  /**
+   * Optional world-specific vocabulary. It changes presentation only: combat math and save data
+   * keep the same stable concepts, while a non-combat story can describe them in its own terms.
+   */
+  presentation?: AnimePresentation;
+}
+
+export interface AnimePresentation {
+  stageLabel?: string;
+  healthLabel?: string;
+  bossLabel?: string;
+  clickPowerLabel?: string;
+  teamDpsLabel?: string;
+  encounterSingular?: string;
+  encounterPlural?: string;
 }
 
 /** Commons drop from ordinary fights and stack; uniques come from bosses and are one copy only. */
