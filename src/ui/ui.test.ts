@@ -177,6 +177,13 @@ describe("first-run objective trail", () => {
     ).toBeNull();
   });
 
+  it("stays complete after the passive is bought even though buying it spent the copies", () => {
+    // Buying the passive drains the item copies below 6; the tutorial must not regress to step 3.
+    expect(
+      tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1, itemCopies: 0, passiveRanksBought: 1 })
+    ).toBeNull();
+  });
+
   it("names the current arc, common item and compatible character", () => {
     expect(tutorialObjective({ ...facts, recruits: 1 })?.title).toContain("Le premier arc");
     expect(tutorialObjective({ ...facts, recruits: 1, arcsCleared: 1 })?.title).toContain("Shuriken émoussé");
