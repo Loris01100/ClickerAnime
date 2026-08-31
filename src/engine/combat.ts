@@ -1,3 +1,4 @@
+import { assertNever } from "./assert";
 import type { Arc, Enemy } from "./types";
 
 /** Ordinary fights between two boss victories in a cleared arc. */
@@ -8,9 +9,17 @@ export type DamageSource = "click" | "teamDps";
 /** How much of one damage source reaches this enemy. Non-bosses and unrelated traits stay at 1. */
 export function damageMultiplierAgainst(enemy: Enemy, source: DamageSource): number {
   const trait = enemy.bossTrait;
-  if (trait?.kind === "click-resistance" && source === "click") return trait.multiplier;
-  if (trait?.kind === "dps-resistance" && source === "teamDps") return trait.multiplier;
-  return 1;
+  if (!trait) return 1;
+  switch (trait.kind) {
+    case "click-resistance":
+      return source === "click" ? trait.multiplier : 1;
+    case "dps-resistance":
+      return source === "teamDps" ? trait.multiplier : 1;
+    case "shield":
+      return 1;
+    default:
+      return assertNever(trait);
+  }
 }
 
 export function enemyHp(enemy: Enemy, difficulty: number): number {

@@ -101,6 +101,9 @@ export type BossTrait =
       multiplier: number;
     };
 
+/** The discriminant of {@link BossTrait}, derived so a new trait extends it automatically. */
+export type BossTraitKind = BossTrait["kind"];
+
 /** Anything the player fights. Enemies never deal damage — they only have to fall. */
 export interface Enemy {
   id: string;
