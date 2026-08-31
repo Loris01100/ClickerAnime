@@ -1,0 +1,556 @@
+[
+  {
+    "id": "boruto-academie",
+    "mapX": 0.512,
+    "mapY": 0.414,
+    "animeId": "boruto",
+    "name": "L'Académie de Konoha",
+    "order": 0,
+    "mobsToBoss": 52,
+    "mobs": [
+      {
+        "id": "boruto-academie-mob-1",
+        "itemId": "item-plastron",
+        "dropChance": 0.12,
+        "name": "Denki Kaminarimon",
+        "baseHp": 11100000000,
+        "reward": 22000000
+      },
+      {
+        "id": "boruto-academie-mob-2",
+        "itemId": "item-plastron",
+        "dropChance": 0.12,
+        "name": "Sumire Kakei",
+        "baseHp": 15100000000,
+        "reward": 28600000
+      },
+      {
+        "id": "boruto-academie-mob-3",
+        "itemId": "item-plastron",
+        "dropChance": 0.12,
+        "name": "Iwabe Yuino",
+        "baseHp": 19200000000,
+        "reward": 35200000
+      },
+      {
+        "id": "boruto-academie-rival-boruto",
+        "name": "Boruto Uzumaki",
+        "baseHp": 45600000000,
+        "reward": 120000000,
+        "characterId": "boruto"
+      },
+      {
+        "id": "boruto-academie-rival-sarada",
+        "name": "Sarada Uchiwa",
+        "baseHp": 45600000000,
+        "reward": 120000000,
+        "characterId": "sarada"
+      },
+      {
+        "id": "boruto-academie-rival-mitsuki",
+        "name": "Mitsuki",
+        "baseHp": 45600000000,
+        "reward": 120000000,
+        "characterId": "mitsuki"
+      }
+    ],
+    "boss": {
+      "id": "boruto-academie-boss",
+      "itemId": "item-sceau-nue",
+      "name": "Sumire Kakei — le Nue déchaîné",
+      "baseHp": 310000000000,
+      "reward": 1200000000,
+      "timerMs": 100000,
+      "characterId": "sumire",
+      "bossTrait": {
+        "kind": "shield",
+        "name": "Défense renforcée",
+        "description": "Le boss commence le combat avec 10 % de PV supplémentaires.",
+        "multiplier": 0.1
+      }
+    }
+  },
+  {
+    "id": "boruto-chunin",
+    "mapX": 0.556,
+    "mapY": 0.44,
+    "animeId": "boruto",
+    "name": "L'Examen Chûnin",
+    "order": 1,
+    "mobsToBoss": 54,
+    "mobs": [
+      {
+        "id": "boruto-chunin-mob-1",
+        "itemId": "item-carte-chunin",
+        "dropChance": 0.12,
+        "name": "Katasuke Tônô",
+        "baseHp": 24900000000,
+        "reward": 40700000
+      },
+      {
+        "id": "boruto-chunin-mob-2",
+        "itemId": "item-carte-chunin",
+        "dropChance": 0.12,
+        "name": "Yodo",
+        "baseHp": 33500000000,
+        "reward": 52900000
+      },
+      {
+        "id": "boruto-chunin-mob-3",
+        "itemId": "item-carte-chunin",
+        "dropChance": 0.12,
+        "name": "Shinki",
+        "baseHp": 42300000000,
+        "reward": 65100000
+      },
+      {
+        "id": "boruto-chunin-rival-shikadai",
+        "name": "Shikadai Nara",
+        "baseHp": 102000000000,
+        "reward": 222000000,
+        "characterId": "shikadai"
+      },
+      {
+        "id": "boruto-chunin-rival-inojin",
+        "name": "Inojin Yamanaka",
+        "baseHp": 102000000000,
+        "reward": 222000000,
+        "characterId": "inojin"
+      },
+      {
+        "id": "boruto-chunin-rival-chocho",
+        "name": "Chôchô Akimichi",
+        "baseHp": 102000000000,
+        "reward": 222000000,
+        "characterId": "chocho"
+      },
+      {
+        "id": "boruto-chunin-rival-metal-lee",
+        "name": "Metal Lee",
+        "baseHp": 102000000000,
+        "reward": 222000000,
+        "characterId": "metal-lee"
+      },
+      {
+        "id": "boruto-chunin-rival-kinshiki",
+        "name": "Kinshiki Ôtsutsuki",
+        "baseHp": 102000000000,
+        "reward": 222000000,
+        "characterId": "kinshiki"
+      }
+    ],
+    "boss": {
+      "id": "boruto-chunin-boss",
+      "itemId": "item-fruit-chakra",
+      "name": "Momoshiki Ôtsutsuki",
+      "baseHp": 743000000000,
+      "reward": 2220000000,
+      "timerMs": 105000,
+      "characterId": "momoshiki",
+      "bossTrait": {
+        "kind": "click-resistance",
+        "name": "Lecture du combat",
+        "description": "Les clics du Narrateur infligent 25 % de dégâts en moins ; le DPS reste intact.",
+        "multiplier": 0.75
+      }
+    }
+  },
+  {
+    "id": "boruto-mitsuki",
+    "mapX": 0.397,
+    "mapY": 0.222,
+    "animeId": "boruto",
+    "name": "La Disparition de Mitsuki",
+    "order": 2,
+    "mobsToBoss": 56,
+    "mobs": [
+      {
+        "id": "boruto-mitsuki-mob-1",
+        "itemId": "item-fragment-akuta",
+        "dropChance": 0.12,
+        "name": "Kirara",
+        "baseHp": 56100000000,
+        "reward": 75300000
+      },
+      {
+        "id": "boruto-mitsuki-mob-2",
+        "itemId": "item-fragment-akuta",
+        "dropChance": 0.12,
+        "name": "Sekiei",
+        "baseHp": 75900000000,
+        "reward": 97900000
+      },
+      {
+        "id": "boruto-mitsuki-mob-3",
+        "itemId": "item-fragment-akuta",
+        "dropChance": 0.12,
+        "name": "Kokuyô",
+        "baseHp": 95900000000,
+        "reward": 120000000
+      },
+      {
+        "id": "boruto-mitsuki-rival-sekiei",
+        "name": "Sekiei",
+        "baseHp": 228000000000,
+        "reward": 410000000,
+        "characterId": "sekiei"
+      },
+      {
+        "id": "boruto-mitsuki-rival-kokuyo",
+        "name": "Kokuyô",
+        "baseHp": 228000000000,
+        "reward": 410000000,
+        "characterId": "kokuyo"
+      },
+      {
+        "id": "boruto-mitsuki-rival-urashiki",
+        "name": "Urashiki Ôtsutsuki",
+        "baseHp": 228000000000,
+        "reward": 410000000,
+        "characterId": "urashiki"
+      }
+    ],
+    "boss": {
+      "id": "boruto-mitsuki-boss",
+      "itemId": "item-noyau-akuta",
+      "name": "Kû",
+      "baseHp": 1780000000000,
+      "reward": 4100000000,
+      "timerMs": 145000,
+      "characterId": "ku",
+      "bossTrait": {
+        "kind": "dps-resistance",
+        "name": "Aura dominante",
+        "description": "Le DPS automatique de l’équipe est réduit de 15 % ; les clics restent intacts.",
+        "multiplier": 0.85
+      }
+    }
+  },
+  {
+    "id": "boruto-brume",
+    "mapX": 0.863,
+    "mapY": 0.451,
+    "animeId": "boruto",
+    "name": "Le Village de la Brume Sanglante",
+    "order": 3,
+    "mobsToBoss": 58,
+    "mobs": [
+      {
+        "id": "boruto-brume-mob-1",
+        "itemId": "item-eclat-hiramekarei",
+        "dropChance": 0.12,
+        "name": "Ichirôta Oniyuzu",
+        "baseHp": 126000000000,
+        "reward": 139000000
+      },
+      {
+        "id": "boruto-brume-mob-2",
+        "itemId": "item-eclat-hiramekarei",
+        "dropChance": 0.12,
+        "name": "Hachiya Tsurushi",
+        "baseHp": 170000000000,
+        "reward": 181000000
+      },
+      {
+        "id": "boruto-brume-mob-3",
+        "itemId": "item-eclat-hiramekarei",
+        "dropChance": 0.12,
+        "name": "Hebiichigo",
+        "baseHp": 214000000000,
+        "reward": 223000000
+      },
+      {
+        "id": "boruto-brume-rival-kagura",
+        "name": "Kagura Karatachi",
+        "baseHp": 514000000000,
+        "reward": 759000000,
+        "characterId": "kagura"
+      },
+      {
+        "id": "boruto-brume-rival-buntan",
+        "name": "Buntan Kurosuki",
+        "baseHp": 514000000000,
+        "reward": 759000000,
+        "characterId": "buntan"
+      }
+    ],
+    "boss": {
+      "id": "boruto-brume-boss",
+      "itemId": "item-sept-lames",
+      "name": "Shizuma Hoshigaki",
+      "baseHp": 4250000000000,
+      "reward": 7590000000,
+      "timerMs": 175000,
+      "characterId": "shizuma",
+      "bossTrait": {
+        "kind": "shield",
+        "name": "Seconde forme",
+        "description": "Le boss commence le combat avec 15 % de PV supplémentaires.",
+        "multiplier": 0.15
+      }
+    }
+  },
+  {
+    "id": "boruto-kara",
+    "mapX": 0.3,
+    "mapY": 0.33,
+    "animeId": "boruto",
+    "name": "L'Éveil de Kara",
+    "order": 4,
+    "mobsToBoss": 60,
+    "mobs": [
+      {
+        "id": "boruto-kara-mob-1",
+        "itemId": "item-outil-scientifique",
+        "dropChance": 0.12,
+        "name": "Garô",
+        "baseHp": 284000000000,
+        "reward": 258000000
+      },
+      {
+        "id": "boruto-kara-mob-2",
+        "itemId": "item-outil-scientifique",
+        "dropChance": 0.12,
+        "name": "Koji Kashin",
+        "baseHp": 384000000000,
+        "reward": 335000000
+      },
+      {
+        "id": "boruto-kara-mob-3",
+        "itemId": "item-outil-scientifique",
+        "dropChance": 0.12,
+        "name": "Code",
+        "baseHp": 480000000000,
+        "reward": 412000000
+      },
+      {
+        "id": "boruto-kara-rival-ao",
+        "name": "Ao",
+        "baseHp": 1160000000000,
+        "reward": 1400000000,
+        "characterId": "ao"
+      },
+      {
+        "id": "boruto-kara-rival-konohamaru",
+        "name": "Konohamaru Sarutobi",
+        "baseHp": 1160000000000,
+        "reward": 1400000000,
+        "characterId": "konohamaru"
+      },
+      {
+        "id": "boruto-kara-rival-victor",
+        "name": "Victor",
+        "baseHp": 1160000000000,
+        "reward": 1400000000,
+        "characterId": "victor"
+      }
+    ],
+    "boss": {
+      "id": "boruto-kara-boss",
+      "itemId": "item-carbone-pur",
+      "name": "Deepa",
+      "baseHp": 10200000000000,
+      "reward": 14000000000,
+      "timerMs": 180000,
+      "characterId": "deepa",
+      "bossTrait": {
+        "kind": "click-resistance",
+        "name": "Esquive instinctive",
+        "description": "Les clics du Narrateur infligent 20 % de dégâts en moins ; le DPS reste intact.",
+        "multiplier": 0.8
+      }
+    }
+  },
+  {
+    "id": "boruto-vase",
+    "mapX": 0.478,
+    "mapY": 0.462,
+    "animeId": "boruto",
+    "name": "Le Vase et Kawaki",
+    "order": 5,
+    "mobsToBoss": 62,
+    "mobs": [
+      {
+        "id": "boruto-vase-mob-1",
+        "itemId": "item-fragment-vase",
+        "dropChance": 0.12,
+        "name": "Koji Kashin",
+        "baseHp": 640000000000,
+        "reward": 477000000
+      },
+      {
+        "id": "boruto-vase-mob-2",
+        "itemId": "item-fragment-vase",
+        "dropChance": 0.12,
+        "name": "Amado Sanzu",
+        "baseHp": 869000000000,
+        "reward": 620000000
+      },
+      {
+        "id": "boruto-vase-mob-3",
+        "itemId": "item-fragment-vase",
+        "dropChance": 0.12,
+        "name": "Kawaki",
+        "baseHp": 1100000000000,
+        "reward": 763000000
+      },
+      {
+        "id": "boruto-vase-rival-kawaki",
+        "name": "Kawaki",
+        "baseHp": 2620000000000,
+        "reward": 2600000000,
+        "characterId": "kawaki"
+      },
+      {
+        "id": "boruto-vase-rival-koji",
+        "name": "Koji Kashin",
+        "baseHp": 2620000000000,
+        "reward": 2600000000,
+        "characterId": "koji"
+      },
+      {
+        "id": "boruto-vase-rival-amado",
+        "name": "Amado Sanzu",
+        "baseHp": 2620000000000,
+        "reward": 2600000000,
+        "characterId": "amado"
+      }
+    ],
+    "boss": {
+      "id": "boruto-vase-boss",
+      "itemId": "item-bras-delta",
+      "name": "Delta",
+      "baseHp": 24300000000000,
+      "reward": 26000000000,
+      "timerMs": 220000,
+      "characterId": "delta",
+      "bossTrait": {
+        "kind": "dps-resistance",
+        "name": "Pression écrasante",
+        "description": "Le DPS automatique de l’équipe est réduit de 10 % ; les clics restent intacts.",
+        "multiplier": 0.9
+      }
+    }
+  },
+  {
+    "id": "boruto-assaut",
+    "mapX": 0.7,
+    "mapY": 0.27,
+    "animeId": "boruto",
+    "name": "L'Assaut de Kara",
+    "order": 6,
+    "mobsToBoss": 64,
+    "mobs": [
+      {
+        "id": "boruto-assaut-mob-1",
+        "itemId": "item-noyau-scientifique",
+        "dropChance": 0.12,
+        "name": "Delta",
+        "baseHp": 1440000000000,
+        "reward": 882000000
+      },
+      {
+        "id": "boruto-assaut-mob-2",
+        "itemId": "item-noyau-scientifique",
+        "dropChance": 0.12,
+        "name": "Koji Kashin",
+        "baseHp": 1940000000000,
+        "reward": 1150000000
+      },
+      {
+        "id": "boruto-assaut-mob-3",
+        "itemId": "item-noyau-scientifique",
+        "dropChance": 0.12,
+        "name": "Kawaki",
+        "baseHp": 2430000000000,
+        "reward": 1410000000
+      },
+      {
+        "id": "boruto-assaut-rival-code",
+        "name": "Code",
+        "baseHp": 5890000000000,
+        "reward": 4810000000,
+        "characterId": "code"
+      },
+      {
+        "id": "boruto-assaut-rival-garo",
+        "name": "Garô",
+        "baseHp": 5890000000000,
+        "reward": 4810000000,
+        "characterId": "garo"
+      }
+    ],
+    "boss": {
+      "id": "boruto-assaut-boss",
+      "itemId": "item-regeneration-boro",
+      "name": "Boro",
+      "baseHp": 58100000000000,
+      "reward": 48100000000,
+      "timerMs": 265000,
+      "characterId": "boro",
+      "bossTrait": {
+        "kind": "shield",
+        "name": "Défense renforcée",
+        "description": "Le boss commence le combat avec 10 % de PV supplémentaires.",
+        "multiplier": 0.1
+      }
+    }
+  },
+  {
+    "id": "boruto-isshiki",
+    "mapX": 0.93,
+    "mapY": 0.85,
+    "animeId": "boruto",
+    "name": "Isshiki Ôtsutsuki",
+    "order": 7,
+    "mobsToBoss": 66,
+    "mobs": [
+      {
+        "id": "boruto-isshiki-mob-1",
+        "itemId": "item-fragment-karma",
+        "dropChance": 0.12,
+        "name": "Naruto Uzumaki",
+        "baseHp": 3240000000000,
+        "reward": 1630000000
+      },
+      {
+        "id": "boruto-isshiki-mob-2",
+        "itemId": "item-fragment-karma",
+        "dropChance": 0.12,
+        "name": "Kawaki",
+        "baseHp": 4390000000000,
+        "reward": 2120000000
+      },
+      {
+        "id": "boruto-isshiki-mob-3",
+        "itemId": "item-fragment-karma",
+        "dropChance": 0.12,
+        "name": "Boruto Uzumaki",
+        "baseHp": 5500000000000,
+        "reward": 2610000000
+      },
+      {
+        "id": "boruto-isshiki-rival-jigen",
+        "name": "Jigen",
+        "baseHp": 13400000000000,
+        "reward": 8890000000,
+        "characterId": "jigen"
+      }
+    ],
+    "boss": {
+      "id": "boruto-isshiki-boss",
+      "itemId": "item-sceptre-isshiki",
+      "name": "Isshiki Ôtsutsuki",
+      "baseHp": 139000000000000,
+      "reward": 88900000000,
+      "timerMs": 265000,
+      "characterId": "isshiki",
+      "bossTrait": {
+        "kind": "click-resistance",
+        "name": "Lecture du combat",
+        "description": "Les clics du Narrateur infligent 25 % de dégâts en moins ; le DPS reste intact.",
+        "multiplier": 0.75
+      }
+    }
+  }
+]
