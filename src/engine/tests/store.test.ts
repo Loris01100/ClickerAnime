@@ -1041,3 +1041,47 @@ describe("tick delta clamp et notices du HUD", () => {
     }
   });
 });
+
+/**
+ * The pause has to stop the click whole, not just its damage. `dealDamage` always refused while
+ * paused, but everything around it in `resolveClick` kept running: the "clicks" achievement ladder
+ * (a permanent clickPower bonus that survives prestige), the node-4 cooldown shave, the node-5 free
+ * ability. And because `togglePause` shifts every deadline forward by the length of the pause, none
+ * of it cost any time — 500 clicks on a paused game took a 45s cooldown to zero for free.
+ */
+describe("pause", () => {
+  it("le clic ne produit plus rien tant que le jeu est en pause", () => {
+    const restore = installSave(
+      baseSave({
+        ownedCharacterIds: gameData.characters.filter((c) => c.animeId === "naruto" && c.ability).slice(0, 3).map((c) => c.id),
+        activeArcId: gameData.arcs.find((a) => a.animeId === "naruto")!.id,
+        unlockedAnimeIds: ["naruto"],
+        // "Clic du Narrateur" node 4 at full level: the cooldown shave that used to run while paused.
+        prestigeTreeRanks: { narratorClick: [1, 1, 1, 5, 0] },
+      })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(gameData);
+      });
+      const ability = game.unlockedAbilities()[0].ability.id;
+      game.activateAbility(ability);
+      const cooldownAtPause = game.abilityCooldownRemaining(ability);
+      expect(cooldownAtPause).toBeGreaterThan(1_000);
+
+      game.togglePause();
+      const clicks = game.achievementCounts().clicks ?? 0;
+      const hp = game.enemyHpLeft();
+      for (let i = 0; i < 500; i++) expect(game.click()).toEqual({ damage: 0, crit: false });
+
+      expect(game.achievementCounts().clicks ?? 0).toBe(clicks);
+      expect(game.abilityCooldownRemaining(ability)).toBe(cooldownAtPause);
+      expect(game.enemyHpLeft()).toBe(hp);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+});

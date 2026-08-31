@@ -276,6 +276,15 @@ finale before it: crossing a world border is a breather by construction, not by 
 
 ## The narrator's click
 
+**The pause stops the click whole.** `dealDamage` always refused while paused, but the rest of
+`resolveClick` did not: a paused click still counted into the `clicks` achievement ladder — a
+permanent `clickPower` bonus that survives prestige — still shaved every cooldown by "Clic du
+Narrateur" node 4, and could still fire an ability for free through node 5. And since `togglePause`
+shifts every absolute deadline forward by the length of the pause so that pausing neither costs nor
+gains time, none of it cost anything: 500 clicks on a paused game took an ability from a 45-second
+cooldown to zero and banked 500 clicks, with the enemy's hp untouched. `resolveClick` now returns
+`{ damage: 0, crit: false }` before any of that. Guarded in `src/engine/tests/store.test.ts`.
+
 `click()` returns `{ damage, crit }`, not a bare number — the stage has no other way to tell the
 player a click landed for `CRIT_MULTIPLIER` times its usual damage (`.pop.crit`). The stage is also
 keyboard-operable (`role="button"`, space/enter): the click is the game's core verb, so it can't be

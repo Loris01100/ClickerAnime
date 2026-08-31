@@ -13,6 +13,13 @@ event shapes, rejects unknown fields (including any accidental `playerId`), caps
 the `Origin`, and writes the aggregate dimensions to Workers Analytics Engine. It never writes the
 request IP or user agent into the dataset.
 
+The body cap is measured on the body that was **read**, not on `content-length`. That header is
+absent on a chunked request and can be unparseable on any of them, and both `Number(null ?? 0)` and
+`Number("x")` compare false against a `>` limit — so the guard was one any non-browser client could
+simply opt out of, which is precisely the client this endpoint has to hold against. The header is
+still consulted first, purely to refuse an oversized upload before reading it; the limit that
+actually bounds `JSON.parse` is `raw.length > MAX_BODY_CHARS` after `request.text()`.
+
 `clickeranime_progression` columns are:
 
 | Column | Meaning |

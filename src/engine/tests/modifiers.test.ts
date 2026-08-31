@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { computeEffectiveStat, computeScopedStat, scopedBuffCap, SCOPED_BUFF_CAP, SCOPED_BUFF_CAP_FLOOR } from "../modifiers";
-import { synergyMultiplier, defaultSynergyConfig, isHomeArc } from "../synergy";
+import { characterContributions, synergyMultiplier, defaultSynergyConfig, isHomeArc } from "../synergy";
 import { crossoverSynergyConfig, isMixedTeam } from "../crossover";
-import type { ActiveModifier, Character } from "../types";
+import type { ActiveModifier, Character, Item } from "../types";
 import { makeArc } from "./helpers";
 
 describe("computeEffectiveStat", () => {
@@ -186,5 +186,68 @@ describe("synergyMultiplier", () => {
     };
     expect(synergyMultiplier(character, arc, defaultSynergyConfig, false)).toBe(defaultSynergyConfig.otherAnimeMalus);
     expect(synergyMultiplier(character, arc, defaultSynergyConfig, true)).toBe(defaultSynergyConfig.sameAnimeMalus);
+  });
+});
+
+/**
+ * A `multiplier` is neutral at 1, so weakening one means shrinking the part *above* 1 — not scaling
+ * the value. Scaling it directly turned every multiplier effect into a malus at the other-anime
+ * tier: a x1.35 unique came out x0.675, i.e. the character dealt a third less damage *because* they
+ * were wearing it. Guarded on all three carriers, since `ModifierTemplate` allows a multiplier on
+ * each even where today's data only uses percents.
+ */
+describe("synergy never inverts a multiplier", () => {
+  const arc = makeArc("arc-1", "anime-1", 0, []);
+  const base = { name: "C", baseClickPower: 1, baseDps: 10, rarity: "secondary" as const };
+  const abroad: Character = { ...base, id: "c-abroad", animeId: "anime-2", arcIds: ["arc-x"] };
+  const dpsOf = (mods: ActiveModifier[]) => computeScopedStat(0, "teamDps", mods, 0);
+
+  it("keeps an equipped unique a gain, however far from home", () => {
+    const unique: Item = {
+      id: "i-mult",
+      kind: "unique",
+      name: "Multiplier",
+      effects: [{ target: "teamDps", kind: "multiplier", value: 1.35 }],
+    };
+    const bare = dpsOf(characterContributions(abroad, arc, defaultSynergyConfig, 0, 0, false, []));
+    const worn = dpsOf(characterContributions(abroad, arc, defaultSynergyConfig, 0, 0, false, [unique]));
+    // 1 + 0.35 * 0.5 = x1.175 — weakened by the malus, never below the bare character.
+    expect(worn / bare).toBeCloseTo(1.175, 10);
+    expect(worn).toBeGreaterThan(bare);
+  });
+
+  it("keeps a multiplier passive a gain", () => {
+    const withPassive: Character = {
+      ...abroad,
+      // A passive shuts off entirely abroad, so this one is tested at the same-anime tier.
+      animeId: "anime-1",
+      arcIds: ["arc-9"],
+      passive: { target: "teamDps", kind: "multiplier", value: 2 },
+    };
+    const naked: Character = { ...withPassive, passive: undefined };
+    const ranked = dpsOf(characterContributions(withPassive, arc, defaultSynergyConfig, 0, 1));
+    const unranked = dpsOf(characterContributions(naked, arc, defaultSynergyConfig, 0, 1));
+    // 1 + 1 * 0.85 = x1.85 at the same-anime malus, rank 1 being the passive as printed.
+    expect(ranked / unranked).toBeCloseTo(1.85, 10);
+    expect(ranked).toBeGreaterThan(unranked);
+  });
+
+  it("keeps a multiplier evolution bonus a gain", () => {
+    const evolving: Character = {
+      ...base,
+      id: "c-evo",
+      animeId: "anime-2",
+      arcIds: ["arc-x"],
+      evolution: {
+        animeId: "anime-9",
+        label: "Evolved",
+        bonus: [{ target: "teamDps", kind: "multiplier", value: 3 }],
+      },
+    };
+    const mods = characterContributions(evolving, arc, defaultSynergyConfig, 0, 0, true);
+    const bonus = mods.find((m) => m.kind === "multiplier")!;
+    // 1 + 2 * 0.5 = x2, not x1.5 and never below 1.
+    expect(bonus.value).toBeCloseTo(2, 10);
+    expect(bonus.value).toBeGreaterThan(1);
   });
 });

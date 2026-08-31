@@ -196,6 +196,12 @@ changement moteur, rien dans le tick 200ms) :
 Les classes sont levées sur `animationend` plutôt que par un `setTimeout`, pour qu'un clic rapide
 ne laisse jamais une classe collée.
 
+Les pops de dégâts, eux, vivent 900 ms puis sont retirés par un `setTimeout` — mais la liste est
+**plafonnée à `MAX_POPS` (24)** et les timers en attente sont annulés au démontage de `ClickStage`.
+Rien ne la bornait : chaque pop est un nœud DOM avec son animation, et une main à vingt clics par
+seconde doublée d'un auto-clic au niveau max en garde en permanence quelques dizaines à l'écran. Le
+plafond retire les plus anciens, qui sont de toute façon les plus proches de leur fin.
+
 **Nuance assumée sur la mort d'ennemi** : `combat.ts` remplace l'ennemi vaincu par le suivant sur
 place, donc il n'y a plus d'ennemi sortant à animer au moment où le composant l'apprend. C'est
 l'**arrivée** du remplaçant qui est animée, pas la disparition du précédent. Un vrai fondu de mort
