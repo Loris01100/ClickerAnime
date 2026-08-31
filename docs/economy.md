@@ -63,10 +63,10 @@ Only `hardReset` clears that rank.
 **A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
 Two constants were over that line and together took the effective common-drop rate from the printed
-12% to **0.73 copies per kill**: `DOUBLE_DROP_CHANCE` at 0.25 (a maxed node doubled *every* drop)
-and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third amplifier — `PITY_REDUCTION_PER_LEVEL`
-at 3 forced a common every 3 kills at max level, a 33% floor that made the printed chance
-meaningless. Retuned to 0.08 / 0.1 / 1 respectively (0.41 copies per kill fully maxed).
+base (now 15%) to **0.73 copies per kill** back when the base was 12%: `DOUBLE_DROP_CHANCE` at 0.25
+(a maxed node doubled *every* drop) and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third
+amplifier — `PITY_REDUCTION_PER_LEVEL` at 3 forced a common every 3 kills at max level, a 33% floor
+that made the printed chance meaningless. Retuned to 0.08 / 0.1 / 1 respectively.
 `src/engine/tests/` now asserts the rule for every chance constant and keeps the pity floor above the
 base draw's own ~8-kill average, so this class of mistake can't come back.
 

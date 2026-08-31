@@ -1,17 +1,17 @@
 [
   {
     "id": "shippuden-kazekage",
-    "mapX": 0.285,
-    "mapY": 0.602,
     "animeId": "shippuden",
     "name": "Le Sauvetage du Kazekage",
     "order": 0,
+    "mapX": 0.285,
+    "mapY": 0.602,
     "mobsToBoss": 32,
     "mobs": [
       {
         "id": "shippuden-kazekage-mob-1",
         "itemId": "item-fil",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Baki",
         "baseHp": 234000,
         "reward": 2200
@@ -19,7 +19,7 @@
       {
         "id": "shippuden-kazekage-mob-2",
         "itemId": "item-fil",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Kankurô",
         "baseHp": 318000,
         "reward": 2860
@@ -27,7 +27,7 @@
       {
         "id": "shippuden-kazekage-mob-3",
         "itemId": "item-fil",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Temari",
         "baseHp": 400000,
         "reward": 3520
@@ -65,17 +65,17 @@
   },
   {
     "id": "shippuden-tenchi",
-    "mapX": 0.68,
-    "mapY": 0.31,
     "animeId": "shippuden",
     "name": "Reconnaissance au Pont Tenchi",
     "order": 1,
+    "mapX": 0.68,
+    "mapY": 0.31,
     "mobsToBoss": 33,
     "mobs": [
       {
         "id": "shippuden-tenchi-mob-1",
         "itemId": "item-note-espion",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Yamato",
         "baseHp": 516000,
         "reward": 4070
@@ -83,7 +83,7 @@
       {
         "id": "shippuden-tenchi-mob-2",
         "itemId": "item-note-espion",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Kabuto Yakushi",
         "baseHp": 690000,
         "reward": 5290
@@ -91,7 +91,7 @@
       {
         "id": "shippuden-tenchi-mob-3",
         "itemId": "item-note-espion",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Manda",
         "baseHp": 882000,
         "reward": 6510
@@ -128,17 +128,17 @@
   },
   {
     "id": "shippuden-akatsuki",
-    "mapX": 0.487,
-    "mapY": 0.5,
     "animeId": "shippuden",
     "name": "L'Éradication de l'Akatsuki",
     "order": 2,
+    "mapX": 0.487,
+    "mapY": 0.5,
     "mobsToBoss": 35,
     "mobs": [
       {
         "id": "shippuden-akatsuki-mob-1",
         "itemId": "item-masque-coeur",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Shikamaru Nara",
         "baseHp": 1140000,
         "reward": 7530
@@ -146,7 +146,7 @@
       {
         "id": "shippuden-akatsuki-mob-2",
         "itemId": "item-masque-coeur",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Sora",
         "baseHp": 1560000,
         "reward": 9790
@@ -154,7 +154,7 @@
       {
         "id": "shippuden-akatsuki-mob-3",
         "itemId": "item-masque-coeur",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Izumo Kamizuki",
         "baseHp": 1930000,
         "reward": 12000
@@ -192,17 +192,17 @@
   },
   {
     "id": "shippuden-traque-itachi",
-    "mapX": 0.42,
-    "mapY": 0.52,
     "animeId": "shippuden",
     "name": "La Traque d'Itachi",
     "order": 3,
+    "mapX": 0.42,
+    "mapY": 0.52,
     "mobsToBoss": 37,
     "mobs": [
       {
         "id": "shippuden-traque-itachi-mob-1",
         "itemId": "item-ecaille",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Ameyuri Ringo",
         "baseHp": 2510000,
         "reward": 13900
@@ -210,7 +210,7 @@
       {
         "id": "shippuden-traque-itachi-mob-2",
         "itemId": "item-ecaille",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Deidara",
         "baseHp": 3380000,
         "reward": 18100
@@ -218,7 +218,7 @@
       {
         "id": "shippuden-traque-itachi-mob-3",
         "itemId": "item-ecaille",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Tobi",
         "baseHp": 4270000,
         "reward": 22300
@@ -263,17 +263,17 @@
   },
   {
     "id": "shippuden-jiraya",
-    "mapX": 0.361,
-    "mapY": 0.375,
     "animeId": "shippuden",
     "name": "Le Conte de Jiraya le Galant",
     "order": 4,
+    "mapX": 0.361,
+    "mapY": 0.375,
     "mobsToBoss": 39,
     "mobs": [
       {
         "id": "shippuden-jiraya-mob-1",
         "itemId": "item-parchemin-crapaud",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Hanzô",
         "baseHp": 5540000,
         "reward": 25800
@@ -281,7 +281,7 @@
       {
         "id": "shippuden-jiraya-mob-2",
         "itemId": "item-parchemin-crapaud",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Yahiko",
         "baseHp": 7420000,
         "reward": 33500
@@ -289,7 +289,7 @@
       {
         "id": "shippuden-jiraya-mob-3",
         "itemId": "item-parchemin-crapaud",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Gamaken",
         "baseHp": 9340000,
         "reward": 41200
@@ -326,17 +326,17 @@
   },
   {
     "id": "shippuden-freres",
-    "mapX": 0.575,
-    "mapY": 0.335,
     "animeId": "shippuden",
     "name": "Le Combat Fratricide",
     "order": 5,
+    "mapX": 0.575,
+    "mapY": 0.335,
     "mobsToBoss": 40,
     "mobs": [
       {
         "id": "shippuden-freres-mob-1",
         "itemId": "item-plume",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Karin",
         "baseHp": 12200000,
         "reward": 47700
@@ -344,7 +344,7 @@
       {
         "id": "shippuden-freres-mob-2",
         "itemId": "item-plume",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Jûgo",
         "baseHp": 16400000,
         "reward": 62000
@@ -352,7 +352,7 @@
       {
         "id": "shippuden-freres-mob-3",
         "itemId": "item-plume",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Suigetsu Hôzuki",
         "baseHp": 20600000,
         "reward": 76300
@@ -383,17 +383,17 @@
   },
   {
     "id": "shippuden-pain",
-    "mapX": 0.522,
-    "mapY": 0.429,
     "animeId": "shippuden",
     "name": "L'Assaut de Pain",
     "order": 6,
+    "mapX": 0.522,
+    "mapY": 0.429,
     "mobsToBoss": 42,
     "mobs": [
       {
         "id": "shippuden-pain-mob-1",
         "itemId": "item-recepteur",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Shizune",
         "baseHp": 27000000,
         "reward": 88200
@@ -401,7 +401,7 @@
       {
         "id": "shippuden-pain-mob-2",
         "itemId": "item-recepteur",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Shino Aburame",
         "baseHp": 36600000,
         "reward": 115000
@@ -409,7 +409,7 @@
       {
         "id": "shippuden-pain-mob-3",
         "itemId": "item-recepteur",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Ebisu",
         "baseHp": 46100000,
         "reward": 141000
@@ -446,17 +446,17 @@
   },
   {
     "id": "shippuden-sommet",
-    "mapX": 0.612,
-    "mapY": 0.161,
     "animeId": "shippuden",
     "name": "Le Sommet des Cinq Kage",
     "order": 7,
+    "mapX": 0.612,
+    "mapY": 0.161,
     "mobsToBoss": 44,
     "mobs": [
       {
         "id": "shippuden-sommet-mob-1",
         "itemId": "item-lame",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Samui",
         "baseHp": 59600000,
         "reward": 163000
@@ -464,7 +464,7 @@
       {
         "id": "shippuden-sommet-mob-2",
         "itemId": "item-lame",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Omoi",
         "baseHp": 80400000,
         "reward": 212000
@@ -472,7 +472,7 @@
       {
         "id": "shippuden-sommet-mob-3",
         "itemId": "item-lame",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Tobi",
         "baseHp": 100000000,
         "reward": 261000
@@ -537,17 +537,17 @@
   },
   {
     "id": "shippuden-compte-a-rebours",
-    "mapX": 0.76,
-    "mapY": 0.115,
     "animeId": "shippuden",
     "name": "Quatrième Guerre : Compte à rebours",
     "order": 8,
+    "mapX": 0.76,
+    "mapY": 0.115,
     "mobsToBoss": 46,
     "mobs": [
       {
         "id": "shippuden-compte-a-rebours-mob-1",
         "itemId": "item-talisman",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Kinkaku",
         "baseHp": 131000000,
         "reward": 302000
@@ -555,7 +555,7 @@
       {
         "id": "shippuden-compte-a-rebours-mob-2",
         "itemId": "item-talisman",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Pakura",
         "baseHp": 175000000,
         "reward": 392000
@@ -563,7 +563,7 @@
       {
         "id": "shippuden-compte-a-rebours-mob-3",
         "itemId": "item-talisman",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Inoichi Yamanaka",
         "baseHp": 221000000,
         "reward": 483000
@@ -607,17 +607,17 @@
   },
   {
     "id": "shippuden-confrontation",
-    "mapX": 0.855,
-    "mapY": 0.115,
     "animeId": "shippuden",
     "name": "Quatrième Guerre : Confrontation",
     "order": 9,
+    "mapX": 0.855,
+    "mapY": 0.115,
     "mobsToBoss": 49,
     "mobs": [
       {
         "id": "shippuden-confrontation-mob-1",
         "itemId": "item-fragment-lame",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Kushimaru Kuriarare",
         "baseHp": 290000000,
         "reward": 558000
@@ -625,7 +625,7 @@
       {
         "id": "shippuden-confrontation-mob-2",
         "itemId": "item-fragment-lame",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Jinpachi Munashi",
         "baseHp": 392000000,
         "reward": 726000
@@ -633,7 +633,7 @@
       {
         "id": "shippuden-confrontation-mob-3",
         "itemId": "item-fragment-lame",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Rasa",
         "baseHp": 496000000,
         "reward": 893000
@@ -691,17 +691,17 @@
   },
   {
     "id": "shippuden-climax",
-    "mapX": 0.94,
-    "mapY": 0.135,
     "animeId": "shippuden",
     "name": "Quatrième Guerre : Climax",
     "order": 10,
+    "mapX": 0.94,
+    "mapY": 0.135,
     "mobsToBoss": 53,
     "mobs": [
       {
         "id": "shippuden-climax-mob-1",
         "itemId": "item-eclat-bois",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Gyûki",
         "baseHp": 640000000,
         "reward": 1030000
@@ -709,7 +709,7 @@
       {
         "id": "shippuden-climax-mob-2",
         "itemId": "item-eclat-bois",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Shikaku Nara",
         "baseHp": 867000000,
         "reward": 1340000
@@ -717,7 +717,7 @@
       {
         "id": "shippuden-climax-mob-3",
         "itemId": "item-eclat-bois",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Yamato",
         "baseHp": 1100000000,
         "reward": 1650000
@@ -768,17 +768,17 @@
   },
   {
     "id": "shippuden-dix-queues",
-    "mapX": 0.945,
-    "mapY": 0.245,
     "animeId": "shippuden",
     "name": "La Naissance du Jinchûriki de Dix-Queues",
     "order": 11,
+    "mapX": 0.945,
+    "mapY": 0.245,
     "mobsToBoss": 53,
     "mobs": [
       {
         "id": "shippuden-dix-queues-mob-1",
         "itemId": "item-graine",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Kaguya Ôtsutsuki",
         "baseHp": 1410000000,
         "reward": 1910000
@@ -786,7 +786,7 @@
       {
         "id": "shippuden-dix-queues-mob-2",
         "itemId": "item-graine",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Neji Hyûga",
         "baseHp": 1900000000,
         "reward": 2480000
@@ -794,7 +794,7 @@
       {
         "id": "shippuden-dix-queues-mob-3",
         "itemId": "item-graine",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Son Goku",
         "baseHp": 2370000000,
         "reward": 3060000
@@ -831,17 +831,17 @@
   },
   {
     "id": "shippuden-histoire-itachi",
-    "mapX": 0.465,
-    "mapY": 0.38,
     "animeId": "shippuden",
     "name": "L'Histoire d'Itachi",
     "order": 12,
+    "mapX": 0.465,
+    "mapY": 0.38,
     "mobsToBoss": 53,
     "mobs": [
       {
         "id": "shippuden-histoire-itachi-mob-1",
         "itemId": "item-insigne",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Torune Aburame",
         "baseHp": 3120000000,
         "reward": 3540000
@@ -849,7 +849,7 @@
       {
         "id": "shippuden-histoire-itachi-mob-2",
         "itemId": "item-insigne",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Mikoto Uchiwa",
         "baseHp": 4200000000,
         "reward": 4600000
@@ -857,7 +857,7 @@
       {
         "id": "shippuden-histoire-itachi-mob-3",
         "itemId": "item-insigne",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Danzô Shimura",
         "baseHp": 5300000000,
         "reward": 5660000
@@ -894,17 +894,17 @@
   },
   {
     "id": "shippuden-kaguya",
-    "mapX": 0.6,
-    "mapY": 0.045,
     "animeId": "shippuden",
     "name": "Kaguya Ôtsutsuki fait irruption",
     "order": 13,
+    "mapX": 0.6,
+    "mapY": 0.045,
     "mobsToBoss": 56,
     "mobs": [
       {
         "id": "shippuden-kaguya-mob-1",
         "itemId": "item-fragment-dimension",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Zetsu noir",
         "baseHp": 6870000000,
         "reward": 6540000
@@ -912,7 +912,7 @@
       {
         "id": "shippuden-kaguya-mob-2",
         "itemId": "item-fragment-dimension",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Sakura Haruno",
         "baseHp": 9300000000,
         "reward": 8500000
@@ -920,7 +920,7 @@
       {
         "id": "shippuden-kaguya-mob-3",
         "itemId": "item-fragment-dimension",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Naruto Uzumaki",
         "baseHp": 11600000000,
         "reward": 10500000
@@ -957,17 +957,17 @@
   },
   {
     "id": "shippuden-the-last",
-    "mapX": 0.11,
-    "mapY": 0.07,
     "animeId": "shippuden",
     "name": "Naruto : The Last",
     "order": 14,
+    "mapX": 0.11,
+    "mapY": 0.07,
     "mobsToBoss": 56,
     "mobs": [
       {
         "id": "shippuden-the-last-mob-1",
         "itemId": "item-eclat-lune",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Hamura Ôtsutsuki",
         "baseHp": 15200000000,
         "reward": 12100000
@@ -975,7 +975,7 @@
       {
         "id": "shippuden-the-last-mob-2",
         "itemId": "item-eclat-lune",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Indra Ôtsutsuki",
         "baseHp": 20400000000,
         "reward": 15700000
@@ -983,7 +983,7 @@
       {
         "id": "shippuden-the-last-mob-3",
         "itemId": "item-eclat-lune",
-        "dropChance": 0.12,
+        "dropChance": 0.15,
         "name": "Hagoromo Ôtsutsuki",
         "baseHp": 25700000000,
         "reward": 19400000

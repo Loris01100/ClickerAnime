@@ -59,7 +59,7 @@ export interface ArcSpec {
   boss: BossSpec;
 }
 
-const DROP_CHANCE = 0.12;
+const DROP_CHANCE = 0.15;
 
 /** Expands compact arc specs into a world's full `arcs` array. Pair with `withBossTraits`. */
 export function buildWorldArcs(world: string, specs: ArcSpec[]): GameData["arcs"] {
