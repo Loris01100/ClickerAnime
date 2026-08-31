@@ -140,16 +140,37 @@ export function hasValidBackup(): boolean {
   return typeof localStorage !== "undefined" && parseSave(storedRaw(SAVE_BACKUP_KEY)) !== null;
 }
 
+/**
+ * The exact string this module last wrote into the primary slot, and only ever set from a save that
+ * `isValidSave` accepted — so re-parsing and re-validating it to decide whether it may be rotated
+ * is answering a question we already know the answer to.
+ *
+ * That mattered because the rotation runs on every autosave, i.e. every 5 seconds for the whole
+ * session: a full `JSON.parse` of the previous save plus a walk of every field of it, on the main
+ * thread, purely to confirm what we ourselves had just written. Anything we did *not* write — a
+ * save from another tab, a hand-edited slot, a version from before this session — falls through to
+ * the full `parseSave` below, so the invariant is unchanged: only a valid save is ever rotated into
+ * the backup, and an invalid primary is never allowed to destroy a good backup.
+ */
+let lastWrittenRaw: string | null = null;
+
 /** Rotates a valid primary into the backup slot, then writes the supplied state. */
 export function writeSave(save: SaveFile, onBackupCreated?: () => void): boolean {
   if (typeof localStorage === "undefined") return false;
   try {
     const currentRaw = localStorage.getItem(SAVE_KEY);
-    if (parseSave(currentRaw) && currentRaw) {
+    // `currentRaw === lastWrittenRaw` is the fast path; `parseSave` is the answer for every other
+    // provenance. Both mean the same thing — "this blob is a valid save".
+    if (currentRaw && (currentRaw === lastWrittenRaw || parseSave(currentRaw))) {
       localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
       onBackupCreated?.();
     }
-    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    const raw = JSON.stringify(save);
+    localStorage.setItem(SAVE_KEY, raw);
+    // Only remembered when the object really is valid: `isValidSave` rejects a non-finite number,
+    // which is the one way a well-typed `SaveFile` could still stringify into something `parseSave`
+    // would refuse. A `null` here just costs the next write its full re-validation.
+    lastWrittenRaw = isValidSave(save) ? raw : null;
     return true;
   } catch {
     return false;
@@ -178,6 +199,7 @@ export function restoreBackupSlots(): boolean {
     const currentRaw = localStorage.getItem(SAVE_KEY);
     const currentValid = parseSave(currentRaw) !== null;
     localStorage.setItem(SAVE_KEY, backupRaw);
+    lastWrittenRaw = null;
     if (currentValid && currentRaw) localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
     return true;
   } catch {
@@ -187,6 +209,7 @@ export function restoreBackupSlots(): boolean {
 
 export function clearSaveSlots(): void {
   if (typeof localStorage === "undefined") return;
+  lastWrittenRaw = null;
   localStorage.removeItem(SAVE_KEY);
   localStorage.removeItem(SAVE_BACKUP_KEY);
 }
@@ -207,6 +230,7 @@ export function readSave(): LoadedSave {
   if (!backup || !backupRaw) return { save: null, recoveredFromBackup: false };
   try {
     localStorage.setItem(SAVE_KEY, backupRaw);
+    lastWrittenRaw = null;
   } catch {
     // The valid backup can still boot the session if storage is temporarily full.
   }

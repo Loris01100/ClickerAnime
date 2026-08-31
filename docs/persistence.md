@@ -40,6 +40,15 @@ until the next autosave. Import uses the same rotation path, which means the run
 import remains recoverable. `hardReset` is the deliberate exception: « Tout effacer » removes both
 slots. A recovery notice tells the player when boot had to use the fallback.
 
+"Valid primary" is established without re-parsing it in the common case. `writeSave` remembers the
+exact string it last wrote (`lastWrittenRaw`, set only from a save `isValidSave` accepted), so the
+autosave — every five seconds, for the whole session — no longer runs a full `JSON.parse` plus a
+walk of every field of the previous save just to confirm what it had itself written a moment
+earlier. Any blob of another provenance (another tab, a hand-edited slot, a pre-session version)
+still goes through `parseSave` in full, and the three paths that put a foreign string in the primary
+slot — `restoreBackupSlots`, `readSave`'s repair, `clearSaveSlots` — reset the shortcut. The
+invariant is unchanged: only a valid save is ever rotated into the backup.
+
 The optional `uniqueFragments` map is run-scoped forge progress; `uniqueUpgradeRanks` is permanent
 mastery. Prestige removes the unique and its fragments but keeps its explicit stored rank, including
 while the item is absent. The next copy found recovers that rank. Missing rank data is migrated in

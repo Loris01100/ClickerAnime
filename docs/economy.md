@@ -380,3 +380,8 @@ lets the player browse every other accessible arc without travelling. One copy c
 `SUPPLY_KILLS_PER_COPY` (**15**) average common-dropping mobs at the current difficulty. Prices thus
 follow the world's economy automatically, and the existing geometric passive costs provide the
 long-term sink without another scaling system.
+
+The generated list is a memo (`availableShopOffers`), not a function: pricing a copy walks every
+playable arc and reduces over its farm mobs, and none of that moves during a fight. It used to be
+rebuilt on every read — the panel hid that behind its own memo, but `buyShopOffer` still paid for it
+twice per purchase, once to find the offer and once inside `canBuyShopOffer`.

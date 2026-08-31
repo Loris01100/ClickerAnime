@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createResource, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { BOSS_REPLAY_KILLS } from "../engine/combat";
 import { bannerUrl } from "./anilist";
@@ -28,6 +28,18 @@ export default function ClickStage(props: { game: GameStore }) {
   const [hit, setHit] = createSignal(false);
   const [spawning, setSpawning] = createSignal(false);
   let popId = 0;
+  /**
+   * How many damage numbers may share the stage. Each lives 900ms, so a hand at twenty clicks a
+   * second plus a maxed autoclicker keeps a couple of dozen alive — but nothing bounded the list,
+   * and every `<For>` row is a live DOM node with a running animation. The oldest are dropped.
+   */
+  const MAX_POPS = 24;
+  /** The pending removals, so a teardown doesn't leave timers writing into a disposed signal. */
+  const popTimers = new Set<ReturnType<typeof setTimeout>>();
+  onCleanup(() => {
+    for (const timer of popTimers) clearTimeout(timer);
+    popTimers.clear();
+  });
 
   /**
    * Puts one damage number on the stage and clears it once its `rise` animation is done. `at` is
@@ -35,8 +47,12 @@ export default function ClickStage(props: { game: GameStore }) {
    */
   function addPop(amount: number, crit: boolean, auto: boolean, at: { x: number; y: number }) {
     const entry: Pop = { id: popId++, amount, crit, auto, ...at };
-    setPops((list) => [...list, entry]);
-    setTimeout(() => setPops((list) => list.filter((p) => p.id !== entry.id)), 900);
+    setPops((list) => [...list, entry].slice(-MAX_POPS));
+    const timer = setTimeout(() => {
+      popTimers.delete(timer);
+      setPops((list) => list.filter((p) => p.id !== entry.id));
+    }, 900);
+    popTimers.add(timer);
   }
 
   /**

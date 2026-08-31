@@ -173,6 +173,8 @@ const TICK_MS = 200;
  */
 const MAX_TICK_DELTA_MS = TICK_MS * 5;
 const AUTOSAVE_MS = 5_000;
+/** Floor cadence of `statClock`, the display clock the roster's stat columns fold against. */
+const STAT_CLOCK_MS = 1_000;
 /** How long one HUD notice stays up, and how many can stack before the oldest is dropped. */
 const NOTICE_MS = 4_000;
 const MAX_NOTICES = 4;
@@ -206,6 +208,27 @@ export const MAX_KILLS_PER_SECOND = 5;
 export const CURRENCY_REWARD_MULTIPLIER = 0.75;
 /** Price of one current-arc common item, measured in ordinary victories. */
 export const SUPPLY_KILLS_PER_COPY = 15;
+/**
+ * Shallow value equality over two `Record<string, number>` — the `equals` of `levelsByCharacter`.
+ * Solid keys a memo on reference by default, so a record rebuilt from a signal that changes every
+ * tick invalidates every consumer even when not one number in it moved.
+ */
+function sameNumbers(a: Record<string, number>, b: Record<string, number>): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  for (const key of keys) if (a[key] !== b[key]) return false;
+  return true;
+}
+
+/** The same idea over a short modifier list — see `achievementModifiers`. */
+function sameModifiers(a: ActiveModifier[], b: ActiveModifier[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].target !== b[i].target || a[i].kind !== b[i].kind || a[i].value !== b[i].value) return false;
+  }
+  return true;
+}
+
 export function createGameStore(data: GameData) {
   const loadedSave = readSave();
   const saved = loadedSave.save;
@@ -248,6 +271,25 @@ export function createGameStore(data: GameData) {
   const animeOf = (id: string | undefined | null) => (id ? animeIndex.get(id) ?? null : null);
 
   const [now, setNow] = createSignal(Date.now());
+  /**
+   * A second clock, for the display-only stat columns — the roster's and the Codex's per-character
+   * click/dps. Those go through `characterStatOf`, which folds two modifier groups per column, so
+   * reading `now()` there had every row refold twice every 200ms for a number nobody watches at
+   * that resolution.
+   *
+   * It is not merely coarser, it is *correct*, and `Σ characterStatOf(c, "teamDps") === teamDps()`
+   * still holds to the bit. Two things make that true. It is never *ahead* of `now` — the tick is
+   * the only thing that advances either. And it can never be behind across an expiry, because the
+   * same tick that would notice one prunes it out of `temporaryModifiers` and bumps this to the
+   * very same `nowMs`: after any tick, no live modifier has an `expiresAt` in `(statClock, now]`,
+   * so folding against either clock drops exactly the same set. The once-a-second floor is only so
+   * the value doesn't sit still forever on a run with no buffs at all.
+   *
+   * A newly fired ability needs no bump: `modifiersByScope` changes with the buff list, so the
+   * column recomputes anyway, and a buff that has just started expires in the future under any of
+   * these clocks.
+   */
+  const [statClock, setStatClock] = createSignal(Date.now());
   // When the last autosave landed, so the topbar can say so — a silent autosave is indistinguishable
   // from a broken one. 0 until the first write; `save()` is the only thing that sets it.
   const [lastSavedAt, setLastSavedAt] = createSignal(0);
@@ -477,11 +519,29 @@ export function createGameStore(data: GameData) {
     return level > 0 ? Math.max(MIN_XP_GROWTH, XP_GROWTH - XP_GROWTH_REDUCTION * level) : XP_GROWTH;
   });
 
-  /** Synergy malus softened by "DPS Équipe" node 3's level — see softenedSynergyConfig. */
-  const activeSynergyConfig = createMemo<SynergyConfig>(() => {
-    const config = softenedSynergyConfig(defaultSynergyConfig, nodeLevelOf("teamDps", 3));
-    return crossoverActive() ? crossoverSynergyConfig(config) : config;
-  });
+  /**
+   * Synergy malus softened by "DPS Équipe" node 3's level — see softenedSynergyConfig.
+   *
+   * Split in three on purpose, and the split is load-bearing for performance. `crossoverActive()`
+   * reads `now()`, so the config below re-runs five times a second forever; `softenedSynergyConfig`
+   * builds a **fresh object** at any level above 0, so once that node was bought the memo handed
+   * back a new reference every tick. Every consumer is keyed on reference: `permanentModifiers`,
+   * and through it `allModifiers`, `modifiersByScope`, `globalModifiers`, `teamWideScaling` — plus
+   * every per-arc `bossOutlookOf` memo the progress panel holds, each of which folds the whole
+   * roster again. Measured on a 21-strong roster, that doubled the roster fold from one rebuild a
+   * tick to two, and it scales with the roster times the arcs on screen.
+   *
+   * The two branches are memos of their own, so each is a stable reference that only changes when
+   * the node level does. The ternary still re-runs every tick — it just returns one of two objects
+   * Solid already knows, and the `===` check downstream stops there.
+   */
+  const softenedConfig = createMemo<SynergyConfig>(() =>
+    softenedSynergyConfig(defaultSynergyConfig, nodeLevelOf("teamDps", 3))
+  );
+  const crossoverConfig = createMemo<SynergyConfig>(() => crossoverSynergyConfig(softenedConfig()));
+  const activeSynergyConfig = createMemo<SynergyConfig>(() =>
+    crossoverActive() ? crossoverConfig() : softenedConfig()
+  );
 
   /** Only a two-world team earns crystals, so the panel can say why the drip stopped. */
   const teamIsMixed = () => isMixedTeam(ownedCharacters());
@@ -525,6 +585,38 @@ export function createGameStore(data: GameData) {
 
   const progressOf = (characterId: string) => xpProgress(xpOf(characterId), effectiveXpGrowth());
 
+  /**
+   * Every owned character's level, as one record — and, crucially, a memo that only changes when a
+   * level actually does.
+   *
+   * `permanentModifiersFor` needs a level per character, and reading it off `characterXp()` made
+   * the whole roster fold depend on the xp signal — which `grantXp` rewrites on *every kill*, five
+   * times a second. A level, though, moves a few dozen times in a whole run. The custom `equals`
+   * below is what turns "the xp changed" back into "a level changed": on a tick where nobody
+   * levelled, the memo keeps its previous object, `permanentModifiers` never sees a new value, and
+   * neither do `allModifiers`, `modifiersByScope` or the per-arc `bossOutlookOf` memos.
+   */
+  const levelsByCharacter = createMemo(
+    () => {
+      const growth = effectiveXpGrowth();
+      const xp = characterXp();
+      const levels: Record<string, number> = {};
+      for (const id of ownedCharacterIds()) levels[id] = levelFromXp(xp[id] ?? 0, growth);
+      return levels;
+    },
+    undefined,
+    { equals: sameNumbers }
+  );
+
+  /**
+   * The achievement ladders' contribution, memoised on its *value* for the same reason: the counts
+   * are bumped on every kill (`mobsKilled`), but the modifiers they emit only move when a tier is
+   * actually crossed — two objects, a handful of times per run.
+   */
+  const achievementModifiers = createMemo(() => achievementContributions(achievementCounts()), undefined, {
+    equals: sameModifiers,
+  });
+
   /** Items found this run; wiped by prestige. Forge ranks survive separately. Commons stack. */
   const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
 
@@ -553,8 +645,12 @@ export function createGameStore(data: GameData) {
 
   /** The character currently wearing this unique, if any — uniques are single-copy. */
   function wearerOf(itemId: string): Character | null {
-    const characterId = Object.keys(characterEquipment()).find((id) => characterEquipment()[id] === itemId);
-    return characterOf(characterId);
+    // One read of the signal, not one per entry: the `find` callback re-read `characterEquipment()`
+    // on every candidate, and the Codex asks this once per unique on screen.
+    for (const [characterId, worn] of Object.entries(characterEquipment())) {
+      if (worn === itemId) return characterOf(characterId);
+    }
+    return null;
   }
 
   /** Whether this item can be equipped on this character (ownership and restriction checks). */
@@ -629,6 +725,7 @@ export function createGameStore(data: GameData) {
   function permanentModifiersFor(arc: Arc | null): ActiveModifier[] {
     const config = activeSynergyConfig();
     const equipment = characterEquipment();
+    const levels = levelsByCharacter();
     const equipmentOf = (c: Character) => {
       const itemId = equipment[c.id];
       const item = itemOf(itemId);
@@ -641,7 +738,7 @@ export function createGameStore(data: GameData) {
         c,
         arc,
         config,
-        levelOf(c.id),
+        levels[c.id] ?? 0,
         passiveRankOf(c),
         isEvolved(c),
         equipmentOf(c),
@@ -651,7 +748,7 @@ export function createGameStore(data: GameData) {
     );
     return [
       ...fromCharacters,
-      ...achievementContributions(achievementCounts()),
+      ...achievementModifiers(),
       ...prestigeTreeContributions(prestigeTreeRanks()),
       ...challengeContributions(completedChallengeIds()),
     ];
@@ -788,7 +885,6 @@ export function createGameStore(data: GameData) {
     });
   }
 
-  const availableShopOffers = () => [...(data.shop ?? []), ...supplyOffers()];
 
   /**
    * How far a buff may lift its own character right now: `SCOPED_BUFF_CAP_FLOOR` on the first arc,
@@ -865,6 +961,17 @@ export function createGameStore(data: GameData) {
       .unlockedAnimeIds.flatMap((animeId) => arcsOf(animeId))
       .filter((arc) => arcOpen(arc))
   );
+
+  /**
+   * The authored shop plus the generated supplies, built once per change rather than per read.
+   *
+   * `supplyOffers` walks every playable arc, and for each one reduces over its farm mobs to price a
+   * copy — none of which depends on anything that moves during a fight. It was a plain function, so
+   * every read rebuilt the whole list: the panel's own memo hid that from the display, but
+   * `buyShopOffer` still paid for it twice on every purchase (once to find the offer, once inside
+   * `canBuyShopOffer`). A memo, placed here because it reads `playableArcs`.
+   */
+  const availableShopOffers = createMemo<ShopOffer[]>(() => [...(data.shop ?? []), ...supplyOffers()]);
 
   function stepArc(direction: 1 | -1) {
     const arcs = playableArcs();
@@ -1167,6 +1274,13 @@ export function createGameStore(data: GameData) {
   }
 
   function resolveClick() {
+    // Paused means paused. `dealDamage` already refuses, but everything *around* it did not: the
+    // click still fed the "clicks" achievement ladder (a permanent clickPower bonus that survives
+    // prestige), still shaved every cooldown by "Clic du Narrateur" node 4, and could still fire a
+    // free ability through node 5. Since `togglePause` shifts every deadline forward by the length
+    // of the pause, none of that cost any time either: 500 clicks on a paused game took an ability
+    // from a 45s cooldown to 0 and banked 500 clicks, with the enemy's hp untouched.
+    if (paused()) return { damage: 0, crit: false };
     // "Le Narrateur muet": the click stops dealing damage — and stops counting as one, or the
     // achievement ladder would fill up on clicks that did nothing. It keeps landing while the team
     // is empty, which is the one thing that makes the challenge startable at all: see `clickIsMuted`.
@@ -1414,7 +1528,9 @@ export function createGameStore(data: GameData) {
     if (!own) return 0;
     // The base term is 0 and the team-wide flats are deliberately left out: this column answers
     // "what does *this* character bring", and the flats belong to the team, not to a row.
-    return foldScopedStat(0, target, teamWideScaling(), teamWideScaling(), [own], now(), buffCap());
+    // `statClock`, not `now`: a display column, refolded when the buff list changes rather than
+    // five times a second. See the signal for why that is exact and not just cheap.
+    return foldScopedStat(0, target, teamWideScaling(), teamWideScaling(), [own], statClock(), buffCap());
   }
 
   /** Recruited members of this world's rarity — future story characters never leak through packs. */
@@ -2107,6 +2223,9 @@ export function createGameStore(data: GameData) {
     // out of the list, and `modifiersByScope` would carry every ability ever fired this run.
     if (temporaryModifiers().some((m) => m.expiresAt !== undefined && m.expiresAt <= nowMs)) {
       setTemporaryModifiers((mods) => pruneExpired(mods, nowMs));
+      setStatClock(nowMs);
+    } else if (nowMs - statClock() >= STAT_CLOCK_MS) {
+      setStatClock(nowMs);
     }
   }
   const interval = setInterval(() => batch(tick), TICK_MS);
@@ -2126,6 +2245,7 @@ export function createGameStore(data: GameData) {
       setAbilityLastUsed((map) => Object.fromEntries(Object.entries(map).map(([k, v]) => [k, v + offset])));
       setNotices((list) => list.map((n) => ({ ...n, expiresAt: n.expiresAt + offset })));
       setNow(pausedAt);
+      setStatClock(pausedAt);
     }
     setPaused((p) => !p);
   }

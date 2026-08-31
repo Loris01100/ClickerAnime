@@ -95,6 +95,26 @@ sources, merged in `allModifiers`:
 Expiry is checked both in `pruneExpired` and again inside `computeEffectiveStat`, so a stale list
 can never inflate a stat.
 
+### Weakening an effect: a multiplier is neutral at 1, not 0
+
+Everything a character contributes is pre-scaled — by the synergy tier, and for a passive by its
+rank growth on top. `scaledEffect` (synergy.ts) does that scaling, and it **must not touch a
+`multiplier`'s value directly**: only the part above 1 is scaled, `1 + (value - 1) * scale`. A
+`flat` and a `percent` are neutral at 0, so scaling their value is a weakening; a multiplier is
+neutral at 1, so scaling *its* value is a sign flip.
+
+Getting that wrong is not a rounding issue, it inverts the effect. An equipped unique printed x1.35
+came out `1.35 * 0.5 = x0.675` at the `otherAnimeMalus` tier: the character dealt a third **less**
+damage than with the slot empty, so the correct play was to unequip before travelling. It bit every
+one of Bleach's fourteen uniques, all of them multipliers, and it compounded with the forge — a
+rank-1 Pantera (x1.175) landed at x0.5875.
+
+`scaledUniqueEffect` (forge.ts) already had the rule right for the forge ranks; `scaledEffect` is
+the same formula applied to the other scaling axis. It covers all three carriers — the passive, the
+evolution bonus and the equipped unique — even though today's data only writes multipliers on the
+last one, because `ModifierTemplate` allows one anywhere and the first authored multiplier passive
+would otherwise arrive as a team-wide nerf. Guarded in `src/engine/tests/modifiers.test.ts`.
+
 **What the roster prints per character is that character's own term in `computeScopedStat`**, not a
 fold of their modifiers alone. `characterStatOf` pulls their scoped group out of `allModifiers` and
 re-folds it with the team-wide scaling — achievements, the prestige tree, challenge rewards, every
@@ -105,6 +125,34 @@ looked broken. The two numbers now agree by construction — `Σ characterStatOf
 `teamDps()`, guarded in `src/engine/tests/store.test.ts` — and `clickPower` differs only by the
 narrator's own base, which belongs to no character. It reads the memo rather than rebuilding a
 character's contributions by hand because the roster asks for it once a row, twice, every tick.
+
+That column folds against `statClock`, not `now`. Reading the 200ms clock had every roster row
+refold twice a second for five — a real cost on a fifty-strong team, for a number nobody watches at
+that resolution. `statClock` advances on the tick that prunes an expired buff, and otherwise once a
+second; it is never ahead of `now`, and the prune guarantees no live modifier expires between the
+two, so the equality above still holds exactly rather than approximately.
+
+### What is allowed to invalidate the roster fold
+
+`permanentModifiers` is the expensive memo of the whole game — the entire roster back through
+`characterContributions` — and `bossOutlookOf` runs the same fold again, once per arc the progress
+panel has on screen. So what it *depends on* is a performance decision, and two of those
+dependencies used to be signals that change on literally every kill:
+
+- **The synergy config.** `activeSynergyConfig` reads `now()` (through `crossoverActive`), and
+  `softenedSynergyConfig` builds a fresh object at any level above 0 — so once "DPS Équipe" node 3
+  was bought it handed back a new reference five times a second, and Solid keys a memo on reference.
+  It is now three memos: `softenedConfig` (node level only), `crossoverConfig`, and the ternary
+  between them. The ternary still re-runs each tick; it just returns an object Solid already knows.
+- **Levels and achievement counts.** `grantXp` rewrites `characterXp` and `defeat` bumps
+  `achievementCounts` on every single kill, but a *level* moves a few dozen times in a whole run and
+  an achievement *tier* less often than that. `levelsByCharacter` and `achievementModifiers` are
+  memos with a value-based `equals`, which turns "the xp changed" back into "a level changed".
+
+Measured on a 21-strong roster with five arcs on screen, mid-run: 1260 rebuilds of a character's
+contributions over ten idle ticks before (1470 with node 3 bought), **0** after. Any new dependency
+added to `permanentModifiersFor` has to be held to the same test — if it changes per kill, it needs
+a value-equal memo in front of it.
 
 ## Abilities
 

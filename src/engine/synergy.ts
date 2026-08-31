@@ -1,6 +1,6 @@
 import { levelGrowth, passiveGrowth } from "./growth";
 import { duplicateGrowth } from "./packs";
-import type { ActiveModifier, Arc, Character, Item, SynergyConfig } from "./types";
+import type { ActiveModifier, Arc, Character, Item, ModifierTemplate, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
   matchingArcMultiplier: 1.0,
@@ -43,6 +43,23 @@ export function isHomeArc(character: Character, arc: Arc, evolved = false): bool
     character.fullSynergyAnimeIds?.includes(arc.animeId) === true ||
     (evolved && character.evolution?.animeId === arc.animeId)
   );
+}
+
+/**
+ * One authored effect, weakened (or deepened) by a scale factor — the synergy tier, and for a
+ * passive its rank growth on top.
+ *
+ * A `multiplier`'s neutral point is **1, not 0**, so scaling its `value` directly is not a
+ * weakening but a sign flip: an equipped unique printed x1.35 came out x0.675 at the 0.5
+ * other-anime tier, i.e. strictly worse than wearing nothing at all — the item was a malus abroad.
+ * Only the part above 1 is scaled, which is exactly what `scaledUniqueEffect` (forge.ts) already
+ * does for the forge ranks. `flat` and `percent` are neutral at 0 and scale as they always did.
+ */
+function scaledEffect<T extends ModifierTemplate>(effect: T, scale: number): T {
+  return {
+    ...effect,
+    value: effect.kind === "multiplier" ? 1 + (effect.value - 1) * scale : effect.value * scale,
+  };
 }
 
 /**
@@ -97,16 +114,15 @@ export function characterContributions(
   if (character.passive && passiveRank > 0 && !otherAnime) {
     // Scoped like the character's own damage: a passive is *their* statistic growing, not the team's.
     contributions.push({
-      ...character.passive,
+      ...scaledEffect(character.passive, passiveScale * synergy),
       sourceId: character.id,
       scope: character.id,
-      value: character.passive.value * passiveScale * synergy,
     });
   }
 
   if (evolved && character.evolution) {
     for (const bonus of character.evolution.bonus) {
-      contributions.push({ ...bonus, sourceId: character.id, value: bonus.value * synergy });
+      contributions.push({ ...scaledEffect(bonus, synergy), sourceId: character.id });
     }
   }
 
@@ -115,10 +131,9 @@ export function characterContributions(
   for (const item of equipmentItems) {
     for (const effect of item.effects ?? []) {
       contributions.push({
-        ...effect,
+        ...scaledEffect(effect, synergy),
         sourceId: `${character.id}:equip:${item.id}`,
         scope: character.id,
-        value: effect.value * synergy,
       });
     }
   }
