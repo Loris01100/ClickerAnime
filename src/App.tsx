@@ -138,16 +138,9 @@ export default function App() {
     )
   );
 
-  const firstAffordablePassive = createMemo(() => {
-    const ranksBought =
-      game.achievementCounts().passiveRanksBought ??
-      game.ownedCharacters().reduce((sum, character) => sum + game.passiveRankOf(character), 0);
-    if (ranksBought > 0) return null;
-    return game.ownedCharacters().find((character) => character.passive && game.passiveUpgradeOf(character).affordable) ?? null;
-  });
   createEffect(
     on(
-      firstAffordablePassive,
+      game.firstAffordablePassive,
       (character, previous) => {
         if (character && !previous) game.announceUnlock(`Premier passif prêt : améliore ${character.name}`);
       },

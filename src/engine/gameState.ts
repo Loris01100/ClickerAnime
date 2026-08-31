@@ -1119,6 +1119,10 @@ export function createGameStore(data: GameData) {
     if (paused() || !enemy() || amount <= 0) return 0;
     let remaining = amount;
     const firstTarget = enemy();
+    // The number the pop-up shows: the *swing's* power against the enemy on screen, deliberately not
+    // the hp actually removed. A crit that one-shots a near-dead mob must still read as the full,
+    // enlarged crit (`design.md` §12) — so this stays `amount × the on-screen trait`, whatever the
+    // carry-over then fells behind it. Don't "fix" it to sum the hp taken off each target.
     const reportedDamage = firstTarget ? amount * damageMultiplierAgainst(firstTarget, source) : amount;
     const allowance = Math.min(MAX_KILLS_PER_HIT, Math.floor(killBudget()));
     let spent = 0;
@@ -1138,7 +1142,11 @@ export function createGameStore(data: GameData) {
       spent++;
       defeat(target);
     }
-    // Damage still in hand once the budget is out — it lands, it just can't fell anything.
+    // Damage still in hand once the budget is out — it lands, it just can't fell anything. This also
+    // covers a fractional budget (`allowance` floored to 0): only *kills* are budget-gated, never the
+    // hp a hit removes, so a healthy enemy keeps taking damage while the budget refills. The one
+    // visible tell is an enemy sitting at 0 hp for up to a tick before the next kill lands — the cap
+    // working as intended (`MAX_KILLS_PER_SECOND`), not a stuck fight.
     if (remaining > 0 && enemy()) {
       setEnemyHpLeft(Math.max(0, enemyHpLeft() - remaining * damageMultiplierAgainst(enemy()!, source)));
     }
@@ -1330,6 +1338,20 @@ export function createGameStore(data: GameData) {
     return passiveUpgrade(passiveRankOf(character), character.rarity, passiveCopiesOf(character), discount);
   }
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
+
+  /**
+   * The first character whose passive is affordable *and* never yet ranked this save — the tutorial's
+   * payoff. `null` the moment any rank has ever been bought, so it only ever fires once. Lives here
+   * rather than in two components: `App` announces it and `RosterPanel` unfolds the team on it, and
+   * they must agree on which character that is.
+   */
+  const firstAffordablePassive = createMemo<Character | null>(() => {
+    const ranksBought =
+      achievementCounts().passiveRanksBought ??
+      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0);
+    if (ranksBought > 0) return null;
+    return ownedCharacters().find((c) => c.passive && passiveUpgradeOf(c).affordable) ?? null;
+  });
 
   /**
    * Spends the origin item to buy the next rank of a character's passive. Refuses on a character
@@ -2161,6 +2183,7 @@ export function createGameStore(data: GameData) {
     passiveRankOf,
     passiveUpgradeOf,
     passiveCapOf,
+    firstAffordablePassive,
     rankUpPassive,
     characterEquipment,
     equippedItemOf,

@@ -176,17 +176,7 @@ export default function RosterPanel(props: {
       .filter((item): item is Item => item.kind === "unique" && props.game.canEquipItem(character, item.id));
 
   /** The first affordable passive is the tutorial's payoff, so it cannot hide in a dense row. */
-  const tutorialPassiveId = createMemo(() => {
-    const ranksBought =
-      props.game.achievementCounts().passiveRanksBought ??
-      props.game.ownedCharacters().reduce((sum, character) => sum + props.game.passiveRankOf(character), 0);
-    if (ranksBought > 0) return null;
-    return (
-      props.game
-        .ownedCharacters()
-        .find((character) => character.passive && props.game.passiveUpgradeOf(character).affordable)?.id ?? null
-    );
-  });
+  const tutorialPassiveId = createMemo(() => props.game.firstAffordablePassive()?.id ?? null);
   createEffect(() => {
     if (tutorialPassiveId()) setTeamOpen(true);
   });
