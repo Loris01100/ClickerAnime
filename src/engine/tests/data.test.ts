@@ -1,9 +1,57 @@
 import { describe, expect, it } from "vitest";
 import { gameData } from "../../data";
+import { getUnlockedAbilities } from "../abilities";
 import { layoutArcs, MAP_COLS } from "../mapLayout";
+import { defaultSynergyConfig, isHomeArc, synergyMultiplier } from "../synergy";
 import { makeArc } from "./helpers";
+import { formatContentIssues, validateGameData } from "../dataValidation";
 
 describe("game data", () => {
+  it("passes the complete content graph validation", () => {
+    const issues = validateGameData(gameData);
+    expect(issues, formatContentIssues(issues)).toEqual([]);
+  });
+
+  it("names broken arc, recruit and sequel-presence references precisely", () => {
+    const brokenData = {
+      ...gameData,
+      characters: gameData.characters.map((character) =>
+        character.id === "naruto-uzumaki"
+          ? { ...character, arcIds: [...character.arcIds, "arc-inexistant"], appearanceAnimeIds: ["bleach"] }
+          : character
+      ),
+      arcs: gameData.arcs.map((arc) =>
+        arc.id === "bleach-shinigami-remplacant"
+          ? { ...arc, boss: { ...arc.boss, characterId: "naruto-uzumaki" } }
+          : arc
+      ),
+    };
+    const issues = validateGameData(brokenData);
+    expect(issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["unknown-arc", "unrelated-appearance", "wrong-recruit-anime", "duplicate-recruit"])
+    );
+    expect(formatContentIssues(issues)).toContain("arc-inexistant");
+    expect(formatContentIssues(issues)).toContain("bleach");
+  });
+  it("keeps the Naruto cast present across its sequel anime without duplicating recruits", () => {
+    const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
+    const sequelArcs = gameData.arcs.filter((arc) => arc.animeId === "shippuden" || arc.animeId === "boruto");
+    expect(sequelArcs.length).toBeGreaterThan(0);
+    for (const arc of sequelArcs) {
+      expect(isHomeArc(naruto, arc, true), `${arc.id} should be home for Naruto`).toBe(true);
+      expect(synergyMultiplier(naruto, arc, defaultSynergyConfig, true), `${arc.id} should give Naruto full synergy`).toBe(1);
+    }
+
+    const shippudenArc = gameData.arcs.find((arc) => arc.animeId === "shippuden")!;
+    const rockLee = gameData.characters.find((character) => character.id === "rock-lee")!;
+    expect(getUnlockedAbilities([rockLee.id], [rockLee], [], shippudenArc).map((entry) => entry.ability.id)).toEqual([
+      "ability-portes",
+    ]);
+
+    const haku = gameData.characters.find((character) => character.id === "haku")!;
+    expect(isHomeArc(haku, shippudenArc)).toBe(false);
+  });
+
   it("uses Mû as the Confrontation boss", () => {
     expect(gameData.arcs.find((arc) => arc.id === "shippuden-confrontation")?.boss.name).toBe("Mû, le Second Tsuchikage");
   });
@@ -27,7 +75,7 @@ describe("game data", () => {
     // faster than enemy health. Keep both the longer kill budgets and the rebuilt boss curve.
     expect(arcs.map((arc) => arc.mobsToBoss)).toEqual([20, 28, 34, 40, 46, 52]);
     expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 1_800_000, 6_000_000, 16_000_000]);
-    expect(arcs.every((arc) => arc.boss.timerMs === 60_000)).toBe(true);
+    expect(arcs.map((arc) => arc.boss.timerMs)).toEqual([60_000, 75_000, 75_000, 75_000, 75_000, 75_000]);
 
     const debutPower = arcs.map((arc) =>
       Math.max(...gameData.characters.filter((character) => character.arcIds[0] === arc.id).map((character) => character.baseDps))
@@ -100,7 +148,13 @@ describe("game data", () => {
     // Boss clocks are fit last, at ~1.5x over the time-to-kill the simulator measures, and never
     // shorten as the world goes on (`docs/combat.md`).
     const timers = arcs.map((arc) => arc.boss.timerMs);
-    expect(timers).toEqual([...Array(8).fill(60_000), ...Array(4).fill(75_000), ...Array(3).fill(90_000)]);
+    expect(timers).toEqual([
+      60_000,
+      ...Array(5).fill(70_000),
+      ...Array(3).fill(75_000),
+      ...Array(3).fill(85_000),
+      ...Array(3).fill(110_000),
+    ]);
   });
 
   it("caps active ability damage gains in every world", () => {
@@ -114,13 +168,13 @@ describe("game data", () => {
     expect(Math.max(...percents.map((effect) => effect.value))).toBe(0.5);
   });
 
-  it("keeps the experimental boss traits limited and numerically safe", () => {
+  it("gives every boss one readable and numerically safe trait", () => {
     const traits = gameData.arcs.flatMap((arc) => (arc.boss.bossTrait ? [{ arc, trait: arc.boss.bossTrait }] : []));
-    expect(traits.map(({ arc }) => arc.id).sort()).toEqual(
-      ["naruto-vagues", "hxh-examen", "bleach-shinigami-remplacant"].sort()
+    expect(traits).toHaveLength(gameData.arcs.length);
+    expect(new Set(traits.map(({ trait }) => trait.kind))).toEqual(
+      new Set(["click-resistance", "dps-resistance", "shield"])
     );
     for (const { arc, trait } of traits) {
-      expect(arc.order, `${arc.id} doit rester un test de premier arc`).toBe(0);
       expect(trait.multiplier, `${arc.id} : multiplicateur positif`).toBeGreaterThan(0);
       expect(trait.multiplier, `${arc.id} : multiplicateur borné`).toBeLessThanOrEqual(1);
       expect(trait.description.length).toBeGreaterThan(20);
@@ -149,6 +203,21 @@ describe("game data", () => {
       expect(arc.mobs.some((m) => m.itemId)).toBe(true);
     }
     const animeIds = gameData.animes.map((a) => a.id);
+    for (const character of gameData.characters) {
+      for (const animeId of character.appearanceAnimeIds ?? []) {
+        expect(animeIds, `${character.id} appears in an unknown anime`).toContain(animeId);
+        expect(animeId, `${character.id} must not repeat its recruitment anime as an appearance`).not.toBe(
+          character.animeId,
+        );
+      }
+      for (const animeId of character.fullSynergyAnimeIds ?? []) {
+        expect(animeIds, `${character.id} has full synergy in an unknown anime`).toContain(animeId);
+        expect(
+          [...(character.appearanceAnimeIds ?? []), character.evolution?.animeId],
+          `${character.id} needs a presence or evolution before full sequel synergy`,
+        ).toContain(animeId);
+      }
+    }
     for (const offer of gameData.shop ?? []) {
       expect(offer.kind === "item" ? itemIds : characterIds).toContain(offer.targetId);
       if (offer.requiresAnimeId) expect(animeIds).toContain(offer.requiresAnimeId);

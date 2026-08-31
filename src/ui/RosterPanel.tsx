@@ -1,5 +1,6 @@
 import { For, Show, createEffect, createMemo, createSignal, type Accessor } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import type { AbilityDiagnostic } from "../engine/abilities";
 import { SCOPED_BUFF_CAP } from "../engine/modifiers";
 import { passiveGrowth } from "../engine/growth";
 import type { Character, Item } from "../engine/types";
@@ -134,10 +135,33 @@ export default function RosterPanel(props: {
     // Le jeu tient déjà la liste des capacités prêtes en mémo : la lire une fois évite le
     // `abilityCooldownRemaining` du comparateur, qui retrouvait sa capacité par un parcours
     // linéaire de toute la barre — à chaque comparaison, et à chaque tick.
-    const ready = new Set(props.game.readyAbilities().map((u) => u.ability.id));
-    const rank = (u: { ability: { id: string } }) => (ready.has(u.ability.id) ? 0 : 1);
-    return [...props.game.unlockedAbilities()].sort((a, b) => rank(a) - rank(b));
+    const rank = (diagnostic: AbilityDiagnostic) => {
+      if (diagnostic.availability.status === "ready") return 0;
+      if (diagnostic.availability.status === "active") return 1;
+      if (diagnostic.availability.status === "cooldown") return 2;
+      return 3;
+    };
+    return [...props.game.abilityDiagnostics()].sort((a, b) => rank(a) - rank(b));
   });
+
+  const abilityReason = (diagnostic: AbilityDiagnostic): string => {
+    const state = diagnostic.availability;
+    if (state.status === "ready") return "Prête à être lancée.";
+    if (state.status === "active") return `Effet actif · recharge encore ${seconds(state.remainingMs)}.`;
+    if (state.status === "cooldown") return `En recharge · encore ${seconds(state.remainingMs)}.`;
+    if (state.status === "blocked-challenge") {
+      const challenge = props.game.challenges.find((entry) => entry.id === state.challengeId);
+      return challenge
+        ? `Désactivée par le défi « ${challenge.name} » : ${challenge.constraint}`
+        : "Désactivée par le défi en cours.";
+    }
+    const current = props.game.animeOf(state.animeId)?.name ?? state.animeId;
+    const available = state.availableAnimeIds
+      .map((id) => props.game.animeOf(id)?.name ?? id)
+      .join(", ");
+    const character = props.game.characterOf(diagnostic.sourceId)?.name ?? diagnostic.sourceId;
+    return `${character} n’apparaît pas dans ${current}. Utilisable dans : ${available}.`;
+  };
 
   const shownItems = createMemo(() =>
     props.game
@@ -152,17 +176,7 @@ export default function RosterPanel(props: {
       .filter((item): item is Item => item.kind === "unique" && props.game.canEquipItem(character, item.id));
 
   /** The first affordable passive is the tutorial's payoff, so it cannot hide in a dense row. */
-  const tutorialPassiveId = createMemo(() => {
-    const ranksBought =
-      props.game.achievementCounts().passiveRanksBought ??
-      props.game.ownedCharacters().reduce((sum, character) => sum + props.game.passiveRankOf(character), 0);
-    if (ranksBought > 0) return null;
-    return (
-      props.game
-        .ownedCharacters()
-        .find((character) => character.passive && props.game.passiveUpgradeOf(character).affordable)?.id ?? null
-    );
-  });
+  const tutorialPassiveId = createMemo(() => props.game.firstAffordablePassive()?.id ?? null);
   createEffect(() => {
     if (tutorialPassiveId()) setTeamOpen(true);
   });
@@ -189,16 +203,23 @@ export default function RosterPanel(props: {
             title="Lance toutes les capacités prêtes — elles se cumulent, chacune sur ses propres personnages."
             onClick={() => props.game.activateReadyAbilities()}
           >
-            Tout lancer {props.game.readyAbilities().length}/{props.game.unlockedAbilities().length}
+            Tout lancer {props.game.readyAbilities().length}/{props.game.abilityDiagnostics().length}
           </button>
         </header>
         <Show when={abilitiesOpen()}>
           <div class="ability-bar">
             <For each={sortedAbilities()}>
               {(unlocked) => {
-                const remaining = () => props.game.abilityCooldownRemaining(unlocked.ability.id);
-                const running = () => props.game.activeBuffs().includes(unlocked.ability.id);
-                const label = () => (running() ? "actif" : remaining() > 0 ? seconds(remaining()) : "Prêt");
+                const state = () => unlocked.availability;
+                const running = () => state().status === "active";
+                const label = () => {
+                  const current = state();
+                  if (current.status === "ready") return "Prêt";
+                  if (current.status === "active") return "actif";
+                  if (current.status === "cooldown") return seconds(current.remainingMs);
+                  if (current.status === "blocked-challenge") return "défi";
+                  return "hors anime";
+                };
                 /**
                  * A buff only boosts the characters it comes from, so no ability ever locks another
                  * one out any more — but which allies it lands on is now worth saying.
@@ -210,37 +231,37 @@ export default function RosterPanel(props: {
                 const tooltip = () =>
                   [
                     unlocked.ability.name,
-                    describeAbility(unlocked.ability, props.game.abilityMagnitudeOf(unlocked.ability)),
+                    describeAbility(
+                      unlocked.ability,
+                      state().status.startsWith("blocked")
+                        ? 1
+                        : props.game.abilityMagnitudeOf(unlocked.ability),
+                    ),
                     `Cible : ${targets()}`,
                     // What lands can be less than the line above: the maîtrise ceiling bites long
                     // before the printed value does, and hiding it made every ability read alike.
                     `Maîtrise : x${Math.round(props.game.buffCap())} au maximum par personnage`,
+                    abilityReason(unlocked),
                   ].join("\n");
                 return (
                   <button
                     class="ability"
                     classList={{ running: running() }}
-                    disabled={remaining() > 0}
+                    disabled={state().status !== "ready"}
                     title={tooltip()}
                     onClick={() => props.game.activateAbility(unlocked.ability.id)}
                   >
                     <span class="ability-name">{unlocked.ability.name}</span>
                     <span class="ability-cd">{label()}</span>
+                    <Show when={state().status === "blocked-anime" || state().status === "blocked-challenge"}>
+                      <small class="ability-reason">{abilityReason(unlocked)}</small>
+                    </Show>
                   </button>
                 );
               }}
             </For>
-            <Show when={props.game.unlockedAbilities().length === 0}>
+            <Show when={props.game.abilityDiagnostics().length === 0}>
               <p class="muted pad">Battez des personnages pour débloquer des capacités.</p>
-            </Show>
-            {/* La barre filtre les capacités des personnages hors de leur monde : sans cette ligne
-                elle rétrécirait sans rien dire en arrivant dans un nouveau monde. */}
-            <Show when={props.game.sleepingAbilityCount() > 0}>
-              <p class="muted pad small">
-                {props.game.sleepingAbilityCount()} capacité
-                {props.game.sleepingAbilityCount() > 1 ? "s en sommeil" : " en sommeil"} : leurs personnages
-                sont hors de leur monde.
-              </p>
             </Show>
           </div>
         </Show>

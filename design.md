@@ -116,7 +116,7 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   `src/engine/tests/` vérifie que tout `themeHue` des données reste dans 0..360.
 - **Le canal, c'est une custom property, pas une chaîne construite en JS.** Un composant ne
   fabrique jamais de `radial-gradient(...)` en inline style — c'était le cas de `WorldMap` avant.
-  Il pose **`--world-hue`** sur son conteneur (`themeOf(...)`), et `styles.css` fait le reste avec
+  Il pose **`--world-hue`** sur son conteneur (`themeOf(...)`), et les modules CSS font le reste avec
   `hsl(var(--world-hue) ... / var(--world-strength))`. Posée à trois endroits parce que le monde
   *affiché* n'est pas toujours le monde *actif* : `App.tsx` sur `.game` (monde de l'arc en cours),
   `WorldMap.tsx` sur `.map-canvas` (l'onglet de carte peut être épinglé ailleurs),
@@ -138,7 +138,7 @@ une raison d'ajouter du code spécifique.
 
 ## 3. Système de couleur
 
-Le thème clair/sombre (`styles.css:1-71`, documenté dans `docs/ui.md`) reste la seule source de
+Le thème clair/sombre (`styles/foundation.css`, documenté dans `docs/ui.md`) reste la seule source de
 vérité pour les couleurs *fonctionnelles* (fond, texte, accent, bon/mauvais...). Aucune couleur
 codée en dur en dehors de `:root` — règle déjà en place, à ne pas relâcher en ajoutant la DA par
 anime : `themeOf(anime)` produit une **teinte** (nombre 0..360) combinée à `hsl()`, jamais une
@@ -176,10 +176,10 @@ Le jeu a aujourd'hui trois animations : le pop de dégâts (`rise`, `.pop`), les
 largeur des barres (`.bar-fill`, `width 0.1–0.2s linear`), et le déplacement du marqueur de carte
 (`left/top 0.3s ease`). C'est un bon socle à généraliser plutôt qu'à remplacer. Règle commune à
 toute nouvelle animation : **respecter `prefers-reduced-motion`**, exactement comme `.pop` le
-fait déjà (bascule vers un simple fade, `styles.css:463-472`) — c'est le patron à copier, pas à
+fait déjà (bascule vers un simple fade dans `styles/panels-and-shop.css`) — c'est le patron à copier, pas à
 réinventer.
 
-**Fait** (tout dans `styles.css`, déclenché par des signaux locaux à `ClickStage.tsx` — aucun
+**Fait** (dans les modules de `src/styles/`, déclenché par des signaux locaux à `ClickStage.tsx` — aucun
 changement moteur, rien dans le tick 200ms) :
 
 | Effet | Où | Déclencheur |
@@ -217,9 +217,16 @@ Restent des pistes, non faites :
 ### 4.1 Traits de boss annoncés
 
 Un trait de boss modifie la lecture du combat, donc il ne doit jamais être une pénalité surprise.
+Tous les boss de production en possèdent désormais un. Les trois traits d’ouverture restent écrits
+sur mesure ; les autres reçoivent un preset léger et tournant depuis `data/bossTraits.ts`, avec un
+décalage par monde pour éviter cinq séquences identiques. Un futur trait narratif se déclare dans
+les données du boss et remplace automatiquement ce preset.
 Sur un arc ouvert, son nom tient dans une pastille bordée par `--boss`. Dans le panneau de combat,
 un bandeau permanent indique `Boss à venir`, le nom du boss, le trait et sa conséquence chiffrée ;
-il devient `Trait actif` quand le boss apparaît. Ce bandeau reste compact, ne bloque aucune action
+avant l'apparition, sa seconde ligne donne la réponse adaptée au trait, compare le temps automatique
+au chrono et propose une seule prochaine action si l'équipe n'est pas prête. Elle précise que les
+clics ne sont pas inclus dans l'estimation. Le bandeau devient `Trait actif` quand le boss apparaît
+et abandonne alors les conseils de préparation. Il reste compact, ne bloque aucune action
 et emploie seulement les tokens du thème.
 
 ### 4.2 Les notices du HUD (`ui/Notices.tsx`)
@@ -286,11 +293,11 @@ toutes les capacités tournent en même temps, et le `title` nomme l'allié vis�
 (« Cible : Naruto ») plutôt que la capacité coupable. Le tri « prêtes d'abord » est **binaire**
 et pas par temps restant, sinon les boutons glissent sous le curseur à chaque tick de 200ms.
 
-Une capacité **ne voyage pas** : hors de son monde, le personnage n'a pas la sienne et son bouton
-disparaît de la grille, comme son passif s'éteint. La barre le **dit** — « N capacités en sommeil :
-leurs personnages sont hors de leur monde » (`sleepingAbilityCount`) — parce qu'une grille qui perd
-la moitié de ses boutons en changeant de monde, sans un mot, se lit comme un bug et pas comme une
-règle. C'est le même parti pris que `.save-state` : la raison d'un silence vaut d'être écrite.
+Une capacité **ne voyage pas**, mais son bouton non plus ne disparaît plus. Hors de son monde, la
+carte reste visible, atténuée, et nomme le personnage, l'anime actuel et tous les anime où elle
+redevient utilisable. Le même espace explique aussi le défi qui interdit les capacités, la recharge
+exacte ou le temps d'effet restant. La règle cesse ainsi de ressembler à une perte de sauvegarde :
+chaque silence a une cause concrète et une issue lisible.
 
 Comme tout se cumule, la barre finit à une quarantaine de boutons : elle est donc une **grille dense**
 (`repeat(auto-fill, minmax(6.5rem, 1fr))`, noms tronqués sur une ligne) à **hauteur plafonnée** avec
@@ -595,7 +602,7 @@ code écrit à la main.
   agent IA pour le reconstruire. Utile comme **point de départ visuel/structurel** pour un panel
   qu'on peine à esquisser (disposition d'un tableau, d'un tooltip, d'un toast — voir §4 « Notification
   de recrutement »), jamais comme source à copier telle quelle : le projet n'a pas de dépendance UI
-  (`CLAUDE.md` : « un `src/styles.css` écrit à la main, pas de framework UI ») et toute vue générée
+  (`CLAUDE.md` : « CSS écrit à la main, pas de framework UI ») et toute vue générée
   via un prompt 21st.dev doit être retraduite en `.panel`/`.panel-head`/tokens CSS du thème (§3, §7)
   avant d'entrer dans le repo — pas de classes Tailwind ni de palette propre au composant copié.
 
@@ -669,6 +676,14 @@ code écrit à la main.
   format de sauvegarde, et une valeur illisible retombe simplement sur le défaut. Les préférences
   ajoutées après coup (celles des objets) retombent **champ par champ** sur leur défaut, sinon la
   première lecture d'une valeur déjà écrite jetterait aussi celles de l'équipe.
+- **La mesure de progression demande un choix explicite.** Son bandeau reste compact mais écrit la
+  finalité, ce qui n'est jamais transmis, la durée de conservation et le chemin de retrait. Refuser
+  et autoriser ont la même accessibilité ; la couleur primaire indique l'action utile sans déguiser
+  le refus. Le choix vit dans sa propre préférence locale et peut être inversé depuis le menu.
+- **Le prestige se conclut par un bilan, pas par un écran vide.** Après confirmation, un overlay
+  résume le temps, la complétion, les points gagnés, l'activité de combat et d'économie, la puissance
+  finale et surtout les maîtrises conservées. Les valeurs sont figées avant la remise à zéro : le
+  joueur comprend immédiatement ce qu'il a accompli et ce qu'il emporte dans l'aventure suivante.
 - **Le panneau `Objets` a les mêmes deux `<select>` que le panneau `Équipe`**, au même endroit de
   l'en-tête et sans style dédié : filtre à gauche, tri à droite, et le titre affiche
   « (montrés/total) » dès qu'un filtre est actif. Une collection qui dépasse la trentaine d'entrées
@@ -860,7 +875,7 @@ densité, là où Zen Kaku Gothic New reste lisible en petit tout en changeant l
 `latin-700` puis `latin-ext-700` produit donc deux `@font-face` aux descripteurs identiques, et le
 dernier gagne pour *tous* les caractères — le poids 700 se retrouvait servi par le sous-ensemble
 latin-ext, qui ne contient aucun caractère ASCII. Les `@font-face` sont donc tous écrits à la main
-en tête de `styles.css`, avec leur `unicode-range` explicite, ce qui laisse le navigateur combiner
+en tête de `styles/foundation.css`, avec leur `unicode-range` explicite, ce qui laisse le navigateur combiner
 les deux sous-ensembles et ne télécharger que ce dont la page a besoin. Vite résout les `url()` qui
 pointent vers le paquet (`@fontsource/.../files/*.woff2`) et inline les plus petits fichiers.
 

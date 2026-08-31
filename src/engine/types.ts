@@ -101,6 +101,9 @@ export type BossTrait =
       multiplier: number;
     };
 
+/** The discriminant of {@link BossTrait}, derived so a new trait extends it automatically. */
+export type BossTraitKind = BossTrait["kind"];
+
 /** Anything the player fights. Enemies never deal damage — they only have to fall. */
 export interface Enemy {
   id: string;
@@ -117,7 +120,7 @@ export interface Enemy {
   dropChance?: number;
   /** must be defeated within this window or it comes back at full hp; bosses only, by default */
   timerMs?: number;
-  /** optional, data-driven boss rule; currently used only by selected experimental bosses */
+  /** data-driven boss rule; production content gives every boss exactly one */
   bossTrait?: BossTrait;
 }
 
@@ -148,6 +151,10 @@ export interface Character {
   rarity: Rarity;
   /** arcs (within its own anime) this character is strong in */
   arcIds: string[];
+  /** later anime where this same character is present, without becoming a second recruit */
+  appearanceAnimeIds?: string[];
+  /** later anime whose whole arc list is a major part of this character's story */
+  fullSynergyAnimeIds?: string[];
   /** click damage at level 0; every level adds `LEVEL_DAMAGE_STEP` times this much again */
   baseClickPower: number;
   /** dps at level 0; every level adds `LEVEL_DAMAGE_STEP` times this much again */

@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createResource, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { BOSS_REPLAY_KILLS } from "../engine/combat";
 import { bannerUrl } from "./anilist";
@@ -6,6 +6,7 @@ import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
+import { bossAdvice, bossTraitCounter } from "./advice";
 import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar, IconTarget } from "./icons";
 
 interface Pop {
@@ -120,6 +121,40 @@ export default function ClickStage(props: { game: GameStore }) {
     const current = arc();
     return current ? props.game.bossChallengeable(current) : false;
   };
+  const affordablePassive = createMemo(() =>
+    props.game.ownedCharacters().some((character) => props.game.passiveUpgradeOf(character).affordable)
+  );
+  const equippableUnique = createMemo(() =>
+    props.game.foundItems().some(
+      (item) =>
+        item.kind === "unique" &&
+        !props.game.wearerOf(item.id) &&
+        props.game.ownedCharacters().some((character) => props.game.canEquipItem(character, item.id))
+    )
+  );
+  const bossOutlook = createMemo(() => {
+    const current = arc();
+    return current ? props.game.bossOutlookOf(current) : null;
+  });
+  const preparationAdvice = createMemo(() =>
+    bossAdvice({
+      teamSize: props.game.ownedCharacters().length,
+      affordablePassive: affordablePassive(),
+      equippableUnique: equippableUnique(),
+      // A short buff fired twenty mobs early would expire before the boss. Recommend it only when
+      // the player can challenge a retreated boss immediately.
+      readyAbility: bossChallengeable() && props.game.readyAbilities().length > 0,
+      isActiveArc: true,
+    })
+  );
+  const bossEstimate = () => {
+    const outlook = bossOutlook();
+    if (!outlook || !Number.isFinite(outlook.ttkMs)) return "Aucun DPS automatique estimé pour le moment.";
+    const estimate = `${seconds(outlook.ttkMs)} estimées`;
+    return outlook.timerMs
+      ? `${estimate} pour une limite de ${seconds(outlook.timerMs)}, sans compter tes clics.`
+      : `${estimate}, sans compter tes clics.`;
+  };
 
   return (
     <section class="panel">
@@ -167,6 +202,18 @@ export default function ClickStage(props: { game: GameStore }) {
               <strong>{trait().name}</strong>
             </div>
             <span>{trait().description}</span>
+            <Show when={!isBoss()}>
+              <div class="boss-preparation">
+                <strong classList={{ good: !!bossOutlook()?.winnable, bad: !bossOutlook()?.winnable }}>
+                  {bossOutlook()?.winnable ? "Équipe prête" : "Préparation recommandée"}
+                </strong>
+                <span>{bossTraitCounter(trait().kind)}</span>
+                <small>{bossEstimate()}</small>
+                <Show when={!bossOutlook()?.winnable}>
+                  <small><b>Prochaine action :</b> {preparationAdvice().detail}</small>
+                </Show>
+              </div>
+            </Show>
           </div>
         )}
       </Show>

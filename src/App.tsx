@@ -24,6 +24,7 @@ import { newlyUnlocked } from "./ui/unlocks";
  * `fallback` du `<Show>` principal), le differer retarderait le tout premier rendu.
  */
 const AchievementsPanel = lazy(() => import("./ui/AchievementsPanel"));
+const StatsPanel = lazy(() => import("./ui/StatsPanel"));
 const Codex = lazy(() => import("./ui/Codex"));
 const ChallengePanel = lazy(() => import("./ui/ChallengePanel"));
 const PrestigeTree = lazy(() => import("./ui/PrestigeTree"));
@@ -32,19 +33,24 @@ const CrossoverPanel = lazy(() => import("./ui/CrossoverPanel"));
 const PackPanel = lazy(() => import("./ui/PackPanel"));
 const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
 const ForgePanel = lazy(() => import("./ui/ForgePanel"));
+const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
 import { imagePathsForAnime, preloadImages, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./ui/preload";
+import TelemetryConsent from "./ui/TelemetryConsent";
+import { setTelemetryConsent, setupTelemetry, telemetryConsent } from "./ui/telemetry";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
 export default function App() {
   const game = createGameStore(gameData);
+  setupTelemetry(game);
   const [codexOpen, setCodexOpen] = createSignal(false);
   const [codexFocusId, setCodexFocusId] = createSignal<string | undefined>();
   const [portalOpen, setPortalOpen] = createSignal(false);
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
+  const [statsOpen, setStatsOpen] = createSignal(false);
   const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
   const [challengesOpen, setChallengesOpen] = createSignal(false);
   const [shopOpen, setShopOpen] = createSignal(false);
@@ -56,6 +62,9 @@ export default function App() {
   let menu: HTMLDetailsElement | undefined;
 
   onMount(() => {
+    if (game.recoveredFromBackup()) {
+      game.announceUnlock("Sauvegarde principale réparée depuis la copie de secours");
+    }
     preloadImages(STARTUP_IMAGE_PATHS);
     createEffect(() => {
       const animeId = game.activeArc()?.animeId;
@@ -129,16 +138,9 @@ export default function App() {
     )
   );
 
-  const firstAffordablePassive = createMemo(() => {
-    const ranksBought =
-      game.achievementCounts().passiveRanksBought ??
-      game.ownedCharacters().reduce((sum, character) => sum + game.passiveRankOf(character), 0);
-    if (ranksBought > 0) return null;
-    return game.ownedCharacters().find((character) => character.passive && game.passiveUpgradeOf(character).affordable) ?? null;
-  });
   createEffect(
     on(
-      firstAffordablePassive,
+      game.firstAffordablePassive,
       (character, previous) => {
         if (character && !previous) game.announceUnlock(`Premier passif prêt : améliore ${character.name}`);
       },
@@ -179,6 +181,11 @@ export default function App() {
   function onHardReset() {
     if (!confirm("Tout effacer ? Points de prestige, arbre, succès, packs et doublons compris. Irréversible.")) return;
     game.hardReset();
+  }
+
+  function onRestoreBackup() {
+    if (!confirm("Remplacer la partie actuelle par la copie de secours ? La partie actuelle restera disponible comme copie de retour.")) return;
+    if (!game.restoreBackup()) alert("Aucune copie de secours valide n’est disponible.");
   }
 
   async function onImportFile(event: Event) {
@@ -235,6 +242,7 @@ export default function App() {
               </Show>
               <Show when={disclosure().achievements}>
                 <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
+                <button onClick={() => runFromMenu(() => setStatsOpen(true))}>Statistiques</button>
               </Show>
               <Show when={disclosure().prestige}>
                 <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>
@@ -255,6 +263,17 @@ export default function App() {
               </Show>
               <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
               <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
+              <button
+                title="Jalons de progression agrégés, sans identifiant de joueur"
+                onClick={() =>
+                  runFromMenu(() => setTelemetryConsent(telemetryConsent() === "enabled" ? "disabled" : "enabled"))
+                }
+              >
+                Mesure anonyme : {telemetryConsent() === "enabled" ? "activée" : "désactivée"}
+              </button>
+              <Show when={game.hasBackupSave()}>
+                <button onClick={() => runFromMenu(onRestoreBackup)}>Restaurer la copie de secours</button>
+              </Show>
               <button class="danger" onClick={() => runFromMenu(onHardReset)}>
                 Tout effacer
               </button>
@@ -325,6 +344,10 @@ export default function App() {
         <AchievementsPanel game={game} onClose={() => setAchievementsOpen(false)} />
       </Show>
 
+      <Show when={statsOpen()}>
+        <StatsPanel game={game} onClose={() => setStatsOpen(false)} />
+      </Show>
+
       <Show when={shopOpen()}>
         <ShopPanel game={game} onClose={() => setShopOpen(false)} />
       </Show>
@@ -352,9 +375,16 @@ export default function App() {
       <Show when={challengesOpen()}>
         <ChallengePanel game={game} onClose={() => setChallengesOpen(false)} />
       </Show>
+
+      <Show when={game.lastPrestigeReport()}>
+        {(report) => (
+          <PrestigeReportPanel game={game} report={report()} onClose={game.dismissPrestigeReport} />
+        )}
+      </Show>
       </Suspense>
 
       <Notices game={game} />
+      <TelemetryConsent />
     </>
   );
 }

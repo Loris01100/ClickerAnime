@@ -11,6 +11,9 @@ the deep rationale per system lives in `docs/`, one file per area, read on deman
 - `npm run dev` — Vite dev server
 - `npm run build` — `tsc --noEmit` typecheck, then Vite build
 - `npm test` — `vitest run` (node environment, only `src/**/*.test.ts`)
+- `npm run test:e2e` — critical player journey in Playwright Firefox
+- `npm run validate:data` — validates all authored ids, references, arcs and sequel presences
+- `npm run check:worker` — dry-run the telemetry Worker and its Analytics Engine binding
 - Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
 - `npm run sim` — plays a whole run headlessly and prints its pacing (`docs/simulator.md`)
 
@@ -47,10 +50,19 @@ sleeping machine or a throttled tab would otherwise hand the first tick back hou
 returned actions (`click`, `recruitCharacter`, `activateAbility`, `prestigeReset`, …) and read its
 accessors.
 
+**`src/engine/persistence.ts` — the save trust boundary.** It owns the save shape, validation,
+migrations, storage keys and backup recovery. `gameState.ts` assembles live signals into that shape
+but does not redefine the format.
+
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density; everything else is an overlay it owns. Each component takes `game: GameStore`
-as its only prop. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+as its only prop. Styling is hand-written CSS split by responsibility under `src/styles/`, imported
+in cascade order by `src/styles.css`; no UI framework.
 See `docs/ui.md`.
+
+**`src/worker.ts` — one deliberately narrow edge endpoint.** Static assets still bypass code; only
+`/api/*` runs the Worker. `/api/telemetry` validates the fixed anonymous event schema and writes
+aggregate progression points to Cloudflare Analytics Engine. It owns no save or gameplay state.
 
 ## Invariants
 
@@ -95,8 +107,9 @@ These outrank convenience, and several were learned the hard way. Don't break on
   turn cleared arcs back into boss-free farms.
 - **Boss traits are data, not component branches.** `Enemy.bossTrait` names one readable rule;
   `combat.ts` applies its hp or source-specific damage multiplier, and every estimate uses those
-  same helpers. A trait must be announced before the boss spawns. Do not special-case a boss id in
-  `gameState` or the UI.
+  same helpers. Every production boss has one: a bespoke authored trait wins, otherwise
+  `data/bossTraits.ts` supplies a mild rotating preset. A trait must be announced before the boss
+  spawns. Do not special-case a boss id in `gameState` or the UI.
 - **A character's `baseDps` is a ramp times a strength, and only the strength is a design
   statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
   the arc the player has reached, so an early recruit never becomes dead weight. Two characters
@@ -109,14 +122,17 @@ These outrank convenience, and several were learned the hard way. Don't break on
   characters recruited five minutes apart. It only ever raises a `secondary`, and it is free:
   `arcPowerTable` reads a cohort's **maximum**, so raising a minimum moves no `debutPower`. Hold new
   content to it (`docs/progression.md`).
-- **A story ability doesn't travel.** Outside every world a character calls home — their own anime,
-  or their evolution's once evolved, the single `isHomeArc` test — their passive *and* their active
+- **A story ability doesn't travel.** Outside every world a character calls home — their recruitment
+  anime, a declared later appearance, or their evolution's once evolved, through the single
+  `isHomeArc` test — their passive *and* their active
   ability shut off entirely rather than being malused. `getUnlockedAbilities` won't list the
   ability, so it can't be fired nor automated, and `allModifiers` filters out a buff of theirs still
   running on arrival. A crossover window buys the damage malus back and never these.
 - The click is a **trigger, not a damage source**. Character stats lean on `baseDps`, abilities buff
   `teamDps`.
 - Currency only ever comes from kills. There is no passive income and no offline progress.
+- A pack only draws among characters already recruited in the current run; it never reveals a
+  future story character. Existing duplicates still survive prestige while eligibility resets with the roster.
 - Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance).
 - **A challenge constraint is enforced, never watched.** Every rule in `challenges.ts` is something
   the engine *refuses to do* — no click damage, no ability, no drop, no recruit past the cap — and
@@ -135,10 +151,12 @@ These outrank convenience, and several were learned the hard way. Don't break on
   because it starts where the previous one left off (`docs/progression.md`).
 - Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
   sequel anime, enforced in `src/engine/tests/`.
-- A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
+- A character belongs to exactly one recruitment world. Later appearances never create another
+  recruit. Regular characters are recruitable in exactly one arc;
   shop-exclusive companions must have exactly one character offer instead.
-- `prestigeReset` wipes the run but spares the meta-progression: prestige points, achievement
-  counts, prestige-tree levels, pack points and duplicates. Only `hardReset` clears those.
+- `prestigeReset` wipes the run but spares the meta-progression: prestige points, passive ranks,
+  unique forge levels, achievement counts, prestige-tree levels, pack points and duplicates. Only
+  `hardReset` clears those.
 
 **Persistence**
 
@@ -146,14 +164,25 @@ These outrank convenience, and several were learned the hard way. Don't break on
   defaults. Bumping wipes every existing player's save; treat it as a last resort.
 - `importSave` is a real trust boundary: it runs a player-supplied file through `isValidSave` and
   writes it straight to `localStorage`.
+- Every primary write rotates the previous valid save into `SAVE_BACKUP_KEY`. Invalid primary data
+  falls back to that backup at boot; hard reset alone clears both slots.
 - Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved.
+
+**Telemetry**
+
+- Nothing is sent until explicit consent. Never add a player, device, installation or session id.
+- The schema is a fixed milestone allowlist. Reject unknown fields at the Worker boundary and never
+  persist IP addresses, user agents, saves or free-form player text.
+- Progression milestones carry accumulated active-play minutes from one local stopwatch. Closed,
+  sleeping and hidden tabs do not advance it; only a half-minute bucket is sent, once per milestone,
+  after consent.
 
 **UI**
 
 - Never hard-code a colour in a rule. Every colour comes from a token defined in the bare `:root`
   block, so the light/dark flip works.
-- A component never builds a colour string: it sets `--world-hue` on a container and `styles.css`
-  does the rest.
+- A component never builds a colour string: it sets `--world-hue` on a container and the imported
+  CSS modules do the rest.
 - UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.
 
 ## The systems
@@ -171,6 +200,8 @@ the shared vocabulary for equipment restrictions; add their French label in `ui/
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
 | UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |
+| Telemetry | `docs/telemetry.md` | Opt-in progression milestones, Worker validation, Analytics Engine schema and queries |
+| Content validation | `docs/content-validation.md` | Semantic validation of ids, references, recruitment and sequel presence |
 | Simulator | `docs/simulator.md` | `npm run sim`: playing a run headlessly to check a balance change |
 
 ## Content
@@ -211,7 +242,9 @@ shape when adding a world; omit a file only when the world genuinely has no such
   again** rather than copied from here — and sized against the dps the team has *after* crossing the
   border, which is far below what it ends the previous world with (`docs/combat.md`).
 
-A character belongs to exactly one world. Regular characters are recruitable in exactly one arc;
+A character belongs to exactly one recruitment world. `appearanceAnimeIds` keeps story abilities
+active in later series without duplicating the recruit; `fullSynergyAnimeIds` is reserved for a
+character who spans a later anime strongly enough to receive 1.0 throughout it. Regular characters are recruitable in exactly one arc;
 shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
 those entry paths, along with every
 id being unique and every reference resolvable). A mixed team still spans worlds — the team only

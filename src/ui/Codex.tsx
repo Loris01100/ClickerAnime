@@ -38,6 +38,8 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
   const animeName = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
     character.arcIds.map((id) => props.game.arcOf(id)?.name ?? id);
+  const laterAnimeNames = (character: Character) =>
+    [...new Set([...(character.appearanceAnimeIds ?? []), ...(character.fullSynergyAnimeIds ?? [])])].map(animeName);
   const itemsOf = (animeId: string) => {
     const itemIds = new Set(
       props.game.data.arcs
@@ -352,6 +354,12 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                     {animeName(character().animeId)} ses stats tombent à{" "}
                     {Math.round(props.game.synergyConfig().sameAnimeMalus * 100)} %, et dans un autre anime à{" "}
                     {Math.round(props.game.synergyConfig().otherAnimeMalus * 100)} %.
+                    <Show when={laterAnimeNames(character()).length > 0}>
+                      {" "}Toujours présent dans : {laterAnimeNames(character()).join(", ")} ; ses capacités y restent disponibles.
+                    </Show>
+                    <Show when={character().fullSynergyAnimeIds?.length}>
+                      {" "}Synergie maximale dans tout {character().fullSynergyAnimeIds!.map(animeName).join(", ")}.
+                    </Show>
                     <Show when={props.game.crossoverActive()}> Crossover actif : les malus sont annulés.</Show>
                   </p>
                 </div>

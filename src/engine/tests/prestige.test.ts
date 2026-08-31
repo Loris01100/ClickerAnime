@@ -1,7 +1,39 @@
 import { describe, expect, it } from "vitest";
 import { applyPrestige, canUnlockAnime, COMPLETION_GAIN_BONUS, createInitialPrestigeState, PRESTIGE_EXPONENT, PRESTIGE_SCALE, unlockAnime } from "../prestige";
+import { buildPrestigeReport } from "../prestigeReport";
 
 describe("prestige", () => {
+  it("freezes a detailed run report before reset", () => {
+    const report = buildPrestigeReport({
+      startedAt: 1_000,
+      endedAt: 3_601_000,
+      prestigeBefore: 4,
+      prestigeAfter: 11,
+      gainMultiplier: 1,
+      lifetimeEarned: 50_000,
+      completion: 0.4,
+      clearedArcIds: ["arc-a", "arc-b"],
+      unlockedAnimeIds: ["naruto"],
+      ownedCharacterCount: 3,
+      levels: [2, 5, 8],
+      teamDps: 120,
+      clickPower: 20,
+      uniqueItemsFound: 1,
+      passiveRanksKept: 6,
+      forgedUniquesKept: 2,
+      achievementCounts: { mobsKilled: 40, bossesKilled: 4, abilitiesUsed: 7 },
+      achievementBaseline: { mobsKilled: 10, bossesKilled: 1, abilitiesUsed: 2 },
+      challengeName: null,
+    });
+
+    expect(report.durationMs).toBe(3_600_000);
+    expect(report.prestigeGained).toBe(7);
+    expect(report.averageLevel).toBe(5);
+    expect(report.maxLevel).toBe(8);
+    expect(report.mobsKilled).toBe(30);
+    expect(report.bossesKilled).toBe(3);
+    expect(report.abilitiesUsed).toBe(5);
+  });
   const curve = (lifetime: number, completion = 0) =>
     (lifetime / PRESTIGE_SCALE) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion);
 

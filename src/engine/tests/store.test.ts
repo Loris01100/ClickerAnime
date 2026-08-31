@@ -1,10 +1,127 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
-import { createGameStore, MAX_KILLS_PER_SECOND } from "../gameState";
+import { createGameStore, MAX_KILLS_PER_SECOND, SAVE_BACKUP_KEY, SAVE_KEY } from "../gameState";
 import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
+  it("repairs a corrupt primary save from the automatic backup", () => {
+    const backup = baseSave({ currency: 4321, ownedCharacterIds: [] });
+    const storage = new Map<string, string>([
+      [SAVE_KEY, "{broken"],
+      [SAVE_BACKUP_KEY, JSON.stringify(backup)],
+    ]);
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
+      });
+      expect(game.currency()).toBe(4321);
+      expect(game.recoveredFromBackup()).toBe(true);
+      expect(JSON.parse(storage.get(SAVE_KEY)!)).toEqual(backup);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("rotates the current save into the backup and lets the player swap back", () => {
+    const current = baseSave({ currency: 100, ownedCharacterIds: [] });
+    const backup = baseSave({ currency: 50, ownedCharacterIds: [] });
+    const storage = new Map<string, string>([
+      [SAVE_KEY, JSON.stringify(current)],
+      [SAVE_BACKUP_KEY, JSON.stringify(backup)],
+    ]);
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
+      });
+      game.save();
+      expect(JSON.parse(storage.get(SAVE_BACKUP_KEY)!).currency).toBe(100);
+
+      storage.set(SAVE_BACKUP_KEY, JSON.stringify(backup));
+      expect(game.restoreBackup()).toBe(true);
+      expect(JSON.parse(storage.get(SAVE_KEY)!).currency).toBe(50);
+      expect(JSON.parse(storage.get(SAVE_BACKUP_KEY)!).currency).toBe(100);
+    } finally {
+      disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("keeps a character's passive rank through prestige and restores it on recruitment", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [{
+        id: "ta-arc",
+        animeId: "ta",
+        name: "Arc",
+        order: 0,
+        mobsToBoss: 10,
+        mobs: [
+          { id: "hero-fight", name: "Itachi", baseHp: 1, reward: 1, characterId: "itachi" },
+          { id: "plain", name: "Ninja", baseHp: 1, reward: 1 },
+        ],
+        boss: { id: "boss", name: "Boss", baseHp: 100, reward: 10 },
+      }],
+      characters: [{
+        id: "itachi",
+        name: "Itachi Uchiwa",
+        animeId: "ta",
+        rarity: "main" as const,
+        arcIds: ["ta-arc"],
+        baseClickPower: 1,
+        baseDps: 10,
+        passive: { target: "teamDps" as const, kind: "percent" as const, value: 0.2 },
+      }],
+      items: [],
+    };
+    const restore = installSave(baseSave({
+      ownedCharacterIds: ["itachi"],
+      passiveRanks: { itachi: 5 },
+    }));
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      const itachi = data.characters[0];
+      expect(game.passiveRankOf(itachi)).toBe(5);
+
+      game.prestigeReset();
+      expect(game.ownedCharacterIds()).not.toContain("itachi");
+      expect(game.passiveRankOf(itachi)).toBe(5);
+
+      expect(game.travelTo("ta")).toBe(true);
+      game.click();
+      expect(game.ownedCharacterIds()).toContain("itachi");
+      expect(game.passiveRankOf(itachi)).toBe(5);
+      expect(game.characterStatOf(itachi, "teamDps")).toBeGreaterThan(itachi.baseDps);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
   it("le DPS affiché par personnage additionne exactement le DPS de l'équipe", () => {
     // La panne que ce test garde : `characterStatOf` ne pliait que les modificateurs du personnage,
     // alors que `teamDps` applique en plus tout ce qui est global (succès, arbre de prestige, bonus
@@ -184,6 +301,81 @@ describe("store boot", () => {
       expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(10 * (1 + 7 / 6));
     } finally {
       disposeRoot();
+      restore();
+    }
+  });
+
+  it("keeps a unique's forge level through prestige and restores it on the next drop", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [{
+        id: "ta-arc",
+        animeId: "ta",
+        name: "Arc",
+        order: 0,
+        mobsToBoss: 0,
+        mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+        boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1, itemId: "unique" },
+      }],
+      characters: [],
+      items: [{ id: "unique", name: "Unique", kind: "unique" as const }],
+    };
+    const restore = installSave(baseSave({
+      ownedCharacterIds: [],
+      itemCounts: { unique: 1 },
+      uniqueFragments: { unique: 12 },
+      uniqueUpgradeRanks: { unique: 5 },
+    }));
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+
+      game.prestigeReset();
+      expect(game.countOf("unique")).toBe(0);
+      expect(game.uniqueFragmentsOf("unique")).toBe(0);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+
+      expect(game.travelTo("ta")).toBe(true);
+      game.click();
+      expect(game.countOf("unique")).toBe(1);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+
+      game.hardReset();
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(0);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("loads a remembered forge level while its unique is absent after prestige", () => {
+    const data = {
+      animes: [],
+      arcs: [],
+      characters: [],
+      items: [{ id: "unique", name: "Unique", kind: "unique" as const }],
+    };
+    const restore = installSave(baseSave({
+      ownedCharacterIds: [],
+      activeArcId: null,
+      unlockedAnimeIds: [],
+      itemCounts: {},
+      uniqueUpgradeRanks: { unique: 5 },
+    }));
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      expect(game.countOf("unique")).toBe(0);
+      expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
+    } finally {
       restore();
     }
   });
@@ -674,6 +866,62 @@ describe("store boot", () => {
       expect(stored).toHaveLength(1);
     } finally {
       disposeRoot();
+      (globalThis as { localStorage?: unknown }).localStorage = original;
+    }
+  });
+
+  it("does not overwrite an imported save with the old run during reload cleanup", () => {
+    const imported = {
+      version: 10,
+      currency: 12_345,
+      lifetimeEarned: 98_765,
+      ownedCharacterIds: ["naruto-uzumaki", "rock-lee"],
+      activeArcId: "shippuden-kazekage",
+      prestigePoints: 17,
+      unlockedAnimeIds: ["naruto", "shippuden"],
+      arcKills: { "shippuden-kazekage": 23 },
+      clearedArcIds: ["naruto-vagues", "naruto-chunin"],
+      characterXp: { "naruto-uzumaki": 4_200 },
+      itemCounts: { "item-fil": 8 },
+      passiveRanks: { "rock-lee": 3 },
+      evolvedCharacterIds: ["naruto-uzumaki"],
+      achievementCounts: { kills: 321 },
+      prestigeTreeRanks: { xp: [1, 2, 0, 0, 0] },
+      crossoverCrystals: 4,
+      worldPoints: { naruto: 6 },
+      characterDuplicates: { "naruto-uzumaki": 2 },
+      autoClickEnabled: false,
+      automationOff: { ability: true },
+      autoRankCharacterIds: ["rock-lee"],
+      abilityPolicy: { "ability-portes": "boss" as const },
+      abilityLastUsed: { "ability-portes": 123_000 },
+      uniqueFragments: { "item-fil": 5 },
+      uniqueUpgradeRanks: { "item-fil": 2 },
+      activeChallengeId: null,
+      completedChallengeIds: ["challenge-a"],
+      characterEquipment: {},
+    };
+    let stored: string | null = null;
+    const original = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => { stored = value; },
+      removeItem: () => { stored = null; },
+    };
+
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore({ animes: [], arcs: [], characters: [], items: [] });
+      });
+      expect(game.importSave(btoa(JSON.stringify(imported)))).toBe(true);
+
+      // `pagehide` and onCleanup both take this path while location.reload() tears the page down.
+      game.save();
+      disposeRoot();
+      expect(JSON.parse(stored!)).toEqual(imported);
+    } finally {
       (globalThis as { localStorage?: unknown }).localStorage = original;
     }
   });

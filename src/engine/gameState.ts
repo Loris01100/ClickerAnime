@@ -22,12 +22,25 @@ import {
   autoFirable,
   cooldownOf,
   cooldownRemaining,
+  diagnoseAbility,
   dutyMagnitude,
   getUnlockedAbilities,
   isAbilityReady,
   scopedMagnitude,
 } from "./abilities";
-import type { AbilityPolicy, UnlockedAbility } from "./abilities";
+import type { AbilityDiagnostic, AbilityPolicy, UnlockedAbility } from "./abilities";
+import {
+  clearSaveSlots,
+  decodeSave,
+  encodeSave,
+  hasValidBackup,
+  readSave,
+  restoreBackupSlots,
+  SAVE_VERSION,
+  writeSave,
+  type SaveFile,
+} from "./persistence";
+export { SAVE_BACKUP_KEY, SAVE_KEY } from "./persistence";
 import {
   damageMultiplierAgainst,
   enemyHp,
@@ -40,6 +53,15 @@ import {
   type DamageSource,
 } from "./combat";
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
+import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
+import {
+  sanitizedEquipment,
+  scaledUniqueEffect,
+  UNIQUE_FORGE_FRAGMENT_COSTS,
+  UNIQUE_FORGE_MULTIPLIERS,
+  uniqueRanksFromSave,
+} from "./forge";
+export { UNIQUE_FORGE_FRAGMENT_COSTS, UNIQUE_FORGE_MULTIPLIERS } from "./forge";
 import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   arcPowerTable,
@@ -184,198 +206,10 @@ export const MAX_KILLS_PER_SECOND = 5;
 export const CURRENCY_REWARD_MULTIPLIER = 0.75;
 /** Price of one current-arc common item, measured in ordinary victories. */
 export const SUPPLY_KILLS_PER_COPY = 15;
-/** Boss uniques start at rank 1; rank 4 preserves the power they had before the forge existed. */
-export const UNIQUE_FORGE_MULTIPLIERS = [0, 0.5, 2 / 3, 5 / 6, 1, 7 / 6] as const;
-export const UNIQUE_FORGE_FRAGMENT_COSTS = [0, 1, 5, 10, 15, 25] as const;
-// v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
-export const SAVE_KEY = "clicker-anime:save:v10";
-/** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
-const SAVE_VERSION = 10;
-
-interface SaveFile {
-  /**
-   * Shape version, carried inside the save rather than only in `SAVE_KEY`. A key bump means every
-   * existing player is wiped (the old key is never read again); a version field means the next
-   * breaking change can be *migrated* in `readSave` instead. Absent on any save written before this
-   * field existed, which `readSave` treats as `SAVE_VERSION` — those are v10 by definition, since
-   * the key they live under says so.
-   */
-  version?: number;
-  currency: number;
-  lifetimeEarned: number;
-  ownedCharacterIds: string[];
-  activeArcId: string | null;
-  prestigePoints: number;
-  unlockedAnimeIds: string[];
-  arcKills: Record<string, number>;
-  clearedArcIds: string[];
-  characterXp: Record<string, number>;
-  itemCounts: Record<string, number>;
-  passiveRanks: Record<string, number>;
-  evolvedCharacterIds: string[];
-  /** absent on a save from before achievements existed; every reader defaults it to {} */
-  achievementCounts?: Record<string, number>;
-  /** absent on a save from before the prestige tree existed; every reader defaults it to {} */
-  prestigeTreeRanks?: Record<string, number[]>;
-  /** absent on a save from before equipment existed; every reader defaults it to {} */
-  characterEquipment?: Record<string, string>;
-  /** absent on a save from before crossover crystals existed; every reader defaults it to 0 */
-  crossoverCrystals?: number;
-  /** pack points held per world; absent on an older save, defaults to {} */
-  worldPoints?: Record<string, number>;
-  /** pack copies held per character; absent on an older save, defaults to {} */
-  characterDuplicates?: Record<string, number>;
-  /** whether the bought autoclicker runs; absent on an older save, defaults to on */
-  autoClickEnabled?: boolean;
-  /**
-   * Automations the player has switched **off**, by `AutomationKey`. Stored as the off-set rather
-   * than the on-set so an absent entry — every save written before the branch existed — reads as
-   * "on", the same default the autoclicker gets.
-   */
-  automationOff?: Record<string, boolean>;
-  /** characters handed to the "Intendance" node; run-scoped like the roster, defaults to [] */
-  autoRankCharacterIds?: string[];
-  /**
-   * Per-ability plan for the "Réflexe" automation, by ability id. Only the non-default entries are
-   * written; an absent one — every save from before this existed — reads as `"always"`.
-   */
-  abilityPolicy?: Record<string, AbilityPolicy>;
-  /** cooldown start times survive a reload so refreshing cannot make abilities ready early */
-  abilityLastUsed?: Record<string, number>;
-  /** fragments dropped by a boss after its unique has already been found */
-  uniqueFragments?: Record<string, number>;
-  /** forge rank of each unique; absent saves keep their former rank-4 strength */
-  uniqueUpgradeRanks?: Record<string, number>;
-  /** the challenge being played right now, if any; absent on an older save, defaults to none */
-  activeChallengeId?: string | null;
-  /** challenges cleared, whose rewards are permanent; absent on an older save, defaults to [] */
-  completedChallengeIds?: string[];
-}
-
-const isNumber = (v: unknown) => typeof v === "number" && Number.isFinite(v);
-const isStringArray = (v: unknown) => Array.isArray(v) && v.every((e) => typeof e === "string");
-/** A plain `Record<string, T>` — rejects arrays and null, which `typeof === "object"` would let through. */
-function isRecordOf(v: unknown, valueOk: (value: unknown) => boolean): boolean {
-  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
-  return Object.values(v as Record<string, unknown>).every(valueOk);
-}
-
-/**
- * Full shape check, not a smoke test: `importSave` feeds this an arbitrary file the player supplied,
- * and whatever passes is written straight to `localStorage` before a reload — a half-checked blob
- * would persist a broken run the player can't get out of without a hard reset.
- *
- * What it enforces is the *type* of every field that is present, not the presence of every field:
- * each reader below already defaults a missing one (`saved?.x ?? []`), which is what lets a save
- * written by an older build still load. A field of the wrong type is the one thing those defaults
- * can't absorb — `arcKills: "abc"` sails past `?? {}` and poisons the run.
- */
-function isValidSave(value: unknown): value is SaveFile {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const c = value as Record<string, unknown>;
-  const opt = (v: unknown, ok: (value: unknown) => boolean) => v === undefined || ok(v);
-
-  // The two that identify the blob as a save at all.
-  if (!isNumber(c.currency) || !isStringArray(c.ownedCharacterIds)) return false;
-
-  return (
-    opt(c.version, isNumber) &&
-    opt(c.lifetimeEarned, isNumber) &&
-    opt(c.prestigePoints, isNumber) &&
-    opt(c.crossoverCrystals, isNumber) &&
-    opt(c.activeArcId, (v) => v === null || typeof v === "string") &&
-    opt(c.unlockedAnimeIds, isStringArray) &&
-    opt(c.clearedArcIds, isStringArray) &&
-    opt(c.evolvedCharacterIds, isStringArray) &&
-    opt(c.arcKills, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.characterXp, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.itemCounts, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.passiveRanks, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.achievementCounts, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.worldPoints, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.characterDuplicates, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.autoClickEnabled, (v) => typeof v === "boolean") &&
-    opt(c.automationOff, (v) => isRecordOf(v, (on) => typeof on === "boolean")) &&
-    opt(c.autoRankCharacterIds, isStringArray) &&
-    opt(c.abilityPolicy, (v) => isRecordOf(v, (p) => p === "always" || p === "boss" || p === "sync")) &&
-    opt(c.abilityLastUsed, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.uniqueFragments, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.uniqueUpgradeRanks, (v) => isRecordOf(v, isNumber)) &&
-    opt(c.activeChallengeId, (v) => v === null || typeof v === "string") &&
-    opt(c.completedChallengeIds, isStringArray) &&
-    opt(c.characterEquipment, (v) => isRecordOf(v, (id) => typeof id === "string")) &&
-    opt(c.prestigeTreeRanks, (v) =>
-      isRecordOf(v, (levels) => Array.isArray(levels) && levels.every(isNumber))
-    )
-  );
-}
-
-function uniqueRanksFromSave(data: GameData, saved: SaveFile | null): Record<string, number> {
-  const ranks = saved?.uniqueUpgradeRanks;
-  return Object.fromEntries(
-    data.items
-      .filter((item) => item.kind === "unique" && (saved?.itemCounts?.[item.id] ?? 0) > 0)
-      .map((item) => [item.id, Math.max(1, Math.min(5, Math.floor(ranks?.[item.id] ?? 4)))])
-  );
-}
-
-function scaledUniqueEffect(effect: ModifierTemplate, level: number): ModifierTemplate {
-  const strength = UNIQUE_FORGE_MULTIPLIERS[level] ?? UNIQUE_FORGE_MULTIPLIERS[1];
-  return { ...effect, value: effect.kind === "multiplier" ? 1 + (effect.value - 1) * strength : effect.value * strength };
-}
-
-/** Imported equipment also has to be meaningful for the current game data, not merely well-typed. */
-function sanitizedEquipment(
-  data: GameData,
-  equipment: Record<string, string> | undefined,
-  itemCounts: Record<string, number>,
-  ownedIds: string[]
-): Record<string, string> {
-  const cleaned: Record<string, string> = {};
-  const worn = new Set<string>();
-  for (const [characterId, itemId] of Object.entries(equipment ?? {})) {
-    const character = data.characters.find((c) => c.id === characterId);
-    const item = data.items.find((i) => i.id === itemId);
-    const restriction = item?.equippableBy;
-    const allowed =
-      !restriction ||
-      ((!restriction.characterIds || restriction.characterIds.includes(characterId)) &&
-        (!restriction.animeIds || restriction.animeIds.includes(character?.animeId ?? "")) &&
-        (!restriction.tags || restriction.tags.some((tag) => character?.tags?.includes(tag))));
-    if (
-      character &&
-      ownedIds.includes(characterId) &&
-      item?.kind === "unique" &&
-      itemCounts[itemId] > 0 &&
-      allowed &&
-      !worn.has(itemId)
-    ) {
-      cleaned[characterId] = itemId;
-      worn.add(itemId);
-    }
-  }
-  return cleaned;
-}
-
-function readSave(): SaveFile | null {
-  if (typeof localStorage === "undefined") return null;
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null");
-    if (!isValidSave(parsed)) return null;
-    // Migration v9: the "resource" prestige branch was renamed to "destin". Copy old progress over
-    // so players don't lose their bought levels when the branch identity changed.
-    if (parsed.prestigeTreeRanks && "resource" in parsed.prestigeTreeRanks && !("destin" in parsed.prestigeTreeRanks)) {
-      parsed.prestigeTreeRanks = { ...parsed.prestigeTreeRanks, destin: parsed.prestigeTreeRanks.resource };
-      delete parsed.prestigeTreeRanks.resource;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
 export function createGameStore(data: GameData) {
-  const saved = readSave();
+  const loadedSave = readSave();
+  const saved = loadedSave.save;
+  const [hasBackupSave, setHasBackupSave] = createSignal(hasValidBackup());
 
   /**
    * Id indexes over the content, built once.
@@ -426,7 +260,13 @@ export function createGameStore(data: GameData) {
   const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
   const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
   const [uniqueFragments, setUniqueFragments] = createSignal<Record<string, number>>(saved?.uniqueFragments ?? {});
-  const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(uniqueRanksFromSave(data, saved));
+  // Forge levels are permanent mastery. Prestige removes the unique and its fragments, but the
+  // next copy found recovers this level. Only hardReset wipes the map.
+  const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(
+    uniqueRanksFromSave(data.items, saved)
+  );
+  // Passive ranks are permanent mastery: a prestige removes the team and its item stock, but a
+  // character recovers every bought rank when recruited again. Only hardReset wipes them.
   const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
   const [evolvedCharacterIds, setEvolvedCharacterIds] = createSignal<string[]>(saved?.evolvedCharacterIds ?? []);
   // Lifetime totals for the achievement ladders (see achievements.ts) — never decrease and, unlike
@@ -434,6 +274,11 @@ export function createGameStore(data: GameData) {
   const [achievementCounts, setAchievementCounts] = createSignal<Record<string, number>>(
     saved?.achievementCounts ?? {}
   );
+  const [runStartedAt, setRunStartedAt] = createSignal(saved?.runStartedAt ?? Date.now());
+  const [runAchievementBaseline, setRunAchievementBaseline] = createSignal<Record<string, number>>(
+    saved?.runAchievementBaseline ?? saved?.achievementCounts ?? {}
+  );
+  const [lastPrestigeReport, setLastPrestigeReport] = createSignal<PrestigeReport | null>(null);
   // Levels bought per node of the prestige skill tree (see prestigeTree.ts) — meta-progression like
   // prestige points themselves: survives prestigeReset, only hardReset wipes it.
   const [prestigeTreeRanks, setPrestigeTreeRanks] = createSignal<Record<string, number[]>>(
@@ -500,7 +345,13 @@ export function createGameStore(data: GameData) {
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
   // characterId -> itemId for equipped unique items.
   const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
-    sanitizedEquipment(data, saved?.characterEquipment, saved?.itemCounts ?? {}, saved?.ownedCharacterIds ?? [])
+    sanitizedEquipment(
+      data.characters,
+      data.items,
+      saved?.characterEquipment,
+      saved?.itemCounts ?? {},
+      saved?.ownedCharacterIds ?? []
+    )
   );
   // Cristaux de crossover: earned on kills with a team spanning two worlds, spent to lift the
   // synergy malus for a while (see crossover.ts). Run-scoped like items — prestigeReset wipes them.
@@ -674,7 +525,7 @@ export function createGameStore(data: GameData) {
 
   const progressOf = (characterId: string) => xpProgress(xpOf(characterId), effectiveXpGrowth());
 
-  /** Items found this run; wiped by a prestige along with the ranks they bought. Commons stack. */
+  /** Items found this run; wiped by prestige. Forge ranks survive separately. Commons stack. */
   const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
 
   const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
@@ -818,16 +669,21 @@ export function createGameStore(data: GameData) {
     return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, isEvolved(c))).map((c) => c.id));
   });
 
+  /** Every ability granted by the roster, before the current anime or challenge filters it. */
+  const ownedAbilities = createMemo(() =>
+    getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds())
+  );
+
   /**
    * How many abilities are asleep because their character is abroad. The bar filters them out
    * entirely, so without this the roster would just quietly shrink on arrival in a new world and
    * the player would have no way to tell a travelled ability from one never unlocked.
    */
-  const sleepingAbilityCount = createMemo(() => {
+  const sleepingAbilities = createMemo(() => {
     const away = awayCharacterIds();
-    return ownedCharacters().filter((c) => away.has(c.id) && ((isEvolved(c) && c.evolution?.ability) || c.ability))
-      .length;
+    return ownedAbilities().filter((unlocked) => away.has(unlocked.sourceId));
   });
+  const sleepingAbilityCount = createMemo(() => sleepingAbilities().length);
 
   /**
    * Everything the team permanently contributes in the arc being fought — `permanentModifiersFor`
@@ -1263,6 +1119,10 @@ export function createGameStore(data: GameData) {
     if (paused() || !enemy() || amount <= 0) return 0;
     let remaining = amount;
     const firstTarget = enemy();
+    // The number the pop-up shows: the *swing's* power against the enemy on screen, deliberately not
+    // the hp actually removed. A crit that one-shots a near-dead mob must still read as the full,
+    // enlarged crit (`design.md` §12) — so this stays `amount × the on-screen trait`, whatever the
+    // carry-over then fells behind it. Don't "fix" it to sum the hp taken off each target.
     const reportedDamage = firstTarget ? amount * damageMultiplierAgainst(firstTarget, source) : amount;
     const allowance = Math.min(MAX_KILLS_PER_HIT, Math.floor(killBudget()));
     let spent = 0;
@@ -1282,7 +1142,11 @@ export function createGameStore(data: GameData) {
       spent++;
       defeat(target);
     }
-    // Damage still in hand once the budget is out — it lands, it just can't fell anything.
+    // Damage still in hand once the budget is out — it lands, it just can't fell anything. This also
+    // covers a fractional budget (`allowance` floored to 0): only *kills* are budget-gated, never the
+    // hp a hit removes, so a healthy enemy keeps taking damage while the budget refills. The one
+    // visible tell is an enemy sitting at 0 hp for up to a tick before the next kill lands — the cap
+    // working as intended (`MAX_KILLS_PER_SECOND`), not a stuck fight.
     if (remaining > 0 && enemy()) {
       setEnemyHpLeft(Math.max(0, enemyHpLeft() - remaining * damageMultiplierAgainst(enemy()!, source)));
     }
@@ -1476,6 +1340,20 @@ export function createGameStore(data: GameData) {
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
   /**
+   * The first character whose passive is affordable *and* never yet ranked this save — the tutorial's
+   * payoff. `null` the moment any rank has ever been bought, so it only ever fires once. Lives here
+   * rather than in two components: `App` announces it and `RosterPanel` unfolds the team on it, and
+   * they must agree on which character that is.
+   */
+  const firstAffordablePassive = createMemo<Character | null>(() => {
+    const ranksBought =
+      achievementCounts().passiveRanksBought ??
+      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0);
+    if (ranksBought > 0) return null;
+    return ownedCharacters().find((c) => c.passive && passiveUpgradeOf(c).affordable) ?? null;
+  });
+
+  /**
    * Spends the origin item to buy the next rank of a character's passive. Refuses on a character
    * who isn't in the team: `characterContributions` only ever runs on owned characters, so the
    * copies would be burnt for nothing (the item Codex lists the whole cast, met or not). Refuses
@@ -1539,8 +1417,9 @@ export function createGameStore(data: GameData) {
     return foldScopedStat(0, target, teamWideScaling(), teamWideScaling(), [own], now(), buffCap());
   }
 
-  /** The world's cast a pack of that rarity can draw from — empty means the pack can't be bought. */
-  const packPoolOf = (animeId: string, rarity: Rarity) => packPool(data.characters, animeId, rarity);
+  /** Recruited members of this world's rarity — future story characters never leak through packs. */
+  const packPoolOf = (animeId: string, rarity: Rarity) =>
+    packPool(data.characters, animeId, rarity, ownedCharacterIds());
 
   /**
    * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.
@@ -1827,6 +1706,26 @@ export function createGameStore(data: GameData) {
     return [...new Set(live.map((m) => m.sourceId))];
   });
 
+  /** Every owned ability with the exact reason it is ready, cooling, active or unavailable. */
+  const abilityDiagnostics = createMemo<AbilityDiagnostic[]>(() => {
+    const running = new Set(activeBuffs());
+    return ownedAbilities().flatMap((unlocked) => {
+      const character = characterOf(unlocked.sourceId);
+      if (!character) return [];
+      return [
+        diagnoseAbility(unlocked, character, {
+          activeArc: activeArc(),
+          evolved: isEvolved(character),
+          challengeId: activeChallengeId(),
+          noAbilities: challengeRules().noAbilities === true,
+          lastActivatedAt: abilityLastUsed()[unlocked.ability.id],
+          now: now(),
+          active: running.has(unlocked.ability.id),
+        }),
+      ];
+    });
+  });
+
   // --- défis de run (`challenges.ts`) ---
 
   const isChallengeDone = (id: string) => completedChallengeIds().includes(id);
@@ -1857,7 +1756,7 @@ export function createGameStore(data: GameData) {
   function startChallenge(id: string): boolean {
     const challenge = challengeById(id);
     if (!challenge || activeChallengeId() || isChallengeDone(id)) return false;
-    prestigeReset();
+    prestigeReset(false);
     setActiveChallengeId(id);
     return true;
   }
@@ -1870,22 +1769,52 @@ export function createGameStore(data: GameData) {
   function abandonChallenge(): boolean {
     if (!activeChallengeId()) return false;
     setActiveChallengeId(null);
-    prestigeReset();
+    prestigeReset(false);
     return true;
   }
 
   /**
-   * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared, items and
-   * passive ranks all go. Only the prestige points survive — plus the meta-progression the run
-   * never owned: achievement counts, tree levels, and the pack points and duplicates (see packs.ts).
+   * Sends the run back to square one: currency, team, xp, worlds entered, arcs cleared and items
+   * all go. Passive ranks and unique forge levels survive with the other meta-progression: once a
+   * character or unique is obtained again, its previously bought mastery returns.
    * The whole point is to redo the climb faster.
    */
-  function prestigeReset() {
+  function prestigeReset(showReport = true) {
     // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
     const doubleLevel = nodeLevelOf("destin", 5);
     const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
-    setPrestige((p) => applyPrestige(p, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier));
+    const endedAt = Date.now();
+    const before = prestige();
+    const after = applyPrestige(before, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier);
+    if (showReport) {
+      setLastPrestigeReport(
+        buildPrestigeReport({
+          startedAt: runStartedAt(),
+          endedAt,
+          prestigeBefore: before.prestigePoints,
+          prestigeAfter: after.prestigePoints,
+          gainMultiplier,
+          lifetimeEarned: lifetimeEarned(),
+          completion: runCompletion(),
+          clearedArcIds: clearedArcIds(),
+          unlockedAnimeIds: before.unlockedAnimeIds,
+          ownedCharacterCount: ownedCharacterIds().length,
+          levels: ownedCharacterIds().map(levelOf),
+          teamDps: teamDps(),
+          clickPower: clickPower(),
+          uniqueItemsFound: foundItems().filter((item) => item.kind === "unique").length,
+          passiveRanksKept: Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0),
+          forgedUniquesKept: Object.values(uniqueUpgradeRanks()).filter((rank) => rank > 1).length,
+          achievementCounts: achievementCounts(),
+          achievementBaseline: runAchievementBaseline(),
+          challengeName: activeChallenge()?.name ?? null,
+        })
+      );
+    }
+    setPrestige(after);
     bumpAchievement("prestiges");
+    setRunAchievementBaseline({ ...achievementCounts() });
+    setRunStartedAt(endedAt);
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
@@ -1894,8 +1823,6 @@ export function createGameStore(data: GameData) {
     setAbilityLastUsed({});
     setItemCounts({});
     setUniqueFragments({});
-    setUniqueUpgradeRanks({});
-    setPassiveRanks({});
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
@@ -1945,18 +1872,24 @@ export function createGameStore(data: GameData) {
       abilityLastUsed: abilityLastUsed(),
       activeChallengeId: activeChallengeId(),
       completedChallengeIds: completedChallengeIds(),
+      runStartedAt: runStartedAt(),
+      runAchievementBaseline: runAchievementBaseline(),
     };
   }
 
+  // An import deliberately reloads the page after replacing localStorage. `pagehide` and Solid's
+  // cleanup both call `save()` during that reload; without this guard they immediately wrote the
+  // still-running old signals over the imported file, making a successful import look ignored.
+  let importedSavePendingReload = false;
+
   function save() {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveFile()));
-    setLastSavedAt(Date.now());
+    if (importedSavePendingReload) return;
+    if (writeSave(buildSaveFile(), () => setHasBackupSave(true))) setLastSavedAt(Date.now());
   }
 
   /** A portable blob the player can download and hand back later — same shape `readSave` already trusts. */
   function exportSave(): string {
-    return btoa(JSON.stringify(buildSaveFile()));
+    return encodeSave(buildSaveFile());
   }
 
   /**
@@ -1964,20 +1897,35 @@ export function createGameStore(data: GameData) {
    * simplest way to get every signal back in sync, rather than exposing a setter per field here.
    */
   function importSave(text: string): boolean {
-    try {
-      const parsed: unknown = JSON.parse(atob(text.trim()));
-      if (!isValidSave(parsed)) return false;
-      if (typeof localStorage !== "undefined") localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
-      if (typeof location !== "undefined") location.reload();
-      return true;
-    } catch {
+    const parsed = decodeSave(text);
+    if (!parsed) return false;
+    importedSavePendingReload = true;
+    if (!writeSave(parsed, () => setHasBackupSave(true))) {
+      importedSavePendingReload = false;
       return false;
     }
+    if (typeof location !== "undefined") location.reload();
+    return true;
+  }
+
+  /**
+   * Swaps the current and backup slots so restoring is reversible until the next autosave. A bad
+   * current slot is simply replaced; it is never allowed to destroy the valid backup.
+   */
+  function restoreBackup(): boolean {
+    importedSavePendingReload = true;
+    if (!restoreBackupSlots()) {
+      importedSavePendingReload = false;
+      return false;
+    }
+    if (typeof location !== "undefined") location.reload();
+    return true;
   }
 
   /** Wipes the save and every bit of progress, prestige and worlds included. */
   function hardReset() {
-    if (typeof localStorage !== "undefined") localStorage.removeItem(SAVE_KEY);
+    clearSaveSlots();
+    setHasBackupSave(false);
     setCurrency(0);
     setLifetimeEarned(0);
     setOwnedCharacterIds([]);
@@ -1995,6 +1943,9 @@ export function createGameStore(data: GameData) {
     setBossRetreatArcIds([]);
     setEvolvedCharacterIds([]);
     setAchievementCounts({});
+    setRunStartedAt(Date.now());
+    setRunAchievementBaseline({});
+    setLastPrestigeReport(null);
     setPrestigeTreeRanks({});
     setCharacterEquipment({});
     setKillsSinceDrop({});
@@ -2202,6 +2153,7 @@ export function createGameStore(data: GameData) {
     arcOf,
     animeOf,
     now,
+    runStartedAt,
     currency,
     lifetimeEarned,
     prestige,
@@ -2231,6 +2183,7 @@ export function createGameStore(data: GameData) {
     passiveRankOf,
     passiveUpgradeOf,
     passiveCapOf,
+    firstAffordablePassive,
     rankUpPassive,
     characterEquipment,
     equippedItemOf,
@@ -2256,6 +2209,8 @@ export function createGameStore(data: GameData) {
     crossoverAdvised,
     activateCrossover,
     unlockedAbilities,
+    abilityDiagnostics,
+    sleepingAbilities,
     sleepingAbilityCount,
     activeBuffs,
     readyAbilities,
@@ -2348,8 +2303,13 @@ export function createGameStore(data: GameData) {
     buffCap,
     abilityCooldownRemaining,
     prestigeReset,
+    lastPrestigeReport,
+    dismissPrestigeReport: () => setLastPrestigeReport(null),
     save,
     lastSavedAt,
+    hasBackupSave,
+    recoveredFromBackup: () => loadedSave.recoveredFromBackup,
+    restoreBackup,
     exportSave,
     importSave,
     hardReset,

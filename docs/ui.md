@@ -3,13 +3,28 @@
 The shell, the panels, the art direction and the theming. `design.md` holds the visual/UX intent;
 this file holds how it is wired.
 
+## Browser journey test
+
+`npm run test:e2e` starts the local app and runs `tests/e2e/critical-player-journey.spec.ts` in
+Firefox. It selects a first world, fights through the visible click target, exports and imports a
+real `.txt` save, boots a second tab from a deliberately damaged primary slot, performs prestige
+through the confirmation UI, verifies the detailed report and permanent passive/forge mastery,
+then restores the backup
+from the menu. CI installs Playwright's Firefox build and runs this after unit tests and the
+production build. This is deliberately one high-value journey rather than a duplicate browser test
+for every engine rule; pure rules remain faster and more precise in Vitest.
+
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density: many small stacked panels, every learned system visible at once. Left is the
 roster (abilities, sortable team table, item table), middle is resources + the fight + the world
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`. `Notices.tsx` is the exception to the overlay rule: a fixed,
+`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`, `PrestigeReportPanel.tsx`. The prestige report
+is built from a frozen pre-reset snapshot: it shows the duration and completion of the adventure,
+points banked, combat and economy actions, final power, worlds and arcs cleared, and the permanent
+passive/forge mastery carried into the next run. It is transient — closing or reloading dismisses it
+without adding presentation state to the save. `Notices.tsx` is the exception to the overlay rule: a fixed,
 non-blocking stack of pop-ups fed by the store's `notices` queue, which `grantItem` and `defeat`
 push to so that a drop, a recruit and a cleared arc stop happening in silence. The queue lives in
 the store because those events are born in the engine, and it is expired by the existing 200ms tick
@@ -54,6 +69,17 @@ items, worlds/shop, prestige, packs, crossover and challenges). `App.tsx` compar
 `DisclosureState` values and never replays already-visible systems when loading a save. These
 announcements reuse the bounded, dismissible notice queue used by drops and recruits.
 
+`TelemetryConsent.tsx` is a fixed, compact consent banner shown once until the player chooses. It
+states the aggregate milestones collected, the categories never sent, the three-month retention and
+the permanent menu switch used to withdraw or grant consent later. The client does not contact the
+telemetry endpoint while the state is pending or refused.
+
+The ability bar keeps every owned ability visible. Disabled cards print their precise state rather
+than an aggregate warning: character absent from the current anime plus the anime list where the
+ability works, active challenge and its constraint, exact cooldown, or remaining active duration.
+Ready cards remain first, followed by active, cooldown and blocked cards, without tick-by-tick
+reordering within each group.
+
 Resource tiles always print their names beside their art: Or, Points de prestige, Cristaux
 crossover and Points de pack. Icons remain recognition shortcuts, never the only vocabulary.
 `ui/advice.ts` similarly turns a boss that fails `bossOutlookOf` into the best immediate action the
@@ -64,7 +90,9 @@ an abstract percentage of discarded DPS.
 
 Boss traits are never surprise penalties. An open arc prints the trait name as a compact chip, and
 `ClickStage` keeps a `Boss à venir` strip visible from the moment the arc is entered. It names the
-boss, the trait and its exact consequence, then changes to `Trait actif` during the boss fight.
+boss, the trait and its exact consequence. Before combat it adds the trait-specific counter, the
+automatic kill-time estimate against the timer and one concrete preparation action when needed;
+then it contracts to `Trait actif` during the boss fight.
 The Codex modal keeps the same fixed responsive frame on its anime picker, character tab and item
 tab. Its grid has an explicit bounded row and overrides the shared `.scroll` height limit: each list
 and detail page therefore uses and scrolls through all the remaining space inside that frame, while
@@ -210,7 +238,7 @@ AniList de leur anime : ils se résolvent comme une recrue, et il n'y a plus d'a
 `themeOf(anime)` — `anime.themeHue ?? spriteHue(anime.id)` — is the single entry point, so a world
 with a hand-picked `Anime.themeHue` gets it and any other world stays automatically distinct. A
 component never builds a colour string: it sets the **`--world-hue`** custom property on a container
-and `styles.css` does the rest with `hsl(var(--world-hue) … / var(--world-strength))`. It is set in
+and the modules imported by `styles.css` do the rest with `hsl(var(--world-hue) … / var(--world-strength))`. It is set in
 three places because the world being *shown* is not always the one being *fought*: `App.tsx` on
 `.game`, `WorldMap.tsx` on `.map-canvas` (its tab can be pinned to another world),
 `WorldPortal.tsx` on `.portal-hero`/`.portal-card`. A default in the bare `:root` keeps any rule
@@ -232,13 +260,14 @@ malus, suppress a passive outside its home anime, and update for scoped ability 
 expiry under the same mastery cap as the team totals. The ability bar drops the buttons of every
 character who is abroad for the same reason, and prints `sleepingAbilityCount` under the grid so a
 world change reads as a rule rather than as a bug. The separate Syn. column keeps the multiplier
-visible so the reason for the drop is explicit. Styling is one hand-written `src/styles.css` with CSS variables; no UI framework.
+visible so the reason for the drop is explicit. Styling stays hand-written and framework-free:
+`src/styles.css` is the ordered manifest, while `src/styles/` groups rules by responsibility.
 
 ## L'écran de secours
 
 `src/index.tsx` enveloppe `<App />` dans un `<ErrorBoundary>` de `solid-js`. Une exception dans un
 composant donnait sinon une page blanche : plus de jeu, et surtout aucun moyen de sortir la
-sauvegarde. Le fallback (`.crash` dans `styles.css`) affiche la pile et le contenu brut de
+sauvegarde. Le fallback (`.crash` dans `styles/feedback-and-automation.css`) affiche la pile et le contenu brut de
 `localStorage[SAVE_KEY]` dans un `<textarea>` en lecture seule — le joueur copie, recharge, et peut
 réimporter. C'est la seule raison pour laquelle `SAVE_KEY` est exporté par `gameState.ts`.
 

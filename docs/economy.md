@@ -41,26 +41,32 @@ clear and only until one lifetime passive rank has been bought, every defeated e
 compatible common drops it while the stack is below the next rank's cost. The player still repeats
 the arc and sees six pickups, but a bad RNG seed cannot hide the farming loop. Normal drop chances
 resume as soon as the stack is sufficient, even before the purchase.
-Ranks and the items that paid for them are run-scoped: `prestigeReset` wipes both.
+The items that paid for ranks are run-scoped, but the ranks themselves are character mastery:
+`prestigeReset` wipes the common-item stock and the roster, while keeping `passiveRanks`. When the
+character is recruited again in a later adventure, their passive immediately returns at its former
+rank. Only `hardReset` wipes that mastery.
 
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
 
 ## Forge
 
-Every unique begins at forge rank 1 (50% of its former contribution). Ranks 2–5 contribute 67%,
+The pure forge and equipment rules live in `src/engine/forge.ts`; `gameState.ts` only wires them to
+the reactive inventory. Every unique begins at forge rank 1 (50% of its former contribution). Ranks 2–5 contribute 67%,
 84%, 100% and 116%; rank 4 is exactly the pre-forge power, so existing saves keep their balance.
 After its first drop, defeating that arc's replayable boss awards one fragment of that unique instead
 of another copy. The forge consumes 5, 10, 15 then 25 fragments for ranks 2–5 (rank 1 is granted
-with the first unique) and is reset with the run alongside uniques themselves.
+with the first unique). The unique itself and unspent fragments are run-scoped, but its forge rank
+is permanent mastery: after prestige, the next copy found immediately recovers its former rank.
+Only `hardReset` clears that rank.
 
 **A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
 Two constants were over that line and together took the effective common-drop rate from the printed
-12% to **0.73 copies per kill**: `DOUBLE_DROP_CHANCE` at 0.25 (a maxed node doubled *every* drop)
-and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third amplifier — `PITY_REDUCTION_PER_LEVEL`
-at 3 forced a common every 3 kills at max level, a 33% floor that made the printed chance
-meaningless. Retuned to 0.08 / 0.1 / 1 respectively (0.41 copies per kill fully maxed).
+base (now 15%) to **0.73 copies per kill** back when the base was 12%: `DOUBLE_DROP_CHANCE` at 0.25
+(a maxed node doubled *every* drop) and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third
+amplifier — `PITY_REDUCTION_PER_LEVEL` at 3 forced a common every 3 kills at max level, a 33% floor
+that made the printed chance meaningless. Retuned to 0.08 / 0.1 / 1 respectively.
 `src/engine/tests/` now asserts the rule for every chance constant and keeps the pity floor above the
 base draw's own ~8-kill average, so this class of mistake can't come back.
 
@@ -91,8 +97,8 @@ full clear's 3.21e12 — **+0.5%**, i.e. ×1.008 through a 0.16 exponent. That i
 when the next world lands: an entry world sits at the *bottom* of the difficulty ramp, so its
 earnings are noise next to the last world's, and only the arc count really moves.
 
-`prestigeReset()` wipes everything but the prestige points, the achievement counts, the prestige
-tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, passive ranks, kills, cleared arcs
+`prestigeReset()` wipes everything but the prestige points, passive ranks, unique forge levels,
+achievement counts, the prestige tree ranks (see below) and the pack points and duplicates: currency, roster, xp, items, equipment, kills, cleared arcs
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what
@@ -101,6 +107,13 @@ dominate, or farming one arc for hours outpaces clearing the next one. A double-
 of the tree's **"Destin"** branch, see below. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.
+
+Immediately before wiping the run, `buildPrestigeReport` freezes a plain snapshot: duration,
+completion, points gained and new total, final click/DPS, recruited character levels, worlds and
+arcs cleared, items, per-run achievement deltas, and the passive/unique mastery that survives. The
+store resets only after this snapshot exists, then exposes it transiently to the UI. Starting or
+abandoning a challenge uses the same reset mechanics with report display disabled; only the
+player's explicit prestige produces the recap.
 
 ## The prestige tree (`prestigeTree.ts`)
 
@@ -310,7 +323,10 @@ won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws
 world's `rarity: "main"` cast, `PACK_COST.secondary` (250) from its secondary cast. `packPool` and
 `drawPack` are pure and take the 0..1 roll as an argument, like `rollsDrop`; `openPack` in
 `gameState` is the only caller of `Math.random()` and returns the character drawn so `PackPanel` can
-show it. The pool is **not** filtered by the team: a copy of someone not met yet is banked for later.
+show it. The pool is filtered by the current roster: only characters already recruited in this
+adventure are eligible. This prevents a pack from revealing or strengthening a character before
+their story encounter. After prestige, a character becomes eligible again when recruited again;
+duplicates already held remain banked meanwhile.
 
 Points and duplicates are meta-progression like `achievementCounts` and `prestigeTreeRanks` —
 `prestigeReset` spares both, only `hardReset` wipes them. Both are optional save fields, so no

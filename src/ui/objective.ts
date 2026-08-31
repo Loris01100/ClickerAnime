@@ -21,6 +21,10 @@ export interface TutorialObjective {
 
 /** The four-action vocabulary of a fresh run; lifetime counters make it complete only once. */
 export function tutorialObjective(facts: ObjectiveFacts): TutorialObjective | null {
+  // The tutorial ends for good at the first passive rank. This lifetime counter gates every step
+  // because step 3's `itemCopies` is *not* monotonic: buying the passive spends the copies, which
+  // would otherwise drop the objective back to step 3 and loop the tutorial forever.
+  if (facts.passiveRanksBought >= 1) return null;
   if (facts.recruits < 1) {
     return {
       step: 1,

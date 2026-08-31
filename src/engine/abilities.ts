@@ -9,6 +9,67 @@ export interface UnlockedAbility {
   characterIds: string[];
 }
 
+export type AbilityAvailability =
+  | { status: "ready" }
+  | { status: "active"; remainingMs: number }
+  | { status: "cooldown"; remainingMs: number }
+  | { status: "blocked-anime"; animeId: string; availableAnimeIds: string[] }
+  | { status: "blocked-challenge"; challengeId: string };
+
+export interface AbilityDiagnostic extends UnlockedAbility {
+  availability: AbilityAvailability;
+}
+
+/** Every anime where this character's story ability may currently be used. */
+export function abilityAnimeIds(character: Character, evolved: boolean): string[] {
+  return [
+    character.animeId,
+    ...(character.appearanceAnimeIds ?? []),
+    ...(character.fullSynergyAnimeIds ?? []),
+    ...(evolved && character.evolution ? [character.evolution.animeId] : []),
+  ].filter((id, index, ids) => ids.indexOf(id) === index);
+}
+
+/**
+ * One authoritative diagnosis for a button that cannot fire. The UI translates the structured
+ * reason; combat and automation keep using `getUnlockedAbilities`, so explaining a lock can never
+ * accidentally lift it.
+ */
+export function diagnoseAbility(
+  unlocked: UnlockedAbility,
+  character: Character,
+  options: {
+    activeArc: Arc | null;
+    evolved: boolean;
+    challengeId: string | null;
+    noAbilities: boolean;
+    lastActivatedAt: number | undefined;
+    now: number;
+    active: boolean;
+  }
+): AbilityDiagnostic {
+  if (options.noAbilities) {
+    return {
+      ...unlocked,
+      availability: { status: "blocked-challenge", challengeId: options.challengeId ?? "unknown" },
+    };
+  }
+  if (options.activeArc && !isHomeArc(character, options.activeArc, options.evolved)) {
+    return {
+      ...unlocked,
+      availability: {
+        status: "blocked-anime",
+        animeId: options.activeArc.animeId,
+        availableAnimeIds: abilityAnimeIds(character, options.evolved),
+      },
+    };
+  }
+  const remainingMs = cooldownRemaining(options.lastActivatedAt, cooldownOf(unlocked.ability), options.now);
+  if (options.active) return { ...unlocked, availability: { status: "active", remainingMs } };
+  if (remainingMs > 0) return { ...unlocked, availability: { status: "cooldown", remainingMs } };
+  return { ...unlocked, availability: { status: "ready" } };
+}
+
 /**
  * An ability is unlocked by owning the character that grants one. An evolved character's ability,
  * if their evolution defines one, replaces their base ability outright — never both at once.

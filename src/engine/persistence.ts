@@ -1,0 +1,214 @@
+import type { AbilityPolicy } from "./abilities";
+
+// v10: added characterEquipment (Record<characterId, itemId>) for equippable unique items.
+export const SAVE_KEY = "clicker-anime:save:v10";
+/** Last known-good primary save, rotated automatically before every successful write. */
+export const SAVE_BACKUP_KEY = `${SAVE_KEY}:backup`;
+/** Written into every save as `SaveFile.version` — see there before bumping `SAVE_KEY` again. */
+export const SAVE_VERSION = 10;
+
+export interface SaveFile {
+  /**
+   * Shape version, carried inside the save rather than only in `SAVE_KEY`. A key bump means every
+   * existing player is wiped; a version field lets a breaking change be migrated in `readSave`.
+   */
+  version?: number;
+  currency: number;
+  lifetimeEarned: number;
+  ownedCharacterIds: string[];
+  activeArcId: string | null;
+  prestigePoints: number;
+  unlockedAnimeIds: string[];
+  arcKills: Record<string, number>;
+  clearedArcIds: string[];
+  characterXp: Record<string, number>;
+  itemCounts: Record<string, number>;
+  passiveRanks: Record<string, number>;
+  evolvedCharacterIds: string[];
+  achievementCounts?: Record<string, number>;
+  prestigeTreeRanks?: Record<string, number[]>;
+  characterEquipment?: Record<string, string>;
+  crossoverCrystals?: number;
+  worldPoints?: Record<string, number>;
+  characterDuplicates?: Record<string, number>;
+  autoClickEnabled?: boolean;
+  automationOff?: Record<string, boolean>;
+  autoRankCharacterIds?: string[];
+  abilityPolicy?: Record<string, AbilityPolicy>;
+  abilityLastUsed?: Record<string, number>;
+  uniqueFragments?: Record<string, number>;
+  uniqueUpgradeRanks?: Record<string, number>;
+  activeChallengeId?: string | null;
+  completedChallengeIds?: string[];
+  runStartedAt?: number;
+  runAchievementBaseline?: Record<string, number>;
+}
+
+const isNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+const isStringArray = (value: unknown) =>
+  Array.isArray(value) && value.every((entry) => typeof entry === "string");
+
+/** A plain `Record<string, T>` — rejects arrays and null, which `typeof === "object"` accepts. */
+function isRecordOf(value: unknown, valueOk: (entry: unknown) => boolean): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.values(value as Record<string, unknown>).every(valueOk);
+}
+
+/**
+ * Full type check for both browser storage and arbitrary imported files. Fields remain optional so
+ * older saves can be absorbed by the defaults in `createGameStore`.
+ */
+export function isValidSave(value: unknown): value is SaveFile {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const optional = (entry: unknown, valid: (item: unknown) => boolean) =>
+    entry === undefined || valid(entry);
+
+  if (!isNumber(candidate.currency) || !isStringArray(candidate.ownedCharacterIds)) return false;
+
+  return (
+    optional(candidate.version, isNumber) &&
+    optional(candidate.lifetimeEarned, isNumber) &&
+    optional(candidate.prestigePoints, isNumber) &&
+    optional(candidate.crossoverCrystals, isNumber) &&
+    optional(candidate.activeArcId, (entry) => entry === null || typeof entry === "string") &&
+    optional(candidate.unlockedAnimeIds, isStringArray) &&
+    optional(candidate.clearedArcIds, isStringArray) &&
+    optional(candidate.evolvedCharacterIds, isStringArray) &&
+    optional(candidate.arcKills, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.characterXp, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.itemCounts, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.passiveRanks, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.achievementCounts, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.worldPoints, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.characterDuplicates, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.autoClickEnabled, (entry) => typeof entry === "boolean") &&
+    optional(candidate.automationOff, (entry) =>
+      isRecordOf(entry, (enabled) => typeof enabled === "boolean")
+    ) &&
+    optional(candidate.autoRankCharacterIds, isStringArray) &&
+    optional(candidate.abilityPolicy, (entry) =>
+      isRecordOf(entry, (policy) => policy === "always" || policy === "boss" || policy === "sync")
+    ) &&
+    optional(candidate.abilityLastUsed, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.uniqueFragments, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.uniqueUpgradeRanks, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.activeChallengeId, (entry) => entry === null || typeof entry === "string") &&
+    optional(candidate.completedChallengeIds, isStringArray) &&
+    optional(candidate.runStartedAt, isNumber) &&
+    optional(candidate.runAchievementBaseline, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.characterEquipment, (entry) =>
+      isRecordOf(entry, (id) => typeof id === "string")
+    ) &&
+    optional(candidate.prestigeTreeRanks, (entry) =>
+      isRecordOf(entry, (levels) => Array.isArray(levels) && levels.every(isNumber))
+    )
+  );
+}
+
+/** Parses, validates and migrates one stored save without ever exposing a bad blob. */
+export function parseSave(raw: string | null): SaveFile | null {
+  try {
+    const parsed = JSON.parse(raw ?? "null");
+    if (!isValidSave(parsed)) return null;
+    if (
+      parsed.prestigeTreeRanks &&
+      "resource" in parsed.prestigeTreeRanks &&
+      !("destin" in parsed.prestigeTreeRanks)
+    ) {
+      parsed.prestigeTreeRanks = {
+        ...parsed.prestigeTreeRanks,
+        destin: parsed.prestigeTreeRanks.resource,
+      };
+      delete parsed.prestigeTreeRanks.resource;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function storedRaw(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function hasValidBackup(): boolean {
+  return typeof localStorage !== "undefined" && parseSave(storedRaw(SAVE_BACKUP_KEY)) !== null;
+}
+
+/** Rotates a valid primary into the backup slot, then writes the supplied state. */
+export function writeSave(save: SaveFile, onBackupCreated?: () => void): boolean {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    const currentRaw = localStorage.getItem(SAVE_KEY);
+    if (parseSave(currentRaw) && currentRaw) {
+      localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
+      onBackupCreated?.();
+    }
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function encodeSave(save: SaveFile): string {
+  return btoa(JSON.stringify(save));
+}
+
+export function decodeSave(text: string): SaveFile | null {
+  try {
+    const parsed: unknown = JSON.parse(atob(text.trim()));
+    return isValidSave(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Swaps the primary and backup slots so a restoration remains reversible. */
+export function restoreBackupSlots(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  const backupRaw = storedRaw(SAVE_BACKUP_KEY);
+  if (!parseSave(backupRaw) || !backupRaw) return false;
+  try {
+    const currentRaw = localStorage.getItem(SAVE_KEY);
+    const currentValid = parseSave(currentRaw) !== null;
+    localStorage.setItem(SAVE_KEY, backupRaw);
+    if (currentValid && currentRaw) localStorage.setItem(SAVE_BACKUP_KEY, currentRaw);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearSaveSlots(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(SAVE_BACKUP_KEY);
+}
+
+export interface LoadedSave {
+  save: SaveFile | null;
+  recoveredFromBackup: boolean;
+}
+
+/** Reads the primary slot, then repairs it from the last known-good backup when necessary. */
+export function readSave(): LoadedSave {
+  if (typeof localStorage === "undefined") return { save: null, recoveredFromBackup: false };
+  const primary = parseSave(storedRaw(SAVE_KEY));
+  if (primary) return { save: primary, recoveredFromBackup: false };
+
+  const backupRaw = storedRaw(SAVE_BACKUP_KEY);
+  const backup = parseSave(backupRaw);
+  if (!backup || !backupRaw) return { save: null, recoveredFromBackup: false };
+  try {
+    localStorage.setItem(SAVE_KEY, backupRaw);
+  } catch {
+    // The valid backup can still boot the session if storage is temporarily full.
+  }
+  return { save: backup, recoveredFromBackup: true };
+}

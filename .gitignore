@@ -4,3 +4,5 @@ dist/
 .wrangler/
 *.log
 .playwright-mcp/
+playwright-report/
+test-results/

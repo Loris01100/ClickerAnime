@@ -1,0 +1,449 @@
+/* --- HUD notices --- */
+/*
+ * A drop, a recruit or a cleared arc used to happen in complete silence. These float above
+ * everything, out of the way of the fight, and each one is a button so it can be dismissed early.
+ * The store expires them on its own tick — see gameState's `notices`.
+ */
+.notices {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: auto;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--muted);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  animation: notice-in 0.22s ease-out;
+}
+.notice-item {
+  border-left-color: var(--blue);
+}
+.notice-recruit {
+  border-left-color: var(--gold);
+}
+.notice-arc {
+  border-left-color: var(--good);
+}
+.notice-unlock {
+  border-left-color: var(--accent);
+  background: var(--active-tint);
+  font-weight: 700;
+}
+@keyframes notice-in {
+  from {
+    transform: translateX(1rem);
+    opacity: 0;
+  }
+}
+
+.telemetry-consent {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--ink-shadow);
+}
+.telemetry-consent > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.telemetry-consent span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.telemetry-consent small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.telemetry-consent button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.telemetry-consent button.primary {
+  width: auto;
+}
+@media (max-width: 620px) {
+  .telemetry-consent {
+    flex-wrap: wrap;
+  }
+  .telemetry-consent > div {
+    flex-basis: 100%;
+  }
+}
+
+/* --- destructive action --- */
+button.danger {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+/* The stage is keyboard-operable (space/enter), so it needs a visible focus ring like any button. */
+.stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice {
+    animation: none;
+  }
+}
+
+/* --- lisibilité de la progression --- */
+/* Un arc ouvert dont le boss dépasse son propre chrono : « reviens plus tard », sans survol. */
+/* Le badge suit un nom d'arc de longueur libre, donc il finit toujours par tomber en fin de ligne.
+   `inline-block` + `nowrap` en font un bloc atomique : il bascule entier sur la ligne suivante au
+   lieu d'être coupé en son milieu. En `inline` (le défaut), « La Mission de Récupération de Sasuke »
+   scindait le badge en deux fragments — « trop » sur une ligne, « dur » sur la suivante — avec le
+   fond rose peint deux fois. */
+.arc-hard {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  background: var(--bad);
+  color: var(--panel);
+  font-size: 0.7rem;
+}
+.boss-trait-chip {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--boss);
+  border-radius: 4px;
+  color: var(--boss);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* The first passive purchase is the farming tutorial's payoff: frame it until it is clicked. */
+.tutorial-passive-ready {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--active-tint);
+}
+.tutorial-ready-chip {
+  margin-left: auto;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--panel);
+  font-weight: 700;
+}
+.rank-up.tutorial-rank-up {
+  border-color: var(--accent);
+  background: var(--active-tint);
+  box-shadow: 0 0 0 2px var(--active-tint);
+  animation: tutorial-pulse 1.4s ease-in-out infinite;
+}
+@keyframes tutorial-pulse {
+  50% { transform: scale(1.035); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-up.tutorial-rank-up { animation: none; }
+}
+/* Une capacité dont le buff tourne encore — elle se cumule désormais, elle n'est plus bloquée. */
+.ability.running {
+  border-color: var(--good);
+}
+.ability.running .ability-cd {
+  color: var(--good);
+}
+/* Le nudge du crossover : la tuile pulse quand dépenser des cristaux paierait vraiment. */
+.currency.advised {
+  border-color: var(--blue);
+  animation: advised 1.8s ease-in-out infinite;
+}
+@keyframes advised {
+  50% {
+    border-color: var(--accent);
+  }
+}
+.save-state {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currency.advised {
+    animation: none;
+  }
+}
+
+/* Verrouillée par le buff d'une autre capacité sur la même stat — distinct d'une simple recharge. */
+/*
+ * Un dégât d'auto-clic (arbre de prestige) : même animation que le clic manuel, mais plus discret,
+ * pour qu'on distingue au premier regard ce qu'on a frappé de ce que le perk a frappé.
+ */
+.pop.auto {
+  color: var(--blue);
+  font-size: 0.85em;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Interrupteur de l'auto-clic, dans le panel-head du Combat. */
+/*
+ * Le bandeau de défi, au-dessus de la bande d'automatisation : la contrainte se lit là où elle
+ * mord, pendant le combat, et pas seulement dans le panneau qui l'a lancée. Teinte `--boss`, la
+ * même que l'automatisation, parce que les deux parlent du cadre de la run et non de son contenu.
+ */
+.challenge-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--boss);
+  font-size: 0.72rem;
+  background: color-mix(in srgb, var(--boss) 8%, transparent);
+}
+.challenge-banner span {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.challenge-banner small {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Read before the boss spawns, then stays in place as confirmation while the trait is active. */
+.boss-intel {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem 0.55rem;
+  padding: 0.38rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--boss);
+  background: var(--panel-2);
+  font-size: 0.75rem;
+}
+.boss-intel.active {
+  background: var(--active-tint);
+}
+.boss-intel > svg {
+  color: var(--boss);
+}
+.boss-intel > div {
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+}
+.boss-intel > div small {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+.boss-intel > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.boss-preparation {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.12rem 0.55rem;
+  padding-top: 0.32rem;
+  border-top: 1px solid var(--line);
+}
+.boss-preparation > strong {
+  grid-row: 1 / span 2;
+  white-space: nowrap;
+}
+.boss-preparation > strong.good {
+  color: var(--good);
+}
+.boss-preparation > strong.bad {
+  color: var(--bad);
+}
+.boss-preparation > span,
+.boss-preparation > small {
+  min-width: 0;
+  color: var(--muted);
+}
+.boss-preparation > small:last-child {
+  grid-column: 2;
+}
+@media (max-width: 620px) {
+  .boss-intel {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .boss-intel > span {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+  .boss-preparation {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Une carte de défi dans son panneau : relevée = discrète, en cours = soulignée par la teinte. */
+.codex-block.challenge.done {
+  opacity: 0.75;
+}
+.codex-block.challenge.running {
+  border-left: 3px solid var(--boss);
+}
+.challenge-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--boss);
+}
+.challenge-flag.done {
+  color: var(--good);
+}
+
+/*
+ * La bande d'automatisation, sous le sélecteur d'arc : une puce par automatisation *achetée*
+ * (branche « Automatisation » de l'arbre), plus le clic auto et la pause. Elle défile
+ * horizontalement plutôt que de repousser le combat vers le bas.
+ */
+.auto-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.auto-strip-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.auto-strip .auto-toggle {
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.auto-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  opacity: 0.6;
+}
+.auto-toggle.on {
+  border-color: var(--blue);
+  color: var(--blue);
+  opacity: 1;
+}
+
+/* Écran de secours de l'`ErrorBoundary` (src/index.tsx) : lisible même si tout le reste a sauté. */
+.crash {
+  max-width: 46rem;
+  margin: 3rem auto;
+  padding: 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+}
+.crash pre,
+.crash textarea {
+  width: 100%;
+  overflow: auto;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+.crash pre {
+  color: var(--bad);
+  white-space: pre-wrap;
+}
+
+/* --- plans du Réflexe (overlay) ---
+   Une ligne par capacité : à gauche ce qu'elle fait, à droite les trois plans en segments. Les
+   prêtes sont soulignées par leur bordure — on règle souvent le plan juste après en avoir vu une
+   partir au mauvais moment. */
+.reflex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+}
+.reflex-row.ready {
+  border-color: var(--accent);
+}
+.reflex-id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+.reflex-id small {
+  font-size: 0.68rem;
+}
+.reflex-plans {
+  display: flex;
+  gap: 0.15rem;
+  flex: none;
+}
+.reflex-plan {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+}
+.reflex-plan.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.reflex-group {
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+
+

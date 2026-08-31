@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoFirable, getUnlockedAbilities, isAbilityReady } from "../abilities";
+import { autoFirable, diagnoseAbility, getUnlockedAbilities, isAbilityReady } from "../abilities";
 import type { AbilityPolicy, UnlockedAbility } from "../abilities";
 import type { Arc, Character } from "../types";
 
@@ -48,6 +48,52 @@ describe("abilities", () => {
 
   it("retire la capacité d'un personnage hors de son monde", () => {
     expect(getUnlockedAbilities(["c1"], [withAbility], [], arcIn("anime-2"))).toEqual([]);
+  });
+
+  it("explique séparément un blocage d'anime, de défi et de recharge", () => {
+    const unlocked = getUnlockedAbilities(["c1"], [withAbility])[0];
+    expect(
+      diagnoseAbility(unlocked, withAbility, {
+        activeArc: arcIn("anime-2"),
+        evolved: false,
+        challengeId: null,
+        noAbilities: false,
+        lastActivatedAt: undefined,
+        now: 10_000,
+        active: false,
+      }).availability
+    ).toEqual({ status: "blocked-anime", animeId: "anime-2", availableAnimeIds: ["anime-1"] });
+
+    expect(
+      diagnoseAbility(unlocked, withAbility, {
+        activeArc: arcIn("anime-1"),
+        evolved: false,
+        challengeId: "silence",
+        noAbilities: true,
+        lastActivatedAt: undefined,
+        now: 10_000,
+        active: false,
+      }).availability
+    ).toEqual({ status: "blocked-challenge", challengeId: "silence" });
+
+    expect(
+      diagnoseAbility(unlocked, withAbility, {
+        activeArc: arcIn("anime-1"),
+        evolved: false,
+        challengeId: null,
+        noAbilities: false,
+        lastActivatedAt: 9_000,
+        now: 10_000,
+        active: false,
+      }).availability
+    ).toEqual({ status: "cooldown", remainingMs: 500 });
+  });
+
+  it("garde la capacité dans un anime ultérieur où le personnage apparaît", () => {
+    const recurring: Character = { ...withAbility, appearanceAnimeIds: ["anime-2"] };
+    expect(getUnlockedAbilities(["c1"], [recurring], [], arcIn("anime-2")).map((u) => u.ability.id)).toEqual([
+      "ability-1",
+    ]);
   });
 
   it("rend la capacité dans le monde de son évolution, une fois évolué", () => {
