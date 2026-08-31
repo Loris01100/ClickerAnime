@@ -24,6 +24,7 @@ import { newlyUnlocked } from "./ui/unlocks";
  * `fallback` du `<Show>` principal), le differer retarderait le tout premier rendu.
  */
 const AchievementsPanel = lazy(() => import("./ui/AchievementsPanel"));
+const StatsPanel = lazy(() => import("./ui/StatsPanel"));
 const Codex = lazy(() => import("./ui/Codex"));
 const ChallengePanel = lazy(() => import("./ui/ChallengePanel"));
 const PrestigeTree = lazy(() => import("./ui/PrestigeTree"));
@@ -49,6 +50,7 @@ export default function App() {
   const [codexFocusId, setCodexFocusId] = createSignal<string | undefined>();
   const [portalOpen, setPortalOpen] = createSignal(false);
   const [achievementsOpen, setAchievementsOpen] = createSignal(false);
+  const [statsOpen, setStatsOpen] = createSignal(false);
   const [prestigeTreeOpen, setPrestigeTreeOpen] = createSignal(false);
   const [challengesOpen, setChallengesOpen] = createSignal(false);
   const [shopOpen, setShopOpen] = createSignal(false);
@@ -247,6 +249,7 @@ export default function App() {
               </Show>
               <Show when={disclosure().achievements}>
                 <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
+                <button onClick={() => runFromMenu(() => setStatsOpen(true))}>Statistiques</button>
               </Show>
               <Show when={disclosure().prestige}>
                 <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>
@@ -346,6 +349,10 @@ export default function App() {
 
       <Show when={achievementsOpen()}>
         <AchievementsPanel game={game} onClose={() => setAchievementsOpen(false)} />
+      </Show>
+
+      <Show when={statsOpen()}>
+        <StatsPanel game={game} onClose={() => setStatsOpen(false)} />
       </Show>
 
       <Show when={shopOpen()}>

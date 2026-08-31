@@ -419,6 +419,28 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.stats-worlds {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.stats-world-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+.stats-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.stats-bar-fill {
+  height: 100%;
+  background: hsl(var(--world-hue, 210) 70% 55%);
+  transition: width 0.3s ease-out;
+}
 .codex-modal {
   /* Every Codex route shares one frame so its navigation never jumps when switching between the
      short anime picker and the longer character/item lists. */

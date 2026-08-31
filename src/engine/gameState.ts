@@ -2131,6 +2131,7 @@ export function createGameStore(data: GameData) {
     arcOf,
     animeOf,
     now,
+    runStartedAt,
     currency,
     lifetimeEarned,
     prestige,
