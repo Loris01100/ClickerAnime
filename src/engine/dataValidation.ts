@@ -1,3 +1,4 @@
+import { canEquipOn, itemAnimeIndex } from "./forge";
 import type { GameData } from "./gameState";
 import type { AbilityDefinition, Anime, Enemy, ModifierTemplate } from "./types";
 
@@ -158,6 +159,11 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
 
     const homeArcs = new Set<string>();
+    // `arcIds[0]` n’est pas un arc parmi d’autres : `arcPowerTable` en fait l’arc de *débuts* du
+    // personnage, donc le `debutPower` que `catchUpGrowth` divise puis réapplique. Listé dans le
+    // désordre, le personnage débute dans le mauvais arc et toute sa courbe de rattrapage glisse —
+    // en silence, aucun type ne voit un tableau de chaînes mal trié.
+    let previousOrder = -Infinity;
     for (const [arcIndex, arcId] of character.arcIds.entries()) {
       if (homeArcs.has(arcId)) add("duplicate-presence", `${path}.arcIds[${arcIndex}]`, `l’arc « ${arcId} » est répété`);
       homeArcs.add(arcId);
@@ -165,6 +171,15 @@ export function validateGameData(data: GameData): ContentIssue[] {
       if (!arc) add("unknown-arc", `${path}.arcIds[${arcIndex}]`, `l’arc « ${arcId} » n’existe pas`);
       else if (arc.animeId !== character.animeId) {
         add("wrong-home-arc", `${path}.arcIds[${arcIndex}]`, `l’arc appartient à « ${arc.animeId} », pas à l’animé de recrutement`);
+      } else {
+        if (arc.order < previousOrder) {
+          add(
+            "unordered-presence",
+            `${path}.arcIds[${arcIndex}]`,
+            `les arcs doivent être listés dans l’ordre de l’histoire : « ${arcId} » (ordre ${arc.order}) suit un arc plus tardif`
+          );
+        }
+        previousOrder = arc.order;
       }
     }
 
@@ -179,21 +194,31 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
 
     for (const [synergyIndex, animeId] of (character.fullSynergyAnimeIds ?? []).entries()) {
-      if (!appearances.has(animeId) && character.evolution?.animeId !== animeId) {
+      if (!appearances.has(animeId) && !character.evolutions?.some((evolution) => evolution.animeId === animeId)) {
         add("synergy-without-presence", `${path}.fullSynergyAnimeIds[${synergyIndex}]`, `la synergie complète dans « ${animeId} » exige d’abord une présence ou une évolution`);
       }
     }
     if (character.passive) validateModifier(character.passive, `${path}.passive`);
     if (character.ability) validateAbility(character.ability, `${path}.ability`);
-    if (character.evolution) {
-      if (!isLaterAnime(character.evolution.animeId, character.animeId)) {
-        add("invalid-evolution", `${path}.evolution.animeId`, `« ${character.evolution.animeId} » n’est pas une suite de « ${character.animeId} »`);
+    let previousEvolutionAnimeId = character.animeId;
+    const evolutionAnimeIds = new Set<string>();
+    for (const [evolutionIndex, evolution] of (character.evolutions ?? []).entries()) {
+      const evolutionPath = `${path}.evolutions[${evolutionIndex}]`;
+      if (evolutionAnimeIds.has(evolution.animeId)) {
+        add("duplicate-evolution", `${evolutionPath}.animeId`, `« ${evolution.animeId} » possède déjà une évolution`);
       }
-      character.evolution.bonus.forEach((effect, effectIndex) => validateModifier(effect, `${path}.evolution.bonus[${effectIndex}]`));
-      if (character.evolution.ability) validateAbility(character.evolution.ability, `${path}.evolution.ability`);
+      evolutionAnimeIds.add(evolution.animeId);
+      if (animeById.get(evolution.animeId)?.requiresAnimeId !== previousEvolutionAnimeId) {
+        add("invalid-evolution", `${evolutionPath}.animeId`, `« ${evolution.animeId} » doit suivre directement « ${previousEvolutionAnimeId} »`);
+      }
+      evolution.bonus.forEach((effect, effectIndex) => validateModifier(effect, `${evolutionPath}.bonus[${effectIndex}]`));
+      if (!evolution.ability) add("missing-evolution-ability", `${evolutionPath}.ability`, "chaque évolution doit remplacer la capacité");
+      else validateAbility(evolution.ability, `${evolutionPath}.ability`);
+      previousEvolutionAnimeId = evolution.animeId;
     }
   }
 
+  const itemAnimeIds = itemAnimeIndex(data.arcs);
   for (const [index, item] of data.items.entries()) {
     const path = `items[${index}](${item.id})`;
     item.effects?.forEach((effect, effectIndex) => validateModifier(effect, `${path}.effects[${effectIndex}]`));
@@ -202,6 +227,12 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
     for (const animeId of item.equippableBy?.animeIds ?? []) {
       if (!animeById.has(animeId)) add("unknown-anime", `${path}.equippableBy.animeIds`, `l’animé « ${animeId} » n’existe pas`);
+    }
+    // Un unique se porte dans son monde d’origine et seulement là : croiser cette règle avec un
+    // `equippableBy` trop étroit donne un objet que personne ne peut jamais équiper — du contenu
+    // mort qu’aucun type ne signale.
+    if (item.kind === "unique" && !data.characters.some((c) => canEquipOn(c, item, itemAnimeIds[item.id]))) {
+      add("unwearable-unique", path, "aucun personnage de son monde ne peut équiper cet objet unique");
     }
   }
 

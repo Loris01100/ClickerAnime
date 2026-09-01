@@ -102,7 +102,7 @@ describe("abilities", () => {
       id: "c4",
       name: "C4",
       ability: withAbility.ability,
-      evolution: { animeId: "anime-2", label: "Evolved", bonus: [] },
+      evolutions: [{ animeId: "anime-2", label: "Evolved", bonus: [] }],
     };
     // Pas encore évolué : anime-2 reste l'étranger, comme pour le malus de synergie.
     expect(getUnlockedAbilities(["c4"], [evolvable], [], arcIn("anime-2"))).toEqual([]);
@@ -117,7 +117,7 @@ describe("abilities", () => {
       id: "c3",
       name: "C3",
       ability: withAbility.ability,
-      evolution: {
+      evolutions: [{
         animeId: "anime-2",
         label: "Evolved",
         bonus: [],
@@ -128,10 +128,25 @@ describe("abilities", () => {
           durationMs: 500,
           effects: [{ target: "teamDps", kind: "multiplier", value: 3 }],
         },
-      },
+      }],
     };
     expect(getUnlockedAbilities(["c3"], [evolvable]).map((u) => u.ability.id)).toEqual(["ability-1"]);
     expect(getUnlockedAbilities(["c3"], [evolvable], ["c3"]).map((u) => u.ability.id)).toEqual(["ability-evolved"]);
+  });
+
+  it("selects each successive ability and still understands legacy first-stage saves", () => {
+    const recurring: Character = {
+      ...withAbility,
+      id: "c-multi",
+      evolutions: [
+        { animeId: "anime-2", label: "Stage 1", bonus: [], ability: { ...withAbility.ability!, id: "ability-stage-1" } },
+        { animeId: "anime-3", label: "Stage 2", bonus: [], ability: { ...withAbility.ability!, id: "ability-stage-2" } },
+      ],
+    };
+    const abilityId = (ids: string[]) => getUnlockedAbilities([recurring.id], [recurring], ids)[0].ability.id;
+    expect(abilityId([])).toBe("ability-1");
+    expect(abilityId([recurring.id])).toBe("ability-stage-1");
+    expect(abilityId(["c-multi@anime-2", "c-multi@anime-3"])).toBe("ability-stage-2");
   });
 
   it("tracks cooldown readiness", () => {

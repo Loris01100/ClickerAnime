@@ -1,4 +1,5 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
+import { achievementCount } from "../engine/achievements";
 import type { GameStore } from "../engine/gameState";
 import type { ProgressionMilestone, TelemetryPayload } from "../telemetrySchema";
 
@@ -151,12 +152,14 @@ export function setupTelemetry(game: GameStore) {
     const counts = game.achievementCounts();
     const candidates = progressionCandidates({
       worlds: game.prestige().unlockedAnimeIds.length,
-      recruits: counts.charactersRecruited ?? 0,
-      arcs: counts.arcsCleared ?? 0,
-      items: (counts.commonItemsCollected ?? 0) + game.foundItems().filter((item) => item.kind === "unique").length,
-      passiveRanks: counts.passiveRanksBought ?? 0,
-      abilities: counts.abilitiesUsed ?? 0,
-      prestiges: counts.prestiges ?? 0,
+      recruits: achievementCount(counts, "charactersRecruited"),
+      arcs: achievementCount(counts, "arcsCleared"),
+      items:
+        achievementCount(counts, "commonItemsCollected") +
+        game.foundItems().filter((item) => item.kind === "unique").length,
+      passiveRanks: achievementCount(counts, "passiveRanksBought"),
+      abilities: achievementCount(counts, "abilitiesUsed"),
+      prestiges: achievementCount(counts, "prestiges"),
     });
     const arc = game.activeArc();
     for (const candidate of candidates) {
@@ -184,7 +187,10 @@ export function setupTelemetry(game: GameStore) {
       milestone: "completed",
       value: report.prestigeGained,
       secondaryValue: report.completion,
-      durationMinutes: report.durationMs / 60_000,
+      // Bucketed like every other duration this module sends: a run's length is the one field here
+      // precise enough to be a behavioural trace, and `docs/telemetry.md` promises a half-minute
+      // bucket without qualifying which event it means. It used to leave `durationMs / 60_000` raw.
+      durationMinutes: milestoneDurationMinutes(report.durationMs),
     });
   });
 }

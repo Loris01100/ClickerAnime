@@ -7,6 +7,7 @@ import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 import { bossAdvice, bossTraitCounter } from "./advice";
+import { termsOf } from "./presentation";
 import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar, IconTarget } from "./icons";
 
 interface Pop {
@@ -98,6 +99,7 @@ export default function ClickStage(props: { game: GameStore }) {
 
   const arc = () => props.game.activeArc();
   const anime = () => props.game.animeOf(arc()?.animeId);
+  const terms = () => termsOf(anime() ?? undefined);
   const enemy = () => props.game.enemy();
   const isBoss = () => !!enemy() && enemy()!.id === arc()?.boss.id;
   const hpRatio = () => (props.game.enemyMaxHp() > 0 ? props.game.enemyHpLeft() / props.game.enemyMaxHp() : 0);
@@ -137,9 +139,7 @@ export default function ClickStage(props: { game: GameStore }) {
     const current = arc();
     return current ? props.game.bossChallengeable(current) : false;
   };
-  const affordablePassive = createMemo(() =>
-    props.game.ownedCharacters().some((character) => props.game.passiveUpgradeOf(character).affordable)
-  );
+  const affordablePassive = createMemo(() => props.game.rankablePassiveIds().size > 0);
   const equippableUnique = createMemo(() =>
     props.game.foundItems().some(
       (item) =>
@@ -165,7 +165,7 @@ export default function ClickStage(props: { game: GameStore }) {
   );
   const bossEstimate = () => {
     const outlook = bossOutlook();
-    if (!outlook || !Number.isFinite(outlook.ttkMs)) return "Aucun DPS automatique estimé pour le moment.";
+    if (!outlook || !Number.isFinite(outlook.ttkMs)) return `${terms().teamDps} indisponible pour le moment.`;
     const estimate = `${seconds(outlook.ttkMs)} estimées`;
     return outlook.timerMs
       ? `${estimate} pour une limite de ${seconds(outlook.timerMs)}, sans compter tes clics.`
@@ -176,7 +176,7 @@ export default function ClickStage(props: { game: GameStore }) {
     <section class="panel">
       <header class="panel-head">
         <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
-          Combat
+          {terms().stage}
         </PanelTitle>
         <small class="muted">
           {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
@@ -214,7 +214,7 @@ export default function ClickStage(props: { game: GameStore }) {
           <div class="boss-intel" classList={{ active: isBoss() }}>
             <IconCrown />
             <div>
-              <small>{isBoss() ? "Trait actif" : `Boss à venir · ${arc()?.boss.name}`}</small>
+              <small>{isBoss() ? "Trait actif" : `${terms().boss} à venir · ${arc()?.boss.name}`}</small>
               <strong>{trait().name}</strong>
             </div>
             <span>{trait().description}</span>
@@ -236,14 +236,14 @@ export default function ClickStage(props: { game: GameStore }) {
 
       <AutomationBar game={props.game} />
 
-      <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour combattre.</div>}>
+      <Show when={enemy()} fallback={<div class="stage stage-idle">Choisissez un arc pour commencer.</div>}>
         {(current) => (
           <>
             <div
               class="stage"
               role="button"
               tabindex="0"
-              aria-label="Clic du Narrateur"
+              aria-label={terms().clickPower}
               onClick={handleClick}
               onKeyDown={handleKey}
             >
@@ -252,7 +252,7 @@ export default function ClickStage(props: { game: GameStore }) {
                   <div class="stage-backdrop" style={{ "background-image": `url(${src()})` }} aria-hidden="true" />
                 )}
               </Show>
-              <div class="stage-hint">Clic du Narrateur</div>
+              <div class="stage-hint">{terms().clickPower}</div>
               <div
                 class="enemy"
                 classList={{ boss: isBoss(), rival: !!current().characterId, hit: hit(), spawning: spawning() }}
@@ -261,7 +261,12 @@ export default function ClickStage(props: { game: GameStore }) {
                   if (event.animationName === "enemy-spawn") setSpawning(false);
                 }}
               >
-                <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 20 : 17} />
+                <Show
+                  when={!anime()?.presentation || current().characterId}
+                  fallback={<span class="encounter-symbol"><IconStar /></span>}
+                >
+                  <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 20 : 17} />
+                </Show>
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
                 <Show when={isBoss()}>
@@ -290,7 +295,7 @@ export default function ClickStage(props: { game: GameStore }) {
             <div class="bar hp-bar" classList={{ boss: isBoss() }}>
               <div class="bar-fill" style={{ width: `${Math.max(0, hpRatio()) * 100}%` }} />
               <span class="bar-label">
-                {fmt(Math.max(0, props.game.enemyHpLeft()))} / {fmt(props.game.enemyMaxHp())} PV
+                {fmt(Math.max(0, props.game.enemyHpLeft()))} / {fmt(props.game.enemyMaxHp())} {terms().health}
                 {/* Time-to-kill sits on the hp bar because that is where the player already looks
                     to judge whether a fight is going anywhere. */}
                 <Show when={Number.isFinite(props.game.timeToKill())} fallback=" · ∞">
@@ -312,21 +317,21 @@ export default function ClickStage(props: { game: GameStore }) {
 
       <Show when={bossChallengeable()}>
         <button class="primary boss-rematch" onClick={() => props.game.challengeBoss()}>
-          <IconCrown class="gold" /> Retenter le boss
+          <IconCrown class="gold" /> Retenter {terms().boss.toLowerCase()}
         </button>
       </Show>
 
       <div class="stat-grid">
         <div>
-          <small>Clic du Narrateur</small>
+          <small>{terms().clickPower}</small>
           <strong>{fmt(props.game.clickPower())}</strong>
         </div>
         <div>
-          <small>DPS équipe</small>
+          <small>{terms().teamDps}</small>
           <strong>{fmt(props.game.teamDps())}</strong>
         </div>
         <div>
-          <small>{cleared() ? "Prochain boss" : "Avant le boss"}</small>
+          <small>{cleared() ? `Prochaine ${terms().boss.toLowerCase()}` : `Avant ${terms().boss.toLowerCase()}`}</small>
           <strong>
             {Math.min(kills(), killsGoal())} / {killsGoal()}
           </strong>
@@ -352,23 +357,23 @@ export default function ClickStage(props: { game: GameStore }) {
             classList={{ capped: rate().efficiency < 1 }}
             title={
               rate().efficiency < 1
-                ? `Un combat ne peut pas résoudre plus de ${props.game.maxKillsPerSecond} ennemis par seconde. `
+                ? `Une scène ne peut pas résoudre plus de ${props.game.maxKillsPerSecond} ${terms().encounters} par seconde. `
                   + `Votre DPS en vaut ${fmt(rate().uncapped)} ici : le reste des dégâts est perdu, et tout ce `
                   + `qui se gagne au kill (monnaie, xp, objets, points de pack) plafonne avec. Un arc plus dur `
                   + `reconvertit ces dégâts en gains.`
-                : `Ennemis abattus par seconde par le DPS de l'équipe, ${props.game.maxKillsPerSecond} au maximum. `
+                : `${terms().encounters} résolus par seconde par le ${terms().teamDps.toLowerCase()}, ${props.game.maxKillsPerSecond} au maximum. `
                   + `Les clics s'ajoutent à cette cadence sans lever le plafond.`
             }
           >
             <IconTarget />
             <span>
-              Cadence <strong>{fmt(rate().actual)}</strong> / {props.game.maxKillsPerSecond} ennemis/s
+              Cadence <strong>{fmt(rate().actual)}</strong> / {props.game.maxKillsPerSecond} {terms().encounters}/s
             </span>
             <Show when={rate().efficiency < 1}>
               <span class="kill-rate-loss">
                 {cleared()
                   ? "— change d’arc, sauf si tu farmes ses objets"
-                  : "— les mobs sont dépassés : fonce jusqu’au boss"}
+                  : `— les ${terms().encounters} sont dépassés : avance jusqu’à ${terms().boss.toLowerCase()}`}
               </span>
             </Show>
           </p>

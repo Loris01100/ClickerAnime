@@ -1,4 +1,5 @@
 import { isHomeArc } from "./synergy";
+import { activeAbility, evolutionStage, unlockedEvolutions } from "./evolutions";
 import type { AbilityDefinition, Arc, Character } from "./types";
 
 export interface UnlockedAbility {
@@ -21,12 +22,12 @@ export interface AbilityDiagnostic extends UnlockedAbility {
 }
 
 /** Every anime where this character's story ability may currently be used. */
-export function abilityAnimeIds(character: Character, evolved: boolean): string[] {
+export function abilityAnimeIds(character: Character, stage: number | boolean): string[] {
   return [
     character.animeId,
     ...(character.appearanceAnimeIds ?? []),
     ...(character.fullSynergyAnimeIds ?? []),
-    ...(evolved && character.evolution ? [character.evolution.animeId] : []),
+    ...unlockedEvolutions(character, stage).map((evolution) => evolution.animeId),
   ].filter((id, index, ids) => ids.indexOf(id) === index);
 }
 
@@ -40,7 +41,7 @@ export function diagnoseAbility(
   character: Character,
   options: {
     activeArc: Arc | null;
-    evolved: boolean;
+    evolved: number | boolean;
     challengeId: string | null;
     noAbilities: boolean;
     lastActivatedAt: number | undefined;
@@ -71,8 +72,8 @@ export function diagnoseAbility(
 }
 
 /**
- * An ability is unlocked by owning the character that grants one. An evolved character's ability,
- * if their evolution defines one, replaces their base ability outright — never both at once.
+ * An ability is unlocked by owning the character that grants one. The latest reached evolution's
+ * ability replaces every earlier version outright — never two versions at once.
  *
  * **A capacity doesn't travel.** Away from every world they call home — the `otherAnimeMalus` tier,
  * the same `isHomeArc` test the passive already uses — a character's ability is simply not there:
@@ -94,9 +95,9 @@ export function getUnlockedAbilities(
 
   for (const character of characters) {
     if (!owned.has(character.id)) continue;
-    const isEvolved = evolved.has(character.id);
-    if (activeArc && !isHomeArc(character, activeArc, isEvolved)) continue;
-    const ability = (isEvolved && character.evolution?.ability) || character.ability;
+    const stage = evolutionStage(character, evolved);
+    if (activeArc && !isHomeArc(character, activeArc, stage)) continue;
+    const ability = activeAbility(character, stage);
     if (ability) result.push({ ability, sourceId: character.id, characterIds: [character.id] });
   }
 

@@ -1,4 +1,5 @@
 import { createRoot } from "solid-js";
+import { achievementCount } from "./achievements";
 import { createGameStore, type GameData, type GameStore } from "./gameState";
 import { PACK_COST } from "./packs";
 import type { Arc } from "./types";
@@ -197,8 +198,8 @@ function createClock(seed: number) {
 function counters(game: GameStore) {
   const counts = game.achievementCounts();
   return {
-    kills: (counts.mobsKilled ?? 0) + (counts.bossesKilled ?? 0),
-    commons: counts.commonItemsCollected ?? 0,
+    kills: achievementCount(counts, "mobsKilled") + achievementCount(counts, "bossesKilled"),
+    commons: achievementCount(counts, "commonItemsCollected"),
   };
 }
 

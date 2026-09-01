@@ -6,6 +6,8 @@ import { deriveDisclosure, type DisclosureFacts } from "./disclosure";
 import { tutorialObjective, type ObjectiveFacts } from "./objective";
 import { bossAdvice, bossTraitCounter } from "./advice";
 import { newlyUnlocked } from "./unlocks";
+import { termsOf } from "./presentation";
+import { gameData } from "../data";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -42,6 +44,20 @@ describe("spriteHue", () => {
   });
 });
 
+describe("world presentation vocabulary", () => {
+  it("keeps combat defaults and accepts a data-driven social vocabulary", () => {
+    expect(termsOf().boss).toBe("Boss");
+    expect(
+      termsOf({
+        id: "social",
+        name: "Social",
+        unlockCost: 0,
+        presentation: { bossLabel: "Épreuve", healthLabel: "Tension" },
+      })
+    ).toMatchObject({ boss: "Épreuve", health: "Tension", teamDps: "DPS équipe" });
+  });
+});
+
 describe("themeOf", () => {
   it("falls back to the hash when a world has no hand-picked hue", () => {
     const anime = { id: "w1", name: "W1", unlockCost: 1 };
@@ -59,6 +75,11 @@ describe("describeModifier", () => {
     expect(describeModifier({ target: "clickPower", kind: "flat", value: 5 })).toBe("+5 au clic");
     expect(describeModifier({ target: "clickPower", kind: "percent", value: 0.1 })).toBe("+10 % au clic");
     expect(describeModifier({ target: "teamDps", kind: "multiplier", value: 2 })).toBe("x2 de DPS");
+    // Un multiplicateur mis à l'échelle (forge, capacité) n'est pas rond : il s'arrondit à
+    // l'affichage plutôt que d'écrire « x1.1666666666666667 » dans le panneau Équipe.
+    expect(describeModifier({ target: "teamDps", kind: "multiplier", value: 1 + 0.25 * (2 / 3) })).toBe(
+      "x1.17 de DPS"
+    );
   });
 
   it("lists every effect of an ability with its timings", () => {
@@ -80,6 +101,18 @@ describe("describeCharacterTag", () => {
   it("translates equipment categories and keeps unknown ones readable", () => {
     expect(describeCharacterTag("swordsman")).toBe("Épéiste");
     expect(describeCharacterTag("future-tag")).toBe("future-tag");
+  });
+
+  /**
+   * Le repli sur l'id brut est un filet de sécurité, pas une traduction : sans ce test, un tag
+   * ajouté au contenu s'affiche tel quel dans le Codex (« Type : student-council ») et dans les
+   * restrictions d'équipement, en anglais et en kebab-case au milieu d'une interface française.
+   * 33 des 93 tags du jeu étaient dans ce cas. C'est du contenu, donc c'est ici que ça se garde.
+   */
+  it("a un libellé français pour chaque tag écrit dans le contenu", () => {
+    const authored = [...new Set(gameData.characters.flatMap((character) => character.tags ?? []))];
+    const untranslated = authored.filter((tag) => describeCharacterTag(tag) === tag);
+    expect(untranslated, `tags sans libellé français : ${untranslated.join(", ")}`).toEqual([]);
   });
 });
 

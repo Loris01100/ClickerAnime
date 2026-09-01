@@ -133,7 +133,17 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - Currency only ever comes from kills. There is no passive income and no offline progress.
 - A pack only draws among characters already recruited in the current run; it never reveals a
   future story character. Existing duplicates still survive prestige while eligibility resets with the roster.
-- Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance).
+- **Duplicates stop at `MAX_DUPLICATES` (10), and the cap lives in `packPool`.** A character at ten
+  copies leaves the pool, so the purchase closes itself — don't add a second check at `openPack` or
+  in the panel, and don't uncap `duplicateGrowth`: the bonus is flat per copy and permanent.
+- **An accessory never leaves its own universe.** A unique's world is derived from the enemy that
+  drops it (`itemAnimeIndex`), never authored on the item, and `canEquipOn` only lets a character
+  that world belongs to wear it — the same `isHomeAnime` test that decides whether a story ability
+  travels. `Item.equippableBy` narrows on top of that; it never widens.
+- Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance), and
+  **nothing multiplies what a reset banks**: `applyPrestige` is `calculatePrestigeGain` and nothing
+  else. A perk that scaled the whole gain (the old "Faveur du destin") multiplies the very number
+  `PRESTIGE_EXPONENT` is tuned to keep flat — don't reintroduce one.
 - **A challenge constraint is enforced, never watched.** Every rule in `challenges.ts` is something
   the engine *refuses to do* — no click damage, no ability, no drop, no recruit past the cap — and
   never a condition checked after the fact. There is no "challenge failed" state, and nothing to
@@ -146,11 +156,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
   the live completed-count — that is what stops a cleared anime from un-clearing itself.
 - **Every entry world ends at roughly the same `arcPower`.** `reachedArcPower` is one scalar for the
   whole game, so where a player's *first* world leaves them sets the difficulty of every world after
-  it — Naruto ends at 78, Hunter x Hunter at 120, Bleach at 125, and Shippūden opens at 130. A long
+  it — Naruto ends at 78, Hunter x Hunter and Horimiya at 120, Bleach at 125, and Shippūden opens at 130. A long
   entry world flattens its debut-power ramp to stay inside that budget; a sequel world keeps ~1.85x
   because it starts where the previous one left off (`docs/progression.md`).
-- Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
-  sequel anime, enforced in `src/engine/tests/`.
+- Evolution stages only look **forward** in a universe's reading order: every entry in
+  `evolutions` must target the direct sequel of the preceding stage and replace its ability.
 - A character belongs to exactly one recruitment world. Later appearances never create another
   recruit. Regular characters are recruitable in exactly one arc;
   shop-exclusive companions must have exactly one character offer instead.
@@ -228,6 +238,13 @@ shape when adding a world; omit a file only when the world genuinely has no such
   so it appears once. Hand-authored like the other entry worlds. **Its recruits' `baseDps` ramps
   only ~1.24x an arc where every other world runs ~1.85** — an entry world has a power *budget*, not
   just a ramp (`docs/progression.md`); don't "fix" it upward.
+
+- `horimiya/` — **Horimiya**, 6 arcs and an independent entry world. The 2021 adaptation and
+  **The Missing Pieces** share one chronological route; its abstract social encounters use
+  `Anime.presentation` to change UI vocabulary without changing combat rules or save data.
+  **This world is in alpha and still under test**: its arcs, recruits, items and encounter
+  vocabulary are provisional and may still move or be pulled. Don't take its numbers as a
+  reference when balancing another world, and expect its content to change.
 - `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~5.4 minutes an arc against
   Shippūden's ~2.3. Generated from a table like Shippūden, on the **same** ramps (boss hp ~2.31,
   mob hp ~2.17, rewards and recruit stats ~1.85) — it needed its own steeper table only before
@@ -248,11 +265,8 @@ character who spans a later anime strongly enough to receive 1.0 throughout it. 
 shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
 those entry paths, along with every
 id being unique and every reference resolvable). A mixed team still spans worlds — the team only
-wipes on prestige, not on travel. Every part-1 `rarity: "main"`
-character who is still part of the Shippūden cast (Naruto, Kakashi, Sasuke, Neji, Jiraiya, Tsunade,
-Gaara) gets stronger once fought alongside there — see `docs/progression.md` — but that's the same
-Codex entry growing, never a new recruit. Secondary-rarity part-1 characters get no evolution even
-when they do appear in Shippūden (Rock Lee, Shikamaru, Hinata, Temari, Kankurô, Shizune, Chôji,
-Kiba), and Sakura is the one secondary-rarity exception, kept from an earlier pass. Kimimaro, also
-`"main"`, is excluded on purpose: he dies at the end of part 1 and is never part of the Shippūden
-cast.
+wipes on prestige, not on travel. Every Naruto-universe character declared in
+`appearanceAnimeIds` receives one successive evolution per later series, regardless of rarity. A
+character present in all three series therefore unlocks two stages while remaining one recruit and
+one Codex entry; see `docs/progression.md`. Characters without a declared later appearance, such as
+Kimimaro, do not evolve.

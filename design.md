@@ -94,8 +94,9 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   mondes soignés reçoivent leur teinte sans toucher à un composant. Teintes retenues :
   **Naruto `28`** (l'orange de Konoha), **Shippūden `350`** (le rouge sombre de la guerre ninja),
   **Boruto `205`** (le bleu froid du Karma), **Hunter x Hunter `142`** (le vert de l'aventure et
-  de l'Examen Hunter) et **Bleach `268`** (le violet spirituel du Hueco Mundo et des portes du
-  Seireitei — l'orange d'Ichigo était la teinte évidente, mais Konoha la tient déjà).
+  de l'Examen Hunter), **Bleach `268`** (le violet spirituel du Hueco Mundo et des portes du
+  Seireitei — l'orange d'Ichigo était la teinte évidente, mais Konoha la tient déjà), et
+  **Horimiya `338`** (le rose corail des liens et des cerisiers).
   La carte de Bleach (`/bleach-map.jpg`) n'est pas un **itinéraire** comme celles de Naruto ou de
   Hunter x Hunter, mais la **cosmologie** de la série : la Garganta et les mondes qu'elle relie,
   légendés de 1 à 9. Ses quinze arcs sont donc épinglés sur le *lieu où ils se jouent* — six en
@@ -145,6 +146,15 @@ anime : `themeOf(anime)` produit une **teinte** (nombre 0..360) combinée à `hs
 couleur fixe indépendante du thème clair/sombre (la luminosité/saturation utilisées doivent
 rester cohérentes avec `--panel-2`/`--line` du thème actif, comme le fait déjà
 `spriteHue` + `hsl(... 70% 55% / 0.15)` dans `WorldMap`).
+
+Le même principe vaut pour le genre narratif : `Anime.presentation` peut renommer Combat/PV/Boss/
+Clic/DPS avec un vocabulaire de monde. Horimiya devient Liens/Tension/Épreuve/Courage/Soutien, mais
+les calculs et la sauvegarde restent identiques. Les composants lisent `termsOf(anime)` ; ils ne
+branchent jamais sur `anime.id`.
+
+**Horimiya est en alpha, en phase de test.** Sa direction artistique, son vocabulaire de
+présentation et son équilibrage sont provisoires : ils peuvent encore bouger, et le monde ne sert
+pas de référence visuelle pour les autres mondes tant que l'alpha dure.
 
 Palette fonctionnelle actuelle (rappel, ne pas dupliquer ailleurs) :
 
@@ -364,7 +374,7 @@ fonctionnelle, pas de la DA par anime — l'arbre de prestige est un système m�
 | **DPS Équipe** | épée/éclair | rouge (`--accent-2`) | `teamDps`, dégâts et durée des actifs, malus de synergie, timer boss |
 | **XP** | étoile/livre | or (`--gold`) | gain d'xp, courbe de niveau, bonus de recrutement |
 | **Objets** | coffre/marque-page | bleu (`--blue`) | drop d'objets, coût des rangs de passif, pity timer |
-| **Ressource** | pièce/balance | vert (`--good`) | monnaie gagnée, palier de prestige, coût de déblocage d'anime |
+| **Destin** | roue de fortune (`IconDestiny`) | vert (`--good`) | monnaie par kill, chance de point de prestige, copies d'objets, prix de la boutique, packs offerts |
 | **Automatisation** | engrenage (`IconGear`) | orange (`--boss`) | ce que le jeu joue à votre place : relève d'arc, capacités prêtes, rangs de passif, revanche de boss, fenêtre de crossover |
 
 La branche Automatisation ne donne **rien** — aucun dégât, aucune monnaie, aucun xp : chacun de ses
@@ -696,6 +706,20 @@ code écrit à la main.
   pose exactement le problème que le roster posait à 60 personnages ; elle mérite la même réponse,
   pas une nouvelle. Le tri par défaut est le nom, parce que c'est le seul ordre stable — trier par
   quantité fait remonter un objet dès qu'il tombe, sous le curseur.
+- **L'objet équipé se voit, il ne se devine pas.** Sur la ligne d'un personnage, il n'était qu'un
+  nom gris à côté du sélecteur : on savait qu'il y avait un objet, pas ce qu'il faisait. Il porte
+  maintenant son icône, son nom en `--gold` (la couleur des uniques partout ailleurs), un badge
+  `Nv.n` liseré d'or dès le niveau 2 de forge, et son effet **au niveau de forge du moment** sur une
+  seconde ligne — la colonne de gauche est trop étroite pour les trois, et c'est l'effet qui se
+  faisait tronquer. Le nom cède la place au badge, jamais l'inverse.
+- **Dans la table `Objets`, la colonne « Effet » d'un unique porté montre le portrait du porteur**,
+  seul : elle fait 3rem, où un nom se réduisait à une initiale, et un visage se repère en balayant
+  la liste. Le nom reste dans l'infobulle. Un troisième choix du filtre, « Équipés », répond
+  directement à « qui porte quoi » sans ajouter un menu.
+- **La fiche Codex a un bloc `Équipement`** pour un personnage de l'équipe : l'objet porté agissait
+  sur sa ligne « Actuel » sans être nommé nulle part, on lisait la stat sans sa cause. Le niveau de
+  forge y est dit comme dans la Forge — « niveau 2/5 · puissance 67 % » — et non « x0.67 », qui se
+  lisait comme un malus.
 - **Le texte visible est en français**, y compris les nouveaux tooltips/labels de l'arbre de
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
 
@@ -828,7 +852,26 @@ le redonne jamais), donc les **doublons** ne s'obtiennent que là.
 - **Méta-progression** : points et doublons survivent au prestige (seul `hardReset` les efface), au
   même titre que les succès et l'arbre. Un doublon tiré sur un personnage pas encore rencontré n'est
   donc jamais perdu — il l'attend au recrutement suivant.
-- **Liste des doublons** en bas du tiroir, triée par nombre de copies, avec le bonus cumulé en clair.
+- **Le tiroir des packs achète, le catalogue montre.** En bas du tiroir il ne reste qu'un lien
+  « Voir le catalogue » : une seconde liste, plus longue que la boutique elle-même, écrasait les
+  boutons d'achat sous la collection.
+
+### 11.2.1 Le catalogue
+
+`CatalogPanel.tsx`, même coque d'overlay, ouvert depuis le menu (juste après « Packs ») ou depuis le
+tiroir des packs. C'est un écran de collection, pas d'achat : on y lit ce qu'on possède.
+
+- **Une grille de cartes, pas une liste.** Une collection se regarde ; la carte (`.catalog-card`,
+  `auto-fill` à 200px) porte le portrait `Sprite`, le nom, la jauge vers les 10 doublons et le bonus
+  de dégâts, le compteur `x{n}` en coin. Le fond reprend le dégradé `--world-hue` des cartes du
+  Codex — même objet visuel, même traitement.
+- **Groupé par monde**, dans l'ordre de la trame, chaque groupe sous un `panel-head` : c'est
+  l'ordre dans lequel le joueur a rencontré ces personnages, pas celui de ses achats.
+- **Deux onglets** (`.tabs`) : « Doublons » par défaut, « Toute l'équipe » pour voir aussi les
+  recrues encore à zéro copie — la case vide d'un album est ce qui donne envie de la remplir. Une
+  carte pleine se liseré d'or ; un portrait sans doublon est `dim`.
+- **Un en-tête chiffré** : total de doublons, personnages concernés, personnages au maximum. La
+  question « où en est ma collection » se répond avant de faire défiler la grille.
 
 ### 11.3 Codex des objets
 
@@ -852,6 +895,27 @@ contenu change. `ItemCodex.tsx` rend directement les deux volets, sans wrapper, 
   il doit pouvoir s'acheter, sans repasser par le tableau de l'équipe. Une `.codex-row` qui porte une
   action prend `.with-action` : trois colonnes (libellé / valeur / bouton) au lieu du
   `space-between` à deux, sinon les rangs se décalent au gré de la longueur des noms.
+
+### 11.4 Pastilles et raccourcis du Codex
+
+Le Codex est l'écran où un passif se lit **et** s'achète (§11.3) ; encore faut-il savoir qu'il y a
+quelque chose à y faire, et pouvoir repartir se battre au bon endroit.
+
+- **Une seule pastille pour tout le jeu**, `.notice-dot` : un rond de 0.45rem en `--accent`, jamais
+  un chiffre. Elle dit « il y a une action ici », pas combien — un compteur ferait doublon avec le
+  bouton `.rank-up` qui porte déjà « copies/coût ».
+- **Elle descend la même chaîne à chaque niveau** : « Menu » (fermé la plupart du temps, sans lui la
+  notification serait invisible) → l'entrée « Codex » → la carte du monde concerné → la ligne du
+  personnage, où `.notice-dot.push` la cale à droite du nom. Le joueur suit le point jusqu'au
+  bouton d'achat sans jamais deviner l'étape suivante.
+- **Sa source est unique** : `rankablePassiveIds` dans le store. `ClickStage` et `ProgressPanel`,
+  qui conseillaient déjà de monter un passif avant un boss, lisent le même memo — un seul endroit
+  décide de ce qui est « améliorable maintenant ».
+- **Raccourci d'arc** (`.codex-travel`, sous le portrait) : un bouton par arc **atteignable** du
+  personnage — « Combattre dans » s'il est dans l'équipe, « Le rencontrer dans » sinon. Cliquer
+  déplace l'arc actif et referme le Codex : c'est un déplacement, pas une lecture. L'arc actif est
+  souligné en `--accent`, et les arcs hors d'atteinte restent le texte du bloc Synergie plutôt que
+  des boutons morts — la liste complète s'y lit déjà.
 
 ## 12. Typographie
 

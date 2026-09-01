@@ -150,10 +150,10 @@ describe("store boot", () => {
             effects: [{ target: "teamDps" as const, kind: "multiplier" as const, value: 3 }],
           },
           // Bonus d'évolution : non scopé, il multiplie toute l'équipe.
-          evolution: {
+          evolutions: [{
             animeId: "tb", label: "Évo",
             bonus: [{ target: "teamDps" as const, kind: "percent" as const, value: 0.25 }],
-          },
+          }],
         },
         {
           id: "cb", name: "B", animeId: "ta", rarity: "secondary" as const, arcIds: ["ta-arc"],
@@ -486,10 +486,90 @@ describe("store boot", () => {
   });
 
   it("refuses a passive rank on a character who has no passive", () => {
-    // Naruto is met in the same arc as Kakashi, so the arc's common lists him next to the others —
-    // but his kit is an ability and an evolution, he has no `passive`. Ranking one up would burn
-    // the copies for a bonus `characterContributions` never reads.
+    // `Character.passive` is optional, so the store must refuse a rank on a character without one:
+    // the copies would be burnt for a bonus `characterContributions` never reads. Every production
+    // character carries a passive today, so the case is proven on data authored for it.
+    const testData = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "arc-a",
+          animeId: "ta",
+          name: "Arc A",
+          order: 1,
+          mobsToBoss: 10,
+          mobs: [
+            { id: "m1", name: "M1", baseHp: 10, reward: 1, characterId: "sans-passif", itemId: "item-a" },
+            { id: "m2", name: "M2", baseHp: 10, reward: 1, characterId: "avec-passif" },
+          ],
+          boss: { id: "b1", name: "B1", baseHp: 100, reward: 10 },
+        },
+      ],
+      characters: [
+        {
+          id: "sans-passif",
+          name: "Sans passif",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["arc-a"],
+          baseClickPower: 1,
+          baseDps: 5,
+        },
+        {
+          id: "avec-passif",
+          name: "Avec passif",
+          animeId: "ta",
+          rarity: "secondary" as const,
+          arcIds: ["arc-a"],
+          baseClickPower: 1,
+          baseDps: 5,
+          passive: { target: "teamDps" as const, kind: "percent" as const, value: 0.1 },
+        },
+      ],
+      items: [{ id: "item-a", kind: "common" as const, name: "Commun A" }],
+    };
     const restore = installSave({
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["sans-passif", "avec-passif"],
+      activeArcId: "arc-a",
+      prestigePoints: 0,
+      unlockedAnimeIds: ["ta"],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts: { "item-a": 999 },
+      passiveRanks: {},
+      evolvedCharacterIds: [],
+      achievementCounts: {},
+      prestigeTreeRanks: {},
+    });
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(testData);
+        dispose();
+        return store;
+      });
+      const sans = game.ownedCharacters().find((c) => c.id === "sans-passif")!;
+      const avec = game.ownedCharacters().find((c) => c.id === "avec-passif")!;
+      expect(sans.passive).toBeUndefined();
+      expect(game.rankUpPassive(sans)).toBe(false);
+      expect(game.passiveRankOf(sans)).toBe(0);
+      expect(game.countOf("item-a")).toBe(999);
+      // …while the same item still ranks up someone who does have one.
+      expect(game.rankUpPassive(avec)).toBe(true);
+      // …and the badge memo lists only the character the rank can actually be spent on.
+      expect([...game.rankablePassiveIds()]).toEqual(["avec-passif"]);
+    } finally {
+      restore();
+    }
+  });
+
+  it("rankablePassiveIds lists exactly the owned characters whose passive can be bought now", () => {
+    // La pastille du Codex se lit sur ce set : tout le casting de production a un passif, donc les
+    // deux personnages y figurent — et le set disparaît dès qu'il n'y a plus de copies pour payer
+    // le rang suivant. Le filtrage d'un personnage sans passif est couvert par le test au-dessus.
+    const save = (itemCounts: Record<string, number>) => ({
       currency: 0,
       lifetimeEarned: 0,
       ownedCharacterIds: ["naruto-uzumaki", "kakashi-hatake"],
@@ -499,26 +579,29 @@ describe("store boot", () => {
       arcKills: {},
       clearedArcIds: [],
       characterXp: {},
-      itemCounts: { "item-shuriken": 999 },
+      itemCounts,
       passiveRanks: {},
       evolvedCharacterIds: [],
       achievementCounts: {},
       prestigeTreeRanks: {},
     });
-    try {
-      const game = createRoot((dispose) => {
+    const boot = () =>
+      createRoot((dispose) => {
         const store = createGameStore(gameData);
         dispose();
         return store;
       });
-      const naruto = game.ownedCharacters().find((c) => c.id === "naruto-uzumaki")!;
-      const kakashi = game.ownedCharacters().find((c) => c.id === "kakashi-hatake")!;
-      expect(naruto.passive).toBeUndefined();
-      expect(game.rankUpPassive(naruto)).toBe(false);
-      expect(game.passiveRankOf(naruto)).toBe(0);
-      expect(game.countOf("item-shuriken")).toBe(999);
-      // …while the same item still ranks up someone who does have one.
-      expect(game.rankUpPassive(kakashi)).toBe(true);
+
+    let restore = installSave(save({ "item-shuriken": 999 }));
+    try {
+      expect([...boot().rankablePassiveIds()]).toEqual(["naruto-uzumaki", "kakashi-hatake"]);
+    } finally {
+      restore();
+    }
+
+    restore = installSave(save({}));
+    try {
+      expect([...boot().rankablePassiveIds()]).toEqual([]);
     } finally {
       restore();
     }

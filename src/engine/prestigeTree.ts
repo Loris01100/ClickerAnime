@@ -97,11 +97,22 @@ export const PITY_REDUCTION_PER_LEVEL = 1;
 export const GHOST_LOOT_CHANCE = 0.05;
 
 export const CURRENCY_GAIN_PERCENT = 0.05;
-export const PRESTIGE_PER_KILL_CHANCE = 0.001;
+export const PRESTIGE_PER_KILL_CHANCE = 0.0001;
 export const AUSPICE_DOUBLE_DROP_CHANCE = 0.05;
 export const SHOP_COST_DISCOUNT = 0.06;
-/** Under 1/5 like every chance constant: 0.2 made a maxed node double *every* prestige. */
-export const DOUBLE_PRESTIGE_CHANCE = 0.1;
+/**
+ * "Carte blanche": the chance that an opened pack is on the house — its points are simply not
+ * spent. Under 1/5 like every chance constant, and deliberately the branch's only node that pays in
+ * something other than the main currency: pack points were the one resource the whole tree ignored.
+ *
+ * It is also the reason this node replaced the old "Faveur du destin" (a chance to double the
+ * points a reset banked). That one resolved a coin flip once per run, at the one moment the player
+ * has nothing left to decide, and multiplied the very gain `PRESTIGE_EXPONENT` is tuned to keep
+ * flat — a maxed node was worth a whole extra run every ten resets, felt as pure variance. This one
+ * pays inside the loop the player is actually playing, and it cannot raise any ceiling: a pack still
+ * has to be affordable to be opened, and `MAX_DUPLICATES` still closes the pool. It buys pace.
+ */
+export const FREE_PACK_CHANCE = 0.08;
 
 // --- "Automatisation": the branch that plays the parts of the loop that aren't decisions ---
 //
@@ -190,7 +201,7 @@ const secs = (ms: number) => `${String(ms / 1000).replace(".", ",")}s`;
 
 const pct = (value: number) => {
   const percent = value * 100;
-  return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(1).replace(/\.0$/, "")}%`;
+  return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}%`;
 };
 
 export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
@@ -346,8 +357,8 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
       },
       {
         position: 5,
-        label: "Faveur du destin",
-        description: `+${pct(DOUBLE_PRESTIGE_CHANCE)} de chance de doubler les points de prestige gagnés à la réinitialisation`,
+        label: "Carte blanche",
+        description: `+${pct(FREE_PACK_CHANCE)} de chance qu'un pack ouvert soit offert : ses points ne sont pas dépensés`,
       },
     ],
   },
@@ -397,8 +408,15 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
   },
 ];
 
-/** A branch's 5 node levels (0..5 each), one entry per position — the shape persisted per branch. */
-export function nodeLevels(ranks: Record<string, number[]>, categoryId: string): number[] {
+/**
+ * A branch's 5 node levels (0..5 each), one entry per position — the shape persisted per branch.
+ *
+ * `categoryId` is the branch's own union, not a `string`: the ranks are a `Record<string, number[]>`
+ * (they come off a save file), so a misspelt branch answers `[0,0,0,0,0]` forever — a node that
+ * silently does nothing, with nothing to see in the UI and no test to fail. Same reasoning as
+ * `AchievementId` in `achievements.ts`.
+ */
+export function nodeLevels(ranks: Record<string, number[]>, categoryId: PrestigeTreeCategoryId): number[] {
   return ranks[categoryId] ?? [0, 0, 0, 0, 0];
 }
 

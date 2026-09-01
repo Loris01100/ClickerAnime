@@ -9,7 +9,6 @@ describe("prestige", () => {
       endedAt: 3_601_000,
       prestigeBefore: 4,
       prestigeAfter: 11,
-      gainMultiplier: 1,
       lifetimeEarned: 50_000,
       completion: 0.4,
       clearedArcIds: ["arc-a", "arc-b"],

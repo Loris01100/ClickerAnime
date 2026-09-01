@@ -5,9 +5,10 @@ import { ACHIEVEMENT_CATEGORIES, achievementContributions, achievementNextThresh
 import { characterContributions, defaultSynergyConfig } from "../synergy";
 import { rollsDrop } from "../combat";
 import { canBuyShopOffer, shopOfferUnlocked } from "../shop";
-import { drawPack, duplicateGrowth, packPool, PACK_COST } from "../packs";
-import type { ActiveModifier, Arc, Character, Enemy, ShopOffer } from "../types";
-import { baseSave, installSave } from "./helpers";
+import { drawPack, duplicateGrowth, MAX_DUPLICATES, packPool, PACK_COST } from "../packs";
+import type { ActiveModifier, Arc, Character, Enemy, Item, ShopOffer } from "../types";
+import { canEquipOn, itemAnimeIndex, sanitizedEquipment } from "../forge";
+import { baseSave, installSave, makeArc } from "./helpers";
 
 describe("items", () => {
   it("drops guaranteed without a dropChance, and by the odds with one", () => {
@@ -109,6 +110,15 @@ describe("packs", () => {
     expect(drawPack([], 0.5)).toBeNull();
   });
 
+  it("packPool drops a character already held at MAX_DUPLICATES, and empties when all are", () => {
+    const recruited = ["m1", "m2"];
+    const capped = (id: string) => (id === "m1" ? MAX_DUPLICATES : 0);
+    expect(packPool(cast, "ta", "main", recruited, capped).map((c) => c.id)).toEqual(["m2"]);
+    // One under the cap is still on offer; the cap is a ceiling, not a threshold.
+    expect(packPool(cast, "ta", "main", recruited, () => MAX_DUPLICATES - 1)).toHaveLength(2);
+    expect(packPool(cast, "ta", "main", recruited, () => MAX_DUPLICATES)).toEqual([]);
+  });
+
   it("duplicates multiply a character's base damage, on top of levels", () => {
     const arc: Arc = {
       id: "ta-arc",
@@ -173,7 +183,7 @@ describe("packs", () => {
       // No main-rarity character in this world: that pack can't be drawn at all.
       expect(game.packPoolOf("ta", "main")).toEqual([]);
 
-      expect(game.openPack("ta", "secondary")?.id).toBe("s1");
+      expect(game.openPack("ta", "secondary")?.character.id).toBe("s1");
       expect(game.worldPointsOf("ta")).toBe(banked - PACK_COST.secondary);
       expect(game.duplicatesOf("s1")).toBe(1);
 
@@ -267,5 +277,56 @@ describe("le succès « objets uniques équipés »", () => {
       disposeRoot();
       restore();
     }
+  });
+});
+
+describe("équipement : un accessoire ne quitte pas son monde", () => {
+  const unique: Item = {
+    id: "u-ta",
+    kind: "unique",
+    name: "Relique de TA",
+    effects: [{ target: "teamDps", kind: "multiplier", value: 1.5 }],
+  };
+  const arcs: Arc[] = [
+    { ...makeArc("ta-arc", "ta", 0, [{ id: "m", name: "M", baseHp: 1, reward: 1, itemId: "c-ta" }]) },
+    { ...makeArc("tb-arc", "tb", 0, []) },
+  ];
+  arcs[0].boss.itemId = unique.id;
+
+  const local: Character = { id: "local", name: "L", animeId: "ta", rarity: "main", arcIds: [], baseClickPower: 1, baseDps: 1 };
+  const visitor: Character = { ...local, id: "visitor", animeId: "tb", appearanceAnimeIds: ["ta"] };
+  const heir: Character = {
+    ...local,
+    id: "heir",
+    animeId: "tb",
+    evolutions: [{ animeId: "ta", label: "L2", bonus: [{ target: "teamDps", kind: "percent", value: 0.1 }] }],
+  };
+  const foreigner: Character = { ...local, id: "foreigner", animeId: "tb" };
+
+  it("itemAnimeIndex reads an item's world off the enemy that drops it", () => {
+    expect(itemAnimeIndex(arcs)).toEqual({ "u-ta": "ta", "c-ta": "ta" });
+  });
+
+  it("n'autorise que les personnages qui sont chez eux dans ce monde", () => {
+    const world = itemAnimeIndex(arcs)[unique.id];
+    expect(canEquipOn(local, unique, world)).toBe(true);
+    // Une apparition ou une évolution dans ce monde suffit : la même règle que les capacités.
+    expect(canEquipOn(visitor, unique, world)).toBe(true);
+    expect(canEquipOn(heir, unique, world)).toBe(true);
+    expect(canEquipOn(foreigner, unique, world)).toBe(false);
+    // Un objet que personne ne lâche n'a pas de monde : il ne s'interdit à personne.
+    expect(canEquipOn(foreigner, unique, undefined)).toBe(true);
+    // `equippableBy` continue de restreindre par-dessus.
+    expect(canEquipOn(local, { ...unique, equippableBy: { tags: ["sage"] } }, world)).toBe(false);
+  });
+
+  it("nettoie un équipement sauvegardé devenu étranger à son monde", () => {
+    const characters = [local, foreigner];
+    const items = [unique];
+    const counts = { [unique.id]: 1 };
+    expect(sanitizedEquipment(characters, items, arcs, { local: unique.id }, counts, ["local", "foreigner"])).toEqual({
+      local: unique.id,
+    });
+    expect(sanitizedEquipment(characters, items, arcs, { foreigner: unique.id }, counts, ["local", "foreigner"])).toEqual({});
   });
 });

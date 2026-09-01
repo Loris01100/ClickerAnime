@@ -64,19 +64,21 @@ export function unlockAnime(state: PrestigeState, animeId: string, cost: number)
 /**
  * Banks the gain and sends the player back to square one: the worlds entered are wiped too.
  * `scale` is the default currency threshold worth one prestige point; `completion` is the share of
- * the game's arcs cleared this run (see `calculatePrestigeGain`); `gainMultiplier` is the
- * "Destin" tier 5 perk (a random 2x rolled by the caller — this function itself stays free of randomness).
+ * the game's arcs cleared this run (see `calculatePrestigeGain`).
+ *
+ * What a reset banks is `calculatePrestigeGain` and nothing else. It used to take a `gainMultiplier`
+ * for the tree's old "Faveur du destin" — a rolled 2x on the whole gain — which is precisely the
+ * term `PRESTIGE_EXPONENT` above is tuned to keep flat; the node it belonged to is gone (see
+ * `FREE_PACK_CHANCE`), and with it the one thing that could multiply this curve from outside.
  */
 export function applyPrestige(
   state: PrestigeState,
   lifetimeEarned: number,
   scale?: number,
-  completion = 0,
-  gainMultiplier = 1
+  completion = 0
 ): PrestigeState {
   return {
-    prestigePoints:
-      state.prestigePoints + calculatePrestigeGain(lifetimeEarned, scale, completion) * gainMultiplier,
+    prestigePoints: state.prestigePoints + calculatePrestigeGain(lifetimeEarned, scale, completion),
     unlockedAnimeIds: [],
   };
 }

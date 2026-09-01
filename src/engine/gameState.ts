@@ -1,5 +1,5 @@
 import { batch, createMemo, createSignal, onCleanup } from "solid-js";
-import { achievementContributions } from "./achievements";
+import { achievementContributions, achievementCount, type AchievementId } from "./achievements";
 import { computeScopedStat, foldScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
 import {
   applyPrestige,
@@ -10,6 +10,7 @@ import {
   unlockAnime as unlockAnimeState,
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, isHomeArc, synergyMultiplier } from "./synergy";
+import { activeEvolution, evolutionKey, evolutionStage } from "./evolutions";
 import {
   CROSSOVER_BOSS_REWARD,
   CROSSOVER_COST,
@@ -55,6 +56,8 @@ import {
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
 import {
+  canEquipOn,
+  itemAnimeIndex,
   sanitizedEquipment,
   scaledUniqueEffect,
   UNIQUE_FORGE_FRAGMENT_COSTS,
@@ -62,7 +65,7 @@ import {
   uniqueRanksFromSave,
 } from "./forge";
 export { UNIQUE_FORGE_FRAGMENT_COSTS, UNIQUE_FORGE_MULTIPLIERS } from "./forge";
-import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
+import { drawPack, duplicateGrowth, MAX_DUPLICATES, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   arcPowerTable,
   catchUpGrowth,
@@ -116,9 +119,9 @@ import {
   CRIT_MULTIPLIER,
   CURRENCY_GAIN_PERCENT,
   DOUBLE_DROP_CHANCE,
-  DOUBLE_PRESTIGE_CHANCE,
   DROP_CHANCE_BOOST,
   FREE_ABILITY_TRIGGER_CHANCE,
+  FREE_PACK_CHANCE,
   GHOST_LOOT_CHANCE,
   isNodeUnlocked,
   MIN_XP_GROWTH,
@@ -131,6 +134,7 @@ import {
   PRESTIGE_PER_KILL_CHANCE,
   prestigeTreeContributions,
   PRESTIGE_TREE_CATEGORIES,
+  type PrestigeTreeCategoryId,
   purchaseNodeLevel,
   RECRUIT_XP_BONUS,
   scaledChance,
@@ -178,6 +182,15 @@ const STAT_CLOCK_MS = 1_000;
 /** How long one HUD notice stays up, and how many can stack before the oldest is dropped. */
 const NOTICE_MS = 4_000;
 const MAX_NOTICES = 4;
+
+/**
+ * One pack draw: the character it handed over, and whether « Carte blanche » waived its price —
+ * the panel has no other way to tell the player the points came back.
+ */
+export interface PackDraw {
+  character: Character;
+  free: boolean;
+}
 
 /** One "you just gained something" event, popped up by the HUD and pruned by the main tick. */
 export interface Notice {
@@ -263,6 +276,9 @@ export function createGameStore(data: GameData) {
       if (mob.characterId && !originArcIndex.has(mob.characterId)) originArcIndex.set(mob.characterId, arc);
     }
   }
+
+  /** Which world each item comes from — its drop's arc. Static like the data it is built from. */
+  const itemAnimeIds = itemAnimeIndex(data.arcs);
 
   /** O(1) content lookups by id — the UI reads these rather than re-scanning `data`. */
   const characterOf = (id: string | undefined | null) => (id ? characterIndex.get(id) ?? null : null);
@@ -390,6 +406,7 @@ export function createGameStore(data: GameData) {
     sanitizedEquipment(
       data.characters,
       data.items,
+      data.arcs,
       saved?.characterEquipment,
       saved?.itemCounts ?? {},
       saved?.ownedCharacterIds ?? []
@@ -402,8 +419,16 @@ export function createGameStore(data: GameData) {
   // packs (see packs.ts). Meta-progression like the duplicates they buy — prestigeReset spares
   // both, only hardReset wipes them.
   const [worldPoints, setWorldPoints] = createSignal<Record<string, number>>(saved?.worldPoints ?? {});
+  // Clamped on the way in, once: a save written before `MAX_DUPLICATES` existed (or an imported
+  // one) can hold more copies than a pack will ever sell again, and `duplicateGrowth` is linear in
+  // that number. One truth, here, rather than a cap re-applied at every read.
   const [characterDuplicates, setCharacterDuplicates] = createSignal<Record<string, number>>(
-    saved?.characterDuplicates ?? {}
+    Object.fromEntries(
+      Object.entries(saved?.characterDuplicates ?? {}).map(([id, copies]) => [
+        id,
+        Math.min(MAX_DUPLICATES, copies),
+      ])
+    )
   );
   // When the current crossover window ends. Transient like combat state: a reload drops the buff.
   const [crossoverUntil, setCrossoverUntil] = createSignal(0);
@@ -483,18 +508,19 @@ export function createGameStore(data: GameData) {
   const [bossRetreatArcIds, setBossRetreatArcIds] = createSignal<string[]>([]);
 
   /** Total levels bought in one prestige-tree branch (0..25) — see prestigeTree.ts for the model. */
-  const branchLevelsOf = (categoryId: string) => totalLevels(nodeLevels(prestigeTreeRanks(), categoryId));
+  const branchLevelsOf = (categoryId: PrestigeTreeCategoryId) =>
+    totalLevels(nodeLevels(prestigeTreeRanks(), categoryId));
 
   /** How many of a specific node's 5 levels are bought (0..5) — see prestigeTree.ts's `nodeLevel`. */
-  const nodeLevelOf = (categoryId: string, position: number) =>
+  const nodeLevelOf = (categoryId: PrestigeTreeCategoryId, position: number) =>
     nodeLevel(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
   /** A node unlocks once its predecessor has ≥1 level; node 1 is always unlocked. */
-  const isNodeUnlockedFor = (categoryId: string, position: number) =>
+  const isNodeUnlockedFor = (categoryId: PrestigeTreeCategoryId, position: number) =>
     isNodeUnlocked(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
   /** What the next level of a specific node costs, or null if it's locked or already maxed. */
-  const nodeCostOf = (categoryId: string, position: number) =>
+  const nodeCostOf = (categoryId: PrestigeTreeCategoryId, position: number) =>
     nodeCost(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
   // --- automation: one node of the "Automatisation" branch behind each switch ---
@@ -575,8 +601,13 @@ export function createGameStore(data: GameData) {
     return data.characters.filter((c) => ids.has(c.id));
   });
 
-  /** True once this character has grown into their evolution — permanent for the rest of the run. */
-  const isEvolved = (character: Character) => evolvedCharacterIds().includes(character.id);
+  /** Number of successive forms reached by this character in the current run. */
+  const evolutionStageOf = (character: Character) => evolutionStage(character, evolvedCharacterIds());
+  const isEvolved = (character: Character) => evolutionStageOf(character) > 0;
+  const activeEvolutionOf = (character: Character) => activeEvolution(character, evolutionStageOf(character));
+  const isEvolutionUnlocked = (character: Character, animeId: string) =>
+    evolvedCharacterIds().includes(evolutionKey(character.id, animeId)) ||
+    (character.evolutions?.[0]?.animeId === animeId && evolvedCharacterIds().includes(character.id));
 
   const xpOf = (characterId: string) => characterXp()[characterId] ?? 0;
 
@@ -653,19 +684,15 @@ export function createGameStore(data: GameData) {
     return null;
   }
 
-  /** Whether this item can be equipped on this character (ownership and restriction checks). */
+  /** The world an item comes from — where its drop lives, and who may wear it. */
+  const animeOfItem = (itemId: string) => animeOf(itemAnimeIds[itemId]);
+
+  /** Whether this item can be equipped on this character (ownership, world and restriction checks). */
   function canEquipItem(character: Character, itemId: string): boolean {
     const item = itemOf(itemId);
     if (!item || item.kind !== "unique") return false;
     if ((itemCounts()[itemId] ?? 0) <= 0) return false;
-    const restriction = item.equippableBy;
-    if (!restriction) return true;
-    if (restriction.characterIds && !restriction.characterIds.includes(character.id)) return false;
-    if (restriction.animeIds && !restriction.animeIds.includes(character.animeId)) return false;
-    // Any one of the listed tags is enough, like characterIds and animeIds above — the Tenseigan is
-    // "Hyûga or Ôtsutsuki", and no character carries both.
-    if (restriction.tags && !restriction.tags.some((tag) => (character.tags ?? []).includes(tag))) return false;
-    return true;
+    return canEquipOn(character, item, itemAnimeIds[itemId]);
   }
 
   /** Equip a unique item on a character, returning true on success. */
@@ -681,7 +708,7 @@ export function createGameStore(data: GameData) {
     // ladder can never count more uniques than the player actually owns.
     const uniquesOwned = data.items.filter((i) => i.kind === "unique" && (itemCounts()[i.id] ?? 0) > 0).length;
     const alreadyWorn = Object.values(characterEquipment()).includes(itemId);
-    if (!alreadyWorn && (achievementCounts().uniquesEquipped ?? 0) < uniquesOwned) {
+    if (!alreadyWorn && achievementCount(achievementCounts(), "uniquesEquipped") < uniquesOwned) {
       bumpAchievement("uniquesEquipped");
     }
     // Unequip the item from any other character first (uniques are single-copy).
@@ -708,7 +735,7 @@ export function createGameStore(data: GameData) {
   }
 
   /** Bumps one achievement ladder; the tier(s) it crosses start contributing on the next `allModifiers` read. */
-  function bumpAchievement(categoryId: string, amount = 1) {
+  function bumpAchievement(categoryId: AchievementId, amount = 1) {
     setAchievementCounts((counts) => ({ ...counts, [categoryId]: (counts[categoryId] ?? 0) + amount }));
   }
 
@@ -740,7 +767,7 @@ export function createGameStore(data: GameData) {
         config,
         levels[c.id] ?? 0,
         passiveRankOf(c),
-        isEvolved(c),
+        evolutionStageOf(c),
         equipmentOf(c),
         duplicatesOf(c.id),
         catchUpOf(c)
@@ -763,7 +790,7 @@ export function createGameStore(data: GameData) {
   const awayCharacterIds = createMemo<Set<string>>(() => {
     const arc = activeArc();
     if (!arc) return new Set<string>();
-    return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, isEvolved(c))).map((c) => c.id));
+    return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, evolutionStageOf(c))).map((c) => c.id));
   });
 
   /** Every ability granted by the roster, before the current anime or challenge filters it. */
@@ -1000,15 +1027,17 @@ export function createGameStore(data: GameData) {
   const hasRetreatedFromBoss = (arc: Arc) => bossRetreatArcIds().includes(arc.id);
 
   /**
-   * Grows any owned character whose evolution's world is the one now active, permanently — called
+   * Unlocks every owned character's next form whose world is the one now active — called
    * on every recruit and every arc switch, the only two ways this condition can newly become true.
    */
   function maybeEvolve() {
     const arc = activeArc();
     if (!arc) return;
-    const newlyEvolved = ownedCharacters()
-      .filter((c) => c.evolution?.animeId === arc.animeId && !isEvolved(c))
-      .map((c) => c.id);
+    const newlyEvolved = ownedCharacters().flatMap((character) =>
+      (character.evolutions ?? [])
+        .filter((evolution) => evolution.animeId === arc.animeId && !isEvolutionUnlocked(character, evolution.animeId))
+        .map((evolution) => evolutionKey(character.id, evolution.animeId))
+    );
     if (newlyEvolved.length > 0) {
       setEvolvedCharacterIds((ids) => [...ids, ...newlyEvolved]);
       bumpAchievement("evolutionsUnlocked", newlyEvolved.length);
@@ -1148,9 +1177,11 @@ export function createGameStore(data: GameData) {
       const dropChance = item
         ? firstPassiveDropChance(boostedChance, {
             hasClearedArc: clearedArcIds().length > 0,
-            passiveRanksBought:
-              achievementCounts().passiveRanksBought ??
-              Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0),
+            passiveRanksBought: achievementCount(
+              achievementCounts(),
+              "passiveRanksBought",
+              Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0)
+            ),
             copies: countOf(item.id),
             copiesNeeded: Math.min(...compatibleUpgrades.map((upgrade) => upgrade.cost)),
             hasCompatiblePassive: compatibleUpgrades.length > 0,
@@ -1409,7 +1440,7 @@ export function createGameStore(data: GameData) {
     if (!arc) return false;
     const config = activeSynergyConfig();
     return ownedCharacters().some(
-      (c) => synergyMultiplier(c, arc, config, isEvolved(c)) <= config.otherAnimeMalus
+      (c) => synergyMultiplier(c, arc, config, evolutionStageOf(c)) <= config.otherAnimeMalus
     );
   });
 
@@ -1454,15 +1485,31 @@ export function createGameStore(data: GameData) {
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
   /**
+   * Every owned character whose passive can be ranked up right now. One memo rather than the same
+   * `some(...)` scan copied into each component: the Codex needs it per character *and* per world,
+   * and the menu only needs to know whether to badge its Codex entry.
+   */
+  const rankablePassiveIds = createMemo(
+    () =>
+      new Set(
+        ownedCharacters()
+          .filter((character) => character.passive && passiveUpgradeOf(character).affordable)
+          .map((character) => character.id),
+      ),
+  );
+
+  /**
    * The first character whose passive is affordable *and* never yet ranked this save — the tutorial's
    * payoff. `null` the moment any rank has ever been bought, so it only ever fires once. Lives here
    * rather than in two components: `App` announces it and `RosterPanel` unfolds the team on it, and
    * they must agree on which character that is.
    */
   const firstAffordablePassive = createMemo<Character | null>(() => {
-    const ranksBought =
-      achievementCounts().passiveRanksBought ??
-      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0);
+    const ranksBought = achievementCount(
+      achievementCounts(),
+      "passiveRanksBought",
+      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0)
+    );
     if (ranksBought > 0) return null;
     return ownedCharacters().find((c) => c.passive && passiveUpgradeOf(c).affordable) ?? null;
   });
@@ -1472,7 +1519,8 @@ export function createGameStore(data: GameData) {
    * who isn't in the team: `characterContributions` only ever runs on owned characters, so the
    * copies would be burnt for nothing (the item Codex lists the whole cast, met or not). Refuses
    * the same way on a character with no `passive` at all — a rank on nothing is copies burnt for
-   * nothing too, and `passive` is optional (Naruto has an ability and an evolution instead).
+   * nothing too, and `passive` stays optional in the type even though the whole production cast
+   * carries one.
    */
   function rankUpPassive(character: Character): boolean {
     if (!character.passive) return false;
@@ -1535,22 +1583,36 @@ export function createGameStore(data: GameData) {
 
   /** Recruited members of this world's rarity — future story characters never leak through packs. */
   const packPoolOf = (animeId: string, rarity: Rarity) =>
-    packPool(data.characters, animeId, rarity, ownedCharacterIds());
+    packPool(data.characters, animeId, rarity, ownedCharacterIds(), duplicatesOf);
 
   /**
    * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.
-   * Returns the character drawn so the panel can show it, or null when it couldn't be bought.
+   * Returns the draw so the panel can show it, or null when it couldn't be bought.
+   *
+   * "Destin" node 5, « Carte blanche »: the price can be waived, but only *after* the pack has
+   * been afforded in full — the points still have to be on the table, so the perk never buys a draw
+   * the player couldn't have bought anyway, it just sometimes hands the points back. The cap stays
+   * where it belongs too: `packPoolOf` is what refuses a character already at `MAX_DUPLICATES`.
    */
-  function openPack(animeId: string, rarity: Rarity): Character | null {
+  function openPack(animeId: string, rarity: Rarity): PackDraw | null {
     const cost = PACK_COST[rarity];
     if (worldPointsOf(animeId) < cost) return null;
     const drawn = drawPack(packPoolOf(animeId, rarity), Math.random());
     if (!drawn) return null;
-    setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
+    const freePackLevel = nodeLevelOf("destin", 5);
+    const free = freePackLevel > 0 && Math.random() < scaledChance(FREE_PACK_CHANCE, freePackLevel);
+    if (!free) setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
     setCharacterDuplicates((copies) => ({ ...copies, [drawn.id]: (copies[drawn.id] ?? 0) + 1 }));
     bumpAchievement("packsOpened");
-    return drawn;
+    return { character: drawn, free };
   }
+
+  /**
+   * The "Destin" node 4 discount, as one number both the display and the till read — the panel
+   * printing one price while `buyShopOffer` charged another is exactly the bug this shape prevents.
+   * `scaledDiscount` already answers 0 at level 0, so no branch is needed here.
+   */
+  const shopDiscount = createMemo(() => scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)));
 
   /**
    * Every shop offer with the display state (price/locked/owned/affordable) the panel needs.
@@ -1563,17 +1625,17 @@ export function createGameStore(data: GameData) {
    */
   function shopOffers() {
     const clearedIds = clearedAnimes().map((a) => a.id);
-    const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
+    const discount = shopDiscount();
     return availableShopOffers().map((offer) => ({
       offer,
-      cost: discountedShopCost(offer, shopDiscount),
-      discounted: shopDiscount > 0,
+      cost: discountedShopCost(offer, discount),
+      discounted: discount > 0,
       item: offer.kind === "item" ? itemOf(offer.targetId) ?? undefined : undefined,
       character: offer.kind === "character" ? characterOf(offer.targetId) ?? undefined : undefined,
       arc: arcOf(offer.arcId) ?? undefined,
       owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
       locked: !shopOfferUnlocked(offer, clearedIds),
-      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), shopDiscount),
+      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), discount),
     }));
   }
 
@@ -1581,9 +1643,9 @@ export function createGameStore(data: GameData) {
   function buyShopOffer(offerId: string): boolean {
     const offer = availableShopOffers().find((o) => o.id === offerId);
     if (!offer) return false;
-    const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
-    const cost = discountedShopCost(offer, shopDiscount);
-    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds(), shopDiscount)) return false;
+    const discount = shopDiscount();
+    const cost = discountedShopCost(offer, discount);
+    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds(), discount)) return false;
 
     // The shop is the other way into the roster, and the cap has to hold on it too.
     if (offer.kind === "character" && !canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
@@ -1602,7 +1664,7 @@ export function createGameStore(data: GameData) {
   /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
   function synergyOf(character: Character): number {
     const arc = activeArc();
-    return arc ? synergyMultiplier(character, arc, activeSynergyConfig(), isEvolved(character)) : 1;
+    return arc ? synergyMultiplier(character, arc, activeSynergyConfig(), evolutionStageOf(character)) : 1;
   }
 
   function setActiveArc(arcId: string) {
@@ -1831,7 +1893,7 @@ export function createGameStore(data: GameData) {
       return [
         diagnoseAbility(unlocked, character, {
           activeArc: activeArc(),
-          evolved: isEvolved(character),
+          evolved: evolutionStageOf(character),
           challengeId: activeChallengeId(),
           noAbilities: challengeRules().noAbilities === true,
           lastActivatedAt: abilityLastUsed()[unlocked.ability.id],
@@ -1896,12 +1958,9 @@ export function createGameStore(data: GameData) {
    * The whole point is to redo the climb faster.
    */
   function prestigeReset(showReport = true) {
-    // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
-    const doubleLevel = nodeLevelOf("destin", 5);
-    const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
     const endedAt = Date.now();
     const before = prestige();
-    const after = applyPrestige(before, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier);
+    const after = applyPrestige(before, lifetimeEarned(), prestigeScale(), runCompletion());
     if (showReport) {
       setLastPrestigeReport(
         buildPrestigeReport({
@@ -1909,7 +1968,6 @@ export function createGameStore(data: GameData) {
           endedAt,
           prestigeBefore: before.prestigePoints,
           prestigeAfter: after.prestigePoints,
-          gainMultiplier,
           lifetimeEarned: lifetimeEarned(),
           completion: runCompletion(),
           clearedArcIds: clearedArcIds(),
@@ -2081,7 +2139,7 @@ export function createGameStore(data: GameData) {
   }
 
   /** Buys the next level of one specific node, if it's unlocked, not maxed, and affordable. */
-  function purchaseTreeLevel(categoryId: string, position: number): boolean {
+  function purchaseTreeLevel(categoryId: PrestigeTreeCategoryId, position: number): boolean {
     const category = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === categoryId);
     if (!category) return false;
     const result = purchaseNodeLevel(prestige().prestigePoints, prestigeTreeRanks(), category, position);
@@ -2284,6 +2342,9 @@ export function createGameStore(data: GameData) {
     ownedCharacters,
     ownedCharacterIds,
     isEvolved,
+    evolutionStageOf,
+    activeEvolutionOf,
+    isEvolutionUnlocked,
     clickPower,
     narratorBase,
     teamDps,
@@ -2303,12 +2364,14 @@ export function createGameStore(data: GameData) {
     passiveRankOf,
     passiveUpgradeOf,
     passiveCapOf,
+    rankablePassiveIds,
     firstAffordablePassive,
     rankUpPassive,
     characterEquipment,
     equippedItemOf,
     wearerOf,
     canEquipItem,
+    animeOfItem,
     characterStatOf,
     equipItem,
     unequipItem,

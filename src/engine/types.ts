@@ -48,6 +48,21 @@ export interface Anime {
    * own aspect ratio, and arcs are placed with `Arc.mapX`/`mapY` instead of the snake layout.
    */
   mapImage?: string;
+  /**
+   * Optional world-specific vocabulary. It changes presentation only: combat math and save data
+   * keep the same stable concepts, while a non-combat story can describe them in its own terms.
+   */
+  presentation?: AnimePresentation;
+}
+
+export interface AnimePresentation {
+  stageLabel?: string;
+  healthLabel?: string;
+  bossLabel?: string;
+  clickPowerLabel?: string;
+  teamDpsLabel?: string;
+  encounterSingular?: string;
+  encounterPlural?: string;
 }
 
 /** Commons drop from ordinary fights and stack; uniques come from bosses and are one copy only. */
@@ -165,8 +180,8 @@ export interface Character {
   passive?: ModifierTemplate;
   /** active ability unlocked by having this character alone */
   ability?: AbilityDefinition;
-  /** a later, stronger self this same character grows into — not a second character */
-  evolution?: CharacterEvolution;
+  /** successive stronger selves this same character grows into — never separate recruits */
+  evolutions?: CharacterEvolution[];
 }
 
 export interface AbilityDefinition {
@@ -178,10 +193,9 @@ export interface AbilityDefinition {
 }
 
 /**
- * A part-1 character re-encountered further into their own story: unlocked once, by fighting in
- * `animeId` while owned, and permanent from then on — it never re-locks even back in the original
- * world. `bonus` stacks on top of the base stats (scaled by the usual synergy tiers, same as a
- * passive); `ability`, if set, replaces the character's base `ability` outright once evolved.
+ * One successive form unlocked by fighting in `animeId` while owned. Forms are ordered by story,
+ * remain unlocked for the run and stack their bonuses; the latest unlocked `ability` replaces all
+ * earlier ones.
  */
 export interface CharacterEvolution {
   /** the anime whose active arc unlocks this evolution; must require the character's own anime */

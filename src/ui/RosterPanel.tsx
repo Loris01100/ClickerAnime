@@ -3,6 +3,7 @@ import type { GameStore } from "../engine/gameState";
 import type { AbilityDiagnostic } from "../engine/abilities";
 import { SCOPED_BUFF_CAP } from "../engine/modifiers";
 import { passiveGrowth } from "../engine/growth";
+import { scaledUniqueEffect } from "../engine/forge";
 import type { Character, Item } from "../engine/types";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
@@ -44,6 +45,9 @@ const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / ne
  * on their own rather than in the save, so they survive a reload (and a prestige) without adding a
  * field to `SaveFile`. A missing or unreadable value just falls back to the default.
  */
+/** Les valeurs acceptées du filtre d'objets ; « equipped » n'est pas un `kind`, c'est une vue. */
+const ITEM_KINDS = ["unique", "common", "equipped"];
+
 const VIEW_KEY = "clicker-anime:roster-view:v1";
 function readView(): { sort: SortKey; world: string; itemSort: ItemSortKey; itemKind: string } {
   const fallback = { sort: "level" as SortKey, world: "", itemSort: "name" as ItemSortKey, itemKind: "" };
@@ -56,7 +60,7 @@ function readView(): { sort: SortKey; world: string; itemSort: ItemSortKey; item
         sort: parsed.sort in SORTS ? parsed.sort : fallback.sort,
         world: parsed.world,
         itemSort: parsed.itemSort in ITEM_SORTS ? parsed.itemSort : fallback.itemSort,
-        itemKind: parsed.itemKind === "unique" || parsed.itemKind === "common" ? parsed.itemKind : "",
+        itemKind: ITEM_KINDS.includes(parsed.itemKind) ? parsed.itemKind : "",
       };
     }
   } catch {
@@ -166,9 +170,21 @@ export default function RosterPanel(props: {
   const shownItems = createMemo(() =>
     props.game
       .foundItems()
-      .filter((item) => !itemKindFilter() || item.kind === itemKindFilter())
+      // « equipped » n'est pas un `kind` : c'est le filtre qui répond à « qui porte quoi », au
+      // même endroit que les deux vrais types plutôt que dans un troisième menu.
+      .filter((item) =>
+        itemKindFilter() === "equipped"
+          ? !!props.game.wearerOf(item.id)
+          : !itemKindFilter() || item.kind === itemKindFilter()
+      )
       .sort((a, b) => ITEM_SORTS[itemSortKey()].compare(props.game, a, b))
   );
+
+  /** L'effet réel de l'objet porté : la forge le monte, donc la valeur brute de la donnée ment. */
+  const equippedEffects = (item: Item) =>
+    (item.effects ?? [])
+      .map((effect) => describeModifier(scaledUniqueEffect(effect, props.game.uniqueUpgradeLevelOf(item.id))))
+      .join(" · ");
 
   const equippableUniques = (character: Character): Item[] =>
     props.game
@@ -401,7 +417,24 @@ export default function RosterPanel(props: {
                     </div>
                   </Show>
                   <div class="equip-row">
-                    <small class="muted">{props.game.equippedItemOf(character)?.name ?? "Pas d'objet"}</small>
+                    {/* L'objet équipé se lisait en gris, sans icône ni effet : on savait qu'il y en avait
+                        un, pas ce qu'il faisait. Le nom et le niveau de forge tiennent sur la ligne du
+                        sélecteur, l'effet passe en dessous — la colonne est trop étroite pour les trois,
+                        et c'est l'effet qui se faisait tronquer. */}
+                    <Show
+                      when={props.game.equippedItemOf(character)}
+                      fallback={<small class="muted">Pas d'objet</small>}
+                    >
+                      {(item) => (
+                        <small class="equipped-item" title={describeItem(item(), props.game.animeOfItem(item().id)?.name)}>
+                          <ItemIcon id={item().id} kind="unique" />
+                          <strong>{item().name}</strong>
+                          <Show when={props.game.uniqueUpgradeLevelOf(item().id) > 1}>
+                            <span class="forge-level">Nv.{props.game.uniqueUpgradeLevelOf(item().id)}</span>
+                          </Show>
+                        </small>
+                      )}
+                    </Show>
                     <select
                       class="equip-select"
                       value={props.game.characterEquipment()[character.id] ?? ""}
@@ -417,6 +450,9 @@ export default function RosterPanel(props: {
                       </For>
                     </select>
                   </div>
+                  <Show when={props.game.equippedItemOf(character)}>
+                    {(item) => <small class="equip-effect muted">{equippedEffects(item())}</small>}
+                  </Show>
                 </div>
               );
             }}
@@ -474,6 +510,7 @@ export default function RosterPanel(props: {
             <option value="">Tous</option>
             <option value="unique">Uniques</option>
             <option value="common">Communs</option>
+            <option value="equipped">Équipés</option>
           </select>
           <select
             value={itemSortKey()}
@@ -496,7 +533,7 @@ export default function RosterPanel(props: {
         <div class="scroll">
           <For each={shownItems()}>
             {(item) => (
-              <div class="item-grid item-row" title={describeItem(item)}>
+              <div class="item-grid item-row" title={describeItem(item, props.game.animeOfItem(item.id)?.name)}>
                 <span class="name">
                   <ItemIcon id={item.id} kind={item.kind} /> {item.name}
                 </span>
@@ -504,13 +541,18 @@ export default function RosterPanel(props: {
                   {item.kind === "unique" ? "unique" : "commun"}
                 </span>
                 <span>{props.game.countOf(item.id)}</span>
-                <span class="muted">
-                  {item.kind !== "unique"
-                    ? "passifs"
-                    : props.game.wearerOf(item.id)
-                      ? `équipé : ${props.game.wearerOf(item.id)!.name}`
-                      : "équipable"}
-                </span>
+                {/* Le porteur est ce qu'on vient chercher dans cette colonne : un visage se repère en
+                    balayant la liste, là où un nom tronqué dans 3rem ne disait plus rien. */}
+                <Show
+                  when={item.kind === "unique" && props.game.wearerOf(item.id)}
+                  fallback={<span class="muted">{item.kind === "unique" ? "équipable" : "passifs"}</span>}
+                >
+                  {(wearer) => (
+                    <span class="worn-by" title={`Équipé par ${wearer().name}`}>
+                      <Sprite name={wearer().name} kind="character" anime={animeNameOf(wearer().animeId)} px={3} />
+                    </span>
+                  )}
+                </Show>
               </div>
             )}
           </For>

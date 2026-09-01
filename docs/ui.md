@@ -16,11 +16,13 @@ for every engine rule; pure rules remain faster and more precise in Vitest.
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density: many small stacked panels, every learned system visible at once. Left is the
-roster (abilities, sortable team table, item table), middle is resources + the fight + the world
+roster (abilities, sortable team table with each character's worn unique — icon, name, forge badge
+and its effect at the current forge level —, item table whose kind filter also has an «Équipés»
+view showing the wearer's portrait), middle is resources + the fight + the world
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`, `PrestigeReportPanel.tsx`. The prestige report
+`PrestigeTree.tsx`, `PackPanel.tsx`, `CatalogPanel.tsx`, `ReflexPanel.tsx`, `PrestigeReportPanel.tsx`. The prestige report
 is built from a frozen pre-reset snapshot: it shows the duration and completion of the adventure,
 points banked, combat and economy actions, final power, worlds and arcs cleared, and the permanent
 passive/forge mastery carried into the next run. It is transient — closing or reloading dismisses it
@@ -35,11 +37,18 @@ panel because it is the way out of an unrecoverable save, and the topbar shows i
 resource is spent (gold → shop, prestige → tree, crystals → crossover, pack points → packs), so no
 counter is a dead end; the pack tile follows the active arc, since pack points are per world. `Codex.tsx` first presents one card per anime with local discovery counters; choosing one opens only that anime's
 characters and objects, avoiding an ever-growing global list. A roster shortcut still opens directly
-on its character and anime. The character tab shows stats, the passive at level 0 / at cap / right now, abilities,
+on its character and anime. The character tab shows stats, the passive at level 0 / at cap / right now, an `Équipement`
+block for a recruited character (the unique worn, its effect at the current forge level, and that
+level worded as the forge words it — «niveau n/5 · puissance x %»), abilities,
 evolution and the translated character types used by equipment restrictions. Its second tab uses the same two-pane shell through `ItemCodex.tsx`: every
 item from the selected anime, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
-a passive can be bought from wherever it is read, not only from the team table.
+a passive can be bought from wherever it is read, not only from the team table. Two cues make that
+purchase findable: a `.notice-dot` walks the whole chain — the `Menu` summary, its `Codex` entry, the
+world card, then the character row — whenever the store's `rankablePassiveIds` is non-empty (the same
+memo `ClickStage` and `ProgressPanel` use for their pre-boss advice), and a `.codex-travel` row under
+the portrait turns every *reachable* arc of that character into a button that sets the active arc and
+closes the Codex. Unreachable arcs stay plain text in the synergy block rather than dead buttons.
 
 **A fresh save uses progressive disclosure.** `ui/disclosure.ts` is the presentation-only truth
 table, fed by current state plus lifetime achievement counters in `App.tsx`. The fight, current arc,
@@ -49,7 +58,18 @@ or boss; worlds and shop after the first cleared arc; prestige when a reset woul
 packs only once the cheapest pack is affordable; crossover with a mixed team or crystals; and
 challenges after the first prestige. Travel follows its real availability. Lifetime counters keep
 a learned surface visible after a prestige reset, so disclosure teaches once rather than making the
-dashboard flicker between runs. Newly mounted panels use `.progressive-reveal`, disabled under
+dashboard flicker between runs.
+
+Those counters are read through `achievementCount(counts, id)` and **not** as plain properties, for
+one reason: the counts are a `Record<string, number>` off a save file, so a mistyped id is a legal
+read that answers `undefined` forever. Two of them were — `App.tsx` asked for `abilitiesActivated`
+and `crossoversActivated` while the ladders are `abilitiesUsed` and `crossoversUsed` — which left
+both lifetime fallbacks dead and only showed up in the two places they were written for: the
+"Capacités" panel disappeared whole (its "why is this asleep" rows included) whenever
+`unlockedAbilities` fell to 0, i.e. abroad or under « Le Silence des héros », and re-announced
+« Capacités débloquées » on the way back; the Crossover entry did the same once the crystals were
+spent with a mono-world team. `AchievementId` is derived from `ACHIEVEMENT_CATEGORIES` itself, so
+the typo is now a compile error rather than a silent 0. Newly mounted panels use `.progressive-reveal`, disabled under
 `prefers-reduced-motion`.
 
 `ObjectiveTrail.tsx` occupies one compact panel above combat during that same first learning pass.
@@ -124,6 +144,11 @@ Maps start at 80% of their full width so combat remains the main visual mass; th
 `Agrandir` button restores the full map without cropping or moving its percentage-based markers.
 The toggle disappears below 700px, where the map already uses the available mobile width.
 
+**A world can also carry presentation vocabulary.** Optional `Anime.presentation` labels the stage,
+health bar, boss, click power, team DPS and encounters. `ui/presentation.ts` supplies the combat
+defaults and merges overrides, so Horimiya can display Liens, Tension, Épreuve, Courage and Soutien
+without an `anime.id` branch, a second rules engine, or any save-format field.
+
 **And a map need not be a route.** Bleach's is the series' cosmology rather than a journey — the
 Garganta with the worlds it links, legended 1 to 9 — so its fifteen arcs are pinned on *where each
 one happens* (six in the Soul Society, four in Karakura, three in Hueco Mundo) instead of trailing
@@ -168,7 +193,7 @@ enough to matter), `runQuery`, the `inFlight` dedupe and the same `localStorage`
 all, so `ClickStage` renders the element only when the URL exists and otherwise falls through to the
 plain `--stage-bg` gradient.
 
-**Every world gets one, and none of them ship the art.** The five shows all have a banner on
+**Every world gets one, and none of them ship the art.** The six shows all have a banner on
 AniList, so a new world needs nothing beyond an `ANIME_ID_OVERRIDES` entry pinning its id — pinning
 is what stops a franchise's similarly-titled movie from supplying the backdrop. Resist the
 temptation to add a local override field for it: the one time it looked necessary (Bleach), the
@@ -278,7 +303,7 @@ pointerait sur du JS minifié.
 
 The topbar is a centred title plus, anchored right, the theme toggle and one `<details class="startmenu">`
 holding every entry point, text-only and a size up from the game's buttons — Codex, Mondes, Boutique,
-Packs, Crossover, Défis, Succès, Prestige, then
+Packs, Catalogue, Crossover, Défis, Succès, Prestige, then
 Exporter / Importer / Tout effacer and the autosave line. It replaced a row of buttons that grew by one
 every time a panel was added, and would eventually have collided with the title; PokéClicker's StartMenu
 is the model.

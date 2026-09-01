@@ -116,12 +116,12 @@ their first world at sets the difficulty of every world after it — and the tie
 (`difficultyMultiplier`, 2.5x per world entered) is nothing next to it.
 
 So an entry point has a **budget**, not just a ramp. Naruto's five arcs end at **78**, Hunter x
-Hunter's six at **120**, and Shippūden — the first sequel world anyone reaches — opens at **130**:
+Hunter's and Horimiya's six at **120**, and Shippūden — the first sequel world anyone reaches — opens at **130**:
 whichever entry world you pick, you arrive at the second world at roughly the same height, which is
 what makes the 2.5x tier step mean anything.
 
 Bleach is where that stopped being free. Fifteen arcs at the story's usual ~1.85x would end near
-**20 000**, 170x above the other two entry points, and every world after it would fold — a Bleach
+**20 000**, 170x above the shorter entry points, and every world after it would fold — a Bleach
 player would walk into a 2.5x-tier world with a team sized for a 39x one. Its debut-power ramp is
 therefore deliberately flat, **~1.24x an arc, 6 → 125**, landing it beside Hunter x Hunter.
 
@@ -157,9 +157,9 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   *cleared* first, and `isAnimeAvailable` gates both routes into a world — free travel and the paid
   shortcut alike. Prestige buys an early entry, never a way to read a sequel first: Shippūden sits
   behind part 1, and Boruto is meant to sit behind Shippūden. An anime with no `requiresAnimeId` is
-  an entry point, i.e. a world the player may start a run on. Naruto, Hunter x Hunter and Bleach are
-  the current entry points; the latter two are each one continuous world because neither has a
-  sequel part in this data model — Bleach's Thousand-Year Blood War is a separate series on AniList
+  an entry point, i.e. a world the player may start a run on. Naruto, Hunter x Hunter, Bleach and
+  Horimiya are the current entry points; the latter three are each one continuous world because
+  none has a sequel part in this data model — Bleach's Thousand-Year Blood War is a separate series on AniList
   but is this world's fifteenth arc here, not a world of its own.
 - The player picks their first world freely among the entry points and travels freely after each
   clear (`travelTo`, free). `unlockAnime` is the paid shortcut: spend `Anime.unlockCost` prestige
@@ -202,28 +202,18 @@ route into a home anime — see below — but is no longer used as the complete 
 
 ## Evolutions
 
-A character can grow into a stronger self later in their own story without becoming a second Codex
-entry — `Character.evolution` (`animeId`, `label`, `bonus` modifiers, an optional `ability`).
-`evolution.animeId` must be a sequel anime (`requiresAnimeId` pointing back at the character's own
-`animeId`, enforced in `src/engine/tests/`) — evolutions only ever look forward in a universe's reading
-order, never sideways or back.
-
-The Naruto universe uses this twice, one link per world border: part 1's mains grow when they reach
-Shippūden, and Shippūden's mains who are still standing in Boruto (Saï, Yamato, Ônoki, Killer Bee,
-Mei) grow again there. A character has exactly one `evolution` field, so a given entry evolves at
-most once — Naruto's own evolution fires at Shippūden and that is the end of it, which is why the
-Boruto set is drawn from characters introduced *in* Shippūden rather than from part 1's cast.
+A character can grow through several stronger selves without becoming another Codex entry —
+`Character.evolutions`, an ordered list of `animeId`, `label`, `bonus` modifiers and a replacement
+`ability`. Each target anime must directly follow the preceding stage in the universe's reading
+order. Every recurring Naruto-universe character gets one stage per later series in which they
+appear; a part-1 character present in Shippūden and Boruto therefore has two.
 
 Unlocking is permanent, not location-gated: the first time an owned character fights in
-`evolution.animeId`, `gameState`'s `maybeEvolve` (called from `spawnNext`, so on every recruit and
-arc switch) adds their id to `evolvedCharacterIds` for the rest of the run, and it never re-locks —
+an evolution's `animeId`, `gameState`'s `maybeEvolve` (called from `spawnNext`, so on every recruit
+and arc switch) adds its stable `character@anime` key to `evolvedCharacterIds`, and it never re-locks —
 not even back in their original world. `prestigeReset`/`hardReset` wipe it like the rest of the
-run-scoped state.
+run-scoped state. Bare character ids from older saves still unlock the first stage.
 
-Once evolved, `synergyMultiplier` treats `evolution.animeId` as home too (the `sameAnimeMalus` tier,
-same as any other arc of their own anime), so the passive stops shutting off there and
-`evolution.bonus` — extra modifiers, scaled by that same synergy value — stacks in on top of it via
-`characterContributions`. If `evolution.ability` is set, it replaces `character.ability` outright in
-`getUnlockedAbilities` once evolved — a character never has both at once. `Codex.tsx` shows the
-live ability (base or evolved) plus a dedicated "Évolution" block previewing the trigger world, the
-bonus and (once owned) whether it has fired yet, independent of whether the character is met.
+Unlocked bonuses stack in `characterContributions`; the latest unlocked stage supplies the active
+ability and replaces the earlier one outright. `Codex.tsx` lists every stage, its trigger world,
+bonus and individual acquired state while showing the currently active ability.

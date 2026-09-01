@@ -182,7 +182,7 @@ describe("synergyMultiplier", () => {
       id: "c4",
       animeId: "anime-2",
       arcIds: ["arc-x"],
-      evolution: { animeId: "anime-1", label: "Evolved", bonus: [] },
+      evolutions: [{ animeId: "anime-1", label: "Evolved", bonus: [] }],
     };
     expect(synergyMultiplier(character, arc, defaultSynergyConfig, false)).toBe(defaultSynergyConfig.otherAnimeMalus);
     expect(synergyMultiplier(character, arc, defaultSynergyConfig, true)).toBe(defaultSynergyConfig.sameAnimeMalus);
@@ -238,16 +238,33 @@ describe("synergy never inverts a multiplier", () => {
       id: "c-evo",
       animeId: "anime-2",
       arcIds: ["arc-x"],
-      evolution: {
+      evolutions: [{
         animeId: "anime-9",
         label: "Evolved",
         bonus: [{ target: "teamDps", kind: "multiplier", value: 3 }],
-      },
+      }],
     };
     const mods = characterContributions(evolving, arc, defaultSynergyConfig, 0, 0, true);
     const bonus = mods.find((m) => m.kind === "multiplier")!;
     // 1 + 2 * 0.5 = x2, not x1.5 and never below 1.
     expect(bonus.value).toBeCloseTo(2, 10);
     expect(bonus.value).toBeGreaterThan(1);
+  });
+
+  it("stacks every reached evolution bonus", () => {
+    const evolving: Character = {
+      ...base,
+      id: "c-multi-evo",
+      animeId: "anime-2",
+      arcIds: ["arc-x"],
+      evolutions: [
+        { animeId: "anime-1", label: "Stage 1", bonus: [{ target: "teamDps", kind: "percent", value: 0.2 }] },
+        { animeId: "anime-0", label: "Stage 2", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }] },
+      ],
+    };
+    const first = characterContributions(evolving, arc, defaultSynergyConfig, 0, 0, 1);
+    const second = characterContributions(evolving, arc, defaultSynergyConfig, 0, 0, 2);
+    expect(first.filter((modifier) => modifier.kind === "percent")).toHaveLength(1);
+    expect(second.filter((modifier) => modifier.kind === "percent")).toHaveLength(2);
   });
 });

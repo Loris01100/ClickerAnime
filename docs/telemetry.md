@@ -32,7 +32,7 @@ actually bounds `JSON.parse` is `raw.length > MAX_BODY_CHARS` after `request.tex
 | `blob6` | hostname, to separate production from preview URLs |
 | `double1` | current milestone value, or prestige gained |
 | `double2` | run completion on prestige (0..1) |
-| `double3` | accumulated active-play minutes for a progression milestone, or run duration on prestige |
+| `double3` | accumulated active-play minutes for a progression milestone, or the run's duration on prestige — both rounded to the same half-minute bucket |
 
 The dataset is created automatically on its first production write, and Cloudflare keeps Analytics
 Engine data for three months. Query it through Cloudflare's Workers Analytics Engine SQL API with

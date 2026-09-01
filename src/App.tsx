@@ -1,6 +1,7 @@
 import { Show, Suspense, createEffect, createMemo, createSignal, lazy, on, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
+import { achievementCount } from "./engine/achievements";
 import { gameData } from "./data";
 import ClickStage from "./ui/ClickStage";
 import WorldMap from "./ui/WorldMap";
@@ -31,6 +32,7 @@ const PrestigeTree = lazy(() => import("./ui/PrestigeTree"));
 const ShopPanel = lazy(() => import("./ui/ShopPanel"));
 const CrossoverPanel = lazy(() => import("./ui/CrossoverPanel"));
 const PackPanel = lazy(() => import("./ui/PackPanel"));
+const CatalogPanel = lazy(() => import("./ui/CatalogPanel"));
 const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
 const ForgePanel = lazy(() => import("./ui/ForgePanel"));
 const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
@@ -56,6 +58,7 @@ export default function App() {
   const [shopOpen, setShopOpen] = createSignal(false);
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   const [packsOpen, setPacksOpen] = createSignal(false);
+  const [catalogOpen, setCatalogOpen] = createSignal(false);
   const [reflexOpen, setReflexOpen] = createSignal(false);
   const [forgeOpen, setForgeOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
@@ -98,24 +101,30 @@ export default function App() {
     const counts = game.achievementCounts();
     return deriveDisclosure(
       {
-        kills: (counts.mobsKilled ?? 0) + (counts.bossesKilled ?? 0),
-        recruits: counts.charactersRecruited ?? 0,
+        kills: achievementCount(counts, "mobsKilled") + achievementCount(counts, "bossesKilled"),
+        recruits: achievementCount(counts, "charactersRecruited"),
         ownedCharacters: game.ownedCharacters().length,
         unlockedAbilities: game.unlockedAbilities().length,
-        abilitiesActivated: counts.abilitiesActivated ?? 0,
+        // `abilitiesUsed`, the ladder's real id — this read used to say `abilitiesActivated`, which
+        // nothing writes, so the lifetime fallback below it was dead: the whole "Capacités" panel
+        // vanished (and was re-announced on return) whenever `unlockedAbilities` hit 0, i.e. abroad
+        // or under « Le Silence des héros » — precisely when its "why is this asleep" rows matter.
+        abilitiesActivated: achievementCount(counts, "abilitiesUsed"),
         foundItems: game.foundItems().length,
-        commonItemsCollected: counts.commonItemsCollected ?? 0,
-        bossesKilled: counts.bossesKilled ?? 0,
-        uniquesEquipped: counts.uniquesEquipped ?? 0,
-        arcsCleared: counts.arcsCleared ?? 0,
+        commonItemsCollected: achievementCount(counts, "commonItemsCollected"),
+        bossesKilled: achievementCount(counts, "bossesKilled"),
+        uniquesEquipped: achievementCount(counts, "uniquesEquipped"),
+        arcsCleared: achievementCount(counts, "arcsCleared"),
         pendingPrestige: game.pendingPrestigeGain(),
         prestigePoints: game.prestige().prestigePoints,
-        prestiges: counts.prestiges ?? 0,
+        prestiges: achievementCount(counts, "prestiges"),
         treeLevels: PRESTIGE_TREE_CATEGORIES.reduce((sum, category) => sum + game.branchLevelsOf(category.id), 0),
         maxWorldPoints: Math.max(0, ...game.data.animes.map((anime) => game.worldPointsOf(anime.id))),
-        packsOpened: counts.packsOpened ?? 0,
+        packsOpened: achievementCount(counts, "packsOpened"),
         crossoverCrystals: game.crossoverCrystals(),
-        crossoversActivated: counts.crossoversActivated ?? 0,
+        // Same fix: the ladder is `crossoversUsed`. Without it the Crossover entry disappeared as
+        // soon as the crystals were spent with a mono-world team, however many windows were opened.
+        crossoversActivated: achievementCount(counts, "crossoversUsed"),
         mixedTeam: game.teamIsMixed(),
         canTravel: game.canTravel(),
         activeChallenge: Boolean(game.activeChallenge()),
@@ -147,6 +156,13 @@ export default function App() {
       { defer: true }
     )
   );
+
+  /**
+   * Le Codex est l'écran où un passif se lit et s'achète : on y pastille l'entrée du menu dès qu'un
+   * personnage de l'équipe a de quoi monter le sien. La pastille est aussi posée sur « Menu », qui
+   * reste fermé la plupart du temps — sinon la notification ne serait jamais vue.
+   */
+  const codexNotice = createMemo(() => disclosure().codex && game.rankablePassiveIds().size > 0);
 
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
   function openCodexOn(characterId?: string) {
@@ -215,10 +231,23 @@ export default function App() {
             referme quand le focus quitte le menu, et chaque entrée le referme en se déclenchant.
           */}
           <details ref={menu} class="startmenu" onFocusOut={onMenuFocusOut}>
-            <summary>Menu</summary>
+            <summary>
+              Menu
+              <Show when={codexNotice()}>
+                <span class="notice-dot" aria-hidden="true" />
+              </Show>
+            </summary>
             <div class="startmenu-items">
               <Show when={disclosure().codex}>
-                <button onClick={() => runFromMenu(() => openCodexOn(undefined))}>Codex</button>
+                <button
+                  onClick={() => runFromMenu(() => openCodexOn(undefined))}
+                  title={codexNotice() ? "Un passif peut être amélioré" : undefined}
+                >
+                  Codex
+                  <Show when={codexNotice()}>
+                    <span class="notice-dot" aria-label="Un passif peut être amélioré" role="img" />
+                  </Show>
+                </button>
               </Show>
               <Show when={game.unlockedAnimes().length > 0}>
                 <Show when={disclosure().worlds}>
@@ -229,6 +258,7 @@ export default function App() {
                 </Show>
                 <Show when={disclosure().packs}>
                   <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
+                  <button onClick={() => runFromMenu(() => setCatalogOpen(true))}>Catalogue</button>
                 </Show>
                 <Show when={disclosure().crossover}>
                   <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
@@ -353,7 +383,18 @@ export default function App() {
       </Show>
 
       <Show when={packsOpen()}>
-        <PackPanel game={game} onClose={() => setPacksOpen(false)} />
+        <PackPanel
+          game={game}
+          onClose={() => setPacksOpen(false)}
+          onOpenCatalog={() => {
+            setPacksOpen(false);
+            setCatalogOpen(true);
+          }}
+        />
+      </Show>
+
+      <Show when={catalogOpen()}>
+        <CatalogPanel game={game} onClose={() => setCatalogOpen(false)} />
       </Show>
 
       <Show when={crossoverOpen()}>

@@ -21,8 +21,22 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
   one character at a time (`characterEquipment` in the save). Equipped uniques grant permanent
   `ModifierTemplate` effects (`Item.effects`) that are merged into `characterContributions` and scaled
   by synergy just like base stats and passives. They are **scoped to the wearer**: a unique's percent
-  or multiplier lifts that character's own damage only, never the rest of the team. An item may restrict who can wear it via
-  `Item.equippableBy` (character ids, anime ids, or character tags).
+  or multiplier lifts that character's own damage only, never the rest of the team.
+
+Who may wear a unique is decided by `canEquipOn` (`forge.ts`), and the first of its two rules is the
+world: **an accessory never leaves its own universe.** An item carries no `animeId` — it is authored
+in a world's directory and dropped by exactly one of that world's enemies, so `itemAnimeIndex(arcs)`
+derives the origin from the drop rather than duplicating it into the content. Only a character that
+world belongs to may wear it, through the same `isHomeAnime` test that decides whether a story
+ability travels: a recruit of that world, someone who appears there, or someone whose evolution
+grows into it. A Bleach zanpakutô on an Ôtsutsuki was never a build, only a collision between two
+worlds' tags. The evolution's world counts *before* the evolution is reached — equipment isn't
+re-checked every prestige, and an item that silently took itself off would be worse than one worn
+early. An item no enemy drops has no world and stays unrestricted, so authoring one can't lock it.
+On top of that, `Item.equippableBy` (character ids, anime ids, or character tags) narrows further,
+and `validateGameData` refuses a unique the two rules together leave unwearable
+(`unwearable-unique`). The same helper backs `sanitizedEquipment`, so an imported save cannot
+smuggle a foreign accessory in.
 
 Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
 copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
@@ -32,8 +46,16 @@ rank past it adds a `LEVEL_DAMAGE_STEP`" rule lives, shared by the pipeline and 
 that preview a passive at rank 1 and at its cap. `rankUpPassive` refuses a character who isn't in the team: only
 owned characters reach `characterContributions`, so the copies would be burnt for nothing (the item
 Codex lists the whole cast, met or not). It refuses on the same grounds a character with **no
-`passive` at all** — `Character.passive` is optional (Naruto's kit is an ability plus an evolution),
-and the item Codex used to offer a rank-up on the whole cast of the arc, passive or not. Rank 0 means the passive is **locked** and contributes nothing, rank 1
+`passive` at all** — `Character.passive` stays optional in the type, and the item Codex used to
+offer a rank-up on the whole cast of the arc, passive or not. **Every character in the shipped data
+now carries a passive**: the thirty who had none were all ability-holders (Naruto, Gon, Ichigo,
+Miyamura, …) authored back when a kit was read as *either* an ability *or* a passive, which left
+their arc's commons with nothing to buy on the very characters the player recruits first. Shippûden
+and Boruto had given both since they were written; the earlier worlds now match, each new passive
+sized on its own cohort (a main between 0.2 and 0.4, a secondary between 0.1 and 0.2, on
+`teamDps` or `clickPower` depending on how the character fights). It is not a rebalance: a passive
+is scoped to its own character and starts locked at rank 0, and `npm run sim` reports the same run
+— 14 arcs, 69 min, the same wall. Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
 
 The first rank is a bounded onboarding exception, not a free reward. After the player's first arc
@@ -64,9 +86,11 @@ Only `hardReset` clears that rank.
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
 Two constants were over that line and together took the effective common-drop rate from the printed
 base (now 15%) to **0.73 copies per kill** back when the base was 12%: `DOUBLE_DROP_CHANCE` at 0.25
-(a maxed node doubled *every* drop) and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third
-amplifier — `PITY_REDUCTION_PER_LEVEL` at 3 forced a common every 3 kills at max level, a 33% floor
-that made the printed chance meaningless. Retuned to 0.08 / 0.1 / 1 respectively.
+(a maxed node doubled *every* drop) and the old `DOUBLE_PRESTIGE_CHANCE` at 0.2 (a maxed node doubled
+*every* prestige — that node has since been replaced, see "Destin" below). The pity timer was the
+third amplifier — `PITY_REDUCTION_PER_LEVEL` at 3 forced a common every 3 kills at max level, a 33%
+floor that made the printed chance meaningless. Retuned to 0.08 / 0.1 / 1 respectively, and the rule
+now covers `FREE_PACK_CHANCE` too.
 `src/engine/tests/` now asserts the rule for every chance constant and keeps the pity floor above the
 base draw's own ~8-kill average, so this class of mistake can't come back.
 
@@ -103,8 +127,10 @@ and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPO
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what
 the same earnings bank early. The exponent is deliberately *low* (0.16, see above): completion has to
-dominate, or farming one arc for hours outpaces clearing the next one. A double-gain chance is a perk
-of the tree's **"Destin"** branch, see below. Points are spent two ways:
+dominate, or farming one arc for hours outpaces clearing the next one. **Nothing multiplies that
+gain from outside**: the tree's "Destin" branch used to end on a rolled 2x (`applyPrestige`'s old
+`gainMultiplier`), which is exactly the term this exponent is tuned to hold flat — see the branch
+below for what replaced it. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.
 
@@ -189,8 +215,17 @@ can never stop being geometric:
   hands over the arc's common anyway (node 5).
 - **Destin** — currency-per-kill percent (node 1); a small chance per kill to gain 1 prestige point
   outright (node 2); a chance at a bonus copy of a common drop (node 3); a shop discount (node 4);
-  a chance to double the points a `prestigeReset` banks, rolled in `gameState` and passed as
-  `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays free of randomness (node 5).
+  **« Carte blanche »**, a chance that an opened pack is on the house — its `worldPoints` are simply
+  not spent (node 5, `FREE_PACK_CHANCE`, rolled in `openPack`). The branch is the economy one, and
+  pack points were the only currency the whole tree ignored; the node reaches them the same way node
+  4 reaches the shop. It cannot raise a ceiling either: the pack still has to be affordable to be
+  opened, so the perk never buys a draw the player couldn't, and `MAX_DUPLICATES` still closes the
+  pool. **It replaced "Faveur du destin"**, a chance to double the points a `prestigeReset` banked.
+  That one resolved a coin flip once per run, at the one moment the player has no move left to make
+  — pure variance, unreadable in play — and it multiplied the one number `PRESTIGE_EXPONENT` exists
+  to keep flat (a maxed node was worth an extra full run every ten resets). Its `gainMultiplier`
+  plumbing through `applyPrestige` and `PrestigeReport` went with it; `prestige.ts` is now free of
+  randomness because nothing rolls there at all, rather than by convention.
 - **Automatisation** — the branch that plays the parts of the loop that aren't decisions, and
   **only** those: see the invariant in `CLAUDE.md`. "Relève" walks the team to the next arc once it
   clears the one it's in (node 1); "Réflexe" fires every ability that is off cooldown, exactly what
@@ -315,18 +350,42 @@ case; `CurrencyBar` pulses the tile on it.
 
 A character is recruited exactly once — refighting their arc never gives them again — so packs are
 the only source of **duplicates**, and each duplicate multiplies that character's base click damage
-and dps by `DUPLICATE_DAMAGE_STEP` (uncapped), folded into `characterContributions` next to
-`levelGrowth`. That is what keeps a starting character worth having late.
+and dps by `DUPLICATE_DAMAGE_STEP`, folded into `characterContributions` next to `levelGrowth`. That
+is what keeps a starting character worth having late.
+
+The copies stop at `MAX_DUPLICATES` (**10**, i.e. +250% base damage on that character). The bonus is
+flat per copy and permanent, so with no ceiling one world's points eventually buy an unbounded
+multiplier on a single character, and the pack points a cleared world keeps handing out have nothing
+else to be spent on. The cap is enforced in `packPool`, not at the purchase: a character at ten
+copies simply **leaves the pool**, so `openPack` returns null of its own accord and `PackPanel`'s
+button disappears with the pool — one rule, no second check to keep in sync. Duplicates read from a
+save are clamped once on the way in, so a save written before the cap (or an imported one) can't
+sit above it.
 
 The currency is **one bucket per world** (`worldPoints` in `gameState`), `POINTS_PER_KILL` per fight
 won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws uniformly from the
 world's `rarity: "main"` cast, `PACK_COST.secondary` (250) from its secondary cast. `packPool` and
 `drawPack` are pure and take the 0..1 roll as an argument, like `rollsDrop`; `openPack` in
-`gameState` is the only caller of `Math.random()` and returns the character drawn so `PackPanel` can
-show it. The pool is filtered by the current roster: only characters already recruited in this
-adventure are eligible. This prevents a pack from revealing or strengthening a character before
+`gameState` is the only caller of `Math.random()` and returns a `PackDraw` — the character drawn, so
+`PackPanel` can show it, plus whether "Destin" node 5 (« Carte blanche ») waived the price. The
+waiver is applied *after* affordability: the points must be in the bucket either way, so a free pack
+is a refund, never a purchase the player could not have made. `PackPanel` prints the price of what
+the points actually buy (`affordableCount`, capped by the x1–x10 selector) rather than
+`PACK_COST × qty` — the same "one number, shown and charged" rule `shopOffers` follows — while the
+buy loop still runs to the full `qty`, since a waived pack pays for one more.
+
+The pool is filtered by the current roster: only characters already recruited in this adventure are
+eligible. This prevents a pack from revealing or strengthening a character before
 their story encounter. After prestige, a character becomes eligible again when recruited again;
 duplicates already held remain banked meanwhile.
+
+`PackPanel` is the buying screen and stops there; the collection is read in **`CatalogPanel.tsx`**,
+the catalogue — one card per recruited character, grouped by world, showing the copies held, the
+progress bar toward `MAX_DUPLICATES` and what the copies are worth in damage, with a tab to widen
+the view from the characters holding duplicates to the whole roster. It computes nothing of its own:
+`duplicatesOf` and `ownedCharacters` come from the store, and `DUPLICATE_DAMAGE_STEP` from here. The
+split is deliberate — the packs panel would otherwise grow a second, longer list under its buttons —
+and both share the same `packs` disclosure gate, so the catalogue appears with the packs themselves.
 
 Points and duplicates are meta-progression like `achievementCounts` and `prestigeTreeRanks` —
 `prestigeReset` spares both, only `hardReset` wipes them. Both are optional save fields, so no

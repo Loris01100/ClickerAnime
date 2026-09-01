@@ -33,6 +33,23 @@ describe("game data", () => {
     expect(formatContentIssues(issues)).toContain("arc-inexistant");
     expect(formatContentIssues(issues)).toContain("bleach");
   });
+  it("exige que les arcs d’un personnage soient listés dans l’ordre de l’histoire", () => {
+    // `arcIds[0]` est l’arc de débuts que lit `arcPowerTable`, donc le `debutPower` de tout le
+    // rattrapage : un tableau trié à l’envers ferait débuter le personnage bien plus tard qu’il ne
+    // le fait, sans rien casser de visible.
+    const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
+    const reversed = {
+      ...gameData,
+      characters: gameData.characters.map((character) =>
+        character.id === naruto.id ? { ...character, arcIds: [...character.arcIds].reverse() } : character
+      ),
+    };
+    const issues = validateGameData(reversed);
+    expect(issues.map((issue) => issue.code)).toContain("unordered-presence");
+    // Et le contenu réel le respecte déjà, sur les 256 personnages.
+    expect(validateGameData(gameData).filter((issue) => issue.code === "unordered-presence")).toEqual([]);
+  });
+
   it("keeps the Naruto cast present across its sequel anime without duplicating recruits", () => {
     const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
     const sequelArcs = gameData.arcs.filter((arc) => arc.animeId === "shippuden" || arc.animeId === "boruto");
@@ -82,6 +99,36 @@ describe("game data", () => {
     );
     expect(debutPower).toEqual([6, 8, 18, 30, 72, 120]);
 
+  });
+
+  it("folds Horimiya and The Missing Pieces into one balanced entry world", () => {
+    const arcs = gameData.arcs.filter((arc) => arc.animeId === "horimiya").sort((a, b) => a.order - b.order);
+    expect(arcs.map((arc) => arc.name)).toEqual([
+      "Les secrets partagés",
+      "Une place parmi les autres",
+      "Des sentiments difficiles à dire",
+      "Le quotidien du lycée",
+      "Les pièces manquantes",
+      "Noël et la remise des diplômes",
+    ]);
+    expect(arcs.map((arc) => arc.mobsToBoss)).toEqual([20, 28, 34, 40, 46, 52]);
+    expect(arcs.map((arc) => arc.boss.baseHp)).toEqual([588, 60_600, 550_000, 1_800_000, 3_000_000, 8_000_000]);
+    expect(arcs.every((arc) => arc.mapX !== undefined && arc.mapY !== undefined)).toBe(true);
+
+    const anime = gameData.animes.find((entry) => entry.id === "horimiya");
+    expect(anime?.requiresAnimeId).toBeUndefined();
+    expect(anime?.mapImage).toBe("/horimiya-map.png");
+    expect(anime?.presentation?.bossLabel).toBe("Épreuve");
+
+    const debutPower = arcs.map((arc) =>
+      gameData.characters
+        .filter((character) => character.arcIds[0] === arc.id)
+        .map((character) => character.baseDps)
+    );
+    expect(debutPower.map((cohort) => Math.max(...cohort))).toEqual([6, 12, 24, 48, 82, 120]);
+    for (const [index, cohort] of debutPower.entries()) {
+      expect(Math.min(...cohort) / Math.max(...cohort), `${arcs[index].id} : plancher de cohorte`).toBeGreaterThanOrEqual(0.6);
+    }
   });
 
   it("covers Bleach's fifteen anime arcs, the manga-only duplicate of the last one aside", () => {
@@ -160,7 +207,7 @@ describe("game data", () => {
   it("caps active ability damage gains in every world", () => {
     const abilities = [
       ...gameData.characters.flatMap((character) => character.ability ? [character.ability] : []),
-      ...gameData.characters.flatMap((character) => character.evolution?.ability ? [character.evolution.ability] : []),
+      ...gameData.characters.flatMap((character) => (character.evolutions ?? []).flatMap((evolution) => evolution.ability ? [evolution.ability] : [])),
     ];
     const multipliers = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "multiplier"));
     const percents = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "percent"));
@@ -213,7 +260,7 @@ describe("game data", () => {
       for (const animeId of character.fullSynergyAnimeIds ?? []) {
         expect(animeIds, `${character.id} has full synergy in an unknown anime`).toContain(animeId);
         expect(
-          [...(character.appearanceAnimeIds ?? []), character.evolution?.animeId],
+          [...(character.appearanceAnimeIds ?? []), ...(character.evolutions ?? []).map((evolution) => evolution.animeId)],
           `${character.id} needs a presence or evolution before full sequel synergy`,
         ).toContain(animeId);
       }
@@ -259,12 +306,29 @@ describe("game data", () => {
 
   it("only evolves characters into a later anime of their own universe", () => {
     for (const character of gameData.characters) {
-      if (!character.evolution) continue;
-      const evolvesInto = gameData.animes.find((a) => a.id === character.evolution!.animeId);
-      expect(evolvesInto, `${character.id} evolves into an unknown anime`).toBeDefined();
-      expect(evolvesInto!.requiresAnimeId, `${character.id}'s evolution must be its own anime's sequel`).toBe(
-        character.animeId
-      );
+      let previousAnimeId = character.animeId;
+      for (const evolution of character.evolutions ?? []) {
+        const evolvesInto = gameData.animes.find((anime) => anime.id === evolution.animeId);
+        expect(evolvesInto, `${character.id} evolves into an unknown anime`).toBeDefined();
+        expect(evolvesInto!.requiresAnimeId, `${character.id}'s evolutions must follow story order`).toBe(previousAnimeId);
+        previousAnimeId = evolution.animeId;
+      }
+    }
+  });
+
+  it("gives every recurring Naruto character one distinct evolution per later series", () => {
+    const trilogy = new Set(["naruto", "shippuden", "boruto"]);
+    for (const character of gameData.characters.filter((entry) => trilogy.has(entry.animeId))) {
+      const appearances = (character.appearanceAnimeIds ?? []).filter((animeId) => trilogy.has(animeId));
+      if (appearances.length === 0) continue;
+      expect((character.evolutions ?? []).map((evolution) => evolution.animeId), character.id).toEqual(appearances);
+
+      let previousAbilityName = character.ability?.name;
+      for (const evolution of character.evolutions ?? []) {
+        expect(evolution.ability, `${character.id} must change ability in ${evolution.animeId}`).toBeDefined();
+        expect(evolution.ability!.name, `${character.id}'s ability name must change`).not.toBe(previousAbilityName);
+        previousAbilityName = evolution.ability!.name;
+      }
     }
   });
 

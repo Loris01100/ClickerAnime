@@ -1,12 +1,12 @@
 import type { GameData } from "../../engine/gameState";
+import type { CharacterEvolution } from "../../engine/types";
 
-
-export const shippudenCharacters: GameData["characters"] = [
+const shippudenBaseCharacters: GameData["characters"] = [
   {
     id: "chiyo",
     name: "Chiyo",
     animeId: "shippuden",
-    rarity: "main",
+    rarity: "secondary",
     tags: ["puppeteer"],
     arcIds: ["shippuden-kazekage", "shippuden-tenchi"],
     baseClickPower: 25,
@@ -55,7 +55,7 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 46,
     baseDps: 240,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
-    evolution: {
+    evolutions: [{
       animeId: "boruto",
       label: "Chef de la Racine",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.4 }],
@@ -66,7 +66,7 @@ export const shippudenCharacters: GameData["characters"] = [
         durationMs: 10_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 3.25 }],
       },
-    },
+    }],
   },
   {
     id: "yamato",
@@ -79,11 +79,18 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 46,
     baseDps: 240,
     passive: { target: "teamDps", kind: "percent", value: 0.25 },
-    evolution: {
+    evolutions: [{
       animeId: "boruto",
       label: "Traqueur de Kara",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.35 }],
-    },
+      ability: {
+        id: "ability-mokuton-geole",
+        name: "Mokuton — Geôle aux Quatre Piliers",
+        cooldownMs: 85_000,
+        durationMs: 10_000,
+        effects: [{ target: "teamDps", kind: "multiplier", value: 3.2 }],
+      },
+    }],
   },
   {
     id: "asuma",
@@ -272,11 +279,18 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 1_850,
     baseDps: 9_640,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
-    evolution: {
+    evolutions: [{
       animeId: "boruto",
       label: "Ancienne Mizukage",
       bonus: [{ target: "clickPower", kind: "percent", value: 0.45 }],
-    },
+      ability: {
+        id: "ability-yoton-mei",
+        name: "Yôton — Monstre d'Acide",
+        cooldownMs: 90_000,
+        durationMs: 11_000,
+        effects: [{ target: "clickPower", kind: "multiplier", value: 3.4 }],
+      },
+    }],
   },
   {
     id: "onoki",
@@ -289,7 +303,7 @@ export const shippudenCharacters: GameData["characters"] = [
     baseClickPower: 1_850,
     baseDps: 9_640,
     passive: { target: "teamDps", kind: "percent", value: 0.3 },
-    evolution: {
+    evolutions: [{
       animeId: "boruto",
       label: "Le Fossile Vivant",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.45 }],
@@ -300,7 +314,7 @@ export const shippudenCharacters: GameData["characters"] = [
         durationMs: 11_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }],
       },
-    },
+    }],
   },
   {
     id: "darui",
@@ -357,7 +371,7 @@ export const shippudenCharacters: GameData["characters"] = [
         { target: "teamDps", kind: "multiplier", value: 2.25 },
       ],
     },
-    evolution: {
+    evolutions: [{
       animeId: "boruto",
       label: "Hachibi Déchaîné",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.5 }],
@@ -368,7 +382,7 @@ export const shippudenCharacters: GameData["characters"] = [
         durationMs: 12_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }],
       },
-    },
+    }],
   },
   {
     id: "anko",
@@ -557,12 +571,12 @@ export const shippudenCharacters: GameData["characters"] = [
     id: "shisui",
     name: "Shisui Uchiwa",
     animeId: "shippuden",
-    rarity: "main",
+    rarity: "secondary",
     tags: ["uchiwa"],
     arcIds: ["shippuden-histoire-itachi", "shippuden-kaguya"],
     baseClickPower: 40_200,
     baseDps: 209_000,
-    passive: { target: "teamDps", kind: "percent", value: 0.4 },
+    passive: { target: "teamDps", kind: "percent", value: 0.2 },
   },
   {
     id: "izumi",
@@ -639,3 +653,21 @@ export const shippudenCharacters: GameData["characters"] = [
     },
   },
 ];
+
+const recurringEvolutions: Record<string, CharacterEvolution[]> = {
+  suigetsu: [{ animeId: "boruto", label: "Maîtrise du Corps Aqueux", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }], ability: { id: "ability-pistolet-eau-double", name: "Suiton — Double Pistolet à Eau", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.8 }] } }],
+  karin: [{ animeId: "boruto", label: "Héritière du chakra Uzumaki", bonus: [{ target: "clickPower", kind: "percent", value: 0.3 }], ability: { id: "ability-chaines-karin", name: "Chaînes de Chakra Adamantines", cooldownMs: 70_000, durationMs: 9_000, effects: [{ target: "clickPower", kind: "multiplier", value: 2.9 }] } }],
+  jugo: [{ animeId: "boruto", label: "Transformation Ermite maîtrisée", bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }], ability: { id: "ability-transformation-jugo-max", name: "Transformation Ermite — Puissance maximale", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3 }] } }],
+  ay: [{ animeId: "boruto", label: "Quatrième Raikage retiré", bonus: [{ target: "teamDps", kind: "percent", value: 0.45 }], ability: { id: "ability-lariat-ay-max", name: "Lariat Éclair — Puissance maximale", cooldownMs: 80_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.45 }] } }],
+  darui: [{ animeId: "boruto", label: "Cinquième Raikage", bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }], ability: { id: "ability-panthere-noire", name: "Raiton Noir — Panthère Noire", cooldownMs: 75_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.05 }] } }],
+  chojuro: [{ animeId: "boruto", label: "Sixième Mizukage", bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }], ability: { id: "ability-hiramekarei", name: "Hiramekarei — Libération maximale", cooldownMs: 75_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.05 }] } }],
+  anko: [{ animeId: "boruto", label: "Instructrice de l'Académie", bonus: [{ target: "teamDps", kind: "percent", value: 0.28 }], ability: { id: "ability-serpents-anko", name: "Poigne des Serpents Spectraux Multiples", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.7 }] } }],
+  kurotsuchi: [{ animeId: "boruto", label: "Quatrième Tsuchikage", bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }], ability: { id: "ability-chaux-kurotsuchi", name: "Yôton — Prise de la Chaux Vive", cooldownMs: 75_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.05 }] } }],
+  kurama: [{ animeId: "boruto", label: "Chakra du Mode Baryon", bonus: [{ target: "teamDps", kind: "percent", value: 0.55 }], ability: { id: "ability-fusion-baryon-kurama", name: "Fusion Baryon — Combustion du Chakra", cooldownMs: 120_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }] } }],
+  hanabi: [{ animeId: "boruto", label: "Héritière du clan Hyûga", bonus: [{ target: "clickPower", kind: "percent", value: 0.3 }], ability: { id: "ability-paume-hanabi", name: "Hakke — Paume du Tourbillon Divin", cooldownMs: 70_000, durationMs: 9_000, effects: [{ target: "clickPower", kind: "multiplier", value: 2.9 }] } }],
+};
+
+export const shippudenCharacters: GameData["characters"] = shippudenBaseCharacters.map((character) => ({
+  ...character,
+  evolutions: [...(character.evolutions ?? []), ...(recurringEvolutions[character.id] ?? [])],
+}));

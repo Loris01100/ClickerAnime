@@ -6,6 +6,7 @@ import Coin from "./Coin";
 import { IconCheck, IconChevronRight, IconLock, IconTarget } from "./icons";
 import type { DisclosureState } from "./disclosure";
 import { bossAdvice } from "./advice";
+import { termsOf } from "./presentation";
 
 const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
 
@@ -35,9 +36,7 @@ export default function ProgressPanel(props: {
       (a) => !props.game.prestige().unlockedAnimeIds.includes(a.id) && !props.game.animeBlockedBy(a.id)
     );
 
-  const affordablePassive = createMemo(() =>
-    props.game.ownedCharacters().some((character) => props.game.passiveUpgradeOf(character).affordable)
-  );
+  const affordablePassive = createMemo(() => props.game.rankablePassiveIds().size > 0);
   const equippableUnique = createMemo(() =>
     props.game.foundItems().some(
       (item) =>
@@ -62,6 +61,7 @@ export default function ProgressPanel(props: {
             <Show when={isAnimeOpen(anime.id)}>
             <For each={props.game.arcsOf(anime.id)}>
               {(arc) => {
+                const terms = () => termsOf(anime);
                 const open = () => props.game.arcOpen(arc);
                 const cleared = () => props.game.arcCleared(arc);
                 const kills = () => Math.min(props.game.killsIn(arc), arc.mobsToBoss);
@@ -86,8 +86,8 @@ export default function ProgressPanel(props: {
                 /** Ce que l'équipe vaut face au boss de cet arc — le seul mur du jeu. */
                 const outlookLabel = createMemo(() => {
                   const { ttkMs, timerMs, winnable } = outlook();
-                  if (!Number.isFinite(ttkMs)) return `Boss : aucun DPS pour l'instant. Conseil : ${advice().detail}`;
-                  const base = `Boss : ${seconds(ttkMs)} pour l'abattre`;
+                  if (!Number.isFinite(ttkMs)) return `${terms().boss} : aucun ${terms().teamDps.toLowerCase()} pour l'instant. Conseil : ${advice().detail}`;
+                  const base = `${terms().boss} : ${seconds(ttkMs)} estimées`;
                   if (!timerMs) return base;
                   return `${base} · limite ${seconds(timerMs)}${winnable ? "" : `. Conseil : ${advice().detail}`}`;
                 });
