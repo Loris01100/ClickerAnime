@@ -154,7 +154,11 @@ branchent jamais sur `anime.id`.
 
 **Horimiya est en alpha, en phase de test.** Sa direction artistique, son vocabulaire de
 présentation et son équilibrage sont provisoires : ils peuvent encore bouger, et le monde ne sert
-pas de référence visuelle pour les autres mondes tant que l'alpha dure.
+pas de référence visuelle pour les autres mondes tant que l'alpha dure. Le joueur le voit : le drapeau
+`Anime.alpha` affiche une pastille **Alpha** en `--gold` partout où le monde est nommé (portail,
+en-tête du théâtre, panneau de progression, carte) et une phrase d'avertissement dans le dossier du
+portail. Une pastille, jamais une couleur en dur — et pas de `--bad`, qui dirait « cassé » là où il
+faut dire « en test ».
 
 Palette fonctionnelle actuelle (rappel, ne pas dupliquer ailleurs) :
 

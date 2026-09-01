@@ -44,6 +44,9 @@ export default function WorldMap(props: { game: GameStore }) {
             >
               {expanded() ? "Réduire" : "Agrandir"}
             </button>
+            <Show when={anime().alpha}>
+              <small class="portal-badge alpha">Alpha</small>
+            </Show>
             <small class="muted">difficulté x{fmt(props.game.difficultyOf(anime().id))}</small>
           </header>
 

@@ -53,6 +53,12 @@ export interface Anime {
    * keep the same stable concepts, while a non-combat story can describe them in its own terms.
    */
   presentation?: AnimePresentation;
+  /**
+   * The world is still being tested: its arcs, recruits and balance are provisional and may still
+   * change. Purely a warning shown to the player — no rule reads it — but it must be authored data
+   * rather than a component checking for an id, so a world can leave alpha by editing one flag.
+   */
+  alpha?: boolean;
 }
 
 export interface AnimePresentation {

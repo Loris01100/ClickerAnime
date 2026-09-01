@@ -178,6 +178,9 @@ export default function ClickStage(props: { game: GameStore }) {
         <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
           {terms().stage}
         </PanelTitle>
+        <Show when={anime()?.alpha}>
+          <small class="portal-badge alpha">Alpha</small>
+        </Show>
         <small class="muted">
           {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
         </small>

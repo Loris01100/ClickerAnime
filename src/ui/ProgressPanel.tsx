@@ -56,6 +56,9 @@ export default function ProgressPanel(props: {
                 {anime.name}
                 <Show when={props.game.animeCleared(anime.id)}> <IconCheck class="good" /></Show>
               </PanelTitle>
+              <Show when={anime.alpha}>
+                <small class="portal-badge alpha">Alpha</small>
+              </Show>
               <small class="muted">x{fmt(props.game.difficultyOf(anime.id))}</small>
             </header>
             <Show when={isAnimeOpen(anime.id)}>

@@ -149,6 +149,12 @@ health bar, boss, click power, team DPS and encounters. `ui/presentation.ts` sup
 defaults and merges overrides, so Horimiya can display Liens, Tension, Épreuve, Courage and Soutien
 without an `anime.id` branch, a second rules engine, or any save-format field.
 
+**A world under test says so, from data.** `Anime.alpha` is a flag, not an id check: it paints a
+gold "Alpha" pill wherever the world is named — the portal list and its hero, the stage header, the
+world's progress panel, the map panel header — plus one sentence in the portal dossier saying the
+arcs, recruits and balance are provisional. Horimiya carries it today. No rule reads the flag, so a
+world leaves alpha by deleting one line, and the pill costs nothing to the save format.
+
 **And a map need not be a route.** Bleach's is the series' cosmology rather than a journey — the
 Garganta with the worlds it links, legended 1 to 9 — so its fifteen arcs are pinned on *where each
 one happens* (six in the Soul Society, four in Karakura, three in Hueco Mundo) instead of trailing

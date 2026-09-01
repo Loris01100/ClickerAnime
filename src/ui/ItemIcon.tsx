@@ -69,6 +69,21 @@ const ITEM_ART: Record<string, string> = {
   "hxh-item-skill-hunter": "hxh-item-skill-hunter.png",
   "hxh-item-fil-nen": "hxh-item-yeux-ecarlates.png",
   "hxh-item-carte-joker": "hxh-item-carte-joker.png",
+  "bleach-item-insigne": "bleach-item-insigne.png",
+  "bleach-item-laissez-passer": "bleach-item-laissez-passer.png",
+  "bleach-item-poupee": "bleach-item-poupee.png",
+  "bleach-item-fragment-masque": "bleach-item-fragment-masque.png",
+  "bleach-item-sable": "bleach-item-sable.png",
+  "bleach-item-eclat-espada": "bleach-item-eclat-espada.png",
+  "bleach-item-sceau-kasumioji": "bleach-item-sceau-kasumioji.png",
+  "bleach-item-plume-exequias": "bleach-item-plume-exequias.png",
+  "bleach-item-carnet": "bleach-item-carnet.png",
+  "bleach-item-pilier": "bleach-item-pilier.png",
+  "bleach-item-fourreau": "bleach-item-fourreau.png",
+  "bleach-item-eclat-hogyoku": "bleach-item-eclat-hogyoku.png",
+  "bleach-item-noyau-reigai": "bleach-item-noyau-reigai.png",
+  "bleach-item-catalyseur": "bleach-item-catalyseur.png",
+  "bleach-item-croix-quincy": "bleach-item-croix-quincy.png",
 };
 
 export const itemImagePath = (id: string | undefined, kind: "common" | "unique") =>

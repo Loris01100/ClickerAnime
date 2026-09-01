@@ -76,8 +76,18 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
             </Show>
             {STATUS_LABEL[status()]}
           </span>
+          <Show when={props.anime.alpha}>
+            <span class="portal-badge alpha">Alpha</span>
+          </Show>
         </div>
       </div>
+
+      <Show when={props.anime.alpha}>
+        <p class="portal-alpha-note small">
+          Monde en alpha, encore en phase de test : ses arcs, ses recrues et son équilibrage sont
+          provisoires et peuvent changer.
+        </p>
+      </Show>
 
       <Show when={props.anime.description}>
         <p class="portal-description">{props.anime.description}</p>
@@ -209,6 +219,9 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
               >
                 <Sprite name={anime.name} kind="anime" px={4} dim={status() === "locked"} />
                 <span class="name">{anime.name}</span>
+                <Show when={anime.alpha}>
+                  <span class="portal-badge alpha">Alpha</span>
+                </Show>
                 <span class="portal-badge" classList={{ [status()]: true }}>
                   <Show when={status() === "locked"}>
                     <IconLock />
