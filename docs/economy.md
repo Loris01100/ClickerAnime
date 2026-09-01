@@ -338,7 +338,11 @@ balance, so they are percents on the two existing `ModifierTarget`s and nothing 
 
 The one resource that exists because the game is inter-anime. Crystals only drop while
 `isMixedTeam(ownedCharacters())` — the team spans two worlds — at `CROSSOVER_MOB_CHANCE` per mob and
-`CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. `activateCrossover()` spends
+`CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. **A boss pays that flat reward once**:
+only the win that clears its arc counts, so re-farming a cleared arc's 50-fight boss cycle earns
+nothing from the boss itself (the mobs of that cycle still roll). Without it the crystal stock was
+best farmed by re-killing an easy cleared boss instead of playing forward, which is the opposite of
+what the resource rewards. `activateCrossover()` spends
 `CROSSOVER_COST` for a `CROSSOVER_DURATION_MS` window during which `activeSynergyConfig` is wrapped
 in `crossoverSynergyConfig` — every malus flattened to `matchingArcMultiplier`, so the whole team
 fights at full power anywhere. Damage only: a passive and an active ability are still story

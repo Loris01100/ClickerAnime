@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND, SAVE_BACKUP_KEY, SAVE_KEY } from "../gameState";
+import { CROSSOVER_BOSS_REWARD } from "../crossover";
 import { gameData } from "../../data";
 import { baseSave, installSave } from "./helpers";
 
@@ -238,6 +239,66 @@ describe("store boot", () => {
     } finally {
       disposeRoot();
       restore();
+    }
+  });
+
+  it("pays crossover crystals on the boss that clears an arc, never on a re-farmed one", () => {
+    const data = {
+      animes: [
+        { id: "ta", name: "A", unlockCost: 0 },
+        { id: "tb", name: "B", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1 },
+        },
+      ],
+      characters: [
+        { id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 1e9, baseDps: 0 },
+        { id: "cb", name: "B", animeId: "tb", rarity: "secondary" as const, arcIds: [], baseClickPower: 0, baseDps: 0 },
+      ],
+      items: [],
+    };
+    // A mixed team is what makes crystals drop at all; the mob roll is forced to miss so only the
+    // boss can move the stock.
+    const roll = vi.spyOn(Math, "random").mockReturnValue(0.999);
+    const firstClear = installSave(
+      baseSave({ ownedCharacterIds: ["ca", "cb"], unlockedAnimeIds: ["ta", "tb"], arcKills: { "ta-arc": 1 } })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      game.click(); // the boss falls for the first time: the arc clears
+      expect(game.arcCleared(data.arcs[0])).toBe(true);
+      expect(game.crossoverCrystals()).toBe(CROSSOVER_BOSS_REWARD);
+    } finally {
+      firstClear();
+    }
+
+    const rematch = installSave(
+      baseSave({
+        ownedCharacterIds: ["ca", "cb"],
+        unlockedAnimeIds: ["ta", "tb"],
+        clearedArcIds: ["ta-arc"],
+        arcKills: { "ta-arc": 50 },
+      })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      game.click(); // same boss, arc already cleared: nothing to earn
+      expect(game.crossoverCrystals()).toBe(0);
+    } finally {
+      rematch();
+      roll.mockRestore();
     }
   });
 

@@ -55,7 +55,7 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
             </div>
             <p class="muted small">
               Les cristaux ne tombent que si l'équipe vient d'au moins deux mondes : {Math.round(CROSSOVER_MOB_CHANCE * 100)}%
-              par mob, {CROSSOVER_BOSS_REWARD} garantis par boss.
+              par mob, {CROSSOVER_BOSS_REWARD} à la première victoire sur un boss. Un boss déjà vaincu n'en donne plus.
             </p>
           </div>
 

@@ -1106,9 +1106,17 @@ export function createGameStore(data: GameData) {
     }
 
     const isBoss = target.id === arc.boss.id;
-    // Crossover crystals: only a team spanning two worlds earns them — bosses always pay, mobs roll.
+    const isFirstBossWin = isBoss && !clearedArcIds().includes(arc.id);
+    // Crossover crystals: only a team spanning two worlds earns them — a boss pays once, the first
+    // time its arc falls; re-farming a cleared arc's boss pays nothing, and mobs still roll.
     if (teamIsMixed()) {
-      const crystals = isBoss ? CROSSOVER_BOSS_REWARD : Math.random() < CROSSOVER_MOB_CHANCE ? 1 : 0;
+      const crystals = isBoss
+        ? isFirstBossWin
+          ? CROSSOVER_BOSS_REWARD
+          : 0
+        : Math.random() < CROSSOVER_MOB_CHANCE
+          ? 1
+          : 0;
       if (crystals > 0) setCrossoverCrystals((c) => c + crystals);
     }
     const bossXpLevel = nodeLevelOf("xp", 5);
