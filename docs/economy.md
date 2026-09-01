@@ -359,6 +359,14 @@ adventure are eligible. This prevents a pack from revealing or strengthening a c
 their story encounter. After prestige, a character becomes eligible again when recruited again;
 duplicates already held remain banked meanwhile.
 
+`PackPanel` is the buying screen and stops there; the collection is read in **`CatalogPanel.tsx`**,
+the catalogue — one card per recruited character, grouped by world, showing the copies held, the
+progress bar toward `MAX_DUPLICATES` and what the copies are worth in damage, with a tab to widen
+the view from the characters holding duplicates to the whole roster. It computes nothing of its own:
+`duplicatesOf` and `ownedCharacters` come from the store, and `DUPLICATE_DAMAGE_STEP` from here. The
+split is deliberate — the packs panel would otherwise grow a second, longer list under its buttons —
+and both share the same `packs` disclosure gate, so the catalogue appears with the packs themselves.
+
 Points and duplicates are meta-progression like `achievementCounts` and `prestigeTreeRanks` —
 `prestigeReset` spares both, only `hardReset` wipes them. Both are optional save fields, so no
 `SAVE_KEY` bump was needed.

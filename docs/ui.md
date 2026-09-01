@@ -20,7 +20,7 @@ roster (abilities, sortable team table, item table), middle is resources + the f
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
-`PrestigeTree.tsx`, `PackPanel.tsx`, `ReflexPanel.tsx`, `PrestigeReportPanel.tsx`. The prestige report
+`PrestigeTree.tsx`, `PackPanel.tsx`, `CatalogPanel.tsx`, `ReflexPanel.tsx`, `PrestigeReportPanel.tsx`. The prestige report
 is built from a frozen pre-reset snapshot: it shows the duration and completion of the adventure,
 points banked, combat and economy actions, final power, worlds and arcs cleared, and the permanent
 passive/forge mastery carried into the next run. It is transient — closing or reloading dismisses it
@@ -288,7 +288,7 @@ pointerait sur du JS minifié.
 
 The topbar is a centred title plus, anchored right, the theme toggle and one `<details class="startmenu">`
 holding every entry point, text-only and a size up from the game's buttons — Codex, Mondes, Boutique,
-Packs, Crossover, Défis, Succès, Prestige, then
+Packs, Catalogue, Crossover, Défis, Succès, Prestige, then
 Exporter / Importer / Tout effacer and the autosave line. It replaced a row of buttons that grew by one
 every time a panel was added, and would eventually have collided with the title; PokéClicker's StartMenu
 is the model.

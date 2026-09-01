@@ -834,7 +834,26 @@ le redonne jamais), donc les **doublons** ne s'obtiennent que là.
 - **Méta-progression** : points et doublons survivent au prestige (seul `hardReset` les efface), au
   même titre que les succès et l'arbre. Un doublon tiré sur un personnage pas encore rencontré n'est
   donc jamais perdu — il l'attend au recrutement suivant.
-- **Liste des doublons** en bas du tiroir, triée par nombre de copies, avec le bonus cumulé en clair.
+- **Le tiroir des packs achète, le catalogue montre.** En bas du tiroir il ne reste qu'un lien
+  « Voir le catalogue » : une seconde liste, plus longue que la boutique elle-même, écrasait les
+  boutons d'achat sous la collection.
+
+### 11.2.1 Le catalogue
+
+`CatalogPanel.tsx`, même coque d'overlay, ouvert depuis le menu (juste après « Packs ») ou depuis le
+tiroir des packs. C'est un écran de collection, pas d'achat : on y lit ce qu'on possède.
+
+- **Une grille de cartes, pas une liste.** Une collection se regarde ; la carte (`.catalog-card`,
+  `auto-fill` à 200px) porte le portrait `Sprite`, le nom, la jauge vers les 10 doublons et le bonus
+  de dégâts, le compteur `x{n}` en coin. Le fond reprend le dégradé `--world-hue` des cartes du
+  Codex — même objet visuel, même traitement.
+- **Groupé par monde**, dans l'ordre de la trame, chaque groupe sous un `panel-head` : c'est
+  l'ordre dans lequel le joueur a rencontré ces personnages, pas celui de ses achats.
+- **Deux onglets** (`.tabs`) : « Doublons » par défaut, « Toute l'équipe » pour voir aussi les
+  recrues encore à zéro copie — la case vide d'un album est ce qui donne envie de la remplir. Une
+  carte pleine se liseré d'or ; un portrait sans doublon est `dim`.
+- **Un en-tête chiffré** : total de doublons, personnages concernés, personnages au maximum. La
+  question « où en est ma collection » se répond avant de faire défiler la grille.
 
 ### 11.3 Codex des objets
 

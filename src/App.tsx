@@ -31,6 +31,7 @@ const PrestigeTree = lazy(() => import("./ui/PrestigeTree"));
 const ShopPanel = lazy(() => import("./ui/ShopPanel"));
 const CrossoverPanel = lazy(() => import("./ui/CrossoverPanel"));
 const PackPanel = lazy(() => import("./ui/PackPanel"));
+const CatalogPanel = lazy(() => import("./ui/CatalogPanel"));
 const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
 const ForgePanel = lazy(() => import("./ui/ForgePanel"));
 const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
@@ -56,6 +57,7 @@ export default function App() {
   const [shopOpen, setShopOpen] = createSignal(false);
   const [crossoverOpen, setCrossoverOpen] = createSignal(false);
   const [packsOpen, setPacksOpen] = createSignal(false);
+  const [catalogOpen, setCatalogOpen] = createSignal(false);
   const [reflexOpen, setReflexOpen] = createSignal(false);
   const [forgeOpen, setForgeOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
@@ -249,6 +251,7 @@ export default function App() {
                 </Show>
                 <Show when={disclosure().packs}>
                   <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
+                  <button onClick={() => runFromMenu(() => setCatalogOpen(true))}>Catalogue</button>
                 </Show>
                 <Show when={disclosure().crossover}>
                   <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
@@ -373,7 +376,18 @@ export default function App() {
       </Show>
 
       <Show when={packsOpen()}>
-        <PackPanel game={game} onClose={() => setPacksOpen(false)} />
+        <PackPanel
+          game={game}
+          onClose={() => setPacksOpen(false)}
+          onOpenCatalog={() => {
+            setPacksOpen(false);
+            setCatalogOpen(true);
+          }}
+        />
+      </Show>
+
+      <Show when={catalogOpen()}>
+        <CatalogPanel game={game} onClose={() => setCatalogOpen(false)} />
       </Show>
 
       <Show when={crossoverOpen()}>
