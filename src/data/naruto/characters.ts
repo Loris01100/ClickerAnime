@@ -13,6 +13,7 @@ export const narutoCharacters: GameData["characters"] = [
     fullSynergyAnimeIds: ["shippuden", "boruto"],
     baseClickPower: 1,
     baseDps: 4,
+    passive: { target: "teamDps", kind: "percent", value: 0.2 },
     ability: {
       id: "ability-multiclonage",
       name: "Multiclonage Supra",
@@ -109,6 +110,7 @@ export const narutoCharacters: GameData["characters"] = [
     appearanceAnimeIds: ["shippuden", "boruto"],
     baseClickPower: 1,
     baseDps: 10,
+    passive: { target: "clickPower", kind: "percent", value: 0.13 },
     ability: {
       id: "ability-portes",
       name: "Ouverture des Portes",
@@ -151,6 +153,7 @@ export const narutoCharacters: GameData["characters"] = [
     appearanceAnimeIds: ["shippuden", "boruto"],
     baseClickPower: 3,
     baseDps: 10,
+    passive: { target: "clickPower", kind: "percent", value: 0.2 },
     ability: {
       id: "ability-chidori",
       name: "Chidori",
@@ -272,6 +275,7 @@ export const narutoCharacters: GameData["characters"] = [
     appearanceAnimeIds: ["shippuden"],
     baseClickPower: 10,
     baseDps: 55,
+    passive: { target: "teamDps", kind: "percent", value: 0.32 },
     ability: {
       id: "ability-gamabunta",
       name: "Invocation : Gamabunta",
@@ -367,6 +371,7 @@ export const narutoCharacters: GameData["characters"] = [
     appearanceAnimeIds: ["shippuden"],
     baseClickPower: 2,
     baseDps: 5,
+    passive: { target: "clickPower", kind: "percent", value: 0.1 },
     ability: {
       id: "ability-flair-pakkun",
       name: "Flair infaillible",
@@ -385,6 +390,7 @@ export const narutoCharacters: GameData["characters"] = [
     appearanceAnimeIds: ["shippuden"],
     baseClickPower: 8,
     baseDps: 35,
+    passive: { target: "teamDps", kind: "percent", value: 0.1 },
     ability: {
       id: "ability-flair-tonton",
       name: "Flair médical",
@@ -403,6 +409,7 @@ export const narutoCharacters: GameData["characters"] = [
     appearanceAnimeIds: ["shippuden"],
     baseClickPower: 3,
     baseDps: 10,
+    passive: { target: "teamDps", kind: "percent", value: 0.12 },
     ability: {
       id: "ability-huile-gamakichi",
       name: "Balle d'huile",

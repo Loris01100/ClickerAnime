@@ -1496,7 +1496,8 @@ export function createGameStore(data: GameData) {
    * who isn't in the team: `characterContributions` only ever runs on owned characters, so the
    * copies would be burnt for nothing (the item Codex lists the whole cast, met or not). Refuses
    * the same way on a character with no `passive` at all — a rank on nothing is copies burnt for
-   * nothing too, and `passive` is optional (Naruto has an ability and an evolution instead).
+   * nothing too, and `passive` stays optional in the type even though the whole production cast
+   * carries one.
    */
   function rankUpPassive(character: Character): boolean {
     if (!character.passive) return false;

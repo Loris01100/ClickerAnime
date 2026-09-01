@@ -14,6 +14,7 @@ export const horimiyaCharacters: GameData["characters"] = [
     tags: ["student", "miyamura-family", "baker"],
     arcIds: ["horimiya-secrets-partages", "horimiya-nouveaux-liens", "horimiya-sentiments", "horimiya-quotidien", "horimiya-pieces-manquantes", "horimiya-diplome"],
     baseClickPower: 1, baseDps: 6,
+    passive: { target: "clickPower", kind: "percent", value: 0.2 },
     ability: { id: "horimiya-ability-vrai-visage", name: "Montrer son vrai visage", cooldownMs: 35_000, durationMs: 6_000, effects: [{ target: "clickPower", kind: "multiplier", value: 2 }] },
   },
   {
@@ -68,6 +69,7 @@ export const horimiyaCharacters: GameData["characters"] = [
     id: "horimiya-shindo", name: "Koichi Shindo", animeId: "horimiya", rarity: "main",
     tags: ["student", "old-friend"], arcIds: ["horimiya-quotidien", "horimiya-pieces-manquantes", "horimiya-diplome"],
     baseClickPower: 8, baseDps: 48, ability: { id: "horimiya-ability-vieil-ami", name: "Un ami de toujours", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3 }] },
+    passive: { target: "teamDps", kind: "percent", value: 0.32 },
   },
   {
     id: "horimiya-kyosuke", name: "Kyosuke Hori", animeId: "horimiya", rarity: "main",

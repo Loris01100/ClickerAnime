@@ -46,8 +46,16 @@ rank past it adds a `LEVEL_DAMAGE_STEP`" rule lives, shared by the pipeline and 
 that preview a passive at rank 1 and at its cap. `rankUpPassive` refuses a character who isn't in the team: only
 owned characters reach `characterContributions`, so the copies would be burnt for nothing (the item
 Codex lists the whole cast, met or not). It refuses on the same grounds a character with **no
-`passive` at all** — `Character.passive` is optional (Naruto's kit is an ability plus an evolution),
-and the item Codex used to offer a rank-up on the whole cast of the arc, passive or not. Rank 0 means the passive is **locked** and contributes nothing, rank 1
+`passive` at all** — `Character.passive` stays optional in the type, and the item Codex used to
+offer a rank-up on the whole cast of the arc, passive or not. **Every character in the shipped data
+now carries a passive**: the thirty who had none were all ability-holders (Naruto, Gon, Ichigo,
+Miyamura, …) authored back when a kit was read as *either* an ability *or* a passive, which left
+their arc's commons with nothing to buy on the very characters the player recruits first. Shippûden
+and Boruto had given both since they were written; the earlier worlds now match, each new passive
+sized on its own cohort (a main between 0.2 and 0.4, a secondary between 0.1 and 0.2, on
+`teamDps` or `clickPower` depending on how the character fights). It is not a rebalance: a passive
+is scoped to its own character and starts locked at rank 0, and `npm run sim` reports the same run
+— 14 arcs, 69 min, the same wall. Rank 0 means the passive is **locked** and contributes nothing, rank 1
 is the passive as printed in the data, and every rank past it deepens it by `LEVEL_DAMAGE_STEP`.
 
 The first rank is a bounded onboarding exception, not a free reward. After the player's first arc
