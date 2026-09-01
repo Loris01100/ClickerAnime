@@ -202,28 +202,18 @@ route into a home anime — see below — but is no longer used as the complete 
 
 ## Evolutions
 
-A character can grow into a stronger self later in their own story without becoming a second Codex
-entry — `Character.evolution` (`animeId`, `label`, `bonus` modifiers, an optional `ability`).
-`evolution.animeId` must be a sequel anime (`requiresAnimeId` pointing back at the character's own
-`animeId`, enforced in `src/engine/tests/`) — evolutions only ever look forward in a universe's reading
-order, never sideways or back.
-
-The Naruto universe uses this twice, one link per world border: part 1's mains grow when they reach
-Shippūden, and Shippūden's mains who are still standing in Boruto (Saï, Yamato, Ônoki, Killer Bee,
-Mei) grow again there. A character has exactly one `evolution` field, so a given entry evolves at
-most once — Naruto's own evolution fires at Shippūden and that is the end of it, which is why the
-Boruto set is drawn from characters introduced *in* Shippūden rather than from part 1's cast.
+A character can grow through several stronger selves without becoming another Codex entry —
+`Character.evolutions`, an ordered list of `animeId`, `label`, `bonus` modifiers and a replacement
+`ability`. Each target anime must directly follow the preceding stage in the universe's reading
+order. Every recurring Naruto-universe character gets one stage per later series in which they
+appear; a part-1 character present in Shippūden and Boruto therefore has two.
 
 Unlocking is permanent, not location-gated: the first time an owned character fights in
-`evolution.animeId`, `gameState`'s `maybeEvolve` (called from `spawnNext`, so on every recruit and
-arc switch) adds their id to `evolvedCharacterIds` for the rest of the run, and it never re-locks —
+an evolution's `animeId`, `gameState`'s `maybeEvolve` (called from `spawnNext`, so on every recruit
+and arc switch) adds its stable `character@anime` key to `evolvedCharacterIds`, and it never re-locks —
 not even back in their original world. `prestigeReset`/`hardReset` wipe it like the rest of the
-run-scoped state.
+run-scoped state. Bare character ids from older saves still unlock the first stage.
 
-Once evolved, `synergyMultiplier` treats `evolution.animeId` as home too (the `sameAnimeMalus` tier,
-same as any other arc of their own anime), so the passive stops shutting off there and
-`evolution.bonus` — extra modifiers, scaled by that same synergy value — stacks in on top of it via
-`characterContributions`. If `evolution.ability` is set, it replaces `character.ability` outright in
-`getUnlockedAbilities` once evolved — a character never has both at once. `Codex.tsx` shows the
-live ability (base or evolved) plus a dedicated "Évolution" block previewing the trigger world, the
-bonus and (once owned) whether it has fired yet, independent of whether the character is met.
+Unlocked bonuses stack in `characterContributions`; the latest unlocked stage supplies the active
+ability and replaces the earlier one outright. `Codex.tsx` lists every stage, its trigger world,
+bonus and individual acquired state while showing the currently active ability.

@@ -299,7 +299,7 @@ describe("équipement : un accessoire ne quitte pas son monde", () => {
     ...local,
     id: "heir",
     animeId: "tb",
-    evolution: { animeId: "ta", label: "L2", bonus: [{ target: "teamDps", kind: "percent", value: 0.1 }] },
+    evolutions: [{ animeId: "ta", label: "L2", bonus: [{ target: "teamDps", kind: "percent", value: 0.1 }] }],
   };
   const foreigner: Character = { ...local, id: "foreigner", animeId: "tb" };
 

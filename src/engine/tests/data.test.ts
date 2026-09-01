@@ -207,7 +207,7 @@ describe("game data", () => {
   it("caps active ability damage gains in every world", () => {
     const abilities = [
       ...gameData.characters.flatMap((character) => character.ability ? [character.ability] : []),
-      ...gameData.characters.flatMap((character) => character.evolution?.ability ? [character.evolution.ability] : []),
+      ...gameData.characters.flatMap((character) => (character.evolutions ?? []).flatMap((evolution) => evolution.ability ? [evolution.ability] : [])),
     ];
     const multipliers = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "multiplier"));
     const percents = abilities.flatMap((ability) => ability.effects.filter((effect) => effect.kind === "percent"));
@@ -260,7 +260,7 @@ describe("game data", () => {
       for (const animeId of character.fullSynergyAnimeIds ?? []) {
         expect(animeIds, `${character.id} has full synergy in an unknown anime`).toContain(animeId);
         expect(
-          [...(character.appearanceAnimeIds ?? []), character.evolution?.animeId],
+          [...(character.appearanceAnimeIds ?? []), ...(character.evolutions ?? []).map((evolution) => evolution.animeId)],
           `${character.id} needs a presence or evolution before full sequel synergy`,
         ).toContain(animeId);
       }
@@ -306,12 +306,29 @@ describe("game data", () => {
 
   it("only evolves characters into a later anime of their own universe", () => {
     for (const character of gameData.characters) {
-      if (!character.evolution) continue;
-      const evolvesInto = gameData.animes.find((a) => a.id === character.evolution!.animeId);
-      expect(evolvesInto, `${character.id} evolves into an unknown anime`).toBeDefined();
-      expect(evolvesInto!.requiresAnimeId, `${character.id}'s evolution must be its own anime's sequel`).toBe(
-        character.animeId
-      );
+      let previousAnimeId = character.animeId;
+      for (const evolution of character.evolutions ?? []) {
+        const evolvesInto = gameData.animes.find((anime) => anime.id === evolution.animeId);
+        expect(evolvesInto, `${character.id} evolves into an unknown anime`).toBeDefined();
+        expect(evolvesInto!.requiresAnimeId, `${character.id}'s evolutions must follow story order`).toBe(previousAnimeId);
+        previousAnimeId = evolution.animeId;
+      }
+    }
+  });
+
+  it("gives every recurring Naruto character one distinct evolution per later series", () => {
+    const trilogy = new Set(["naruto", "shippuden", "boruto"]);
+    for (const character of gameData.characters.filter((entry) => trilogy.has(entry.animeId))) {
+      const appearances = (character.appearanceAnimeIds ?? []).filter((animeId) => trilogy.has(animeId));
+      if (appearances.length === 0) continue;
+      expect((character.evolutions ?? []).map((evolution) => evolution.animeId), character.id).toEqual(appearances);
+
+      let previousAbilityName = character.ability?.name;
+      for (const evolution of character.evolutions ?? []) {
+        expect(evolution.ability, `${character.id} must change ability in ${evolution.animeId}`).toBeDefined();
+        expect(evolution.ability!.name, `${character.id}'s ability name must change`).not.toBe(previousAbilityName);
+        previousAbilityName = evolution.ability!.name;
+      }
     }
   });
 

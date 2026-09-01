@@ -150,10 +150,10 @@ describe("store boot", () => {
             effects: [{ target: "teamDps" as const, kind: "multiplier" as const, value: 3 }],
           },
           // Bonus d'évolution : non scopé, il multiplie toute l'équipe.
-          evolution: {
+          evolutions: [{
             animeId: "tb", label: "Évo",
             bonus: [{ target: "teamDps" as const, kind: "percent" as const, value: 0.25 }],
-          },
+          }],
         },
         {
           id: "cb", name: "B", animeId: "ta", rarity: "secondary" as const, arcIds: ["ta-arc"],

@@ -159,8 +159,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   it — Naruto ends at 78, Hunter x Hunter and Horimiya at 120, Bleach at 125, and Shippūden opens at 130. A long
   entry world flattens its debut-power ramp to stay inside that budget; a sequel world keeps ~1.85x
   because it starts where the previous one left off (`docs/progression.md`).
-- Evolutions only ever look **forward** in a universe's reading order: `evolution.animeId` must be a
-  sequel anime, enforced in `src/engine/tests/`.
+- Evolution stages only look **forward** in a universe's reading order: every entry in
+  `evolutions` must target the direct sequel of the preceding stage and replace its ability.
 - A character belongs to exactly one recruitment world. Later appearances never create another
   recruit. Regular characters are recruitable in exactly one arc;
   shop-exclusive companions must have exactly one character offer instead.
@@ -262,11 +262,8 @@ character who spans a later anime strongly enough to receive 1.0 throughout it. 
 shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
 those entry paths, along with every
 id being unique and every reference resolvable). A mixed team still spans worlds — the team only
-wipes on prestige, not on travel. Every part-1 `rarity: "main"`
-character who is still part of the Shippūden cast (Naruto, Sakura, Kakashi, Sasuke, Neji, Jiraiya,
-Tsunade, Gaara) gets stronger once fought alongside there — see `docs/progression.md` — but that's the same
-Codex entry growing, never a new recruit. Secondary-rarity part-1 characters get no evolution even
-when they do appear in Shippūden (Rock Lee, Shikamaru, Hinata, Temari, Kankurô, Shizune, Chôji,
-Kiba). Kimimaro, also
-`"main"`, is excluded on purpose: he dies at the end of part 1 and is never part of the Shippūden
-cast.
+wipes on prestige, not on travel. Every Naruto-universe character declared in
+`appearanceAnimeIds` receives one successive evolution per later series, regardless of rarity. A
+character present in all three series therefore unlocks two stages while remaining one recruit and
+one Codex entry; see `docs/progression.md`. Characters without a declared later appearance, such as
+Kimimaro, do not evolve.

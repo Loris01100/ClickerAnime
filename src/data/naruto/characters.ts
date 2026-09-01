@@ -1,7 +1,7 @@
 import type { GameData } from "../../engine/gameState";
+import type { CharacterEvolution } from "../../engine/types";
 
-
-export const narutoCharacters: GameData["characters"] = [
+const narutoBaseCharacters: GameData["characters"] = [
   {
     id: "naruto-uzumaki",
     name: "Naruto Uzumaki",
@@ -21,7 +21,7 @@ export const narutoCharacters: GameData["characters"] = [
       durationMs: 6_000,
       effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
     },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Mode Ermite",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.4 }],
@@ -32,7 +32,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 6_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 3 }],
       },
-    },
+    }],
   },
   {
     id: "sakura-haruno",
@@ -45,7 +45,7 @@ export const narutoCharacters: GameData["characters"] = [
     baseClickPower: 1,
     baseDps: 4,
     passive: { target: "clickPower", kind: "percent", value: 0.15 },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Force Herculéenne",
       bonus: [{ target: "clickPower", kind: "percent", value: 0.5 }],
@@ -56,7 +56,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 5_000,
         effects: [{ target: "clickPower", kind: "multiplier", value: 3.5 }],
       },
-    },
+    }],
   },
   {
     id: "kakashi-hatake",
@@ -76,7 +76,7 @@ export const narutoCharacters: GameData["characters"] = [
       durationMs: 8_000,
       effects: [{ target: "teamDps", kind: "percent", value: 0.5 }],
     },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Maître du Sharingan",
       bonus: [{ target: "clickPower", kind: "percent", value: 0.35 }],
@@ -87,7 +87,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 8_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 2.5 }],
       },
-    },
+    }],
   },
   {
     id: "haku",
@@ -161,7 +161,7 @@ export const narutoCharacters: GameData["characters"] = [
       durationMs: 4_000,
       effects: [{ target: "teamDps", kind: "multiplier", value: 2.5 }],
     },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Susanoo du Sharingan Éternel",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.45 }],
@@ -172,7 +172,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 4_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }],
       },
-    },
+    }],
   },
   {
     id: "neji-hyuga",
@@ -185,7 +185,7 @@ export const narutoCharacters: GameData["characters"] = [
     baseClickPower: 3,
     baseDps: 13,
     passive: { target: "teamDps", kind: "percent", value: 0.2 },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Byakugan Libéré du Destin",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }],
@@ -196,7 +196,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 6_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 2.4 }],
       },
-    },
+    }],
   },
   {
     id: "temari",
@@ -240,7 +240,7 @@ export const narutoCharacters: GameData["characters"] = [
       durationMs: 7_000,
       effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
     },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Kazekage du Désert",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }],
@@ -251,7 +251,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 7_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 2.5 }],
       },
-    },
+    }],
   },
   {
     id: "shizune",
@@ -286,7 +286,7 @@ export const narutoCharacters: GameData["characters"] = [
         { target: "teamDps", kind: "percent", value: 0.5 },
       ],
     },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Mode Sennin du Mont Myôboku",
       bonus: [{ target: "clickPower", kind: "percent", value: 0.4 }],
@@ -300,7 +300,7 @@ export const narutoCharacters: GameData["characters"] = [
           { target: "teamDps", kind: "percent", value: 0.5 },
         ],
       },
-    },
+    }],
   },
   {
     id: "tsunade",
@@ -313,7 +313,7 @@ export const narutoCharacters: GameData["characters"] = [
     baseClickPower: 20,
     baseDps: 50,
     passive: { target: "teamDps", kind: "percent", value: 0.35 },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Sôzô Saisei — Régénération Totale",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.5 }],
@@ -324,7 +324,7 @@ export const narutoCharacters: GameData["characters"] = [
         durationMs: 8_000,
         effects: [{ target: "teamDps", kind: "multiplier", value: 2.75 }],
       },
-    },
+    }],
   },
   {
     id: "choji-akimichi",
@@ -417,10 +417,65 @@ export const narutoCharacters: GameData["characters"] = [
       durationMs: 8_000,
       effects: [{ target: "teamDps", kind: "multiplier", value: 2 }],
     },
-    evolution: {
+    evolutions: [{
       animeId: "shippuden",
       label: "Crapaud géant du mont Myôboku",
       bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }],
-    },
+      ability: {
+        id: "ability-katana-gamakichi",
+        name: "Katana du crapaud — Entaille géante",
+        cooldownMs: 55_000,
+        durationMs: 8_000,
+        effects: [{ target: "teamDps", kind: "multiplier", value: 2.5 }],
+      },
+    }],
   },
 ];
+
+const recurringEvolutions: Record<string, CharacterEvolution[]> = {
+  "naruto-uzumaki": [{ animeId: "boruto", label: "Mode Baryon", bonus: [{ target: "teamDps", kind: "percent", value: 0.65 }], ability: { id: "ability-mode-baryon", name: "Mode Baryon — Combustion vitale", cooldownMs: 120_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }] } }],
+  "sakura-haruno": [{ animeId: "boruto", label: "Directrice du service médical", bonus: [{ target: "clickPower", kind: "percent", value: 0.55 }], ability: { id: "ability-impact-floral-adulte", name: "Impact de la Fleur de Cerisier — Puissance maximale", cooldownMs: 55_000, durationMs: 7_000, effects: [{ target: "clickPower", kind: "multiplier", value: 3.5 }] } }],
+  "kakashi-hatake": [{ animeId: "boruto", label: "Sixième Hokage retiré", bonus: [{ target: "clickPower", kind: "percent", value: 0.45 }], ability: { id: "ability-eclair-violet", name: "Raiton — Éclair Violet", cooldownMs: 50_000, durationMs: 8_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.25 }] } }],
+  "rock-lee": [
+    { animeId: "shippuden", label: "Sixième Porte — Porte de la Vue", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }], ability: { id: "ability-sixieme-porte-lee", name: "Ouverture de la Sixième Porte", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.75 }] } },
+    { animeId: "boruto", label: "Jônin maître du taijutsu", bonus: [{ target: "teamDps", kind: "percent", value: 0.35 }], ability: { id: "ability-portes-lee-max", name: "Ouverture des Portes — Puissance maximale", cooldownMs: 75_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.25 }] } },
+  ],
+  "shikamaru-nara": [
+    { animeId: "shippuden", label: "Stratège de l'Alliance Shinobi", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }], ability: { id: "ability-etranglement-ombres", name: "Étreinte Mortelle des Ombres", cooldownMs: 60_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.6 }] } },
+    { animeId: "boruto", label: "Conseiller du Septième Hokage", bonus: [{ target: "teamDps", kind: "percent", value: 0.35 }], ability: { id: "ability-champ-ombres", name: "Champ de Paralysie des Ombres", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3 }] } },
+  ],
+  "hinata-hyuga": [
+    { animeId: "shippuden", label: "Poings des Lions Jumeaux", bonus: [{ target: "clickPower", kind: "percent", value: 0.3 }], ability: { id: "ability-lions-jumeaux", name: "Jûho Sôshiken — Lions Jumeaux", cooldownMs: 60_000, durationMs: 8_000, effects: [{ target: "clickPower", kind: "multiplier", value: 2.75 }] } },
+    { animeId: "boruto", label: "Princesse du Byakugan", bonus: [{ target: "clickPower", kind: "percent", value: 0.35 }], ability: { id: "ability-lions-jumeaux-max", name: "Lions Jumeaux — Paume Protectrice", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "clickPower", kind: "multiplier", value: 3.2 }] } },
+  ],
+  "sasuke-uchiwa": [{ animeId: "boruto", label: "Sasuke adulte au Rinnegan", bonus: [{ target: "teamDps", kind: "percent", value: 0.6 }], ability: { id: "ability-amenotejikara", name: "Amenotejikara — Permutation instantanée", cooldownMs: 90_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }] } }],
+  temari: [
+    { animeId: "shippuden", label: "Maîtresse du Fûton", bonus: [{ target: "teamDps", kind: "percent", value: 0.28 }], ability: { id: "ability-kamatari", name: "Invocation — Danse du Faucheur", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.6 }] } },
+    { animeId: "boruto", label: "Ambassadrice de Suna", bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }], ability: { id: "ability-grand-filet-vent", name: "Fûton — Grand Filet de Vent", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3 }] } },
+  ],
+  kankuro: [
+    { animeId: "shippuden", label: "Maître marionnettiste de Suna", bonus: [{ target: "teamDps", kind: "percent", value: 0.28 }], ability: { id: "ability-sasori-pantin", name: "Art des Marionnettes — Sasori", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.6 }] } },
+    { animeId: "boruto", label: "Vétéran des marionnettes", bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }], ability: { id: "ability-trio-marionnettes", name: "Trio de Marionnettes — Assaut total", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3 }] } },
+  ],
+  gaara: [{ animeId: "boruto", label: "Kazekage — Défense absolue", bonus: [{ target: "teamDps", kind: "percent", value: 0.5 }], ability: { id: "ability-bouclier-suna", name: "Bouclier de Sable — Rempart de Suna", cooldownMs: 80_000, durationMs: 11_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }] } }],
+  shizune: [
+    { animeId: "shippuden", label: "Bras droit de l'Hokage", bonus: [{ target: "teamDps", kind: "percent", value: 0.25 }], ability: { id: "ability-brume-poison", name: "Ninpô — Brume de Poison", cooldownMs: 60_000, durationMs: 8_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.4 }] } },
+    { animeId: "boruto", label: "Doyenne du corps médical", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }], ability: { id: "ability-resurrection-medicale", name: "Régénération Curative — Puissance maximale", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.9 }] } },
+  ],
+  tsunade: [{ animeId: "boruto", label: "Cinquième Hokage légendaire", bonus: [{ target: "teamDps", kind: "percent", value: 0.55 }], ability: { id: "ability-byakugo-tsunade-max", name: "Byakugô — Puissance maximale", cooldownMs: 75_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.5 }] } }],
+  "choji-akimichi": [
+    { animeId: "shippuden", label: "Mode Papillon", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }], ability: { id: "ability-bombe-papillon", name: "Bombe du Papillon Géant", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.7 }] } },
+    { animeId: "boruto", label: "Chef du clan Akimichi", bonus: [{ target: "teamDps", kind: "percent", value: 0.35 }], ability: { id: "ability-papillon-max", name: "Mode Papillon — Puissance maximale", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.15 }] } },
+  ],
+  "kiba-inuzuka": [
+    { animeId: "shippuden", label: "Loup tricéphale", bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }], ability: { id: "ability-loup-tricephale", name: "Transformation Homme-Bête — Loup tricéphale", cooldownMs: 65_000, durationMs: 9_000, effects: [{ target: "teamDps", kind: "multiplier", value: 2.7 }] } },
+    { animeId: "boruto", label: "Expert pisteur de Konoha", bonus: [{ target: "teamDps", kind: "percent", value: 0.35 }], ability: { id: "ability-gatsuga-max", name: "Gatsûga — Crocs Tornade maximum", cooldownMs: 70_000, durationMs: 10_000, effects: [{ target: "teamDps", kind: "multiplier", value: 3.15 }] } },
+  ],
+  pakkun: [{ animeId: "shippuden", label: "Chef de l'escouade canine", bonus: [{ target: "clickPower", kind: "percent", value: 0.25 }], ability: { id: "ability-meute-pakkun", name: "Crocs de la Meute Ninja", cooldownMs: 50_000, durationMs: 8_000, effects: [{ target: "clickPower", kind: "multiplier", value: 2.4 }] } }],
+  tonton: [{ animeId: "shippuden", label: "Assistante médicale aguerrie", bonus: [{ target: "teamDps", kind: "percent", value: 0.25 }], ability: { id: "ability-flair-tonton-max", name: "Flair médical — Urgence maximale", cooldownMs: 55_000, durationMs: 8_000, effects: [{ target: "clickPower", kind: "multiplier", value: 2.35 }] } }],
+};
+
+export const narutoCharacters: GameData["characters"] = narutoBaseCharacters.map((character) => ({
+  ...character,
+  evolutions: [...(character.evolutions ?? []), ...(recurringEvolutions[character.id] ?? [])],
+}));

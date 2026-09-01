@@ -1,5 +1,6 @@
 import { levelGrowth, passiveGrowth } from "./growth";
 import { duplicateGrowth } from "./packs";
+import { unlockedEvolutions } from "./evolutions";
 import type { ActiveModifier, Arc, Character, Item, ModifierTemplate, SynergyConfig } from "./types";
 
 export const defaultSynergyConfig: SynergyConfig = {
@@ -18,13 +19,13 @@ export function synergyMultiplier(
   character: Character,
   activeArc: Arc,
   config: SynergyConfig,
-  evolved = false
+  evolutionStage: number | boolean = 0
 ): number {
   if (character.arcIds.includes(activeArc.id)) return config.matchingArcMultiplier;
   if (character.fullSynergyAnimeIds?.includes(activeArc.animeId)) return config.matchingArcMultiplier;
   if (character.animeId === activeArc.animeId) return config.sameAnimeMalus;
   if (character.appearanceAnimeIds?.includes(activeArc.animeId)) return config.sameAnimeMalus;
-  if (evolved && character.evolution?.animeId === activeArc.animeId) return config.sameAnimeMalus;
+  if (unlockedEvolutions(character, evolutionStage).some((evolution) => evolution.animeId === activeArc.animeId)) return config.sameAnimeMalus;
   return config.otherAnimeMalus;
 }
 
@@ -36,20 +37,20 @@ export function synergyMultiplier(
  * have to agree: a character weakened for being abroad is exactly a character whose story abilities
  * stay behind.
  */
-export function isHomeArc(character: Character, arc: Arc, evolved = false): boolean {
-  return isHomeAnime(character, arc.animeId, evolved);
+export function isHomeArc(character: Character, arc: Arc, evolutionStage: number | boolean = 0): boolean {
+  return isHomeAnime(character, arc.animeId, evolutionStage);
 }
 
 /**
  * The same test, one world at a time, for the rules that have no arc to look at — equipment is
  * one: a unique may only be worn by someone this world belongs to (`canEquipItem`).
  */
-export function isHomeAnime(character: Character, animeId: string, evolved = false): boolean {
+export function isHomeAnime(character: Character, animeId: string, evolutionStage: number | boolean = 0): boolean {
   return (
     character.animeId === animeId ||
     character.appearanceAnimeIds?.includes(animeId) === true ||
     character.fullSynergyAnimeIds?.includes(animeId) === true ||
-    (evolved && character.evolution?.animeId === animeId)
+    unlockedEvolutions(character, evolutionStage).some((evolution) => evolution.animeId === animeId)
   );
 }
 
@@ -76,7 +77,7 @@ function scaledEffect<T extends ModifierTemplate>(effect: T, scale: number): T {
  * instead — copies of the origin item, see `passiveRank` — and is absent while still locked, or
  * while fighting in a different anime entirely (the passive is a story ability, it doesn't travel) —
  * unless `evolved` and that anime is the character's evolution, which counts as home. An evolved
- * character also adds `evolution.bonus`, scaled the same way as the passive. `duplicates` are the
+ * character also adds every unlocked evolution bonus, scaled the same way as the passive. `duplicates` are the
  * pack copies held of this character (see packs.ts) — they multiply the base damage, uncapped.
  * `catchUp` is `catchUpGrowth` (growth.ts): how far the story's power ramp has moved since this
  * character debuted, which is what keeps an arc-1 recruit from becoming dead weight by arc 10.
@@ -87,15 +88,15 @@ export function characterContributions(
   config: SynergyConfig = defaultSynergyConfig,
   level = 0,
   passiveRank = 0,
-  evolved = false,
+  evolutionStage: number | boolean = 0,
   equipmentItems: Item[] = [],
   duplicates = 0,
   catchUp = 1
 ): ActiveModifier[] {
-  const synergy = activeArc ? synergyMultiplier(character, activeArc, config, evolved) : 1;
+  const synergy = activeArc ? synergyMultiplier(character, activeArc, config, evolutionStage) : 1;
   // Outside every world this character calls home, the passive shuts off — only damage still
   // applies, at the (steep) other-anime malus.
-  const otherAnime = activeArc ? !isHomeArc(character, activeArc, evolved) : false;
+  const otherAnime = activeArc ? !isHomeArc(character, activeArc, evolutionStage) : false;
   // Levels, pack duplicates and the story's catch-up ramp all scale the printed base damage.
   const damageGrowth = levelGrowth(level) * duplicateGrowth(duplicates) * catchUp;
   // Rank 1 is the passive as printed; every rank past it deepens it by the usual step.
@@ -128,8 +129,8 @@ export function characterContributions(
     });
   }
 
-  if (evolved && character.evolution) {
-    for (const bonus of character.evolution.bonus) {
+  for (const evolution of unlockedEvolutions(character, evolutionStage)) {
+    for (const bonus of evolution.bonus) {
       contributions.push({ ...scaledEffect(bonus, synergy), sourceId: character.id });
     }
   }

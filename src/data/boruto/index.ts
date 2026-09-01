@@ -1,7 +1,7 @@
 // Boruto : Naruto Next Generations — troisième monde, le dernier et le plus dur. Aucun personnage
 // des deux mondes précédents n'y est recrutable : uniquement la nouvelle génération, Kara et les
 // Ôtsutsuki. Quelques visages de Shippûden (Saï, Yamato, Ônoki, Killer Bee, Mei) y évoluent en une
-// version plus forte d'eux-mêmes — voir `Character.evolution` — sans devenir de nouvelles recrues.
+// version plus forte d'eux-mêmes — voir `Character.evolutions` — sans devenir de nouvelles recrues.
 //
 // Le nom affiché est volontairement le nom court. `design.md` avait relevé qu'un
 // « Boruto : Naruto Next Generations » ne tient dans aucune largeur raisonnable de portail, et

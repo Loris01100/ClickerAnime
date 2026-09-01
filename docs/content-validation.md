@@ -19,7 +19,7 @@ It currently checks:
 - every `Character.arcIds` entry exists and belongs to the character's recruitment anime;
 - every `appearanceAnimeIds` entry exists and is a later anime in the same sequel chain;
 - full sequel synergy has a declared appearance or evolution first;
-- evolutions point forward in the same universe;
+- evolution stages follow each other directly in the same universe, target distinct worlds and each replace the ability;
 - equipment and shop restrictions point to existing content;
 - every arc retains a non-recruit mob and a common item after its cast has joined.
 

@@ -194,18 +194,27 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
 
     for (const [synergyIndex, animeId] of (character.fullSynergyAnimeIds ?? []).entries()) {
-      if (!appearances.has(animeId) && character.evolution?.animeId !== animeId) {
+      if (!appearances.has(animeId) && !character.evolutions?.some((evolution) => evolution.animeId === animeId)) {
         add("synergy-without-presence", `${path}.fullSynergyAnimeIds[${synergyIndex}]`, `la synergie complète dans « ${animeId} » exige d’abord une présence ou une évolution`);
       }
     }
     if (character.passive) validateModifier(character.passive, `${path}.passive`);
     if (character.ability) validateAbility(character.ability, `${path}.ability`);
-    if (character.evolution) {
-      if (!isLaterAnime(character.evolution.animeId, character.animeId)) {
-        add("invalid-evolution", `${path}.evolution.animeId`, `« ${character.evolution.animeId} » n’est pas une suite de « ${character.animeId} »`);
+    let previousEvolutionAnimeId = character.animeId;
+    const evolutionAnimeIds = new Set<string>();
+    for (const [evolutionIndex, evolution] of (character.evolutions ?? []).entries()) {
+      const evolutionPath = `${path}.evolutions[${evolutionIndex}]`;
+      if (evolutionAnimeIds.has(evolution.animeId)) {
+        add("duplicate-evolution", `${evolutionPath}.animeId`, `« ${evolution.animeId} » possède déjà une évolution`);
       }
-      character.evolution.bonus.forEach((effect, effectIndex) => validateModifier(effect, `${path}.evolution.bonus[${effectIndex}]`));
-      if (character.evolution.ability) validateAbility(character.evolution.ability, `${path}.evolution.ability`);
+      evolutionAnimeIds.add(evolution.animeId);
+      if (animeById.get(evolution.animeId)?.requiresAnimeId !== previousEvolutionAnimeId) {
+        add("invalid-evolution", `${evolutionPath}.animeId`, `« ${evolution.animeId} » doit suivre directement « ${previousEvolutionAnimeId} »`);
+      }
+      evolution.bonus.forEach((effect, effectIndex) => validateModifier(effect, `${evolutionPath}.bonus[${effectIndex}]`));
+      if (!evolution.ability) add("missing-evolution-ability", `${evolutionPath}.ability`, "chaque évolution doit remplacer la capacité");
+      else validateAbility(evolution.ability, `${evolutionPath}.ability`);
+      previousEvolutionAnimeId = evolution.animeId;
     }
   }
 

@@ -10,6 +10,7 @@ import {
   unlockAnime as unlockAnimeState,
 } from "./prestige";
 import { characterContributions, defaultSynergyConfig, isHomeArc, synergyMultiplier } from "./synergy";
+import { activeEvolution, evolutionKey, evolutionStage } from "./evolutions";
 import {
   CROSSOVER_BOSS_REWARD,
   CROSSOVER_COST,
@@ -600,8 +601,13 @@ export function createGameStore(data: GameData) {
     return data.characters.filter((c) => ids.has(c.id));
   });
 
-  /** True once this character has grown into their evolution — permanent for the rest of the run. */
-  const isEvolved = (character: Character) => evolvedCharacterIds().includes(character.id);
+  /** Number of successive forms reached by this character in the current run. */
+  const evolutionStageOf = (character: Character) => evolutionStage(character, evolvedCharacterIds());
+  const isEvolved = (character: Character) => evolutionStageOf(character) > 0;
+  const activeEvolutionOf = (character: Character) => activeEvolution(character, evolutionStageOf(character));
+  const isEvolutionUnlocked = (character: Character, animeId: string) =>
+    evolvedCharacterIds().includes(evolutionKey(character.id, animeId)) ||
+    (character.evolutions?.[0]?.animeId === animeId && evolvedCharacterIds().includes(character.id));
 
   const xpOf = (characterId: string) => characterXp()[characterId] ?? 0;
 
@@ -761,7 +767,7 @@ export function createGameStore(data: GameData) {
         config,
         levels[c.id] ?? 0,
         passiveRankOf(c),
-        isEvolved(c),
+        evolutionStageOf(c),
         equipmentOf(c),
         duplicatesOf(c.id),
         catchUpOf(c)
@@ -784,7 +790,7 @@ export function createGameStore(data: GameData) {
   const awayCharacterIds = createMemo<Set<string>>(() => {
     const arc = activeArc();
     if (!arc) return new Set<string>();
-    return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, isEvolved(c))).map((c) => c.id));
+    return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, evolutionStageOf(c))).map((c) => c.id));
   });
 
   /** Every ability granted by the roster, before the current anime or challenge filters it. */
@@ -1021,15 +1027,17 @@ export function createGameStore(data: GameData) {
   const hasRetreatedFromBoss = (arc: Arc) => bossRetreatArcIds().includes(arc.id);
 
   /**
-   * Grows any owned character whose evolution's world is the one now active, permanently — called
+   * Unlocks every owned character's next form whose world is the one now active — called
    * on every recruit and every arc switch, the only two ways this condition can newly become true.
    */
   function maybeEvolve() {
     const arc = activeArc();
     if (!arc) return;
-    const newlyEvolved = ownedCharacters()
-      .filter((c) => c.evolution?.animeId === arc.animeId && !isEvolved(c))
-      .map((c) => c.id);
+    const newlyEvolved = ownedCharacters().flatMap((character) =>
+      (character.evolutions ?? [])
+        .filter((evolution) => evolution.animeId === arc.animeId && !isEvolutionUnlocked(character, evolution.animeId))
+        .map((evolution) => evolutionKey(character.id, evolution.animeId))
+    );
     if (newlyEvolved.length > 0) {
       setEvolvedCharacterIds((ids) => [...ids, ...newlyEvolved]);
       bumpAchievement("evolutionsUnlocked", newlyEvolved.length);
@@ -1432,7 +1440,7 @@ export function createGameStore(data: GameData) {
     if (!arc) return false;
     const config = activeSynergyConfig();
     return ownedCharacters().some(
-      (c) => synergyMultiplier(c, arc, config, isEvolved(c)) <= config.otherAnimeMalus
+      (c) => synergyMultiplier(c, arc, config, evolutionStageOf(c)) <= config.otherAnimeMalus
     );
   });
 
@@ -1656,7 +1664,7 @@ export function createGameStore(data: GameData) {
   /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
   function synergyOf(character: Character): number {
     const arc = activeArc();
-    return arc ? synergyMultiplier(character, arc, activeSynergyConfig(), isEvolved(character)) : 1;
+    return arc ? synergyMultiplier(character, arc, activeSynergyConfig(), evolutionStageOf(character)) : 1;
   }
 
   function setActiveArc(arcId: string) {
@@ -1885,7 +1893,7 @@ export function createGameStore(data: GameData) {
       return [
         diagnoseAbility(unlocked, character, {
           activeArc: activeArc(),
-          evolved: isEvolved(character),
+          evolved: evolutionStageOf(character),
           challengeId: activeChallengeId(),
           noAbilities: challengeRules().noAbilities === true,
           lastActivatedAt: abilityLastUsed()[unlocked.ability.id],
@@ -2334,6 +2342,9 @@ export function createGameStore(data: GameData) {
     ownedCharacters,
     ownedCharacterIds,
     isEvolved,
+    evolutionStageOf,
+    activeEvolutionOf,
+    isEvolutionUnlocked,
     clickPower,
     narratorBase,
     teamDps,
