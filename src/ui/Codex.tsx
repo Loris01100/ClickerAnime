@@ -3,7 +3,9 @@ import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
 import { LEVEL_DAMAGE_STEP, passiveGrowth } from "../engine/growth";
 import { DUPLICATE_DAMAGE_STEP, duplicateGrowth } from "../engine/packs";
+import { scaledUniqueEffect } from "../engine/forge";
 import ItemCodex from "./ItemCodex";
+import ItemIcon from "./ItemIcon";
 import Sprite from "./Sprite";
 import { describeAbility, describeCharacterTag, describeModifier } from "./describe";
 import { fmt } from "./format";
@@ -345,6 +347,49 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                     }}
                   </Show>
                 </div>
+
+                {/* L'objet porté agissait sur « Actuel » sans être nommé nulle part dans la fiche :
+                    on lisait la stat sans sa cause. Ici on le voit, avec son effet au niveau de
+                    forge du moment. Réservé à l'équipe : un unique ne s'équipe que sur une recrue. */}
+                <Show when={owned(character())}>
+                  <div class="codex-block">
+                    <h4>Équipement</h4>
+                    <Show
+                      when={props.game.equippedItemOf(character())}
+                      fallback={
+                        <p class="muted small">Aucun objet équipé. Les uniques se posent depuis le panneau Équipe.</p>
+                      }
+                    >
+                      {(item) => (
+                        <>
+                          <div class="codex-row">
+                            <span class="muted">
+                              <ItemIcon id={item().id} kind="unique" /> {item().name}
+                            </span>
+                            <strong>
+                              {(item().effects ?? [])
+                                .map((effect) =>
+                                  describeModifier(scaledUniqueEffect(effect, props.game.uniqueUpgradeLevelOf(item().id)))
+                                )
+                                .join(" · ") || "aucun effet"}
+                            </strong>
+                          </div>
+                          <Show when={props.game.uniqueUpgradeLevelOf(item().id) > 0}>
+                            <div class="codex-row">
+                              <span class="muted">Forge</span>
+                              {/* Même formulation que la Forge : un niveau sur 5 et une puissance en
+                                  pourcentage — « x0.67 sur l'effet » se lisait comme un malus. */}
+                              <strong>
+                                niveau {props.game.uniqueUpgradeLevelOf(item().id)}/5 · puissance{" "}
+                                {Math.round(props.game.uniqueUpgradeMultiplierOf(item().id) * 100)} %
+                              </strong>
+                            </div>
+                          </Show>
+                        </>
+                      )}
+                    </Show>
+                  </div>
+                </Show>
 
                 <Show when={abilityOf(character())}>
                   {(ability) => (

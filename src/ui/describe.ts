@@ -83,7 +83,9 @@ export function describeModifier(modifier: ModifierTemplate): string {
     case "percent":
       return `+${Math.round(modifier.value * 100)} % ${target}`;
     case "multiplier":
-      return `x${modifier.value} ${target}`;
+      // Deux décimales au plus, sans zéros inutiles : la donnée est ronde (x1.25), mais la forge
+      // et les capacités mises à l'échelle produisent des x1.1666666666666667.
+      return `x${Number(modifier.value.toFixed(2))} ${target}`;
   }
 }
 

@@ -584,6 +584,43 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* L'objet porté : une vignette, pas une ligne grise — icône, nom lisible, effet en retrait. */
+.equipped-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+/* Le nom cède la place au badge de forge plutôt que de le pousser hors de la colonne. */
+.equipped-item strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gold);
+}
+.equipped-item .forge-level {
+  flex: none;
+  padding: 0 0.25rem;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  color: var(--gold);
+  font-size: 0.62rem;
+}
+/* L'effet de l'objet porté, sous la ligne du sélecteur : la colonne est trop étroite pour tout. */
+.equip-effect {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Le porteur, dans la table des objets : son portrait seul — la colonne « Effet » fait 3rem, et
+   un visage se repère en balayant la liste bien mieux qu'un nom tronqué. */
+.worn-by {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .equip-select {
   max-width: 130px;
   font-size: 0.68rem;

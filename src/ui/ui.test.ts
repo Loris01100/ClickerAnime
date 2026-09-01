@@ -74,6 +74,11 @@ describe("describeModifier", () => {
     expect(describeModifier({ target: "clickPower", kind: "flat", value: 5 })).toBe("+5 au clic");
     expect(describeModifier({ target: "clickPower", kind: "percent", value: 0.1 })).toBe("+10 % au clic");
     expect(describeModifier({ target: "teamDps", kind: "multiplier", value: 2 })).toBe("x2 de DPS");
+    // Un multiplicateur mis à l'échelle (forge, capacité) n'est pas rond : il s'arrondit à
+    // l'affichage plutôt que d'écrire « x1.1666666666666667 » dans le panneau Équipe.
+    expect(describeModifier({ target: "teamDps", kind: "multiplier", value: 1 + 0.25 * (2 / 3) })).toBe(
+      "x1.17 de DPS"
+    );
   });
 
   it("lists every effect of an ability with its timings", () => {

@@ -702,6 +702,20 @@ code écrit à la main.
   pose exactement le problème que le roster posait à 60 personnages ; elle mérite la même réponse,
   pas une nouvelle. Le tri par défaut est le nom, parce que c'est le seul ordre stable — trier par
   quantité fait remonter un objet dès qu'il tombe, sous le curseur.
+- **L'objet équipé se voit, il ne se devine pas.** Sur la ligne d'un personnage, il n'était qu'un
+  nom gris à côté du sélecteur : on savait qu'il y avait un objet, pas ce qu'il faisait. Il porte
+  maintenant son icône, son nom en `--gold` (la couleur des uniques partout ailleurs), un badge
+  `Nv.n` liseré d'or dès le niveau 2 de forge, et son effet **au niveau de forge du moment** sur une
+  seconde ligne — la colonne de gauche est trop étroite pour les trois, et c'est l'effet qui se
+  faisait tronquer. Le nom cède la place au badge, jamais l'inverse.
+- **Dans la table `Objets`, la colonne « Effet » d'un unique porté montre le portrait du porteur**,
+  seul : elle fait 3rem, où un nom se réduisait à une initiale, et un visage se repère en balayant
+  la liste. Le nom reste dans l'infobulle. Un troisième choix du filtre, « Équipés », répond
+  directement à « qui porte quoi » sans ajouter un menu.
+- **La fiche Codex a un bloc `Équipement`** pour un personnage de l'équipe : l'objet porté agissait
+  sur sa ligne « Actuel » sans être nommé nulle part, on lisait la stat sans sa cause. Le niveau de
+  forge y est dit comme dans la Forge — « niveau 2/5 · puissance 67 % » — et non « x0.67 », qui se
+  lisait comme un malus.
 - **Le texte visible est en français**, y compris les nouveaux tooltips/labels de l'arbre de
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
 

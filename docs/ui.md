@@ -16,7 +16,9 @@ for every engine rule; pure rules remain faster and more precise in Vitest.
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density: many small stacked panels, every learned system visible at once. Left is the
-roster (abilities, sortable team table, item table), middle is resources + the fight + the world
+roster (abilities, sortable team table with each character's worn unique — icon, name, forge badge
+and its effect at the current forge level —, item table whose kind filter also has an «Équipés»
+view showing the wearer's portrait), middle is resources + the fight + the world
 map, right is the arc lists per world plus travel and prestige. Everything else is an overlay
 (`.overlay` > `.modal`, closed by ✕/Escape/backdrop) owned by `App.tsx`: `Codex.tsx`,
 `WorldPortal.tsx`, `ShopPanel.tsx`, `CrossoverPanel.tsx`, `AchievementsPanel.tsx`,
@@ -35,7 +37,9 @@ panel because it is the way out of an unrecoverable save, and the topbar shows i
 resource is spent (gold → shop, prestige → tree, crystals → crossover, pack points → packs), so no
 counter is a dead end; the pack tile follows the active arc, since pack points are per world. `Codex.tsx` first presents one card per anime with local discovery counters; choosing one opens only that anime's
 characters and objects, avoiding an ever-growing global list. A roster shortcut still opens directly
-on its character and anime. The character tab shows stats, the passive at level 0 / at cap / right now, abilities,
+on its character and anime. The character tab shows stats, the passive at level 0 / at cap / right now, an `Équipement`
+block for a recruited character (the unique worn, its effect at the current forge level, and that
+level worded as the forge words it — «niveau n/5 · puissance x %»), abilities,
 evolution and the translated character types used by equipment restrictions. Its second tab uses the same two-pane shell through `ItemCodex.tsx`: every
 item from the selected anime, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
