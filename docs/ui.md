@@ -241,7 +241,11 @@ the owned uniques; choosing one fills that slot with its boss-earned fragments a
 unique in the right slot. Once filled, either slot or the explicit `Changer` action reopens the picker,
 so another unique can be selected without closing the forge. The central action upgrades only that
 selection. The centered workbench leaves the smiths and heated metal visible, and stacks vertically
-on narrow viewports.
+on narrow viewports. The same `.notice-dot` the passives use walks that chain too, from the store's
+`forgeableNowIds`: the right column's Forge entry and its `Ouvrir la forge` button, then — inside the
+panel — the empty slot or the `Changer` button that reopens the picker, then the picker row of each
+unique whose next level is payable right now. Same rule as the passives: a dot means one action is
+available here, never how many, and a maxed unique has no cost left so it carries none.
 
 `ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
 section — next to the tree button, because a challenge starts from a reset just like a prestige

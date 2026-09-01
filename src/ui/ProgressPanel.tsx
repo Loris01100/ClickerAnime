@@ -37,6 +37,8 @@ export default function ProgressPanel(props: {
     );
 
   const affordablePassive = createMemo(() => props.game.rankablePassiveIds().size > 0);
+  /** La même pastille que pour un passif prêt à monter, côté forge. */
+  const forgeNotice = createMemo(() => props.game.forgeableNowIds().size > 0);
   const equippableUnique = createMemo(() =>
     props.game.foundItems().some(
       (item) =>
@@ -240,12 +242,24 @@ export default function ProgressPanel(props: {
       <Show when={props.game.forgeableUniques().length > 0}>
         <section class="panel">
           <header class="panel-head">
-            <span>Forge</span>
+            <span>
+              Forge
+              <Show when={forgeNotice()}>
+                <span class="notice-dot" aria-label="Un objet unique peut être forgé" role="img" />
+              </Show>
+            </span>
             <small class="muted">Fragments de boss</small>
           </header>
           <div class="pad">
-            <button class="tree-open" onClick={props.onOpenForge}>
+            <button
+              class="tree-open"
+              onClick={props.onOpenForge}
+              title={forgeNotice() ? "Un objet unique peut être forgé" : undefined}
+            >
               Ouvrir la forge ({props.game.forgeableUniques().length})
+              <Show when={forgeNotice()}>
+                <span class="notice-dot" aria-hidden="true" />
+              </Show>
               <IconChevronRight class="tree-open-go" />
             </button>
           </div>

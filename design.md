@@ -915,6 +915,11 @@ quelque chose à y faire, et pouvoir repartir se battre au bon endroit.
 - **Sa source est unique** : `rankablePassiveIds` dans le store. `ClickStage` et `ProgressPanel`,
   qui conseillaient déjà de monter un passif avant un boss, lisent le même memo — un seul endroit
   décide de ce qui est « améliorable maintenant ».
+- **La forge suit la même chaîne**, avec la même pastille et la même règle : `forgeableNowIds` dans
+  le store → l'encart « Forge » de la colonne droite et son bouton d'ouverture → dans le panneau, la
+  case vide ou le bouton « Changer » qui rouvre la liste → la ligne de chaque unique dont le niveau
+  suivant est payable. Un unique au plafond n'a plus de coût, donc plus de pastille : le point ne
+  promet jamais une action qui n'existe pas.
 - **Raccourci d'arc** (`.codex-travel`, sous le portrait) : un bouton par arc **atteignable** du
   personnage — « Combattre dans » s'il est dans l'équipe, « Le rencontrer dans » sinon. Cliquer
   déplace l'arc actif et referme le Codex : c'est un déplacement, pas une lecture. L'arc actif est

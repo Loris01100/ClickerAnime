@@ -8,6 +8,10 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
   const [selectedItemId, setSelectedItemId] = createSignal<string>();
   const [pickerOpen, setPickerOpen] = createSignal(false);
   const selectedItem = createMemo(() => props.game.forgeableUniques().find((item) => item.id === selectedItemId()));
+  /** La même pastille que pour un passif prêt à monter : ce niveau-là est payable tout de suite. */
+  const forgeable = (itemId: string) => props.game.forgeableNowIds().has(itemId);
+  /** Un autre unique prêt à forger : la pastille vit alors sur le bouton qui rouvre la liste. */
+  const otherForgeable = createMemo(() => [...props.game.forgeableNowIds()].some((id) => id !== selectedItemId()));
 
   function onKeyDown(event: KeyboardEvent) {
     if (event.key === "Escape") props.onClose();
@@ -38,7 +42,12 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                   >
                     <span class="forge-slot-label">Fragments</span>
                     <strong class="forge-empty-mark">Case vide</strong>
-                    <small>Cliquer pour choisir un objet</small>
+                    <small>
+                      Cliquer pour choisir un objet
+                      <Show when={otherForgeable()}>
+                        <span class="notice-dot" aria-label="Un objet peut être forgé" role="img" />
+                      </Show>
+                    </small>
                   </button>
 
                   <div class="forge-action">
@@ -64,7 +73,12 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                     <div class="forge-selection-head">
                       <strong>{item.name}</strong>
                       <span>Niveau {level()}/5 · puissance {Math.round(props.game.uniqueUpgradeMultiplierOf(item.id) * 100)} %</span>
-                      <button type="button" onClick={() => setPickerOpen(true)}>Changer</button>
+                      <button type="button" onClick={() => setPickerOpen(true)}>
+                        Changer
+                        <Show when={otherForgeable()}>
+                          <span class="notice-dot" aria-label="Un autre objet peut être forgé" role="img" />
+                        </Show>
+                      </button>
                     </div>
                     <div class="forge-process">
                       <button
@@ -144,6 +158,9 @@ export default function ForgePanel(props: { game: GameStore; onClose: () => void
                           <strong>{item.name}</strong>
                           <small>{props.game.uniqueFragmentsOf(item.id)} fragment{props.game.uniqueFragmentsOf(item.id) === 1 ? "" : "s"} · niveau {props.game.uniqueUpgradeLevelOf(item.id)}/5</small>
                         </span>
+                        <Show when={forgeable(item.id)}>
+                          <span class="notice-dot" aria-label="Cet objet peut être forgé" role="img" />
+                        </Show>
                       </button>
                     )}
                   </For>

@@ -82,6 +82,10 @@ with the first unique). The unique itself and unspent fragments are run-scoped, 
 is permanent mastery: after prestige, the next copy found immediately recovers its former rank.
 Only `hardReset` clears that rank.
 
+`forgeableNowIds` is the store's one answer to «which unique can be forged right now», and it is what
+the UI badges with the same `.notice-dot` a rankable passive uses — from the Forge entry down to the
+picker row (`docs/ui.md`). A unique at rank 5 has no next cost, so it is never in that set.
+
 **A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
 Two constants were over that line and together took the effective common-drop rate from the printed

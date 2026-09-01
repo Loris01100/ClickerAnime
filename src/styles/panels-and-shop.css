@@ -572,7 +572,7 @@ small {
 }
 .forge-picker-item {
   display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr);
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;

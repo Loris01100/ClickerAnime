@@ -658,6 +658,21 @@ export function createGameStore(data: GameData) {
   const uniqueUpgradeCostOf = (itemId: string) => UNIQUE_FORGE_FRAGMENT_COSTS[uniqueUpgradeLevelOf(itemId) + 1] ?? null;
   const forgeableUniques = createMemo(() => data.items.filter((item) => item.kind === "unique" && countOf(item.id) > 0));
 
+  /**
+   * Every unique whose next forge level is payable right now — la contrepartie de
+   * `rankablePassiveIds` côté objets. Un seul memo plutôt que le même test recopié dans le panneau
+   * de progression et dans la forge : l'entrée de menu n'a besoin que de savoir s'il y en a un, la
+   * liste de la forge a besoin de savoir lesquels, et les deux doivent dire la même chose.
+   */
+  const forgeableNowIds = createMemo(() => {
+    const ids = new Set<string>();
+    for (const item of forgeableUniques()) {
+      const cost = uniqueUpgradeCostOf(item.id);
+      if (cost !== null && uniqueFragmentsOf(item.id) >= cost) ids.add(item.id);
+    }
+    return ids;
+  });
+
   function upgradeUnique(itemId: string): boolean {
     const cost = uniqueUpgradeCostOf(itemId);
     if (cost === null || uniqueFragmentsOf(itemId) < cost) return false;
@@ -2351,6 +2366,7 @@ export function createGameStore(data: GameData) {
     foundItems,
     countOf,
     forgeableUniques,
+    forgeableNowIds,
     uniqueFragmentsOf,
     uniqueUpgradeLevelOf,
     uniqueUpgradeMultiplierOf,

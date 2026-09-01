@@ -305,6 +305,42 @@ describe("store boot", () => {
     }
   });
 
+  it("forgeableNowIds lists exactly the owned uniques whose next level is payable", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [],
+      characters: [{ id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 1, baseDps: 0 }],
+      items: [
+        { id: "ready", name: "Prête", kind: "unique" as const },
+        { id: "short", name: "Courte", kind: "unique" as const },
+        { id: "maxed", name: "Finie", kind: "unique" as const },
+        { id: "undropped", name: "Jamais tombée", kind: "unique" as const },
+      ],
+    };
+    const restore = installSave(
+      baseSave({
+        itemCounts: { ready: 1, short: 1, maxed: 1 },
+        // 5 fragments paient le niveau 2 ; « short » en est à un de moins ; « maxed » est au plafond,
+        // où il n'y a plus de coût du tout, donc plus de pastille non plus.
+        uniqueFragments: { ready: 5, short: 4, maxed: 99 },
+        uniqueUpgradeRanks: { ready: 1, short: 1, maxed: 5 },
+      })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      expect([...game.forgeableNowIds()]).toEqual(["ready"]);
+      expect(game.upgradeUnique("ready")).toBe(true);
+      expect([...game.forgeableNowIds()]).toEqual([]);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
   it("keeps a unique's forge level through prestige and restores it on the next drop", () => {
     const data = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],
