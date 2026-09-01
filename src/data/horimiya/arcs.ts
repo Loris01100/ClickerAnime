@@ -157,7 +157,6 @@ export const horimiyaArcs: GameData["arcs"] = [
     mobs: [
       { id: "horimiya-diplome-incertitude", name: "L’incertitude du lendemain", baseHp: 610_000, reward: 2_800, itemId: "horimiya-item-souvenir", dropChance: 0.15 },
       { id: "horimiya-diplome-tanihara", name: "Makio Tanihara", baseHp: 2_200_000, reward: 19_000, characterId: "horimiya-tanihara" },
-      { id: "horimiya-diplome-yasuda", name: "Makoto Yasuda", baseHp: 1_900_000, reward: 16_000, characterId: "horimiya-yasuda" },
       { id: "horimiya-diplome-iori", name: "Iori Miyamura", baseHp: 3_350_000, reward: 31_000, characterId: "horimiya-iori" },
     ],
     boss: {
