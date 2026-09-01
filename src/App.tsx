@@ -1,6 +1,7 @@
 import { Show, Suspense, createEffect, createMemo, createSignal, lazy, on, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
+import { achievementCount } from "./engine/achievements";
 import { gameData } from "./data";
 import ClickStage from "./ui/ClickStage";
 import WorldMap from "./ui/WorldMap";
@@ -100,24 +101,30 @@ export default function App() {
     const counts = game.achievementCounts();
     return deriveDisclosure(
       {
-        kills: (counts.mobsKilled ?? 0) + (counts.bossesKilled ?? 0),
-        recruits: counts.charactersRecruited ?? 0,
+        kills: achievementCount(counts, "mobsKilled") + achievementCount(counts, "bossesKilled"),
+        recruits: achievementCount(counts, "charactersRecruited"),
         ownedCharacters: game.ownedCharacters().length,
         unlockedAbilities: game.unlockedAbilities().length,
-        abilitiesActivated: counts.abilitiesActivated ?? 0,
+        // `abilitiesUsed`, the ladder's real id — this read used to say `abilitiesActivated`, which
+        // nothing writes, so the lifetime fallback below it was dead: the whole "Capacités" panel
+        // vanished (and was re-announced on return) whenever `unlockedAbilities` hit 0, i.e. abroad
+        // or under « Le Silence des héros » — precisely when its "why is this asleep" rows matter.
+        abilitiesActivated: achievementCount(counts, "abilitiesUsed"),
         foundItems: game.foundItems().length,
-        commonItemsCollected: counts.commonItemsCollected ?? 0,
-        bossesKilled: counts.bossesKilled ?? 0,
-        uniquesEquipped: counts.uniquesEquipped ?? 0,
-        arcsCleared: counts.arcsCleared ?? 0,
+        commonItemsCollected: achievementCount(counts, "commonItemsCollected"),
+        bossesKilled: achievementCount(counts, "bossesKilled"),
+        uniquesEquipped: achievementCount(counts, "uniquesEquipped"),
+        arcsCleared: achievementCount(counts, "arcsCleared"),
         pendingPrestige: game.pendingPrestigeGain(),
         prestigePoints: game.prestige().prestigePoints,
-        prestiges: counts.prestiges ?? 0,
+        prestiges: achievementCount(counts, "prestiges"),
         treeLevels: PRESTIGE_TREE_CATEGORIES.reduce((sum, category) => sum + game.branchLevelsOf(category.id), 0),
         maxWorldPoints: Math.max(0, ...game.data.animes.map((anime) => game.worldPointsOf(anime.id))),
-        packsOpened: counts.packsOpened ?? 0,
+        packsOpened: achievementCount(counts, "packsOpened"),
         crossoverCrystals: game.crossoverCrystals(),
-        crossoversActivated: counts.crossoversActivated ?? 0,
+        // Same fix: the ladder is `crossoversUsed`. Without it the Crossover entry disappeared as
+        // soon as the crystals were spent with a mono-world team, however many windows were opened.
+        crossoversActivated: achievementCount(counts, "crossoversUsed"),
         mixedTeam: game.teamIsMixed(),
         canTravel: game.canTravel(),
         activeChallenge: Boolean(game.activeChallenge()),

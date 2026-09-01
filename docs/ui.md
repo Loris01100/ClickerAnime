@@ -58,7 +58,18 @@ or boss; worlds and shop after the first cleared arc; prestige when a reset woul
 packs only once the cheapest pack is affordable; crossover with a mixed team or crystals; and
 challenges after the first prestige. Travel follows its real availability. Lifetime counters keep
 a learned surface visible after a prestige reset, so disclosure teaches once rather than making the
-dashboard flicker between runs. Newly mounted panels use `.progressive-reveal`, disabled under
+dashboard flicker between runs.
+
+Those counters are read through `achievementCount(counts, id)` and **not** as plain properties, for
+one reason: the counts are a `Record<string, number>` off a save file, so a mistyped id is a legal
+read that answers `undefined` forever. Two of them were — `App.tsx` asked for `abilitiesActivated`
+and `crossoversActivated` while the ladders are `abilitiesUsed` and `crossoversUsed` — which left
+both lifetime fallbacks dead and only showed up in the two places they were written for: the
+"Capacités" panel disappeared whole (its "why is this asleep" rows included) whenever
+`unlockedAbilities` fell to 0, i.e. abroad or under « Le Silence des héros », and re-announced
+« Capacités débloquées » on the way back; the Crossover entry did the same once the crystals were
+spent with a mono-world team. `AchievementId` is derived from `ACHIEVEMENT_CATEGORIES` itself, so
+the typo is now a compile error rather than a silent 0. Newly mounted panels use `.progressive-reveal`, disabled under
 `prefers-reduced-motion`.
 
 `ObjectiveTrail.tsx` occupies one compact panel above combat during that same first learning pass.

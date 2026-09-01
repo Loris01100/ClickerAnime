@@ -1,4 +1,5 @@
 import { Show, createMemo, createSignal } from "solid-js";
+import { achievementCount } from "../engine/achievements";
 import type { GameStore } from "../engine/gameState";
 import PanelTitle from "./PanelTitle";
 import { tutorialObjective } from "./objective";
@@ -37,11 +38,17 @@ export default function ObjectiveTrail(props: { game: GameStore }) {
     const active = props.game.activeArc();
     const item = commonItem();
     return tutorialObjective({
-      recruits: counts.charactersRecruited ?? props.game.ownedCharacters().length,
-      arcsCleared: counts.arcsCleared ?? props.game.data.arcs.filter((arc) => props.game.arcCleared(arc)).length,
-      passiveRanksBought:
-        counts.passiveRanksBought ??
-        props.game.ownedCharacters().reduce((sum, character) => sum + props.game.passiveRankOf(character), 0),
+      recruits: achievementCount(counts, "charactersRecruited", props.game.ownedCharacters().length),
+      arcsCleared: achievementCount(
+        counts,
+        "arcsCleared",
+        props.game.data.arcs.filter((arc) => props.game.arcCleared(arc)).length
+      ),
+      passiveRanksBought: achievementCount(
+        counts,
+        "passiveRanksBought",
+        props.game.ownedCharacters().reduce((sum, character) => sum + props.game.passiveRankOf(character), 0)
+      ),
       arcName: active?.name ?? "",
       arcKills: active ? props.game.killsIn(active) : 0,
       arcKillsNeeded: active?.mobsToBoss ?? 1,

@@ -1,5 +1,5 @@
 import { batch, createMemo, createSignal, onCleanup } from "solid-js";
-import { achievementContributions } from "./achievements";
+import { achievementContributions, achievementCount, type AchievementId } from "./achievements";
 import { computeScopedStat, foldScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
 import {
   applyPrestige,
@@ -133,6 +133,7 @@ import {
   PRESTIGE_PER_KILL_CHANCE,
   prestigeTreeContributions,
   PRESTIGE_TREE_CATEGORIES,
+  type PrestigeTreeCategoryId,
   purchaseNodeLevel,
   RECRUIT_XP_BONUS,
   scaledChance,
@@ -506,18 +507,19 @@ export function createGameStore(data: GameData) {
   const [bossRetreatArcIds, setBossRetreatArcIds] = createSignal<string[]>([]);
 
   /** Total levels bought in one prestige-tree branch (0..25) — see prestigeTree.ts for the model. */
-  const branchLevelsOf = (categoryId: string) => totalLevels(nodeLevels(prestigeTreeRanks(), categoryId));
+  const branchLevelsOf = (categoryId: PrestigeTreeCategoryId) =>
+    totalLevels(nodeLevels(prestigeTreeRanks(), categoryId));
 
   /** How many of a specific node's 5 levels are bought (0..5) — see prestigeTree.ts's `nodeLevel`. */
-  const nodeLevelOf = (categoryId: string, position: number) =>
+  const nodeLevelOf = (categoryId: PrestigeTreeCategoryId, position: number) =>
     nodeLevel(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
   /** A node unlocks once its predecessor has ≥1 level; node 1 is always unlocked. */
-  const isNodeUnlockedFor = (categoryId: string, position: number) =>
+  const isNodeUnlockedFor = (categoryId: PrestigeTreeCategoryId, position: number) =>
     isNodeUnlocked(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
   /** What the next level of a specific node costs, or null if it's locked or already maxed. */
-  const nodeCostOf = (categoryId: string, position: number) =>
+  const nodeCostOf = (categoryId: PrestigeTreeCategoryId, position: number) =>
     nodeCost(nodeLevels(prestigeTreeRanks(), categoryId), position);
 
   // --- automation: one node of the "Automatisation" branch behind each switch ---
@@ -700,7 +702,7 @@ export function createGameStore(data: GameData) {
     // ladder can never count more uniques than the player actually owns.
     const uniquesOwned = data.items.filter((i) => i.kind === "unique" && (itemCounts()[i.id] ?? 0) > 0).length;
     const alreadyWorn = Object.values(characterEquipment()).includes(itemId);
-    if (!alreadyWorn && (achievementCounts().uniquesEquipped ?? 0) < uniquesOwned) {
+    if (!alreadyWorn && achievementCount(achievementCounts(), "uniquesEquipped") < uniquesOwned) {
       bumpAchievement("uniquesEquipped");
     }
     // Unequip the item from any other character first (uniques are single-copy).
@@ -727,7 +729,7 @@ export function createGameStore(data: GameData) {
   }
 
   /** Bumps one achievement ladder; the tier(s) it crosses start contributing on the next `allModifiers` read. */
-  function bumpAchievement(categoryId: string, amount = 1) {
+  function bumpAchievement(categoryId: AchievementId, amount = 1) {
     setAchievementCounts((counts) => ({ ...counts, [categoryId]: (counts[categoryId] ?? 0) + amount }));
   }
 
@@ -1167,9 +1169,11 @@ export function createGameStore(data: GameData) {
       const dropChance = item
         ? firstPassiveDropChance(boostedChance, {
             hasClearedArc: clearedArcIds().length > 0,
-            passiveRanksBought:
-              achievementCounts().passiveRanksBought ??
-              Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0),
+            passiveRanksBought: achievementCount(
+              achievementCounts(),
+              "passiveRanksBought",
+              Object.values(passiveRanks()).reduce((sum, rank) => sum + rank, 0)
+            ),
             copies: countOf(item.id),
             copiesNeeded: Math.min(...compatibleUpgrades.map((upgrade) => upgrade.cost)),
             hasCompatiblePassive: compatibleUpgrades.length > 0,
@@ -1493,9 +1497,11 @@ export function createGameStore(data: GameData) {
    * they must agree on which character that is.
    */
   const firstAffordablePassive = createMemo<Character | null>(() => {
-    const ranksBought =
-      achievementCounts().passiveRanksBought ??
-      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0);
+    const ranksBought = achievementCount(
+      achievementCounts(),
+      "passiveRanksBought",
+      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0)
+    );
     if (ranksBought > 0) return null;
     return ownedCharacters().find((c) => c.passive && passiveUpgradeOf(c).affordable) ?? null;
   });
@@ -2125,7 +2131,7 @@ export function createGameStore(data: GameData) {
   }
 
   /** Buys the next level of one specific node, if it's unlocked, not maxed, and affordable. */
-  function purchaseTreeLevel(categoryId: string, position: number): boolean {
+  function purchaseTreeLevel(categoryId: PrestigeTreeCategoryId, position: number): boolean {
     const category = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === categoryId);
     if (!category) return false;
     const result = purchaseNodeLevel(prestige().prestigePoints, prestigeTreeRanks(), category, position);

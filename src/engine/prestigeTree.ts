@@ -408,8 +408,15 @@ export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
   },
 ];
 
-/** A branch's 5 node levels (0..5 each), one entry per position — the shape persisted per branch. */
-export function nodeLevels(ranks: Record<string, number[]>, categoryId: string): number[] {
+/**
+ * A branch's 5 node levels (0..5 each), one entry per position — the shape persisted per branch.
+ *
+ * `categoryId` is the branch's own union, not a `string`: the ranks are a `Record<string, number[]>`
+ * (they come off a save file), so a misspelt branch answers `[0,0,0,0,0]` forever — a node that
+ * silently does nothing, with nothing to see in the UI and no test to fail. Same reasoning as
+ * `AchievementId` in `achievements.ts`.
+ */
+export function nodeLevels(ranks: Record<string, number[]>, categoryId: PrestigeTreeCategoryId): number[] {
   return ranks[categoryId] ?? [0, 0, 0, 0, 0];
 }
 

@@ -159,6 +159,11 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
 
     const homeArcs = new Set<string>();
+    // `arcIds[0]` n’est pas un arc parmi d’autres : `arcPowerTable` en fait l’arc de *débuts* du
+    // personnage, donc le `debutPower` que `catchUpGrowth` divise puis réapplique. Listé dans le
+    // désordre, le personnage débute dans le mauvais arc et toute sa courbe de rattrapage glisse —
+    // en silence, aucun type ne voit un tableau de chaînes mal trié.
+    let previousOrder = -Infinity;
     for (const [arcIndex, arcId] of character.arcIds.entries()) {
       if (homeArcs.has(arcId)) add("duplicate-presence", `${path}.arcIds[${arcIndex}]`, `l’arc « ${arcId} » est répété`);
       homeArcs.add(arcId);
@@ -166,6 +171,15 @@ export function validateGameData(data: GameData): ContentIssue[] {
       if (!arc) add("unknown-arc", `${path}.arcIds[${arcIndex}]`, `l’arc « ${arcId} » n’existe pas`);
       else if (arc.animeId !== character.animeId) {
         add("wrong-home-arc", `${path}.arcIds[${arcIndex}]`, `l’arc appartient à « ${arc.animeId} », pas à l’animé de recrutement`);
+      } else {
+        if (arc.order < previousOrder) {
+          add(
+            "unordered-presence",
+            `${path}.arcIds[${arcIndex}]`,
+            `les arcs doivent être listés dans l’ordre de l’histoire : « ${arcId} » (ordre ${arc.order}) suit un arc plus tardif`
+          );
+        }
+        previousOrder = arc.order;
       }
     }
 

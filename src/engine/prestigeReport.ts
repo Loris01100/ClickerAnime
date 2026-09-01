@@ -1,3 +1,5 @@
+import { achievementCount, type AchievementId } from "./achievements";
+
 export interface PrestigeReportInput {
   startedAt: number;
   endedAt: number;
@@ -47,8 +49,8 @@ export interface PrestigeReport {
   challengeName: string | null;
 }
 
-const delta = (counts: Record<string, number>, baseline: Record<string, number>, key: string) =>
-  Math.max(0, (counts[key] ?? 0) - (baseline[key] ?? 0));
+const delta = (counts: Record<string, number>, baseline: Record<string, number>, key: AchievementId) =>
+  Math.max(0, achievementCount(counts, key) - achievementCount(baseline, key));
 
 /** A frozen before-reset snapshot, so the report survives the signals being wiped a line later. */
 export function buildPrestigeReport(input: PrestigeReportInput): PrestigeReport {

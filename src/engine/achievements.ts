@@ -6,7 +6,7 @@ export interface AchievementCategory {
   /** Which stat this ladder's tiers pay into — see ACHIEVEMENT_CATEGORIES. */
   target: ModifierTarget;
   /** thresholds to reach, one per tier, strictly increasing */
-  tiers: number[];
+  tiers: readonly number[];
 }
 
 /**
@@ -21,7 +21,7 @@ export interface AchievementCategory {
  * what it drops) and the rest pay `teamDps` (what the team kills, clears and becomes), so the
  * click's total achievement bonus stays where it was before the ladders were extended.
  */
-export const ACHIEVEMENT_CATEGORIES: AchievementCategory[] = [
+export const ACHIEVEMENT_CATEGORIES = [
   { id: "mobsKilled", label: "Ennemis vaincus", target: "teamDps", tiers: [25, 100, 500, 2_000, 10_000, 50_000] },
   { id: "bossesKilled", label: "Boss vaincus", target: "teamDps", tiers: [1, 5, 15, 40, 100, 250] },
   { id: "charactersRecruited", label: "Personnages recrutés", target: "teamDps", tiers: [1, 5, 15, 30, 60, 100] },
@@ -35,7 +35,29 @@ export const ACHIEVEMENT_CATEGORIES: AchievementCategory[] = [
   { id: "abilitiesUsed", label: "Capacités activées", target: "clickPower", tiers: [10, 50, 250, 1_000, 5_000, 25_000] },
   { id: "passiveRanksBought", label: "Rangs de passif achetés", target: "clickPower", tiers: [1, 10, 50, 150, 400, 1_000] },
   { id: "packsOpened", label: "Packs ouverts", target: "clickPower", tiers: [1, 10, 50, 200, 750, 2_500] },
-];
+] as const satisfies readonly AchievementCategory[];
+
+/**
+ * Every ladder's id, derived from the list above rather than written out a second time.
+ *
+ * The counts themselves are a `Record<string, number>` — they come out of a save file, so they have
+ * to be — and that is exactly what makes a mistyped id invisible: `counts.abilitiesActivated` is a
+ * legal read that returns `undefined` forever, and no compiler and no test says a word. It happened
+ * twice in one screen: `App.tsx` fed `deriveDisclosure` an `abilitiesActivated` and a
+ * `crossoversActivated` that nothing ever writes (the ladders are `abilitiesUsed` and
+ * `crossoversUsed`), which silently disabled both "this surface is already learned" fallbacks.
+ * Reading through `achievementCount` turns that class of typo into a compile error.
+ */
+export type AchievementId = (typeof ACHIEVEMENT_CATEGORIES)[number]["id"];
+
+/** One ladder's lifetime count, 0 (or `fallback`) while it has never been bumped. */
+export function achievementCount(
+  counts: Record<string, number>,
+  id: AchievementId,
+  fallback = 0
+): number {
+  return counts[id] ?? fallback;
+}
 
 const BASE_BONUS = 0.02;
 const BONUS_GROWTH = 1.6;

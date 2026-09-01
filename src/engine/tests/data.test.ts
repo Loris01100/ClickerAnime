@@ -33,6 +33,23 @@ describe("game data", () => {
     expect(formatContentIssues(issues)).toContain("arc-inexistant");
     expect(formatContentIssues(issues)).toContain("bleach");
   });
+  it("exige que les arcs d’un personnage soient listés dans l’ordre de l’histoire", () => {
+    // `arcIds[0]` est l’arc de débuts que lit `arcPowerTable`, donc le `debutPower` de tout le
+    // rattrapage : un tableau trié à l’envers ferait débuter le personnage bien plus tard qu’il ne
+    // le fait, sans rien casser de visible.
+    const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
+    const reversed = {
+      ...gameData,
+      characters: gameData.characters.map((character) =>
+        character.id === naruto.id ? { ...character, arcIds: [...character.arcIds].reverse() } : character
+      ),
+    };
+    const issues = validateGameData(reversed);
+    expect(issues.map((issue) => issue.code)).toContain("unordered-presence");
+    // Et le contenu réel le respecte déjà, sur les 256 personnages.
+    expect(validateGameData(gameData).filter((issue) => issue.code === "unordered-presence")).toEqual([]);
+  });
+
   it("keeps the Naruto cast present across its sequel anime without duplicating recruits", () => {
     const naruto = gameData.characters.find((character) => character.id === "naruto-uzumaki")!;
     const sequelArcs = gameData.arcs.filter((arc) => arc.animeId === "shippuden" || arc.animeId === "boruto");
