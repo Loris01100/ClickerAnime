@@ -37,11 +37,19 @@ export function synergyMultiplier(
  * stay behind.
  */
 export function isHomeArc(character: Character, arc: Arc, evolved = false): boolean {
+  return isHomeAnime(character, arc.animeId, evolved);
+}
+
+/**
+ * The same test, one world at a time, for the rules that have no arc to look at — equipment is
+ * one: a unique may only be worn by someone this world belongs to (`canEquipItem`).
+ */
+export function isHomeAnime(character: Character, animeId: string, evolved = false): boolean {
   return (
-    character.animeId === arc.animeId ||
-    character.appearanceAnimeIds?.includes(arc.animeId) === true ||
-    character.fullSynergyAnimeIds?.includes(arc.animeId) === true ||
-    (evolved && character.evolution?.animeId === arc.animeId)
+    character.animeId === animeId ||
+    character.appearanceAnimeIds?.includes(animeId) === true ||
+    character.fullSynergyAnimeIds?.includes(animeId) === true ||
+    (evolved && character.evolution?.animeId === animeId)
   );
 }
 

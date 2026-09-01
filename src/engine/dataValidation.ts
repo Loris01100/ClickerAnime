@@ -1,3 +1,4 @@
+import { canEquipOn, itemAnimeIndex } from "./forge";
 import type { GameData } from "./gameState";
 import type { AbilityDefinition, Anime, Enemy, ModifierTemplate } from "./types";
 
@@ -194,6 +195,7 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
   }
 
+  const itemAnimeIds = itemAnimeIndex(data.arcs);
   for (const [index, item] of data.items.entries()) {
     const path = `items[${index}](${item.id})`;
     item.effects?.forEach((effect, effectIndex) => validateModifier(effect, `${path}.effects[${effectIndex}]`));
@@ -202,6 +204,12 @@ export function validateGameData(data: GameData): ContentIssue[] {
     }
     for (const animeId of item.equippableBy?.animeIds ?? []) {
       if (!animeById.has(animeId)) add("unknown-anime", `${path}.equippableBy.animeIds`, `l’animé « ${animeId} » n’existe pas`);
+    }
+    // Un unique se porte dans son monde d’origine et seulement là : croiser cette règle avec un
+    // `equippableBy` trop étroit donne un objet que personne ne peut jamais équiper — du contenu
+    // mort qu’aucun type ne signale.
+    if (item.kind === "unique" && !data.characters.some((c) => canEquipOn(c, item, itemAnimeIds[item.id]))) {
+      add("unwearable-unique", path, "aucun personnage de son monde ne peut équiper cet objet unique");
     }
   }
 

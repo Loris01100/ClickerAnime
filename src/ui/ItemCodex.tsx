@@ -47,7 +47,7 @@ export default function ItemCodex(props: { game: GameStore; animeId: string }) {
     return entry ? props.game.characterOf(entry[0]) ?? undefined : undefined;
   };
 
-  /** Uniques only: the restriction in prose, or null when anyone can wear it. */
+  /** Uniques only: what narrows the wearers beyond the world rule, or null when nothing does. */
   function restrictionOf(item: Item): string | null {
     const rule = item.equippableBy;
     if (!rule) return null;
@@ -152,7 +152,8 @@ export default function ItemCodex(props: { game: GameStore; animeId: string }) {
                   </Show>
                   <p class="muted small">
                     Une seule copie existe, portée par un seul personnage à la fois ; ses effets subissent
-                    la synergie comme les stats de son porteur.
+                    la synergie comme les stats de son porteur. Un accessoire ne quitte pas son monde :
+                    seuls les personnages de {animeName(props.animeId)} peuvent le porter.
                     <Show when={restrictionOf(item())}>{(who) => ` Réservé à : ${who()}.`}</Show>
                   </p>
                 </div>

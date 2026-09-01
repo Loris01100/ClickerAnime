@@ -1,7 +1,7 @@
 import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Character } from "../engine/types";
-import { PACK_COST, DUPLICATE_DAMAGE_STEP } from "../engine/packs";
+import { PACK_COST, DUPLICATE_DAMAGE_STEP, MAX_DUPLICATES } from "../engine/packs";
 import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import Coin from "./Coin";
@@ -9,7 +9,8 @@ import Coin from "./Coin";
 /**
  * Packs, an overlay like the shop: one bucket of points per world, spent on a random draw from
  * that world's cast. A duplicate is the only way to get a character again — beating their arc a
- * second time never gives one — and every copy makes them hit harder, with no cap.
+ * second time never gives one — and every copy makes them hit harder, up to `MAX_DUPLICATES`.
+ * A character at the cap leaves the pool, so a world whose whole cast is capped sells no pack.
  */
 export default function PackPanel(props: { game: GameStore; onClose: () => void }) {
   function onKeyDown(event: KeyboardEvent) {
@@ -28,6 +29,10 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
     props.game.data.animes.filter(
       (a) => props.game.worldPointsOf(a.id) > 0 || props.game.prestige().unlockedAnimeIds.includes(a.id)
     );
+
+  /** Combien de personnages de ce monde sont recrutés — ce qui distingue un pool vide d'un pool épuisé. */
+  const recruitedIn = (animeId: string) =>
+    props.game.ownedCharacters().filter((c) => c.animeId === animeId).length;
 
   const duplicates = () =>
     props.game.data.characters
@@ -60,8 +65,9 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
         <div class="codex-detail scroll">
           <p class="muted small pad">
             Un point par combat gagné, dans le monde où il a été gagné. Chaque doublon ajoute{" "}
-            {Math.round(DUPLICATE_DAMAGE_STEP * 100)}% des dégâts de base du personnage — clic et DPS, sans limite.
-            Seuls les personnages déjà recrutés peuvent sortir d'un pack.
+            {Math.round(DUPLICATE_DAMAGE_STEP * 100)}% des dégâts de base du personnage — clic et DPS — jusqu'à{" "}
+            {MAX_DUPLICATES} doublons. Seuls les personnages déjà recrutés, et pas encore au maximum, peuvent
+            sortir d'un pack.
           </p>
 
           <div class="row">
@@ -105,7 +111,12 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
                   )}
                 </For>
                 <Show when={props.game.packPoolOf(anime.id, "main").length === 0 && props.game.packPoolOf(anime.id, "secondary").length === 0}>
-                  <span class="muted small">Recrutez un personnage de cet anime pour ouvrir ses packs.</span>
+                  {/* Deux raisons d'avoir un pool vide : personne de recruté, ou tout le monde au plafond. */}
+                  <span class="muted small">
+                    {recruitedIn(anime.id) === 0
+                      ? "Recrutez un personnage de cet anime pour ouvrir ses packs."
+                      : `Tous les personnages recrutés ici sont à ${MAX_DUPLICATES} doublons.`}
+                  </span>
                 </Show>
               </div>
             )}
@@ -128,7 +139,8 @@ export default function PackPanel(props: { game: GameStore; onClose: () => void 
                     {character.name}
                   </span>
                   <span class="muted small">
-                    x{props.game.duplicatesOf(character.id)} — +
+                    x{props.game.duplicatesOf(character.id)}
+                    {props.game.duplicatesOf(character.id) >= MAX_DUPLICATES ? " (max)" : ""} — +
                     {Math.round(props.game.duplicatesOf(character.id) * DUPLICATE_DAMAGE_STEP * 100)}% dégâts
                   </span>
                 </div>

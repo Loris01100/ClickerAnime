@@ -496,7 +496,7 @@ export default function RosterPanel(props: {
         <div class="scroll">
           <For each={shownItems()}>
             {(item) => (
-              <div class="item-grid item-row" title={describeItem(item)}>
+              <div class="item-grid item-row" title={describeItem(item, props.game.animeOfItem(item.id)?.name)}>
                 <span class="name">
                   <ItemIcon id={item.id} kind={item.kind} /> {item.name}
                 </span>

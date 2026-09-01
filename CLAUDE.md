@@ -133,6 +133,13 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - Currency only ever comes from kills. There is no passive income and no offline progress.
 - A pack only draws among characters already recruited in the current run; it never reveals a
   future story character. Existing duplicates still survive prestige while eligibility resets with the roster.
+- **Duplicates stop at `MAX_DUPLICATES` (10), and the cap lives in `packPool`.** A character at ten
+  copies leaves the pool, so the purchase closes itself — don't add a second check at `openPack` or
+  in the panel, and don't uncap `duplicateGrowth`: the bonus is flat per copy and permanent.
+- **An accessory never leaves its own universe.** A unique's world is derived from the enemy that
+  drops it (`itemAnimeIndex`), never authored on the item, and `canEquipOn` only lets a character
+  that world belongs to wear it — the same `isHomeAnime` test that decides whether a story ability
+  travels. `Item.equippableBy` narrows on top of that; it never widens.
 - Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance).
 - **A challenge constraint is enforced, never watched.** Every rule in `challenges.ts` is something
   the engine *refuses to do* — no click damage, no ability, no drop, no recruit past the cap — and

@@ -87,10 +87,15 @@ export function describeModifier(modifier: ModifierTemplate): string {
   }
 }
 
-/** Human-readable restriction line for an equippable unique item. Empty when universal. */
-export function describeEquippableBy(restriction: EquippableBy | undefined): string {
-  if (!restriction) return "";
+/**
+ * Human-readable restriction line for an equippable unique item. `animeName` is the world the item
+ * comes from, which restricts it on its own — an accessory is only worn by someone that world
+ * belongs to (`canEquipOn`) — so the line is never empty for an item whose origin is known.
+ */
+export function describeEquippableBy(restriction: EquippableBy | undefined, animeName?: string): string {
   const parts: string[] = [];
+  if (animeName) parts.push(`personnages de ${animeName}`);
+  if (!restriction) return parts.length > 0 ? `Réservé à : ${parts.join(" ; ")}` : "";
   if (restriction.characterIds && restriction.characterIds.length > 0) parts.push("personnages spécifiques");
   if (restriction.animeIds && restriction.animeIds.length > 0) parts.push("monde spécifique");
   if (restriction.tags && restriction.tags.length > 0)
@@ -98,13 +103,13 @@ export function describeEquippableBy(restriction: EquippableBy | undefined): str
   return parts.length > 0 ? `Réservé à : ${parts.join(" ; ")}` : "";
 }
 
-/** Full tooltip text for a unique item: effects + optional restriction. */
-export function describeItem(item: Item): string {
+/** Full tooltip text for a unique item: effects + restriction, `animeName` being its world. */
+export function describeItem(item: Item, animeName?: string): string {
   const lines = [item.name];
   if (item.effects && item.effects.length > 0) {
     lines.push(item.effects.map(describeModifier).join(" · "));
   }
-  const restriction = describeEquippableBy(item.equippableBy);
+  const restriction = item.kind === "unique" ? describeEquippableBy(item.equippableBy, animeName) : "";
   if (restriction) lines.push(restriction);
   return lines.join("\n");
 }

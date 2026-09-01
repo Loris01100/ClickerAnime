@@ -55,6 +55,8 @@ import {
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
 import {
+  canEquipOn,
+  itemAnimeIndex,
   sanitizedEquipment,
   scaledUniqueEffect,
   UNIQUE_FORGE_FRAGMENT_COSTS,
@@ -62,7 +64,7 @@ import {
   uniqueRanksFromSave,
 } from "./forge";
 export { UNIQUE_FORGE_FRAGMENT_COSTS, UNIQUE_FORGE_MULTIPLIERS } from "./forge";
-import { drawPack, duplicateGrowth, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
+import { drawPack, duplicateGrowth, MAX_DUPLICATES, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   arcPowerTable,
   catchUpGrowth,
@@ -264,6 +266,9 @@ export function createGameStore(data: GameData) {
     }
   }
 
+  /** Which world each item comes from — its drop's arc. Static like the data it is built from. */
+  const itemAnimeIds = itemAnimeIndex(data.arcs);
+
   /** O(1) content lookups by id — the UI reads these rather than re-scanning `data`. */
   const characterOf = (id: string | undefined | null) => (id ? characterIndex.get(id) ?? null : null);
   const itemOf = (id: string | undefined | null) => (id ? itemIndex.get(id) ?? null : null);
@@ -390,6 +395,7 @@ export function createGameStore(data: GameData) {
     sanitizedEquipment(
       data.characters,
       data.items,
+      data.arcs,
       saved?.characterEquipment,
       saved?.itemCounts ?? {},
       saved?.ownedCharacterIds ?? []
@@ -402,8 +408,16 @@ export function createGameStore(data: GameData) {
   // packs (see packs.ts). Meta-progression like the duplicates they buy — prestigeReset spares
   // both, only hardReset wipes them.
   const [worldPoints, setWorldPoints] = createSignal<Record<string, number>>(saved?.worldPoints ?? {});
+  // Clamped on the way in, once: a save written before `MAX_DUPLICATES` existed (or an imported
+  // one) can hold more copies than a pack will ever sell again, and `duplicateGrowth` is linear in
+  // that number. One truth, here, rather than a cap re-applied at every read.
   const [characterDuplicates, setCharacterDuplicates] = createSignal<Record<string, number>>(
-    saved?.characterDuplicates ?? {}
+    Object.fromEntries(
+      Object.entries(saved?.characterDuplicates ?? {}).map(([id, copies]) => [
+        id,
+        Math.min(MAX_DUPLICATES, copies),
+      ])
+    )
   );
   // When the current crossover window ends. Transient like combat state: a reload drops the buff.
   const [crossoverUntil, setCrossoverUntil] = createSignal(0);
@@ -653,19 +667,15 @@ export function createGameStore(data: GameData) {
     return null;
   }
 
-  /** Whether this item can be equipped on this character (ownership and restriction checks). */
+  /** The world an item comes from — where its drop lives, and who may wear it. */
+  const animeOfItem = (itemId: string) => animeOf(itemAnimeIds[itemId]);
+
+  /** Whether this item can be equipped on this character (ownership, world and restriction checks). */
   function canEquipItem(character: Character, itemId: string): boolean {
     const item = itemOf(itemId);
     if (!item || item.kind !== "unique") return false;
     if ((itemCounts()[itemId] ?? 0) <= 0) return false;
-    const restriction = item.equippableBy;
-    if (!restriction) return true;
-    if (restriction.characterIds && !restriction.characterIds.includes(character.id)) return false;
-    if (restriction.animeIds && !restriction.animeIds.includes(character.animeId)) return false;
-    // Any one of the listed tags is enough, like characterIds and animeIds above — the Tenseigan is
-    // "Hyûga or Ôtsutsuki", and no character carries both.
-    if (restriction.tags && !restriction.tags.some((tag) => (character.tags ?? []).includes(tag))) return false;
-    return true;
+    return canEquipOn(character, item, itemAnimeIds[itemId]);
   }
 
   /** Equip a unique item on a character, returning true on success. */
@@ -1535,7 +1545,7 @@ export function createGameStore(data: GameData) {
 
   /** Recruited members of this world's rarity — future story characters never leak through packs. */
   const packPoolOf = (animeId: string, rarity: Rarity) =>
-    packPool(data.characters, animeId, rarity, ownedCharacterIds());
+    packPool(data.characters, animeId, rarity, ownedCharacterIds(), duplicatesOf);
 
   /**
    * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.
@@ -2309,6 +2319,7 @@ export function createGameStore(data: GameData) {
     equippedItemOf,
     wearerOf,
     canEquipItem,
+    animeOfItem,
     characterStatOf,
     equipItem,
     unequipItem,

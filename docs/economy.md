@@ -21,8 +21,22 @@ Items deal no damage at all. They are the passive currency, hung off `Enemy.item
   one character at a time (`characterEquipment` in the save). Equipped uniques grant permanent
   `ModifierTemplate` effects (`Item.effects`) that are merged into `characterContributions` and scaled
   by synergy just like base stats and passives. They are **scoped to the wearer**: a unique's percent
-  or multiplier lifts that character's own damage only, never the rest of the team. An item may restrict who can wear it via
-  `Item.equippableBy` (character ids, anime ids, or character tags).
+  or multiplier lifts that character's own damage only, never the rest of the team.
+
+Who may wear a unique is decided by `canEquipOn` (`forge.ts`), and the first of its two rules is the
+world: **an accessory never leaves its own universe.** An item carries no `animeId` — it is authored
+in a world's directory and dropped by exactly one of that world's enemies, so `itemAnimeIndex(arcs)`
+derives the origin from the drop rather than duplicating it into the content. Only a character that
+world belongs to may wear it, through the same `isHomeAnime` test that decides whether a story
+ability travels: a recruit of that world, someone who appears there, or someone whose evolution
+grows into it. A Bleach zanpakutô on an Ôtsutsuki was never a build, only a collision between two
+worlds' tags. The evolution's world counts *before* the evolution is reached — equipment isn't
+re-checked every prestige, and an item that silently took itself off would be worse than one worn
+early. An item no enemy drops has no world and stays unrestricted, so authoring one can't lock it.
+On top of that, `Item.equippableBy` (character ids, anime ids, or character tags) narrows further,
+and `validateGameData` refuses a unique the two rules together leave unwearable
+(`unwearable-unique`). The same helper backs `sanitizedEquipment`, so an imported save cannot
+smuggle a foreign accessory in.
 
 Ranks are **bought, not derived**: `rankUpPassive(character)` spends `passiveRankCost(rank + 1)`
 copies (geometric: 6, 9, 14, 21, 31, …) and stores the new rank in `passiveRanks`, so the player
@@ -315,8 +329,17 @@ case; `CurrencyBar` pulses the tile on it.
 
 A character is recruited exactly once — refighting their arc never gives them again — so packs are
 the only source of **duplicates**, and each duplicate multiplies that character's base click damage
-and dps by `DUPLICATE_DAMAGE_STEP` (uncapped), folded into `characterContributions` next to
-`levelGrowth`. That is what keeps a starting character worth having late.
+and dps by `DUPLICATE_DAMAGE_STEP`, folded into `characterContributions` next to `levelGrowth`. That
+is what keeps a starting character worth having late.
+
+The copies stop at `MAX_DUPLICATES` (**10**, i.e. +250% base damage on that character). The bonus is
+flat per copy and permanent, so with no ceiling one world's points eventually buy an unbounded
+multiplier on a single character, and the pack points a cleared world keeps handing out have nothing
+else to be spent on. The cap is enforced in `packPool`, not at the purchase: a character at ten
+copies simply **leaves the pool**, so `openPack` returns null of its own accord and `PackPanel`'s
+button disappears with the pool — one rule, no second check to keep in sync. Duplicates read from a
+save are clamped once on the way in, so a save written before the cap (or an imported one) can't
+sit above it.
 
 The currency is **one bucket per world** (`worldPoints` in `gameState`), `POINTS_PER_KILL` per fight
 won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws uniformly from the
