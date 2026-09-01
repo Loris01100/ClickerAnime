@@ -364,14 +364,6 @@
   font-size: 2rem;
   letter-spacing: 0.04em;
 }
-.prestige-report-lucky {
-  margin-left: auto;
-  padding: 0.25rem 0.55rem;
-  border: 1px solid var(--gold);
-  border-radius: 999px;
-  color: var(--gold);
-  font-weight: 700;
-}
 .prestige-report-scroll {
   max-height: 68vh;
   padding: 0.8rem;

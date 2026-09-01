@@ -1,6 +1,6 @@
 import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
-import type { GameStore } from "../engine/gameState";
-import type { Character } from "../engine/types";
+import type { GameStore, PackDraw } from "../engine/gameState";
+import type { Rarity } from "../engine/types";
 import {
   PACK_COST,
   DUPLICATE_DAMAGE_STEP,
@@ -27,7 +27,7 @@ export default function PackPanel(props: {
   onMount(() => document.addEventListener("keydown", onKeyDown));
   onCleanup(() => document.removeEventListener("keydown", onKeyDown));
 
-  const [drawn, setDrawn] = createSignal<Character[]>([]);
+  const [drawn, setDrawn] = createSignal<PackDraw[]>([]);
   const [qty, setQty] = createSignal(1);
 
   const animeNameOf = (animeId: string) =>
@@ -52,13 +52,25 @@ export default function PackPanel(props: {
         (a, b) => props.game.duplicatesOf(b.id) - props.game.duplicatesOf(a.id),
       );
 
-  /** Achète jusqu'à `qty` packs d'affilée ; `openPack` s'arrête de lui-même quand les points manquent. */
-  function buy(animeId: string, rarity: "main" | "secondary") {
-    const results: Character[] = [];
+  /**
+   * Combien de packs les points en caisse paient réellement, plafonné à `qty` — le prix affiché sur
+   * le bouton, et pas `PACK_COST × qty` : annoncer dix packs pour en ouvrir un est exactement le
+   * décalage prix affiché / prix débité que la boutique a déjà corrigé (voir `shopOffers`).
+   */
+  const affordableCount = (animeId: string, rarity: Rarity) =>
+    Math.min(qty(), Math.floor(props.game.worldPointsOf(animeId) / PACK_COST[rarity]));
+
+  /**
+   * Achète jusqu'à `qty` packs d'affilée ; `openPack` s'arrête de lui-même quand les points
+   * manquent. La boucle va bien jusqu'à `qty` et non jusqu'à `affordableCount` : « Carte blanche »
+   * peut rendre les points d'un tirage, et un pack offert en paie donc un de plus.
+   */
+  function buy(animeId: string, rarity: Rarity) {
+    const results: PackDraw[] = [];
     for (let i = 0; i < qty(); i++) {
-      const character = props.game.openPack(animeId, rarity);
-      if (!character) break;
-      results.push(character);
+      const draw = props.game.openPack(animeId, rarity);
+      if (!draw) break;
+      results.push(draw);
     }
     if (results.length > 0) setDrawn(results);
   }
@@ -104,28 +116,32 @@ export default function PackPanel(props: {
           </div>
 
           <For each={drawn()}>
-            {(character) => (
+            {(draw) => (
               <div
                 class="pack-result"
                 style={{
                   "--world-hue": themeOf(
-                    props.game.animeOf(character.animeId) ?? undefined,
+                    props.game.animeOf(draw.character.animeId) ?? undefined,
                   ),
                 }}
               >
                 <Sprite
-                  name={character.name}
+                  name={draw.character.name}
                   kind="character"
-                  anime={animeNameOf(character.animeId)}
+                  anime={animeNameOf(draw.character.animeId)}
                   px={9}
                 />
                 <div>
-                  <strong>{character.name}</strong>
+                  <strong>{draw.character.name}</strong>
                   <div class="muted small">
-                    x{props.game.duplicatesOf(character.id)} —{" "}
-                    {animeNameOf(character.animeId)}
+                    x{props.game.duplicatesOf(draw.character.id)} —{" "}
+                    {animeNameOf(draw.character.animeId)}
                   </div>
                 </div>
+                {/* Un pack offert qui ne le dit pas est indiscernable d'un nœud qui ne marche pas. */}
+                <Show when={draw.free}>
+                  <span class="pack-result-free">Carte blanche — offert</span>
+                </Show>
               </div>
             )}
           </For>
@@ -143,13 +159,12 @@ export default function PackPanel(props: {
                       when={props.game.packPoolOf(anime.id, rarity).length > 0}
                     >
                       <button
-                        disabled={
-                          props.game.worldPointsOf(anime.id) < PACK_COST[rarity]
-                        }
+                        disabled={affordableCount(anime.id, rarity) === 0}
                         onClick={() => buy(anime.id, rarity)}
                       >
                         {rarity === "main" ? "Principaux" : "Secondaires"} —{" "}
-                        {PACK_COST[rarity] * qty()}
+                        {PACK_COST[rarity] *
+                          Math.max(1, affordableCount(anime.id, rarity))}
                       </button>
                     </Show>
                   )}

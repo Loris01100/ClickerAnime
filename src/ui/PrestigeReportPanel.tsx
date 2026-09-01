@@ -61,9 +61,6 @@ export default function PrestigeReportPanel(props: {
             </strong>
             <span>{props.report.prestigeTotal} points au total</span>
           </div>
-          <Show when={props.report.gainMultiplier > 1}>
-            <span class="prestige-report-lucky">Destin ×{props.report.gainMultiplier}</span>
-          </Show>
         </div>
 
         <div class="prestige-report-scroll scroll">

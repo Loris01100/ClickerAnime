@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, CURRENCY_REWARD_MULTIPLIER, SUPPLY_KILLS_PER_COPY } from "../gameState";
 import { passiveRankCost, XP_PER_KILL_REWARD } from "../growth";
+import { PACK_COST } from "../packs";
 import type { Enemy, ShopOffer } from "../types";
-import { abilityPolicyChoices, AUSPICE_DOUBLE_DROP_CHANCE, AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS, AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS, AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS, autoAbilityIntervalMs, autoAdvanceDelayMs, AUTOCLICK_INTERVAL_MS, AUTOCLICK_INTERVAL_REDUCTION_MS, autoClickIntervalMs, autoCrossoverReserve, autoRankSlots, autoRematchDelayMs, canPurchaseNodeLevel, CRIT_CHANCE, CURRENCY_GAIN_PERCENT, DOUBLE_DROP_CHANCE, DOUBLE_PRESTIGE_CHANCE, FREE_ABILITY_TRIGGER_CHANCE, GHOST_LOOT_CHANCE, isNodeUnlocked, LEVEL_COSTS, LEVELS_PER_BRANCH, LEVELS_PER_NODE, nodeCost, nodeLevel, nodeLevels, NARRATOR_CLICK_PERCENT, PITY_KILLS_THRESHOLD, PITY_REDUCTION_PER_LEVEL, prestigeTreeContributions, PRESTIGE_PER_KILL_CHANCE, PRESTIGE_TREE_CATEGORIES, purchaseNodeLevel, scaledChance, SHOP_COST_DISCOUNT, softenedSynergyConfig, TEAM_DPS_PERCENT, totalLevels, XP_GAIN_PERCENT } from "../prestigeTree";
+import { abilityPolicyChoices, AUSPICE_DOUBLE_DROP_CHANCE, AUTO_ABILITY_INTERVAL_MS, AUTO_ABILITY_REDUCTION_MS, AUTO_ADVANCE_DELAY_MS, AUTO_ADVANCE_REDUCTION_MS, AUTO_REMATCH_DELAY_MS, AUTO_REMATCH_REDUCTION_MS, autoAbilityIntervalMs, autoAdvanceDelayMs, AUTOCLICK_INTERVAL_MS, AUTOCLICK_INTERVAL_REDUCTION_MS, autoClickIntervalMs, autoCrossoverReserve, autoRankSlots, autoRematchDelayMs, canPurchaseNodeLevel, CRIT_CHANCE, CURRENCY_GAIN_PERCENT, DOUBLE_DROP_CHANCE, FREE_ABILITY_TRIGGER_CHANCE, FREE_PACK_CHANCE, GHOST_LOOT_CHANCE, isNodeUnlocked, LEVEL_COSTS, LEVELS_PER_BRANCH, LEVELS_PER_NODE, nodeCost, nodeLevel, nodeLevels, NARRATOR_CLICK_PERCENT, PITY_KILLS_THRESHOLD, PITY_REDUCTION_PER_LEVEL, prestigeTreeContributions, PRESTIGE_PER_KILL_CHANCE, PRESTIGE_TREE_CATEGORIES, purchaseNodeLevel, scaledChance, SHOP_COST_DISCOUNT, softenedSynergyConfig, TEAM_DPS_PERCENT, totalLevels, XP_GAIN_PERCENT } from "../prestigeTree";
 import { baseSave, installSave } from "./helpers";
 
 describe("prestige tree — pure functions", () => {
@@ -513,6 +514,55 @@ describe("prestige tree — wired into gameState", () => {
     }
   });
 
+  it("Destin nœud 5 : « Carte blanche » offre parfois le pack, sans en dépenser les points", () => {
+    // random() = 0 : le tirage prend le premier du pool, et le jet de gratuité passe.
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const testData = makeTestData();
+    const restore = installSave(
+      baseSave({ worldPoints: { ta: PACK_COST.secondary }, prestigeTreeRanks: { destin: [1, 1, 1, 1, 1] } })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      const draw = game.openPack("ta", "secondary");
+      expect(draw?.character.id).toBe("ca");
+      expect(draw?.free).toBe(true);
+      // Le doublon est bien acquis, et les points sont restés en caisse.
+      expect(game.duplicatesOf("ca")).toBe(1);
+      expect(game.worldPointsOf("ta")).toBe(PACK_COST.secondary);
+    } finally {
+      disposeRoot();
+      restore();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("Destin nœud 5 : le pack reste payant quand le jet ne passe pas, et impayable sans les points", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.99); // au-dessus de FREE_PACK_CHANCE × 5
+    const testData = makeTestData();
+    const restore = installSave(
+      baseSave({ worldPoints: { ta: PACK_COST.secondary }, prestigeTreeRanks: { destin: [1, 1, 1, 1, 1] } })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(testData);
+      });
+      expect(game.openPack("ta", "secondary")?.free).toBe(false);
+      expect(game.worldPointsOf("ta")).toBe(0);
+      // Le nœud n'achète jamais un tirage que le joueur n'aurait pas pu payer : plus de points, plus de pack.
+      expect(game.openPack("ta", "secondary")).toBeNull();
+    } finally {
+      disposeRoot();
+      restore();
+      vi.restoreAllMocks();
+    }
+  });
+
   it("vend des lots de l'objet commun de l'arc actif au prix de son économie locale", () => {
     const testData = makeTestData({ mobItemId: "common-item", mobDropChance: 0 });
     testData.items.push({ id: "other-item", name: "Autre objet", kind: "common" });
@@ -703,8 +753,8 @@ describe("les nœuds de chance restent des chances", () => {
   /**
    * `scaledChance` clamps `base * level` at 1, so a base at or above 1/5 turns a node advertised as
    * a chance into a guarantee at level 5 — silently, since nothing in the UI says so. That is what
-   * made a maxed "Objets" branch drop 0.73 commons per kill against a printed 12%, and a maxed
-   * "Destin" branch double every single prestige. Every chance constant must stay strictly under.
+   * made a maxed "Objets" branch drop 0.73 commons per kill against a printed 12%, and the old
+   * "Destin" node 5 double every single prestige. Every chance constant must stay strictly under.
    */
   const CHANCE_CONSTANTS = {
     CRIT_CHANCE,
@@ -713,7 +763,7 @@ describe("les nœuds de chance restent des chances", () => {
     GHOST_LOOT_CHANCE,
     PRESTIGE_PER_KILL_CHANCE,
     AUSPICE_DOUBLE_DROP_CHANCE,
-    DOUBLE_PRESTIGE_CHANCE,
+    FREE_PACK_CHANCE,
   };
 
   it("aucune ne devient une certitude au niveau 5", () => {

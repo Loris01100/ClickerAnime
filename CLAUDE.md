@@ -140,7 +140,10 @@ These outrank convenience, and several were learned the hard way. Don't break on
   drops it (`itemAnimeIndex`), never authored on the item, and `canEquipOn` only lets a character
   that world belongs to wear it — the same `isHomeAnime` test that decides whether a story ability
   travels. `Item.equippableBy` narrows on top of that; it never widens.
-- Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance).
+- Prestige points are only banked by `prestigeReset` (plus the "Destin" node 2 chance), and
+  **nothing multiplies what a reset banks**: `applyPrestige` is `calculatePrestigeGain` and nothing
+  else. A perk that scaled the whole gain (the old "Faveur du destin") multiplies the very number
+  `PRESTIGE_EXPONENT` is tuned to keep flat — don't reintroduce one.
 - **A challenge constraint is enforced, never watched.** Every rule in `challenges.ts` is something
   the engine *refuses to do* — no click damage, no ability, no drop, no recruit past the cap — and
   never a condition checked after the fact. There is no "challenge failed" state, and nothing to

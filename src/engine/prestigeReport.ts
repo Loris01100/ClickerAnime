@@ -3,7 +3,6 @@ export interface PrestigeReportInput {
   endedAt: number;
   prestigeBefore: number;
   prestigeAfter: number;
-  gainMultiplier: number;
   lifetimeEarned: number;
   completion: number;
   clearedArcIds: string[];
@@ -26,7 +25,6 @@ export interface PrestigeReport {
   durationMs: number;
   prestigeGained: number;
   prestigeTotal: number;
-  gainMultiplier: number;
   lifetimeEarned: number;
   completion: number;
   clearedArcIds: string[];
@@ -61,7 +59,6 @@ export function buildPrestigeReport(input: PrestigeReportInput): PrestigeReport 
     durationMs: Math.max(0, input.endedAt - input.startedAt),
     prestigeGained: Math.max(0, input.prestigeAfter - input.prestigeBefore),
     prestigeTotal: input.prestigeAfter,
-    gainMultiplier: input.gainMultiplier,
     lifetimeEarned: input.lifetimeEarned,
     completion: Math.max(0, Math.min(1, input.completion)),
     clearedArcIds: [...input.clearedArcIds],

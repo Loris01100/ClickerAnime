@@ -86,9 +86,11 @@ Only `hardReset` clears that rank.
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
 Two constants were over that line and together took the effective common-drop rate from the printed
 base (now 15%) to **0.73 copies per kill** back when the base was 12%: `DOUBLE_DROP_CHANCE` at 0.25
-(a maxed node doubled *every* drop) and `DOUBLE_PRESTIGE_CHANCE` at 0.2. The pity timer was the third
-amplifier — `PITY_REDUCTION_PER_LEVEL` at 3 forced a common every 3 kills at max level, a 33% floor
-that made the printed chance meaningless. Retuned to 0.08 / 0.1 / 1 respectively.
+(a maxed node doubled *every* drop) and the old `DOUBLE_PRESTIGE_CHANCE` at 0.2 (a maxed node doubled
+*every* prestige — that node has since been replaced, see "Destin" below). The pity timer was the
+third amplifier — `PITY_REDUCTION_PER_LEVEL` at 3 forced a common every 3 kills at max level, a 33%
+floor that made the printed chance meaningless. Retuned to 0.08 / 0.1 / 1 respectively, and the rule
+now covers `FREE_PACK_CHANCE` too.
 `src/engine/tests/` now asserts the rule for every chance constant and keeps the pity floor above the
 base draw's own ~8-kill average, so this class of mistake can't come back.
 
@@ -125,8 +127,10 @@ and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPO
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what
 the same earnings bank early. The exponent is deliberately *low* (0.16, see above): completion has to
-dominate, or farming one arc for hours outpaces clearing the next one. A double-gain chance is a perk
-of the tree's **"Destin"** branch, see below. Points are spent two ways:
+dominate, or farming one arc for hours outpaces clearing the next one. **Nothing multiplies that
+gain from outside**: the tree's "Destin" branch used to end on a rolled 2x (`applyPrestige`'s old
+`gainMultiplier`), which is exactly the term this exponent is tuned to hold flat — see the branch
+below for what replaced it. Points are spent two ways:
 `unlockAnime`, the paid early entry which has to be re-bought each run, and the prestige tree, which
 is permanent.
 
@@ -211,8 +215,17 @@ can never stop being geometric:
   hands over the arc's common anyway (node 5).
 - **Destin** — currency-per-kill percent (node 1); a small chance per kill to gain 1 prestige point
   outright (node 2); a chance at a bonus copy of a common drop (node 3); a shop discount (node 4);
-  a chance to double the points a `prestigeReset` banks, rolled in `gameState` and passed as
-  `applyPrestige`'s `gainMultiplier` so `prestige.ts` itself stays free of randomness (node 5).
+  **« Carte blanche »**, a chance that an opened pack is on the house — its `worldPoints` are simply
+  not spent (node 5, `FREE_PACK_CHANCE`, rolled in `openPack`). The branch is the economy one, and
+  pack points were the only currency the whole tree ignored; the node reaches them the same way node
+  4 reaches the shop. It cannot raise a ceiling either: the pack still has to be affordable to be
+  opened, so the perk never buys a draw the player couldn't, and `MAX_DUPLICATES` still closes the
+  pool. **It replaced "Faveur du destin"**, a chance to double the points a `prestigeReset` banked.
+  That one resolved a coin flip once per run, at the one moment the player has no move left to make
+  — pure variance, unreadable in play — and it multiplied the one number `PRESTIGE_EXPONENT` exists
+  to keep flat (a maxed node was worth an extra full run every ten resets). Its `gainMultiplier`
+  plumbing through `applyPrestige` and `PrestigeReport` went with it; `prestige.ts` is now free of
+  randomness because nothing rolls there at all, rather than by convention.
 - **Automatisation** — the branch that plays the parts of the loop that aren't decisions, and
   **only** those: see the invariant in `CLAUDE.md`. "Relève" walks the team to the next arc once it
   clears the one it's in (node 1); "Réflexe" fires every ability that is off cooldown, exactly what
@@ -353,9 +366,16 @@ The currency is **one bucket per world** (`worldPoints` in `gameState`), `POINTS
 won in that world, spent on that world's own packs: `PACK_COST.main` (500) draws uniformly from the
 world's `rarity: "main"` cast, `PACK_COST.secondary` (250) from its secondary cast. `packPool` and
 `drawPack` are pure and take the 0..1 roll as an argument, like `rollsDrop`; `openPack` in
-`gameState` is the only caller of `Math.random()` and returns the character drawn so `PackPanel` can
-show it. The pool is filtered by the current roster: only characters already recruited in this
-adventure are eligible. This prevents a pack from revealing or strengthening a character before
+`gameState` is the only caller of `Math.random()` and returns a `PackDraw` — the character drawn, so
+`PackPanel` can show it, plus whether "Destin" node 5 (« Carte blanche ») waived the price. The
+waiver is applied *after* affordability: the points must be in the bucket either way, so a free pack
+is a refund, never a purchase the player could not have made. `PackPanel` prints the price of what
+the points actually buy (`affordableCount`, capped by the x1–x10 selector) rather than
+`PACK_COST × qty` — the same "one number, shown and charged" rule `shopOffers` follows — while the
+buy loop still runs to the full `qty`, since a waived pack pays for one more.
+
+The pool is filtered by the current roster: only characters already recruited in this adventure are
+eligible. This prevents a pack from revealing or strengthening a character before
 their story encounter. After prestige, a character becomes eligible again when recruited again;
 duplicates already held remain banked meanwhile.
 

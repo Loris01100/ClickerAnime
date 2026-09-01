@@ -370,7 +370,7 @@ fonctionnelle, pas de la DA par anime — l'arbre de prestige est un système m�
 | **DPS Équipe** | épée/éclair | rouge (`--accent-2`) | `teamDps`, dégâts et durée des actifs, malus de synergie, timer boss |
 | **XP** | étoile/livre | or (`--gold`) | gain d'xp, courbe de niveau, bonus de recrutement |
 | **Objets** | coffre/marque-page | bleu (`--blue`) | drop d'objets, coût des rangs de passif, pity timer |
-| **Ressource** | pièce/balance | vert (`--good`) | monnaie gagnée, palier de prestige, coût de déblocage d'anime |
+| **Destin** | roue de fortune (`IconDestiny`) | vert (`--good`) | monnaie par kill, chance de point de prestige, copies d'objets, prix de la boutique, packs offerts |
 | **Automatisation** | engrenage (`IconGear`) | orange (`--boss`) | ce que le jeu joue à votre place : relève d'arc, capacités prêtes, rangs de passif, revanche de boss, fenêtre de crossover |
 
 La branche Automatisation ne donne **rien** — aucun dégât, aucune monnaie, aucun xp : chacun de ses

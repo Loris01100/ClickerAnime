@@ -183,7 +183,7 @@ describe("packs", () => {
       // No main-rarity character in this world: that pack can't be drawn at all.
       expect(game.packPoolOf("ta", "main")).toEqual([]);
 
-      expect(game.openPack("ta", "secondary")?.id).toBe("s1");
+      expect(game.openPack("ta", "secondary")?.character.id).toBe("s1");
       expect(game.worldPointsOf("ta")).toBe(banked - PACK_COST.secondary);
       expect(game.duplicatesOf("s1")).toBe(1);
 

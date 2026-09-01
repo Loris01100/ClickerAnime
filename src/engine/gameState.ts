@@ -118,9 +118,9 @@ import {
   CRIT_MULTIPLIER,
   CURRENCY_GAIN_PERCENT,
   DOUBLE_DROP_CHANCE,
-  DOUBLE_PRESTIGE_CHANCE,
   DROP_CHANCE_BOOST,
   FREE_ABILITY_TRIGGER_CHANCE,
+  FREE_PACK_CHANCE,
   GHOST_LOOT_CHANCE,
   isNodeUnlocked,
   MIN_XP_GROWTH,
@@ -180,6 +180,15 @@ const STAT_CLOCK_MS = 1_000;
 /** How long one HUD notice stays up, and how many can stack before the oldest is dropped. */
 const NOTICE_MS = 4_000;
 const MAX_NOTICES = 4;
+
+/**
+ * One pack draw: the character it handed over, and whether « Carte blanche » waived its price —
+ * the panel has no other way to tell the player the points came back.
+ */
+export interface PackDraw {
+  character: Character;
+  free: boolean;
+}
 
 /** One "you just gained something" event, popped up by the HUD and pruned by the main tick. */
 export interface Notice {
@@ -1564,18 +1573,32 @@ export function createGameStore(data: GameData) {
 
   /**
    * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.
-   * Returns the character drawn so the panel can show it, or null when it couldn't be bought.
+   * Returns the draw so the panel can show it, or null when it couldn't be bought.
+   *
+   * "Destin" node 5, « Carte blanche »: the price can be waived, but only *after* the pack has
+   * been afforded in full — the points still have to be on the table, so the perk never buys a draw
+   * the player couldn't have bought anyway, it just sometimes hands the points back. The cap stays
+   * where it belongs too: `packPoolOf` is what refuses a character already at `MAX_DUPLICATES`.
    */
-  function openPack(animeId: string, rarity: Rarity): Character | null {
+  function openPack(animeId: string, rarity: Rarity): PackDraw | null {
     const cost = PACK_COST[rarity];
     if (worldPointsOf(animeId) < cost) return null;
     const drawn = drawPack(packPoolOf(animeId, rarity), Math.random());
     if (!drawn) return null;
-    setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
+    const freePackLevel = nodeLevelOf("destin", 5);
+    const free = freePackLevel > 0 && Math.random() < scaledChance(FREE_PACK_CHANCE, freePackLevel);
+    if (!free) setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
     setCharacterDuplicates((copies) => ({ ...copies, [drawn.id]: (copies[drawn.id] ?? 0) + 1 }));
     bumpAchievement("packsOpened");
-    return drawn;
+    return { character: drawn, free };
   }
+
+  /**
+   * The "Destin" node 4 discount, as one number both the display and the till read — the panel
+   * printing one price while `buyShopOffer` charged another is exactly the bug this shape prevents.
+   * `scaledDiscount` already answers 0 at level 0, so no branch is needed here.
+   */
+  const shopDiscount = createMemo(() => scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)));
 
   /**
    * Every shop offer with the display state (price/locked/owned/affordable) the panel needs.
@@ -1588,17 +1611,17 @@ export function createGameStore(data: GameData) {
    */
   function shopOffers() {
     const clearedIds = clearedAnimes().map((a) => a.id);
-    const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
+    const discount = shopDiscount();
     return availableShopOffers().map((offer) => ({
       offer,
-      cost: discountedShopCost(offer, shopDiscount),
-      discounted: shopDiscount > 0,
+      cost: discountedShopCost(offer, discount),
+      discounted: discount > 0,
       item: offer.kind === "item" ? itemOf(offer.targetId) ?? undefined : undefined,
       character: offer.kind === "character" ? characterOf(offer.targetId) ?? undefined : undefined,
       arc: arcOf(offer.arcId) ?? undefined,
       owned: offer.kind === "character" && ownedCharacterIds().includes(offer.targetId),
       locked: !shopOfferUnlocked(offer, clearedIds),
-      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), shopDiscount),
+      affordable: canBuyShopOffer(offer, currency(), clearedIds, ownedCharacterIds(), discount),
     }));
   }
 
@@ -1606,9 +1629,9 @@ export function createGameStore(data: GameData) {
   function buyShopOffer(offerId: string): boolean {
     const offer = availableShopOffers().find((o) => o.id === offerId);
     if (!offer) return false;
-    const shopDiscount = nodeLevelOf("destin", 4) > 0 ? scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)) : 0;
-    const cost = discountedShopCost(offer, shopDiscount);
-    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds(), shopDiscount)) return false;
+    const discount = shopDiscount();
+    const cost = discountedShopCost(offer, discount);
+    if (!canBuyShopOffer(offer, currency(), clearedAnimes().map((a) => a.id), ownedCharacterIds(), discount)) return false;
 
     // The shop is the other way into the roster, and the cap has to hold on it too.
     if (offer.kind === "character" && !canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
@@ -1921,12 +1944,9 @@ export function createGameStore(data: GameData) {
    * The whole point is to redo the climb faster.
    */
   function prestigeReset(showReport = true) {
-    // "Destin" node 5: a chance to double the points this reset banks, scaling with its level.
-    const doubleLevel = nodeLevelOf("destin", 5);
-    const gainMultiplier = doubleLevel > 0 && Math.random() < scaledChance(DOUBLE_PRESTIGE_CHANCE, doubleLevel) ? 2 : 1;
     const endedAt = Date.now();
     const before = prestige();
-    const after = applyPrestige(before, lifetimeEarned(), prestigeScale(), runCompletion(), gainMultiplier);
+    const after = applyPrestige(before, lifetimeEarned(), prestigeScale(), runCompletion());
     if (showReport) {
       setLastPrestigeReport(
         buildPrestigeReport({
@@ -1934,7 +1954,6 @@ export function createGameStore(data: GameData) {
           endedAt,
           prestigeBefore: before.prestigePoints,
           prestigeAfter: after.prestigePoints,
-          gainMultiplier,
           lifetimeEarned: lifetimeEarned(),
           completion: runCompletion(),
           clearedArcIds: clearedArcIds(),

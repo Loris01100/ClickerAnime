@@ -120,6 +120,17 @@
   border-radius: 6px;
   background: hsl(var(--world-hue) 60% 50% / 0.12);
 }
+/* « Carte blanche » : ce pack-là était offert, ses points n'ont pas été dépensés. */
+.pack-result-free {
+  margin-left: auto;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .icon.gold {
   color: var(--gold);
 }

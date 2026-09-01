@@ -7,6 +7,7 @@ import { tutorialObjective, type ObjectiveFacts } from "./objective";
 import { bossAdvice, bossTraitCounter } from "./advice";
 import { newlyUnlocked } from "./unlocks";
 import { termsOf } from "./presentation";
+import { gameData } from "../data";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -100,6 +101,18 @@ describe("describeCharacterTag", () => {
   it("translates equipment categories and keeps unknown ones readable", () => {
     expect(describeCharacterTag("swordsman")).toBe("Épéiste");
     expect(describeCharacterTag("future-tag")).toBe("future-tag");
+  });
+
+  /**
+   * Le repli sur l'id brut est un filet de sécurité, pas une traduction : sans ce test, un tag
+   * ajouté au contenu s'affiche tel quel dans le Codex (« Type : student-council ») et dans les
+   * restrictions d'équipement, en anglais et en kebab-case au milieu d'une interface française.
+   * 33 des 93 tags du jeu étaient dans ce cas. C'est du contenu, donc c'est ici que ça se garde.
+   */
+  it("a un libellé français pour chaque tag écrit dans le contenu", () => {
+    const authored = [...new Set(gameData.characters.flatMap((character) => character.tags ?? []))];
+    const untranslated = authored.filter((tag) => describeCharacterTag(tag) === tag);
+    expect(untranslated, `tags sans libellé français : ${untranslated.join(", ")}`).toEqual([]);
   });
 });
 
