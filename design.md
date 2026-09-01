@@ -859,6 +859,27 @@ contenu change. `ItemCodex.tsx` rend directement les deux volets, sans wrapper, 
   action prend `.with-action` : trois colonnes (libellé / valeur / bouton) au lieu du
   `space-between` à deux, sinon les rangs se décalent au gré de la longueur des noms.
 
+### 11.4 Pastilles et raccourcis du Codex
+
+Le Codex est l'écran où un passif se lit **et** s'achète (§11.3) ; encore faut-il savoir qu'il y a
+quelque chose à y faire, et pouvoir repartir se battre au bon endroit.
+
+- **Une seule pastille pour tout le jeu**, `.notice-dot` : un rond de 0.45rem en `--accent`, jamais
+  un chiffre. Elle dit « il y a une action ici », pas combien — un compteur ferait doublon avec le
+  bouton `.rank-up` qui porte déjà « copies/coût ».
+- **Elle descend la même chaîne à chaque niveau** : « Menu » (fermé la plupart du temps, sans lui la
+  notification serait invisible) → l'entrée « Codex » → la carte du monde concerné → la ligne du
+  personnage, où `.notice-dot.push` la cale à droite du nom. Le joueur suit le point jusqu'au
+  bouton d'achat sans jamais deviner l'étape suivante.
+- **Sa source est unique** : `rankablePassiveIds` dans le store. `ClickStage` et `ProgressPanel`,
+  qui conseillaient déjà de monter un passif avant un boss, lisent le même memo — un seul endroit
+  décide de ce qui est « améliorable maintenant ».
+- **Raccourci d'arc** (`.codex-travel`, sous le portrait) : un bouton par arc **atteignable** du
+  personnage — « Combattre dans » s'il est dans l'équipe, « Le rencontrer dans » sinon. Cliquer
+  déplace l'arc actif et referme le Codex : c'est un déplacement, pas une lecture. L'arc actif est
+  souligné en `--accent`, et les arcs hors d'atteinte restent le texte du bloc Synergie plutôt que
+  des boutons morts — la liste complète s'y lit déjà.
+
 ## 12. Typographie
 
 `system-ui` partout donnait au jeu un air de tableau de bord plutôt que d'anime. Une **seule** police

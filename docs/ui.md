@@ -39,7 +39,12 @@ on its character and anime. The character tab shows stats, the passive at level 
 evolution and the translated character types used by equipment restrictions. Its second tab uses the same two-pane shell through `ItemCodex.tsx`: every
 item from the selected anime, found or not, with where it drops and at what odds, whose passive a common ranks up, and a
 unique's effects, restriction and current wearer. Both tabs carry the roster's `.rank-up` button, so
-a passive can be bought from wherever it is read, not only from the team table.
+a passive can be bought from wherever it is read, not only from the team table. Two cues make that
+purchase findable: a `.notice-dot` walks the whole chain — the `Menu` summary, its `Codex` entry, the
+world card, then the character row — whenever the store's `rankablePassiveIds` is non-empty (the same
+memo `ClickStage` and `ProgressPanel` use for their pre-boss advice), and a `.codex-travel` row under
+the portrait turns every *reachable* arc of that character into a button that sets the active arc and
+closes the Codex. Unreachable arcs stay plain text in the synergy block rather than dead buttons.
 
 **A fresh save uses progressive disclosure.** `ui/disclosure.ts` is the presentation-only truth
 table, fed by current state plus lifetime achievement counters in `App.tsx`. The fight, current arc,

@@ -148,6 +148,13 @@ export default function App() {
     )
   );
 
+  /**
+   * Le Codex est l'écran où un passif se lit et s'achète : on y pastille l'entrée du menu dès qu'un
+   * personnage de l'équipe a de quoi monter le sien. La pastille est aussi posée sur « Menu », qui
+   * reste fermé la plupart du temps — sinon la notification ne serait jamais vue.
+   */
+  const codexNotice = createMemo(() => disclosure().codex && game.rankablePassiveIds().size > 0);
+
   /** Opens the Codex pre-selected on one character — used by RosterPanel's team rows. */
   function openCodexOn(characterId?: string) {
     setCodexFocusId(characterId);
@@ -215,10 +222,23 @@ export default function App() {
             referme quand le focus quitte le menu, et chaque entrée le referme en se déclenchant.
           */}
           <details ref={menu} class="startmenu" onFocusOut={onMenuFocusOut}>
-            <summary>Menu</summary>
+            <summary>
+              Menu
+              <Show when={codexNotice()}>
+                <span class="notice-dot" aria-hidden="true" />
+              </Show>
+            </summary>
             <div class="startmenu-items">
               <Show when={disclosure().codex}>
-                <button onClick={() => runFromMenu(() => openCodexOn(undefined))}>Codex</button>
+                <button
+                  onClick={() => runFromMenu(() => openCodexOn(undefined))}
+                  title={codexNotice() ? "Un passif peut être amélioré" : undefined}
+                >
+                  Codex
+                  <Show when={codexNotice()}>
+                    <span class="notice-dot" aria-label="Un passif peut être amélioré" role="img" />
+                  </Show>
+                </button>
               </Show>
               <Show when={game.unlockedAnimes().length > 0}>
                 <Show when={disclosure().worlds}>

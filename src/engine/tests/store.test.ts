@@ -524,6 +524,47 @@ describe("store boot", () => {
     }
   });
 
+  it("rankablePassiveIds lists exactly the owned characters whose passive can be bought now", () => {
+    // La pastille du Codex se lit sur ce set : elle doit ignorer un personnage sans passif (Naruto)
+    // et disparaître dès qu'il n'y a plus de copies pour payer le rang suivant.
+    const save = (itemCounts: Record<string, number>) => ({
+      currency: 0,
+      lifetimeEarned: 0,
+      ownedCharacterIds: ["naruto-uzumaki", "kakashi-hatake"],
+      activeArcId: "naruto-vagues",
+      prestigePoints: 0,
+      unlockedAnimeIds: ["naruto"],
+      arcKills: {},
+      clearedArcIds: [],
+      characterXp: {},
+      itemCounts,
+      passiveRanks: {},
+      evolvedCharacterIds: [],
+      achievementCounts: {},
+      prestigeTreeRanks: {},
+    });
+    const boot = () =>
+      createRoot((dispose) => {
+        const store = createGameStore(gameData);
+        dispose();
+        return store;
+      });
+
+    let restore = installSave(save({ "item-shuriken": 999 }));
+    try {
+      expect([...boot().rankablePassiveIds()]).toEqual(["kakashi-hatake"]);
+    } finally {
+      restore();
+    }
+
+    restore = installSave(save({}));
+    try {
+      expect([...boot().rankablePassiveIds()]).toEqual([]);
+    } finally {
+      restore();
+    }
+  });
+
   it("carries overkill over to the next enemy instead of dropping it", () => {
     const testData = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],

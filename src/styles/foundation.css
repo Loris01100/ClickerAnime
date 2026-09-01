@@ -428,3 +428,19 @@ button.tree-open:hover:not(:disabled) {
   }
 }
 
+
+/* Pastille de notification : une entrée de menu ou une ligne de liste a quelque chose à faire.
+   Purement décorative quand le libellé la porte déjà, d'où le `aria-label` posé au cas par cas. */
+.notice-dot {
+  flex: none;
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: 0.35rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+/* Dans une liste, la pastille se cale à droite du nom plutôt que collée à lui. */
+.notice-dot.push {
+  margin-left: auto;
+}

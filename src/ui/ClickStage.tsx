@@ -139,9 +139,7 @@ export default function ClickStage(props: { game: GameStore }) {
     const current = arc();
     return current ? props.game.bossChallengeable(current) : false;
   };
-  const affordablePassive = createMemo(() =>
-    props.game.ownedCharacters().some((character) => props.game.passiveUpgradeOf(character).affordable)
-  );
+  const affordablePassive = createMemo(() => props.game.rankablePassiveIds().size > 0);
   const equippableUnique = createMemo(() =>
     props.game.foundItems().some(
       (item) =>

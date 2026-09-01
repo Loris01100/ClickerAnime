@@ -582,6 +582,22 @@
 .codex-hero p {
   margin: 0.15rem 0 0;
 }
+/* Redirection vers un arc : une rangée de raccourcis, pas un bloc — elle suit le portrait. */
+.codex-travel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+.codex-travel-arc {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+.codex-travel-arc.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .codex-block {
   border-top: 1px solid var(--line);
   padding-top: 0.5rem;

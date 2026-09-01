@@ -36,9 +36,7 @@ export default function ProgressPanel(props: {
       (a) => !props.game.prestige().unlockedAnimeIds.includes(a.id) && !props.game.animeBlockedBy(a.id)
     );
 
-  const affordablePassive = createMemo(() =>
-    props.game.ownedCharacters().some((character) => props.game.passiveUpgradeOf(character).affordable)
-  );
+  const affordablePassive = createMemo(() => props.game.rankablePassiveIds().size > 0);
   const equippableUnique = createMemo(() =>
     props.game.foundItems().some(
       (item) =>

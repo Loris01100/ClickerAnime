@@ -1464,6 +1464,20 @@ export function createGameStore(data: GameData) {
   const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
 
   /**
+   * Every owned character whose passive can be ranked up right now. One memo rather than the same
+   * `some(...)` scan copied into each component: the Codex needs it per character *and* per world,
+   * and the menu only needs to know whether to badge its Codex entry.
+   */
+  const rankablePassiveIds = createMemo(
+    () =>
+      new Set(
+        ownedCharacters()
+          .filter((character) => character.passive && passiveUpgradeOf(character).affordable)
+          .map((character) => character.id),
+      ),
+  );
+
+  /**
    * The first character whose passive is affordable *and* never yet ranked this save — the tutorial's
    * payoff. `null` the moment any rank has ever been bought, so it only ever fires once. Lives here
    * rather than in two components: `App` announces it and `RosterPanel` unfolds the team on it, and
@@ -2313,6 +2327,7 @@ export function createGameStore(data: GameData) {
     passiveRankOf,
     passiveUpgradeOf,
     passiveCapOf,
+    rankablePassiveIds,
     firstAffordablePassive,
     rankUpPassive,
     characterEquipment,

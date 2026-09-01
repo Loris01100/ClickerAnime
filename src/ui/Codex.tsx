@@ -35,9 +35,24 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
   const rampOf = (character: Character) =>
     props.game.catchUpOf(character) * duplicateGrowth(props.game.duplicatesOf(character.id));
 
+  /** Un passif prêt à monter, sur ce personnage ou quelque part dans ce monde : la même pastille. */
+  const rankable = (character: Character) => props.game.rankablePassiveIds().has(character.id);
+  const animeRankable = (animeId: string) =>
+    props.game.data.characters.some((character) => character.animeId === animeId && rankable(character));
+
   const animeName = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
   const arcNames = (character: Character) =>
     character.arcIds.map((id) => props.game.arcOf(id)?.name ?? id);
+  /**
+   * Les arcs du personnage où l'on peut se rendre tout de suite. `playableArcs` porte déjà les deux
+   * conditions (monde débloqué, arc ouvert), donc le Codex n'en re-décide aucune.
+   */
+  const reachableArcs = (character: Character) =>
+    props.game.playableArcs().filter((arc) => character.arcIds.includes(arc.id));
+  /** Emmène le joueur sur l'arc et referme le Codex : c'est un déplacement, pas une lecture. */
+  function goToArc(arcId: string) {
+    if (props.game.setActiveArc(arcId)) props.onClose();
+  }
   const laterAnimeNames = (character: Character) =>
     [...new Set([...(character.appearanceAnimeIds ?? []), ...(character.fullSynergyAnimeIds ?? [])])].map(animeName);
   const itemsOf = (animeId: string) => {
@@ -113,7 +128,12 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                       >
                         <Sprite name={anime.name} kind="anime" px={7} />
                         <span class="codex-anime-copy">
-                          <strong>{anime.name}</strong>
+                          <strong>
+                            {anime.name}
+                            <Show when={animeRankable(anime.id)}>
+                              <span class="notice-dot" aria-label="Un passif peut être amélioré" role="img" />
+                            </Show>
+                          </strong>
                           <small class="muted">
                             {metCount()} / {animeCharacters().length} personnages
                           </small>
@@ -166,6 +186,9 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                           load
                         />
                         <span class="name">{character.name}</span>
+                        <Show when={rankable(character)}>
+                          <span class="notice-dot push" aria-label="Un passif peut être amélioré" role="img" />
+                        </Show>
                         <span class="rarity">{character.rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
                       </button>
                     )}
@@ -198,6 +221,25 @@ export default function Codex(props: { game: GameStore; onClose: () => void; ini
                     </p>
                   </div>
                 </div>
+
+                {/* Le Codex dit déjà où se trouve un personnage : autant y emmener. Seuls les arcs
+                    atteignables deviennent un bouton — le bloc Synergie donne la liste complète. */}
+                <Show when={reachableArcs(character()).length > 0}>
+                  <div class="codex-travel">
+                    <span class="muted small">{owned(character()) ? "Combattre dans" : "Le rencontrer dans"}</span>
+                    <For each={reachableArcs(character())}>
+                      {(arc) => (
+                        <button
+                          class="codex-travel-arc"
+                          classList={{ active: props.game.activeArc()?.id === arc.id }}
+                          onClick={() => goToArc(arc.id)}
+                        >
+                          {arc.name}
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                </Show>
 
                 <div class="codex-block">
                   <h4>Statistiques</h4>
