@@ -97,7 +97,7 @@ export const PITY_REDUCTION_PER_LEVEL = 1;
 export const GHOST_LOOT_CHANCE = 0.05;
 
 export const CURRENCY_GAIN_PERCENT = 0.05;
-export const PRESTIGE_PER_KILL_CHANCE = 0.001;
+export const PRESTIGE_PER_KILL_CHANCE = 0.0001;
 export const AUSPICE_DOUBLE_DROP_CHANCE = 0.05;
 export const SHOP_COST_DISCOUNT = 0.06;
 /** Under 1/5 like every chance constant: 0.2 made a maxed node double *every* prestige. */
@@ -190,7 +190,7 @@ const secs = (ms: number) => `${String(ms / 1000).replace(".", ",")}s`;
 
 const pct = (value: number) => {
   const percent = value * 100;
-  return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(1).replace(/\.0$/, "")}%`;
+  return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}%`;
 };
 
 export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
