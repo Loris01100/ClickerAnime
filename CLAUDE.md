@@ -260,10 +260,10 @@ shop-exclusive companions are instead covered by one character offer (`src/engin
 those entry paths, along with every
 id being unique and every reference resolvable). A mixed team still spans worlds — the team only
 wipes on prestige, not on travel. Every part-1 `rarity: "main"`
-character who is still part of the Shippūden cast (Naruto, Kakashi, Sasuke, Neji, Jiraiya, Tsunade,
-Gaara) gets stronger once fought alongside there — see `docs/progression.md` — but that's the same
+character who is still part of the Shippūden cast (Naruto, Sakura, Kakashi, Sasuke, Neji, Jiraiya,
+Tsunade, Gaara) gets stronger once fought alongside there — see `docs/progression.md` — but that's the same
 Codex entry growing, never a new recruit. Secondary-rarity part-1 characters get no evolution even
 when they do appear in Shippūden (Rock Lee, Shikamaru, Hinata, Temari, Kankurô, Shizune, Chôji,
-Kiba), and Sakura is the one secondary-rarity exception, kept from an earlier pass. Kimimaro, also
+Kiba). Kimimaro, also
 `"main"`, is excluded on purpose: he dies at the end of part 1 and is never part of the Shippūden
 cast.
