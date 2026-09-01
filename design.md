@@ -152,6 +152,10 @@ Clic/DPS avec un vocabulaire de monde. Horimiya devient Liens/Tension/Épreuve/C
 les calculs et la sauvegarde restent identiques. Les composants lisent `termsOf(anime)` ; ils ne
 branchent jamais sur `anime.id`.
 
+**Horimiya est en alpha, en phase de test.** Sa direction artistique, son vocabulaire de
+présentation et son équilibrage sont provisoires : ils peuvent encore bouger, et le monde ne sert
+pas de référence visuelle pour les autres mondes tant que l'alpha dure.
+
 Palette fonctionnelle actuelle (rappel, ne pas dupliquer ailleurs) :
 
 | Rôle | Token | Usage |

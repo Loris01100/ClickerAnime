@@ -10,7 +10,8 @@ The app is a static SPA whose gameplay and saves remain entirely browser-side. A
 Worker endpoint records consented anonymous progression milestones; it stores no game state. Save
 data lives in `localStorage`; portraits are fetched live from AniList in the player's own browser.
 Alongside the Naruto universe, Hunter x Hunter (2011), Bleach, and Horimiya are independent starting
-worlds. Horimiya folds the 2021 series and The Missing Pieces into one chronological school-life world.
+worlds. Horimiya folds the 2021 series and The Missing Pieces into one chronological school-life world;
+it is **in alpha and still under test**, so its content and balance are provisional.
 
 ## Technology Stack
 
@@ -118,7 +119,8 @@ One **directory** per world plus `index.ts`. Adding a world means adding a direc
 - `boruto/` — Boruto, 8 arcs.
 - `hunter-x-hunter/` — Hunter x Hunter (2011), 6 arcs in one world; no unadapted Dark Continent.
 - `bleach/` — Bleach, 15 arcs in one independent entry world.
-- `horimiya/` — Horimiya plus The Missing Pieces, 6 arcs in one independent entry world.
+- `horimiya/` — Horimiya plus The Missing Pieces, 6 arcs in one independent entry world. **Alpha,
+  under test**: content and balance are provisional.
 - `index.ts` — concatenates all worlds into `gameData` and defines shop offers.
 
 ## Code Style Guidelines

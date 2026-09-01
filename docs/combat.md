@@ -221,6 +221,9 @@ Three practical notes, each learned by getting it wrong:
 - **Horimiya reuses Hunter x Hunter's six-arc opening curve.** Its social encounters are a
   presentation layer over the same combat model, so the established kill budgets, boss hp and
   reward milestones remain comparable while its recruit ramp ends at the same `120` power budget.
+  **The world is in alpha and still under test**, so this curve is provisional: it has not been
+  through the end-to-end pacing loop the other worlds have, and its numbers are not a reference to
+  fit a new world against.
 - **Bleach is the same method again, over fifteen arcs — and it is where the loop was actually run
   end to end.** Also an entry point, also outside the geometric test, but long enough that a single
   ramp does not fit it: the opening is a cliff (mob hp ×55, then ×4.1, ×2.6, ×2.0 over the first

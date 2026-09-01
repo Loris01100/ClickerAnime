@@ -242,6 +242,9 @@ shape when adding a world; omit a file only when the world genuinely has no such
 - `horimiya/` — **Horimiya**, 6 arcs and an independent entry world. The 2021 adaptation and
   **The Missing Pieces** share one chronological route; its abstract social encounters use
   `Anime.presentation` to change UI vocabulary without changing combat rules or save data.
+  **This world is in alpha and still under test**: its arcs, recruits, items and encounter
+  vocabulary are provisional and may still move or be pulled. Don't take its numbers as a
+  reference when balancing another world, and expect its content to change.
 - `boruto/` — **Boruto**, 8 arcs, the last world and the hardest: ~5.4 minutes an arc against
   Shippūden's ~2.3. Generated from a table like Shippūden, on the **same** ramps (boss hp ~2.31,
   mob hp ~2.17, rewards and recruit stats ~1.85) — it needed its own steeper table only before
