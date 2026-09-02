@@ -35,24 +35,53 @@ way this file is kept in sync with architecture changes:
 
 SolidJS + Vite + TypeScript idle/clicker prototype. Two layers, deliberately separated:
 
-**`src/engine/` — pure logic, no Solid imports**, with exactly two exceptions: `gameState.ts`, the
-reactive seam, and `sim.ts`/`sim.cli.ts`, which drive that seam headlessly and are tooling rather
-than game rules. Every other file exports plain functions over plain data, which is why
-the tests in `src/engine/tests/` run in a node environment with no DOM. Keep new game rules pure and here; keep
-them out of components.
+**`src/engine/` — pure logic, no Solid imports**, with exactly two exceptions: `gameState.ts` plus
+its `store/` folder, the reactive seam, and `sim.ts`/`sim.cli.ts`, which drive that seam headlessly
+and are tooling rather than game rules. Every other file exports plain functions over plain data,
+which is why the tests in `src/engine/tests/` run in a node environment with no DOM. Keep new game
+rules pure and here; keep them out of components.
 
-**`src/engine/gameState.ts` — the only reactive seam.** `createGameStore(data)` holds all signals,
-wires the pure functions into memos, runs the 200ms tick that accrues passive income, and autosaves
-to `localStorage` every 5s plus on `pagehide` (`onCleanup` never runs on a closed tab, and
-`beforeunload` doesn't fire on iOS). The tick's elapsed time is clamped to `MAX_TICK_DELTA_MS`: a
-sleeping machine or a throttled tab would otherwise hand the first tick back hours of damage and xp
-— offline progress by accident, which the game deliberately doesn't have. Components call its
-returned actions (`click`, `recruitCharacter`, `activateAbility`, `prestigeReset`, …) and read its
+**`src/engine/gameState.ts` + `src/engine/store/` — the only reactive seam.** `createGameStore(data)`
+holds all signals, wires the pure functions into memos, runs the 200ms tick that accrues passive
+income, and autosaves to `localStorage` every 5s plus on `pagehide` (`onCleanup` never runs on a
+closed tab, and `beforeunload` doesn't fire on iOS). The tick's elapsed time is clamped to
+`MAX_TICK_DELTA_MS`: a sleeping machine or a throttled tab would otherwise hand the first tick back
+hours of damage and xp — offline progress by accident, which the game deliberately doesn't have.
+Components call its returned actions (`click`, `activateAbility`, `prestigeReset`, …) and read its
 accessors.
 
+`gameState.ts` is the **assembler**: it creates the slices below in dependency order, keeps the
+state that genuinely spans them (currency, the arc, the enemy on screen, the clock, the pause), owns
+the combat loop and the two resets, and returns the one flat store the UI sees. Each slice under
+`store/` is a `createX(deps)` taking an explicit dependency object — no slice imports another, so
+the creation order below *is* the dependency graph. Where the game really is circular (a portal
+respawns the arc's enemy, and `spawnNext` asks the portal first) the cycle is closed **in the
+assembler**, by handing the slice a callback: that keeps every cycle in one file where it can be
+read. **The store's public surface is unchanged by the split** — components and tests keep calling
+`game.<thing>()`, never `game.roster.<thing>()`.
+
+| Slice | Owns |
+|---|---|
+| `store/content.ts` | Every index derivable from `data` alone — id lookups, origin arcs, portal and item maps. Not reactive; the one slice everything else can take for free |
+| `store/notices.ts` | The HUD's bounded pop-up queue, pruned by the tick |
+| `store/achievements.ts` | The lifetime ladders and the modifiers they contribute. Created early: `bumpAchievement` is the call every slice makes |
+| `store/tree.ts` | Prestige-tree levels and every knob they turn, the "Automatisation" switches included |
+| `store/worlds.ts` | Tiers, the power ramp, and the frozen-at-entry re-levelling. Sole writer of `animeEntryDifficulties`/`animeEntryScales` |
+| `store/inventory.ts` | Item copies, unique fragments, forge levels, equipment — three lifetimes side by side |
+| `store/roster.ts` | The team and the five things that grow it: levels, passive ranks, evolutions, duplicates, catch-up. Plus `awayCharacterIds` |
+| `store/abilityState.ts` | Buffs, cooldowns, firing plans. Sole owner of `temporaryModifiers`, the only timed modifier source |
+| `store/modifiers.ts` | The fold and its two outputs, `clickPower` and `teamDps` — the balance itself |
+| `store/portals.ts` | Crossover portals, with the four rules that keep them out of the balance |
+| `store/saveIO.ts` | When a save may be written, and the guard that makes an import stick. Owns no game state |
+
+Adding state means picking the slice it belongs to, or adding one — not growing the assembler. A new
+slice goes after everything it reads and before everything that reads it.
+
 **`src/engine/persistence.ts` — the save trust boundary.** It owns the save shape, validation,
-migrations, storage keys and backup recovery. `gameState.ts` assembles live signals into that shape
-but does not redefine the format.
+migrations, storage keys and backup recovery. `gameState.ts`'s `buildSaveFile` assembles live
+signals into that shape and `store/saveIO.ts` decides when it is written; neither redefines the
+format. `GameData` lives in `types.ts` (and is re-exported from `gameState.ts`, which is where the
+data files ask for it) so a slice can take the content without importing the assembler.
 
 **`src/ui/` — presentation only, no rules.** `App.tsx` is the 3-column shell modelled on
 PokéClicker's density; everything else is an overlay it owns. Each component takes `game: GameStore`

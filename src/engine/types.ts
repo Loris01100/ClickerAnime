@@ -244,3 +244,20 @@ export interface SynergyConfig {
   /** multiplier applied when the character is from a different anime entirely */
   otherAnimeMalus: number;
 }
+
+/**
+ * The whole content of the game, one world's `GameData` concatenated per world (`src/data/`).
+ *
+ * It lives here rather than in `gameState.ts` because every store slice takes it as a plain
+ * dependency, and a type reaching back into the module that assembles them would make the whole
+ * `store/` folder circular on the assembler. `gameState.ts` still re-exports it: the 25 data files
+ * import it from there, and moving them all would say nothing.
+ */
+export interface GameData {
+  animes: Anime[];
+  arcs: Arc[];
+  characters: Character[];
+  items: Item[];
+  /** absent in older/test fixtures; every reader defaults it to an empty shop */
+  shop?: ShopOffer[];
+}

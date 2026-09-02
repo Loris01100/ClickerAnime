@@ -62,11 +62,12 @@ The code is deliberately split into two layers:
 
 ### 1. `src/engine/` — Pure Game Logic
 
-No SolidJS imports (except `gameState.ts`, which is the seam). Every file exports plain functions over plain data. This keeps the rules testable in a Node environment without a DOM.
+No SolidJS imports (except `gameState.ts` and its `store/` folder, which together are the seam). Every other file exports plain functions over plain data. This keeps the rules testable in a Node environment without a DOM.
 
 Key modules:
 
-- `gameState.ts` — the only reactive seam. `createGameStore(data)` creates all signals, wires pure functions into memos, runs the 200 ms tick, and autosaves every 5 s.
+- `gameState.ts` — the assembler of the only reactive seam. `createGameStore(data)` creates the `store/` slices in dependency order, keeps the state that spans them (currency, the active arc, the enemy on screen, the clock, the pause), owns the combat loop, the two resets and the 200 ms tick, and returns one flat store.
+- `store/*.ts` — one slice per concern, each a `createX(deps)` over an explicit dependency object: `content`, `notices`, `achievements`, `tree`, `worlds`, `inventory`, `roster`, `abilityState`, `modifiers`, `portals`, `saveIO`. See the table in `CLAUDE.md` for what each owns. **The store's public surface is flat and unchanged** — call `game.teamDps()`, never `game.modifiers.teamDps()`. Put new state in the slice it belongs to rather than back in the assembler; a new slice goes after everything it reads and before everything that reads it.
 - `persistence.ts` — save schema, validation, migrations, keys and backup recovery. It has no reactive state.
 - `types.ts` — shared domain types (`Anime`, `Arc`, `Character`, `Enemy`, `Item`, `AbilityDefinition`, `ShopOffer`, etc.).
 - `combat.ts` — enemy spawning, HP/reward scaling, drop rolls.
@@ -129,7 +130,7 @@ One **directory** per world plus `index.ts`. Adding a world means adding a direc
 - **No UI framework**: `src/styles.css` is the ordered manifest for the hand-written modules in `src/styles/`. Every color must come from a CSS token defined in `foundation.css`'s `:root` (light) and repeated in both dark blocks.
 - **No hard-coded colors**: gradients, tints, and shadows must use existing tokens or a world hue derived from `themeOf(anime)` / `spriteHue(id)`.
 - **No game logic in components**: if a displayed value is derived, add a pure helper in `engine/` and expose it on `GameStore`.
-- **Prefer pure functions**: especially in `engine/`. RNG is only called in `gameState.ts`; `rollsDrop(enemy, roll)` takes the roll as an argument so tests don't stub `Math.random`.
+- **Prefer pure functions**: especially in `engine/`. RNG is only called in the seam (`gameState.ts` and its `store/` slices); `rollsDrop(enemy, roll)` takes the roll as an argument so tests don't stub `Math.random`.
 - **Icon factory pattern**: in `icons.tsx`, `icon()` takes `body: () => JSX.Element`, not a materialized JSX value. Solid JSX creates real DOM nodes, so a shared node would only render in the last instance.
 - **Comments**: explain *why*, not what. Keep French comments out of `engine/`; keep English comments out of UI strings.
 
@@ -184,7 +185,7 @@ looking at the result.
   recruiting the character again restores the passive at its former rank. Only `hardReset` clears them.
 - Unique forge levels follow the same rule: prestige removes the unique and its fragments, but the
   next copy found recovers its former level. Only `hardReset` clears that level.
-- `buildSaveFile` in `gameState.ts` is the single source of truth for the on-disk shape.
+- `buildSaveFile` in `gameState.ts` is the single source of truth for where each saved field comes from; `store/saveIO.ts` decides *when* it is written, and `persistence.ts` owns the shape itself.
 - `readSave` shape-checks via `isValidSave` and falls back to a fresh run instead of throwing.
 - **Bump the save-key version** only when a field is renamed or retyped. New optional fields can be absorbed with `??` defaults. Bumping wipes all existing saves.
 - Export/import save is a base64-encoded `SaveFile` downloaded/uploaded as `.txt`.
@@ -249,7 +250,8 @@ Two consequences worth knowing before changing build config:
 
 | File | Responsibility |
 |---|---|
-| `src/engine/gameState.ts` | Signals, tick, store orchestration and public API |
+| `src/engine/gameState.ts` | The assembler: cross-cutting signals, combat loop, resets, tick, public API |
+| `src/engine/store/` | One slice per concern behind that API — see the table in `CLAUDE.md` |
 | `src/engine/persistence.ts` | Save schema, validation, migrations and backup recovery |
 | `src/engine/forge.ts` | Unique forge and equipment rules |
 | `src/engine/types.ts` | Domain types |

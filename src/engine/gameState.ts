@@ -1,6 +1,19 @@
 import { batch, createMemo, createSignal, onCleanup } from "solid-js";
-import { achievementContributions, achievementCount, type AchievementId } from "./achievements";
-import { computeScopedStat, foldScopedStat, pruneExpired, scopedBuffCap } from "./modifiers";
+import { createContentIndex } from "./store/content";
+import { createNoticeQueue } from "./store/notices";
+import { createTreeState } from "./store/tree";
+import { createWorldScaling } from "./store/worlds";
+import { createInventory } from "./store/inventory";
+import { createAbilityState } from "./store/abilityState";
+import { createAchievements } from "./store/achievements";
+import { createRoster } from "./store/roster";
+import { createModifierFold } from "./store/modifiers";
+import { createSaveIO } from "./store/saveIO";
+import { createPortals } from "./store/portals";
+export type { PortalTarget } from "./store/portals";
+export type { Notice } from "./store/notices";
+import { achievementCount } from "./achievements";
+import { computeScopedStat, pruneExpired } from "./modifiers";
 import {
   applyPrestige,
   PRESTIGE_SCALE,
@@ -9,41 +22,17 @@ import {
   createInitialPrestigeState,
   unlockAnime as unlockAnimeState,
 } from "./prestige";
-import { characterContributions, defaultSynergyConfig, isHomeArc, synergyMultiplier } from "./synergy";
-import { activeEvolution, evolutionKey, evolutionStage } from "./evolutions";
+import { synergyMultiplier } from "./synergy";
+import { evolutionKey } from "./evolutions";
 import {
   CROSSOVER_BOSS_REWARD,
   CROSSOVER_COST,
   CROSSOVER_DURATION_MS,
   CROSSOVER_MOB_CHANCE,
-  PORTAL_COST,
-  crossoverSynergyConfig,
-  isMixedTeam,
-  portalEnemy,
-  portalFightHp,
-  portalIndexOf,
-  portalWeights,
 } from "./crossover";
 import {
-  autoFirable,
-  cooldownOf,
-  cooldownRemaining,
-  diagnoseAbility,
-  dutyMagnitude,
-  getUnlockedAbilities,
-  isAbilityReady,
-  scopedMagnitude,
-} from "./abilities";
-import type { AbilityDiagnostic, AbilityPolicy, UnlockedAbility } from "./abilities";
-import {
   clearSaveSlots,
-  decodeSave,
-  encodeSave,
-  hasValidBackup,
   readSave,
-  restoreBackupSlots,
-  SAVE_VERSION,
-  writeSave,
   type SaveFile,
 } from "./persistence";
 export { SAVE_BACKUP_KEY, SAVE_KEY } from "./persistence";
@@ -61,67 +50,31 @@ import {
 import { canBuyShopOffer, discountedShopCost, shopOfferUnlocked } from "./shop";
 import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
 import {
-  canEquipOn,
-  itemAnimeIndex,
-  sanitizedEquipment,
-  scaledUniqueEffect,
-  UNIQUE_FORGE_FRAGMENT_COSTS,
-  UNIQUE_FORGE_MULTIPLIERS,
-  uniqueRanksFromSave,
 } from "./forge";
 export { UNIQUE_FORGE_FRAGMENT_COSTS, UNIQUE_FORGE_MULTIPLIERS } from "./forge";
-import { drawPack, duplicateGrowth, MAX_DUPLICATES, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
+import { drawPack, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
-  arcPowerTable,
-  catchUpGrowth,
-  levelFromXp,
-  levelGrowth,
-  reachedArcPower,
-  narratorClickPower,
-  passiveUpgrade,
   firstPassiveDropChance,
-  PASSIVE_LEVEL_CAP,
-  XP_GROWTH,
   XP_PER_KILL_REWARD,
-  xpProgress,
 } from "./growth";
 import {
   canRecruitUnder,
   challengeById,
   clickIsMuted,
-  challengeContributions,
   challengeProgress,
   type ChallengeRules,
   CHALLENGES,
   NO_CHALLENGE_RULES,
 } from "./challenges";
 import {
-  animeTier,
-  arcsOfAnime,
-  arcWeight,
-  BORDER_CLIFF,
   canEnterNewAnime,
-  difficultyMultiplier,
   isAnimeAvailable,
   isAnimeComplete,
   isArcUnlocked,
-  relevelledDifficulty,
-  worldEntryDifficulty,
-  worldEntryScale,
 } from "./progression";
 import {
-  ABILITY_DAMAGE_BOOST,
-  ABILITY_DURATION_BOOST,
   AUSPICE_DOUBLE_DROP_CHANCE,
-  autoAbilityIntervalMs,
-  autoAdvanceDelayMs,
-  autoClickIntervalMs,
   autoCrossoverReserve,
-  type AutomationKey,
-  AUTOMATION_POSITIONS,
-  autoRankSlots,
-  abilityPolicyChoices as policyChoices,
-  autoRematchDelayMs,
   BOSS_TIMER_BOOST,
   BOSS_XP_BOOST,
   CLICK_COOLDOWN_REDUCTION_MS,
@@ -133,51 +86,25 @@ import {
   FREE_ABILITY_TRIGGER_CHANCE,
   FREE_PACK_CHANCE,
   GHOST_LOOT_CHANCE,
-  isNodeUnlocked,
-  MIN_XP_GROWTH,
-  nodeCost,
-  nodeLevel,
-  nodeLevels,
-  PASSIVE_RANK_DISCOUNT,
   PITY_KILLS_THRESHOLD,
   PITY_REDUCTION_PER_LEVEL,
   PRESTIGE_PER_KILL_CHANCE,
-  prestigeTreeContributions,
-  PRESTIGE_TREE_CATEGORIES,
-  type PrestigeTreeCategoryId,
-  purchaseNodeLevel,
   RECRUIT_XP_BONUS,
   scaledChance,
-  scaledDiscount,
-  SHOP_COST_DISCOUNT,
-  softenedSynergyConfig,
-  totalLevels,
-  XP_GAIN_PERCENT,
-  XP_GROWTH_REDUCTION,
   XP_PASSIVE_PER_SECOND,
 } from "./prestigeTree";
 import type {
-  AbilityDefinition,
-  ActiveModifier,
   Anime,
   Arc,
   Character,
   Enemy,
-  Item,
-  ModifierTemplate,
+  GameData,
   Rarity,
   ShopOffer,
-  SynergyConfig,
 } from "./types";
-
-export interface GameData {
-  animes: Anime[];
-  arcs: Arc[];
-  characters: Character[];
-  items: Item[];
-  /** absent in older/test fixtures; every reader defaults it to an empty shop */
-  shop?: ShopOffer[];
-}
+// The content type lives in `types.ts` so every `store/` slice can take it without importing the
+// module that assembles them. Re-exported here because that is where the data files ask for it.
+export type { GameData } from "./types";
 
 const TICK_MS = 200;
 /**
@@ -189,9 +116,6 @@ const MAX_TICK_DELTA_MS = TICK_MS * 5;
 const AUTOSAVE_MS = 5_000;
 /** Floor cadence of `statClock`, the display clock the roster's stat columns fold against. */
 const STAT_CLOCK_MS = 1_000;
-/** How long one HUD notice stays up, and how many can stack before the oldest is dropped. */
-const NOTICE_MS = 4_000;
-const MAX_NOTICES = 4;
 
 /**
  * One pack draw: the character it handed over, and whether « Carte blanche » waived its price —
@@ -200,31 +124,6 @@ const MAX_NOTICES = 4;
 export interface PackDraw {
   character: Character;
   free: boolean;
-}
-
-/**
- * One boss recruit as the crossover panel sees it: the fight that stands between the player and a
- * character a boss no longer hands out. `open` means the crystals are paid and the fight exists,
- * with `damage` of `maxHp` already taken off it.
- */
-export interface PortalTarget {
-  character: Character;
-  arc: Arc;
-  cost: number;
-  open: boolean;
-  maxHp: number;
-  damage: number;
-  affordable: boolean;
-  active: boolean;
-}
-
-/** One "you just gained something" event, popped up by the HUD and pruned by the main tick. */
-export interface Notice {
-  id: number;
-  kind: "item" | "recruit" | "arc" | "unlock";
-  text: string;
-  count: number;
-  expiresAt: number;
 }
 
 /** Safety net on `dealDamage`'s overkill carry-over — see there. Not a balance knob. */
@@ -247,77 +146,13 @@ export const MAX_KILLS_PER_SECOND = 5;
 export const CURRENCY_REWARD_MULTIPLIER = 0.75;
 /** Price of one current-arc common item, measured in ordinary victories. */
 export const SUPPLY_KILLS_PER_COPY = 15;
-/**
- * Shallow value equality over two `Record<string, number>` — the `equals` of `levelsByCharacter`.
- * Solid keys a memo on reference by default, so a record rebuilt from a signal that changes every
- * tick invalidates every consumer even when not one number in it moved.
- */
-function sameNumbers(a: Record<string, number>, b: Record<string, number>): boolean {
-  const keys = Object.keys(a);
-  if (keys.length !== Object.keys(b).length) return false;
-  for (const key of keys) if (a[key] !== b[key]) return false;
-  return true;
-}
-
-/** The same idea over a short modifier list — see `achievementModifiers`. */
-function sameModifiers(a: ActiveModifier[], b: ActiveModifier[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].target !== b[i].target || a[i].kind !== b[i].kind || a[i].value !== b[i].value) return false;
-  }
-  return true;
-}
-
 export function createGameStore(data: GameData) {
   const loadedSave = readSave();
   const saved = loadedSave.save;
-  const [hasBackupSave, setHasBackupSave] = createSignal(hasValidBackup());
 
-  /**
-   * Id indexes over the content, built once.
-   *
-   * `data` never changes at runtime, and almost every lookup in this file and in the UI was a
-   * `data.<section>.find(...)` — a linear walk of 175 characters, 273 arcs and enemies or 68 items,
-   * several of them per roster row and per kill. Same answers, built once instead of per call. The
-   * accessors below are what the UI reads; nothing here may mutate the maps.
-   */
-  const characterIndex = new Map(data.characters.map((c) => [c.id, c]));
-  const itemIndex = new Map(data.items.map((i) => [i.id, i]));
-  const arcIndex = new Map(data.arcs.map((a) => [a.id, a]));
-  const animeIndex = new Map(data.animes.map((a) => [a.id, a]));
-
-  /**
-   * The arc each character is first met in — `originArcOf`'s answer, precomputed.
-   *
-   * Arcs are walked in data order and the first one to name a character wins, exactly as the scan
-   * it replaces did. It fed `passiveItemOf`, which the roster calls twice per row (directly, and
-   * again through `passiveUpgradeOf`), each call walking every arc's boss and mob list.
-   */
-  const originArcIndex = new Map<string, Arc>();
-  for (const arc of data.arcs) {
-    // A boss recruit is met in its arc even though it only joins through a portal: this is where
-    // the character's passive item and home arc come from, so the portal must not move it.
-    const bossRecruitId = arc.boss.characterId ?? arc.boss.portalCharacterId;
-    if (bossRecruitId && !originArcIndex.has(bossRecruitId)) {
-      originArcIndex.set(bossRecruitId, arc);
-    }
-    for (const mob of arc.mobs) {
-      if (mob.characterId && !originArcIndex.has(mob.characterId)) originArcIndex.set(mob.characterId, arc);
-    }
-  }
-
-  /** Which arc each portal recruit is fought in, and how heavy their portal is. Both static. */
-  const portalIndex = portalIndexOf(data.arcs);
-  const portalWeightByArc = portalWeights(data.arcs);
-
-  /** Which world each item comes from — its drop's arc. Static like the data it is built from. */
-  const itemAnimeIds = itemAnimeIndex(data.arcs);
-
-  /** O(1) content lookups by id — the UI reads these rather than re-scanning `data`. */
-  const characterOf = (id: string | undefined | null) => (id ? characterIndex.get(id) ?? null : null);
-  const itemOf = (id: string | undefined | null) => (id ? itemIndex.get(id) ?? null : null);
-  const arcOf = (id: string | undefined | null) => (id ? arcIndex.get(id) ?? null : null);
-  const animeOf = (id: string | undefined | null) => (id ? animeIndex.get(id) ?? null : null);
+  /** Everything derivable from `data` alone, indexed once — see `store/content.ts`. */
+  const content = createContentIndex(data);
+  const { characterOf, itemOf, arcOf, animeOf } = content;
 
   const [now, setNow] = createSignal(Date.now());
   /**
@@ -339,42 +174,22 @@ export function createGameStore(data: GameData) {
    * these clocks.
    */
   const [statClock, setStatClock] = createSignal(Date.now());
-  // When the last autosave landed, so the topbar can say so — a silent autosave is indistinguishable
-  // from a broken one. 0 until the first write; `save()` is the only thing that sets it.
-  const [lastSavedAt, setLastSavedAt] = createSignal(0);
   const [currency, setCurrency] = createSignal(saved?.currency ?? 0);
   const [lifetimeEarned, setLifetimeEarned] = createSignal(saved?.lifetimeEarned ?? 0);
-  const [ownedCharacterIds, setOwnedCharacterIds] = createSignal<string[]>(saved?.ownedCharacterIds ?? []);
   const [activeArcId, setActiveArcId] = createSignal<string | null>(saved?.activeArcId ?? null);
   const [arcKills, setArcKills] = createSignal<Record<string, number>>(saved?.arcKills ?? {});
   const [clearedArcIds, setClearedArcIds] = createSignal<string[]>(saved?.clearedArcIds ?? []);
-  const [characterXp, setCharacterXp] = createSignal<Record<string, number>>(saved?.characterXp ?? {});
-  const [itemCounts, setItemCounts] = createSignal<Record<string, number>>(saved?.itemCounts ?? {});
-  const [uniqueFragments, setUniqueFragments] = createSignal<Record<string, number>>(saved?.uniqueFragments ?? {});
-  // Forge levels are permanent mastery. Prestige removes the unique and its fragments, but the
-  // next copy found recovers this level. Only hardReset wipes the map.
-  const [uniqueUpgradeRanks, setUniqueUpgradeRanks] = createSignal<Record<string, number>>(
-    uniqueRanksFromSave(data.items, saved)
-  );
-  // Passive ranks are permanent mastery: a prestige removes the team and its item stock, but a
-  // character recovers every bought rank when recruited again. Only hardReset wipes them.
-  const [passiveRanks, setPassiveRanks] = createSignal<Record<string, number>>(saved?.passiveRanks ?? {});
-  const [evolvedCharacterIds, setEvolvedCharacterIds] = createSignal<string[]>(saved?.evolvedCharacterIds ?? []);
-  // Lifetime totals for the achievement ladders (see achievements.ts) — never decrease and, unlike
-  // the rest of a run, survive prestigeReset; only hardReset wipes them.
-  const [achievementCounts, setAchievementCounts] = createSignal<Record<string, number>>(
-    saved?.achievementCounts ?? {}
-  );
+  /** The lifetime ladders and what they contribute — see `store/achievements.ts`. */
+  const achievements = createAchievements(saved);
+  const {
+    achievementCounts,
+    runAchievementBaseline,
+    setRunAchievementBaseline,
+    bumpAchievement,
+    achievementModifiers,
+  } = achievements;
   const [runStartedAt, setRunStartedAt] = createSignal(saved?.runStartedAt ?? Date.now());
-  const [runAchievementBaseline, setRunAchievementBaseline] = createSignal<Record<string, number>>(
-    saved?.runAchievementBaseline ?? saved?.achievementCounts ?? {}
-  );
   const [lastPrestigeReport, setLastPrestigeReport] = createSignal<PrestigeReport | null>(null);
-  // Levels bought per node of the prestige skill tree (see prestigeTree.ts) — meta-progression like
-  // prestige points themselves: survives prestigeReset, only hardReset wipes it.
-  const [prestigeTreeRanks, setPrestigeTreeRanks] = createSignal<Record<string, number[]>>(
-    saved?.prestigeTreeRanks ?? {}
-  );
   // Kills since the last item drop, per arc — feeds the "Objets" tier 4 pity timer. Transient like
   // the rest of combat state: a reload forgets the streak.
   const [killsSinceDrop, setKillsSinceDrop] = createSignal<Record<string, number>>({});
@@ -386,23 +201,6 @@ export function createGameStore(data: GameData) {
    * in a row. Transient: a reload has no autoclick to redraw.
    */
   const [autoClickPulse, setAutoClickPulse] = createSignal({ id: 0, damage: 0 });
-  /**
-   * Whether the bought autoclicker actually runs. It is a perk, not an obligation: some players
-   * want to feel their own clicks land, and the pop-ups it now draws are noise if you don't. Saved,
-   * because a preference that resets on every reload is worse than no preference at all.
-   */
-  const [autoClickEnabled, setAutoClickEnabled] = createSignal(saved?.autoClickEnabled ?? true);
-  /** Level of the autoclicker node — 0 means it isn't bought, so the UI hides the toggle entirely. */
-  const autoClickLevel = () => nodeLevelOf("narratorClick", 2);
-  /** Milliseconds between two automatic clicks at the level currently bought; 0 when unbought. */
-  const autoClickInterval = () => autoClickIntervalMs(autoClickLevel());
-  /**
-   * The "Automatisation" branch's five switches, keyed by `AutomationKey` and holding the ones
-   * turned **off** — see `SaveFile.automationOff`. Every one of them automates something already
-   * reachable by hand, so switching one off is a real choice, not a downgrade: "Relève" would drag
-   * a player out of the cleared arc they came back to farm the common of.
-   */
-  const [automationOff, setAutomationOff] = createSignal<Record<string, boolean>>(saved?.automationOff ?? {});
   /** Characters the "Intendance" node ranks up on its own. Run-scoped: the roster goes on prestige. */
   const [autoRankCharacterIds, setAutoRankCharacterIds] = createSignal<string[]>(
     saved?.autoRankCharacterIds ?? []
@@ -434,17 +232,6 @@ export function createGameStore(data: GameData) {
   // Kills `dealDamage` may still resolve, refilled by the tick at MAX_KILLS_PER_SECOND and capped
   // there so an idle stretch banks no burst. Transient like the rest of combat state.
   const [killBudget, setKillBudget] = createSignal(MAX_KILLS_PER_SECOND);
-  // characterId -> itemId for equipped unique items.
-  const [characterEquipment, setCharacterEquipment] = createSignal<Record<string, string>>(
-    sanitizedEquipment(
-      data.characters,
-      data.items,
-      data.arcs,
-      saved?.characterEquipment,
-      saved?.itemCounts ?? {},
-      saved?.ownedCharacterIds ?? []
-    )
-  );
   // Cristaux de crossover: earned on kills with a team spanning two worlds, spent to lift the
   // synergy malus for a while (see crossover.ts). Run-scoped like items — prestigeReset wipes them.
   const [crossoverCrystals, setCrossoverCrystals] = createSignal(saved?.crossoverCrystals ?? 0);
@@ -452,30 +239,8 @@ export function createGameStore(data: GameData) {
   // packs (see packs.ts). Meta-progression like the duplicates they buy — prestigeReset spares
   // both, only hardReset wipes them.
   const [worldPoints, setWorldPoints] = createSignal<Record<string, number>>(saved?.worldPoints ?? {});
-  // Clamped on the way in, once: a save written before `MAX_DUPLICATES` existed (or an imported
-  // one) can hold more copies than a pack will ever sell again, and `duplicateGrowth` is linear in
-  // that number. One truth, here, rather than a cap re-applied at every read.
-  const [characterDuplicates, setCharacterDuplicates] = createSignal<Record<string, number>>(
-    Object.fromEntries(
-      Object.entries(saved?.characterDuplicates ?? {}).map(([id, copies]) => [
-        id,
-        Math.min(MAX_DUPLICATES, copies),
-      ])
-    )
-  );
   // When the current crossover window ends. Transient like combat state: a reload drops the buff.
   const [crossoverUntil, setCrossoverUntil] = createSignal(0);
-  // Portails de crossover, keyed by the character they recruit. `portalHp` holds the hp each open
-  // portal was frozen at, `portalDamage` how much of it the player has already taken off — and that
-  // second map is the one exception to "combat state is never saved": it is not the fight in front
-  // of the player, it is progress towards a recruit, and the whole point of a portal is that it can
-  // be left and picked up again. Both are run-scoped like the roster they feed: prestigeReset wipes
-  // them (see crossover.ts).
-  const [portalHp, setPortalHp] = createSignal<Record<string, number>>(saved?.portalHp ?? {});
-  const [portalDamage, setPortalDamage] = createSignal<Record<string, number>>(saved?.portalDamage ?? {});
-  // Which portal is being fought right now — transient like the rest of combat state, so a reload
-  // puts the player back in their arc with the portal's progress intact.
-  const [activePortalId, setActivePortalId] = createSignal<string | null>(null);
   /** True while a bought crossover window is still running — see activateCrossover. */
   const crossoverActive = () => crossoverUntil() > now();
   const crossoverRemaining = () => Math.max(0, crossoverUntil() - now());
@@ -485,66 +250,70 @@ export function createGameStore(data: GameData) {
       : createInitialPrestigeState()
   );
   /**
-   * The scale each entered world is played at, frozen the moment it was entered — its enemies, its
-   * rewards and its own cast all ride it (`worldEntryDifficulty`). Run state like the worlds
-   * entered themselves: `prestigeReset` wipes it with them.
+   * Tiers, the power ramp, and what every world and arc is played at — see `store/worlds.ts`. It
+   * owns the two frozen-at-entry scales, so nothing else may write them.
    */
-  const [animeEntryDifficulties, setAnimeEntryDifficulties] = createSignal<Record<string, number>>(
-    saved?.animeEntryDifficulties ?? {}
-  );
-  /** How far each entered world's `arcPower` rungs are shifted — see `worldEntryScale`. */
-  const [animeEntryScales, setAnimeEntryScales] = createSignal<Record<string, number>>(
-    saved?.animeEntryScales ?? {}
-  );
-  const [temporaryModifiers, setTemporaryModifiers] = createSignal<ActiveModifier[]>([]);
-  // Combat itself restarts on reload, but cooldowns do not: otherwise Ctrl+F5 becomes an ability reset.
-  const [abilityLastUsed, setAbilityLastUsed] = createSignal<Record<string, number>>(saved?.abilityLastUsed ?? {});
-  /**
-   * How the automation is allowed to spend each ability — a preference, like `autoClickEnabled`, so
-   * it survives a prestige. Only non-default entries are stored.
-   */
-  const [abilityPolicy, setAbilityPolicyMap] = createSignal<Record<string, AbilityPolicy>>(
-    saved?.abilityPolicy ?? {}
-  );
-  /** The plans "Réflexe" has opened at its current level — [] while the node is unbought. */
-  const abilityPolicyChoices = () => policyChoices(automationLevelOf("ability"));
-  /**
-   * A plan the node no longer opens reads as `"always"`: a prestige reset can't take levels away,
-   * but a save carried across a rebalance can, and a stored plan must never silently keep working.
-   */
-  const abilityPolicyOf = (abilityId: string): AbilityPolicy => {
-    const stored = abilityPolicy()[abilityId] ?? "always";
-    return abilityPolicyChoices().includes(stored) ? stored : "always";
-  };
-  function setAbilityPolicy(abilityId: string, policy: AbilityPolicy) {
-    setAbilityPolicyMap((map) => {
-      const next = { ...map };
-      if (policy === "always") delete next[abilityId];
-      else next[abilityId] = policy;
-      return next;
-    });
-  }
+  const worlds = createWorldScaling({
+    data,
+    content,
+    saved,
+    unlockedAnimeIds: () => prestige().unlockedAnimeIds,
+    clearedArcIds,
+    activeArcId,
+  });
+  const {
+    animeEntryDifficulties,
+    animeEntryScales,
+    catchUpOf,
+    tierOf,
+    arcsOf,
+    difficultyOf,
+    difficultyOfArc,
+    freezeEntryScale,
+  } = worlds;
 
-  // Transient feed of "you just gained something" events — the HUD pops them up (see ui/Notices.tsx)
-  // because a drop, a recruit or a cleared arc otherwise happen in complete silence. Pruned by the
-  // main tick rather than a timer per notice, so no stray timeout outlives the store.
-  const [notices, setNotices] = createSignal<Notice[]>([]);
-  let noticeId = 0;
-  function pushNotice(kind: Notice["kind"], text: string) {
-    setNotices((list) => {
-      const expiresAt = Date.now() + NOTICE_MS;
-      const duplicate = list.find((notice) => notice.kind === kind && notice.text === text);
-      if (duplicate) {
-        return list.map((notice) =>
-          notice.id === duplicate.id ? { ...notice, count: notice.count + 1, expiresAt } : notice
-        );
-      }
-      return [...list, { id: noticeId++, kind, text, count: 1, expiresAt }].slice(-MAX_NOTICES);
-    });
-  }
-  /** Presentation unlocks share the same bounded, dismissible HUD queue as gameplay events. */
-  const announceUnlock = (text: string) => pushNotice("unlock", text);
-  const dismissNotice = (id: number) => setNotices((list) => list.filter((n) => n.id !== id));
+  /** The HUD's bounded pop-up queue — see `store/notices.ts`. */
+  const noticeQueue = createNoticeQueue();
+  const { notices, pushNotice, announceUnlock, dismissNotice } = noticeQueue;
+
+  /**
+   * Item copies, unique fragments, the forge levels they buy and who wears which unique — see
+   * `store/inventory.ts`. Created here so `permanentModifiersFor` below can read the equipment.
+   */
+  const inventory = createInventory({
+    data,
+    content,
+    saved,
+    achievementCounts,
+    bumpAchievement,
+    pushNotice,
+  });
+  const {
+    itemCounts,
+    uniqueFragments,
+    uniqueUpgradeRanks,
+    characterEquipment,
+    countOf,
+    foundItems,
+    uniqueFragmentsOf,
+    uniqueUpgradeLevelOf,
+    uniqueUpgradeMultiplierOf,
+    uniqueUpgradeCostOf,
+    forgeableUniques,
+    forgeableNowIds,
+    upgradeUnique,
+    equippedItemOf,
+    wearerOf,
+    canEquipItem,
+    equipItem,
+    unequipItem,
+    grantItem,
+    grantUniqueFragment,
+    animeOfItem,
+    arcCommonItem,
+    passiveItemOf,
+    passiveCopiesOf,
+  } = inventory;
 
   // Combat is transient: the current fight restarts from scratch on reload rather than being saved.
   // Pause : le jeu ne tourne plus du tout. Le tick sort tôt et, à la reprise, toute échéance
@@ -563,70 +332,40 @@ export function createGameStore(data: GameData) {
   // so the player is never stuck. Also transient — a reload forgets it, like the rest of combat.
   const [bossRetreatArcIds, setBossRetreatArcIds] = createSignal<string[]>([]);
 
-  /** Total levels bought in one prestige-tree branch (0..25) — see prestigeTree.ts for the model. */
-  const branchLevelsOf = (categoryId: PrestigeTreeCategoryId) =>
-    totalLevels(nodeLevels(prestigeTreeRanks(), categoryId));
-
-  /** How many of a specific node's 5 levels are bought (0..5) — see prestigeTree.ts's `nodeLevel`. */
-  const nodeLevelOf = (categoryId: PrestigeTreeCategoryId, position: number) =>
-    nodeLevel(nodeLevels(prestigeTreeRanks(), categoryId), position);
-
-  /** A node unlocks once its predecessor has ≥1 level; node 1 is always unlocked. */
-  const isNodeUnlockedFor = (categoryId: PrestigeTreeCategoryId, position: number) =>
-    isNodeUnlocked(nodeLevels(prestigeTreeRanks(), categoryId), position);
-
-  /** What the next level of a specific node costs, or null if it's locked or already maxed. */
-  const nodeCostOf = (categoryId: PrestigeTreeCategoryId, position: number) =>
-    nodeCost(nodeLevels(prestigeTreeRanks(), categoryId), position);
-
-  // --- automation: one node of the "Automatisation" branch behind each switch ---
-
-  /** Level of the node behind one automation — 0 means unbought, and the UI hides its switch. */
-  const automationLevelOf = (key: AutomationKey) => nodeLevelOf("automation", AUTOMATION_POSITIONS[key]);
-  /** The player's switch alone, ignoring whether the node is bought — what the toggle renders. */
-  const automationEnabled = (key: AutomationKey) => !automationOff()[key];
-  /** Bought *and* switched on: the single condition every automation below is gated behind. */
-  const automationRuns = (key: AutomationKey) => automationLevelOf(key) > 0 && automationEnabled(key);
-  function setAutomationEnabled(key: AutomationKey, on: boolean) {
-    setAutomationOff((off) => ({ ...off, [key]: !on }));
-  }
-  const autoAdvanceDelay = () => autoAdvanceDelayMs(automationLevelOf("advance"));
-  const autoAbilityInterval = () => autoAbilityIntervalMs(automationLevelOf("ability"));
-  const autoRematchDelay = () => autoRematchDelayMs(automationLevelOf("rematch"));
-  /** How many characters the intendance may look after right now — one slot per level of its node. */
-  const autoRankCapacity = () => autoRankSlots(automationLevelOf("rank"));
-
-  const effectiveXpGrowth = createMemo(() => {
-    const level = nodeLevelOf("xp", 3);
-    return level > 0 ? Math.max(MIN_XP_GROWTH, XP_GROWTH - XP_GROWTH_REDUCTION * level) : XP_GROWTH;
-  });
-
   /**
-   * Synergy malus softened by "DPS Équipe" node 3's level — see softenedSynergyConfig.
-   *
-   * Split in three on purpose, and the split is load-bearing for performance. `crossoverActive()`
-   * reads `now()`, so the config below re-runs five times a second forever; `softenedSynergyConfig`
-   * builds a **fresh object** at any level above 0, so once that node was bought the memo handed
-   * back a new reference every tick. Every consumer is keyed on reference: `permanentModifiers`,
-   * and through it `allModifiers`, `modifiersByScope`, `globalModifiers`, `teamWideScaling` — plus
-   * every per-arc `bossOutlookOf` memo the progress panel holds, each of which folds the whole
-   * roster again. Measured on a 21-strong roster, that doubled the roster fold from one rebuild a
-   * tick to two, and it scales with the roster times the arcs on screen.
-   *
-   * The two branches are memos of their own, so each is a stable reference that only changes when
-   * the node level does. The ternary still re-runs every tick — it just returns one of two objects
-   * Solid already knows, and the `===` check downstream stops there.
+   * The prestige tree's bought levels and every knob they turn, the "Automatisation" switches
+   * included — see `store/tree.ts`. Created here, right after the signals it reads its save from
+   * and the crossover clock its synergy config asks about, because nearly everything below reads
+   * one of its numbers.
    */
-  const softenedConfig = createMemo<SynergyConfig>(() =>
-    softenedSynergyConfig(defaultSynergyConfig, nodeLevelOf("teamDps", 3))
-  );
-  const crossoverConfig = createMemo<SynergyConfig>(() => crossoverSynergyConfig(softenedConfig()));
-  const activeSynergyConfig = createMemo<SynergyConfig>(() =>
-    crossoverActive() ? crossoverConfig() : softenedConfig()
-  );
-
-  /** Only a two-world team earns crystals, so the panel can say why the drip stopped. */
-  const teamIsMixed = () => isMixedTeam(ownedCharacters());
+  const tree = createTreeState({
+    saved,
+    prestigePoints: () => prestige().prestigePoints,
+    setPrestigePoints: (points) => setPrestige((p) => ({ ...p, prestigePoints: points })),
+    crossoverActive,
+  });
+  const {
+    prestigeTreeRanks,
+    branchLevelsOf,
+    nodeLevelOf,
+    isNodeUnlockedFor,
+    nodeCostOf,
+    automationLevelOf,
+    automationEnabled,
+    automationRuns,
+    setAutomationEnabled,
+    autoAdvanceDelay,
+    autoAbilityInterval,
+    autoRematchDelay,
+    autoRankCapacity,
+    autoClickEnabled,
+    setAutoClickEnabled,
+    autoClickLevel,
+    autoClickInterval,
+    effectiveXpGrowth,
+    shopDiscount,
+    activeSynergyConfig,
+  } = tree;
 
   /** Spends crystals for one crossover window; refuses while one is already up. */
   function activateCrossover(): boolean {
@@ -639,345 +378,137 @@ export function createGameStore(data: GameData) {
 
   const activeArc = createMemo<Arc | null>(() => arcOf(activeArcId()));
 
-  /**
-   * The story's power ramp, read off the cast once (the data never changes at runtime), and how far
-   * up it this run has climbed. Feeds `catchUpGrowth`, which is what keeps an early recruit from
-   * falling millions of dps behind the ramp baked into later worlds' `baseDps` — see growth.ts.
-   */
-  const authoredArcPower = arcPowerTable(data.characters);
-  const animeIdOfArc: Record<string, string> = Object.fromEntries(data.arcs.map((arc) => [arc.id, arc.animeId]));
-
-  /**
-   * The authored rungs, each shifted by its world's `worldEntryScale`, so a re-levelled world opens
-   * on the rung the player already stands at and climbs from there. Deliberately not the world's
-   * difficulty — see `worldEntryScale` for why that would make a re-levelled world *easier*.
-   */
-  const arcPower = createMemo(() => {
-    const scales = animeEntryScales();
-    if (Object.values(scales).every((scale) => scale === 1)) return authoredArcPower;
-    const table: Record<string, number> = {};
-    for (const [arcId, power] of Object.entries(authoredArcPower)) {
-      table[arcId] = power * (scales[animeIdOfArc[arcId] ?? ""] ?? 1);
-    }
-    return table;
-  });
-  const reachedPower = createMemo(() => reachedArcPower(arcPower(), [activeArcId(), ...clearedArcIds()]));
-
-  const catchUpOf = (character: Character) => catchUpGrowth(arcPower(), character, reachedPower());
-
   const unlockedAnimes = createMemo(() => data.animes.filter((a) => prestige().unlockedAnimeIds.includes(a.id)));
 
-  const ownedCharacters = createMemo(() => {
-    // A Set, not `ownedCharacterIds().includes`: that was a walk of the id list per character, i.e.
-    // the whole cast times the roster, on a memo the entire UI hangs off.
-    const ids = new Set(ownedCharacterIds());
-    return data.characters.filter((c) => ids.has(c.id));
+  /**
+   * The team and everything that grows it — see `store/roster.ts`. Created after the inventory it
+   * pays passive ranks out of, and before the abilities and the modifier fold that read it.
+   */
+  const roster = createRoster({
+    data,
+    content,
+    saved,
+    nodeLevelOf,
+    effectiveXpGrowth,
+    activeArc,
+    activeSynergyConfig,
+    catchUpOf,
+    achievementCounts,
+    bumpAchievement,
+    passiveItemOf,
+    passiveCopiesOf,
+    spendCopies: inventory.spendCopies,
   });
-
-  /** Number of successive forms reached by this character in the current run. */
-  const evolutionStageOf = (character: Character) => evolutionStage(character, evolvedCharacterIds());
-  const isEvolved = (character: Character) => evolutionStageOf(character) > 0;
-  const activeEvolutionOf = (character: Character) => activeEvolution(character, evolutionStageOf(character));
-  const isEvolutionUnlocked = (character: Character, animeId: string) =>
-    evolvedCharacterIds().includes(evolutionKey(character.id, animeId)) ||
-    (character.evolutions?.[0]?.animeId === animeId && evolvedCharacterIds().includes(character.id));
-
-  const xpOf = (characterId: string) => characterXp()[characterId] ?? 0;
-
-  /** Levels are read off accumulated xp rather than stored, so the two can never drift apart. */
-  const levelOf = (characterId: string) => levelFromXp(xpOf(characterId), effectiveXpGrowth());
-
-  const progressOf = (characterId: string) => xpProgress(xpOf(characterId), effectiveXpGrowth());
-
-  /**
-   * Every owned character's level, as one record — and, crucially, a memo that only changes when a
-   * level actually does.
-   *
-   * `permanentModifiersFor` needs a level per character, and reading it off `characterXp()` made
-   * the whole roster fold depend on the xp signal — which `grantXp` rewrites on *every kill*, five
-   * times a second. A level, though, moves a few dozen times in a whole run. The custom `equals`
-   * below is what turns "the xp changed" back into "a level changed": on a tick where nobody
-   * levelled, the memo keeps its previous object, `permanentModifiers` never sees a new value, and
-   * neither do `allModifiers`, `modifiersByScope` or the per-arc `bossOutlookOf` memos.
-   */
-  const levelsByCharacter = createMemo(
-    () => {
-      const growth = effectiveXpGrowth();
-      const xp = characterXp();
-      const levels: Record<string, number> = {};
-      for (const id of ownedCharacterIds()) levels[id] = levelFromXp(xp[id] ?? 0, growth);
-      return levels;
-    },
-    undefined,
-    { equals: sameNumbers }
-  );
+  const {
+    ownedCharacterIds,
+    ownedCharacters,
+    characterXp,
+    passiveRanks,
+    evolvedCharacterIds,
+    characterDuplicates,
+    xpOf,
+    levelOf,
+    progressOf,
+    levelsByCharacter,
+    evolutionStageOf,
+    isEvolved,
+    activeEvolutionOf,
+    isEvolutionUnlocked,
+    passiveRankOf,
+    passiveUpgradeOf,
+    passiveCapOf,
+    rankablePassiveIds,
+    firstAffordablePassive,
+    rankUpPassive,
+    duplicatesOf,
+    damageGrowthOf,
+    narratorBase,
+    teamIsMixed,
+    awayCharacterIds,
+    synergyOf,
+    grantXp,
+    grantXpTo,
+  } = roster;
 
   /**
-   * The achievement ladders' contribution, memoised on its *value* for the same reason: the counts
-   * are bumped on every kill (`mobsKilled`), but the modifiers they emit only move when a tier is
-   * actually crossed — two objects, a handful of times per run.
+   * Buffs, cooldowns and firing plans — see `store/abilityState.ts`. Created here, between
+   * `awayCharacterIds` (which decides whose ability is asleep) and the modifier fold below (which
+   * reads the buff list this slice owns).
    */
-  const achievementModifiers = createMemo(() => achievementContributions(achievementCounts()), undefined, {
-    equals: sameModifiers,
+  const abilities = createAbilityState({
+    data,
+    content,
+    saved,
+    now,
+    nodeLevelOf,
+    reflexLevel: () => automationLevelOf("ability"),
+    ownedCharacterIds,
+    evolvedCharacterIds,
+    evolutionStageOf,
+    activeArc,
+    activeChallengeId,
+    challengeRules,
+    awayCharacterIds,
+    enemy,
+    bumpAchievement,
   });
-
-  /** Items found this run; wiped by prestige. Forge ranks survive separately. Commons stack. */
-  const foundItems = createMemo(() => data.items.filter((i) => (itemCounts()[i.id] ?? 0) > 0));
-
-  const countOf = (itemId: string) => itemCounts()[itemId] ?? 0;
-  const uniqueFragmentsOf = (itemId: string) => uniqueFragments()[itemId] ?? 0;
-  const uniqueUpgradeLevelOf = (itemId: string) => uniqueUpgradeRanks()[itemId] ?? 0;
-  const uniqueUpgradeMultiplierOf = (itemId: string) => UNIQUE_FORGE_MULTIPLIERS[uniqueUpgradeLevelOf(itemId)] ?? 0;
-  const uniqueUpgradeCostOf = (itemId: string) => UNIQUE_FORGE_FRAGMENT_COSTS[uniqueUpgradeLevelOf(itemId) + 1] ?? null;
-  const forgeableUniques = createMemo(() => data.items.filter((item) => item.kind === "unique" && countOf(item.id) > 0));
+  const {
+    temporaryModifiers,
+    abilityLastUsed,
+    abilityPolicy,
+    abilityPolicyChoices,
+    abilityPolicyOf,
+    setAbilityPolicy,
+    unlockedAbilities,
+    sleepingAbilities,
+    sleepingAbilityCount,
+    readyAbilities,
+    activeBuffs,
+    activateAbility,
+    triggerAbilityEffects,
+    abilityMagnitudeOf,
+    abilityCooldownRemaining,
+    activateReadyAbilities,
+    activatePlannedAbilities,
+    abilityDiagnostics,
+  } = abilities;
 
   /**
-   * Every unique whose next forge level is payable right now — la contrepartie de
-   * `rankablePassiveIds` côté objets. Un seul memo plutôt que le même test recopié dans le panneau
-   * de progression et dans la forge : l'entrée de menu n'a besoin que de savoir s'il y en a un, la
-   * liste de la forge a besoin de savoir lesquels, et les deux doivent dire la même chose.
+   * The modifier fold and the two numbers that come out of it — see `store/modifiers.ts`. Created
+   * last of the derived slices, because it is the one that reads all the others: the roster's
+   * contributions, the inventory's equipment, the tree's ranks, the ladders, and the buffs the
+   * ability slice owns.
    */
-  const forgeableNowIds = createMemo(() => {
-    const ids = new Set<string>();
-    for (const item of forgeableUniques()) {
-      const cost = uniqueUpgradeCostOf(item.id);
-      if (cost !== null && uniqueFragmentsOf(item.id) >= cost) ids.add(item.id);
-    }
-    return ids;
+  const fold = createModifierFold({
+    data,
+    itemOf,
+    now,
+    statClock,
+    clearedArcIds,
+    activeArc,
+    activeSynergyConfig,
+    ownedCharacters,
+    levelsByCharacter,
+    passiveRankOf,
+    evolutionStageOf,
+    duplicatesOf,
+    catchUpOf,
+    awayCharacterIds,
+    narratorBase,
+    characterEquipment,
+    uniqueUpgradeLevelOf,
+    achievementModifiers,
+    prestigeTreeRanks,
+    completedChallengeIds,
+    temporaryModifiers,
   });
-
-  function upgradeUnique(itemId: string): boolean {
-    const cost = uniqueUpgradeCostOf(itemId);
-    if (cost === null || uniqueFragmentsOf(itemId) < cost) return false;
-    setUniqueFragments((fragments) => ({ ...fragments, [itemId]: fragments[itemId] - cost }));
-    setUniqueUpgradeRanks((ranks) => ({ ...ranks, [itemId]: uniqueUpgradeLevelOf(itemId) + 1 }));
-    return true;
-  }
-
-  /** The unique item currently equipped by a character, if any. */
-  function equippedItemOf(character: Character): Item | null {
-    const itemId = characterEquipment()[character.id];
-    if (!itemId) return null;
-    const item = itemOf(itemId);
-    return item && item.kind === "unique" ? item : null;
-  }
-
-  /** The character currently wearing this unique, if any — uniques are single-copy. */
-  function wearerOf(itemId: string): Character | null {
-    // One read of the signal, not one per entry: the `find` callback re-read `characterEquipment()`
-    // on every candidate, and the Codex asks this once per unique on screen.
-    for (const [characterId, worn] of Object.entries(characterEquipment())) {
-      if (worn === itemId) return characterOf(characterId);
-    }
-    return null;
-  }
-
-  /** The world an item comes from — where its drop lives, and who may wear it. */
-  const animeOfItem = (itemId: string) => animeOf(itemAnimeIds[itemId]);
-
-  /** Whether this item can be equipped on this character (ownership, world and restriction checks). */
-  function canEquipItem(character: Character, itemId: string): boolean {
-    const item = itemOf(itemId);
-    if (!item || item.kind !== "unique") return false;
-    if ((itemCounts()[itemId] ?? 0) <= 0) return false;
-    return canEquipOn(character, item, itemAnimeIds[itemId]);
-  }
-
-  /** Equip a unique item on a character, returning true on success. */
-  function equipItem(characterId: string, itemId: string): boolean {
-    const character = characterOf(characterId);
-    const item = itemOf(itemId);
-    if (!character || !item || item.kind !== "unique") return false;
-    if (!canEquipItem(character, itemId)) return false;
-    // Only an item coming off the shelf counts: moving one between characters isn't a new equip.
-    // The second clause is what closes the loop: `unequipItem` clears the mapping, so without it
-    // un-equipping and re-equipping the same item bumps the ladder again, and a few hundred toggles
-    // of one `<select>` buy every tier — a permanent teamDps bonus that even survives prestige. The
-    // ladder can never count more uniques than the player actually owns.
-    const uniquesOwned = data.items.filter((i) => i.kind === "unique" && (itemCounts()[i.id] ?? 0) > 0).length;
-    const alreadyWorn = Object.values(characterEquipment()).includes(itemId);
-    if (!alreadyWorn && achievementCount(achievementCounts(), "uniquesEquipped") < uniquesOwned) {
-      bumpAchievement("uniquesEquipped");
-    }
-    // Unequip the item from any other character first (uniques are single-copy).
-    setCharacterEquipment((map) => {
-      const next: Record<string, string> = {};
-      for (const [cid, iid] of Object.entries(map)) {
-        if (iid !== itemId) next[cid] = iid;
-      }
-      next[characterId] = itemId;
-      return next;
-    });
-    return true;
-  }
-
-  /** Remove any equipped item from a character. */
-  function unequipItem(characterId: string): boolean {
-    if (!characterEquipment()[characterId]) return false;
-    setCharacterEquipment((map) => {
-      const next = { ...map };
-      delete next[characterId];
-      return next;
-    });
-    return true;
-  }
-
-  /** Bumps one achievement ladder; the tier(s) it crosses start contributing on the next `allModifiers` read. */
-  function bumpAchievement(categoryId: AchievementId, amount = 1) {
-    setAchievementCounts((counts) => ({ ...counts, [categoryId]: (counts[categoryId] ?? 0) + amount }));
-  }
-
-  /**
-   * Everything the team permanently contributes **as if `arc` were the arc being fought** — the
-   * characters' own damage, their passives, evolution bonuses and equipped uniques, all scaled by
-   * that arc's synergy, plus the achievements and the prestige tree. No running buff: those are
-   * timed, and the only caller that wants them is `allModifiers`, which adds them itself.
-   *
-   * Split out of `allModifiers` because `bossOutlookOf` needs the same sum against an arc that
-   * isn't the active one, and rebuilding it by hand there left most of a grown team's dps out.
-   * A function declaration, so the `allModifiers` memo below can hoist it.
-   */
-  function permanentModifiersFor(arc: Arc | null): ActiveModifier[] {
-    const config = activeSynergyConfig();
-    const equipment = characterEquipment();
-    const levels = levelsByCharacter();
-    const equipmentOf = (c: Character) => {
-      const itemId = equipment[c.id];
-      const item = itemOf(itemId);
-      return item && item.kind === "unique"
-        ? [{ ...item, effects: item.effects?.map((effect) => scaledUniqueEffect(effect, uniqueUpgradeLevelOf(item.id))) }]
-        : [];
-    };
-    const fromCharacters = ownedCharacters().flatMap((c) =>
-      characterContributions(
-        c,
-        arc,
-        config,
-        levels[c.id] ?? 0,
-        passiveRankOf(c),
-        evolutionStageOf(c),
-        equipmentOf(c),
-        duplicatesOf(c.id),
-        catchUpOf(c)
-      )
-    );
-    return [
-      ...fromCharacters,
-      ...achievementModifiers(),
-      ...prestigeTreeContributions(prestigeTreeRanks()),
-      ...challengeContributions(completedChallengeIds()),
-    ];
-  }
-
-  /**
-   * Who is currently abroad: the active arc belongs to no world they call home. It is the same
-   * `isHomeArc` test that already shuts their passive off, and it is what puts their ability out of
-   * reach too — a story ability doesn't travel. Empty between arcs, when there is no world to be
-   * foreign to.
-   */
-  const awayCharacterIds = createMemo<Set<string>>(() => {
-    const arc = activeArc();
-    if (!arc) return new Set<string>();
-    return new Set(ownedCharacters().filter((c) => !isHomeArc(c, arc, evolutionStageOf(c))).map((c) => c.id));
-  });
-
-  /** Every ability granted by the roster, before the current anime or challenge filters it. */
-  const ownedAbilities = createMemo(() =>
-    getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds())
-  );
-
-  /**
-   * How many abilities are asleep because their character is abroad. The bar filters them out
-   * entirely, so without this the roster would just quietly shrink on arrival in a new world and
-   * the player would have no way to tell a travelled ability from one never unlocked.
-   */
-  const sleepingAbilities = createMemo(() => {
-    const away = awayCharacterIds();
-    return ownedAbilities().filter((unlocked) => away.has(unlocked.sourceId));
-  });
-  const sleepingAbilityCount = createMemo(() => sleepingAbilities().length);
-
-  /**
-   * Everything the team permanently contributes in the arc being fought — `permanentModifiersFor`
-   * of the *active* arc, kept as a memo of its own.
-   *
-   * It is the expensive half of `allModifiers` (the whole roster back through
-   * `characterContributions`, each one deriving a level off its xp total) and the half that changes
-   * least: a recruit, a level, a rank, an equip. `bossOutlookOf` still calls the function directly,
-   * because the arc it asks about is precisely not this one.
-   */
-  const permanentModifiers = createMemo<ActiveModifier[]>(() => permanentModifiersFor(activeArc()));
-
-  /**
-   * The permanent contributions plus the buffs currently running.
-   *
-   * Deliberately **not** a function of `now()`. An expired buff left in this list changes nothing:
-   * `computeEffectiveStat` skips a modifier whose `expiresAt` has passed against the clock its
-   * caller hands it, and the "bare" half of the mastery cap drops every timed modifier outright —
-   * so expiry is already applied where the arithmetic happens, at full precision. Cutting the list
-   * here as well only meant `modifiersByScope` and `teamWideScaling` were rebuilt five times a
-   * second forever, and with them every roster row that reads them. The tick drops expired buffs
-   * from the signal itself, which keeps the groups from carrying yesterday's abilities around.
-   */
-  const allModifiers = createMemo<ActiveModifier[]>(() => {
-    const away = awayCharacterIds();
-    return [
-      ...permanentModifiers(),
-      // A buff whose character has left their world stops applying the moment they arrive, exactly
-      // like their passive. Otherwise "a capacity doesn't travel" would be a rule you walk around:
-      // fire everything at home, then step into the next world with the buffs still up.
-      ...temporaryModifiers().filter((m) => m.scope === undefined || !away.has(m.scope)),
-    ];
-  });
-
-  /**
-   * The unscoped modifiers, and the subset of them that scales every scoped group — achievements,
-   * the prestige tree, challenge rewards, evolution bonuses. Both are what `foldScopedStat` wants
-   * handed to it: `characterStatOf` needs exactly these once per roster row, and re-deriving them
-   * per character would walk the whole modifier list every time.
-   */
-  const globalModifiers = createMemo(() => allModifiers().filter((m) => m.scope === undefined));
-  const teamWideScaling = createMemo(() => globalModifiers().filter((m) => m.kind !== "flat"));
-
-  /** The scoped modifiers of each character, grouped the way `foldScopedStat` wants them. */
-  const modifiersByScope = createMemo(() => {
-    const byScope = new Map<string, ActiveModifier[]>();
-    for (const mod of allModifiers()) {
-      if (mod.scope === undefined) continue;
-      const group = byScope.get(mod.scope);
-      if (group) group.push(mod);
-      else byScope.set(mod.scope, [mod]);
-    }
-    return byScope;
-  });
-
-  /** What one narrator click is worth before any modifier: just the allies standing at their side. */
-  const narratorBase = createMemo(() => narratorClickPower(ownedCharacterIds().length));
-
-  /**
-   * The arc a character is met in — the one whose common item feeds their passive.
-   * Declared as functions, not consts: `allModifiers` is a memo created above and Solid runs it
-   * straight away, so anything it reads must already be hoisted.
-   */
-  function originArcOf(character: Character): Arc | null {
-    return originArcIndex.get(character.id) ?? null;
-  }
-
-  /** The common item that ranks up this character's passive, i.e. the one their home arc drops. */
-  function passiveItemOf(character: Character): Item | null {
-    const arc = originArcOf(character);
-    return itemOf(arc?.mobs.find((m) => m.itemId)?.itemId);
-  }
-
-  function passiveCopiesOf(character: Character): number {
-    const item = passiveItemOf(character);
-    return item ? countOf(item.id) : 0;
-  }
-
-  /** The common item an arc drops — what the "Objets" tree's pity timer and ghost loot hand out. */
-  function arcCommonItem(arc: Arc): Item | null {
-    return itemOf(arc.mobs.find((m) => m.itemId)?.itemId);
-  }
+  const {
+    permanentModifiersFor,
+    buffCap,
+    clickPower,
+    teamDps,
+    characterStatOf,
+  } = fold;
 
   /** Repeatable supplies for every accessible arc, priced against what its farm mobs actually pay. */
   function supplyOffers(): ShopOffer[] {
@@ -1001,36 +532,6 @@ export function createGameStore(data: GameData) {
   }
 
 
-  /**
-   * How far a buff may lift its own character right now: `SCOPED_BUFF_CAP_FLOOR` on the first arc,
-   * the full `SCOPED_BUFF_CAP` once the run stands on the last one. Read off cleared arcs, so it
-   * climbs with the story and `prestigeReset` walks it back to the floor with everything else.
-   *
-   * Denominator is `arcs.length - 1`, not `arcs.length`: the ceiling is meant to be reached *on*
-   * the final arc, not one clear after the game has ended.
-   */
-  const buffCap = createMemo(() =>
-    scopedBuffCap(data.arcs.length > 1 ? clearedArcIds().length / (data.arcs.length - 1) : 1)
-  );
-
-  /** Damage of one narrator click. */
-  const clickPower = createMemo(() =>
-    foldScopedStat(narratorBase(), "clickPower", globalModifiers(), teamWideScaling(), modifiersByScope().values(), now(), buffCap())
-  );
-  /** Damage the team deals on its own, per second. */
-  const teamDps = createMemo(() =>
-    foldScopedStat(0, "teamDps", globalModifiers(), teamWideScaling(), modifiersByScope().values(), now(), buffCap())
-  );
-
-  const unlockedAbilities = createMemo(() =>
-    // "Le Silence des héros" takes every ability away at the source: nothing to activate and
-    // nothing for the "Réflexe" automation to fire. Being abroad takes them away the same way, one
-    // character at a time — see `getUnlockedAbilities`.
-    challengeRules().noAbilities
-      ? []
-      : getUnlockedAbilities(ownedCharacterIds(), data.characters, evolvedCharacterIds(), activeArc())
-  );
-
   /** Currency threshold worth one prestige point on reset — kept at the default scale. */
   const prestigeScale = createMemo(() => PRESTIGE_SCALE);
 
@@ -1043,133 +544,6 @@ export function createGameStore(data: GameData) {
   );
 
   // --- world progression ---
-
-  const tierOf = (animeId: string) => animeTier(prestige().unlockedAnimeIds, animeId);
-
-  const arcsOf = (animeId: string) => arcsOfAnime(data.arcs, animeId);
-
-  /**
-   * Every arc's authored rung, gaps filled forward. `arcPowerTable` only knows the arcs somebody
-   * debuts in; the re-levelling ramp needs one for every arc, and the nearest earlier rung is the
-   * same approximation `reachedArcPower` already makes by skipping them.
-   */
-  const authoredRungs: Record<string, number> = (() => {
-    const rungs: Record<string, number> = {};
-    for (const anime of data.animes) {
-      let last = 0;
-      for (const arc of arcsOfAnime(data.arcs, anime.id)) {
-        last = authoredArcPower[arc.id] ?? last;
-        rungs[arc.id] = last;
-      }
-    }
-    return rungs;
-  })();
-
-  /** The authored anchors a world's re-levelling ramp is built off: its first arc. */
-  const firstArcOf = (animeId: string) => arcsOf(animeId)[0] ?? null;
-
-  const firstArcWeightOf = (animeId: string) => {
-    const first = firstArcOf(animeId);
-    return first ? arcWeight(first) : 0;
-  };
-
-  /** Puts one arc on its world's re-levelling ramp, anchored at the world's opening arc. */
-  function relevelArc(arc: Arc, entryDifficulty: number): number {
-    const first = firstArcOf(arc.animeId);
-    if (!first) return entryDifficulty;
-    return relevelledDifficulty(
-      entryDifficulty,
-      { weight: arcWeight(first), power: authoredRungs[first.id] ?? 0 },
-      { weight: arcWeight(arc), power: authoredRungs[arc.id] ?? 0 }
-    );
-  }
-
-  /**
-   * What an arc is played at according to what was **frozen** when its world was entered — never the
-   * preview below. The anchor is built out of these, and the preview is built out of the anchor: let
-   * the preview back in here and a world not yet entered would be asking what it is worth in order
-   * to answer what it is worth.
-   */
-  function frozenArcDifficulty(arc: Arc): number {
-    const tierDifficulty = difficultyMultiplier(tierOf(arc.animeId));
-    const entryDifficulty = animeEntryDifficulties()[arc.animeId];
-    if (entryDifficulty === undefined || entryDifficulty <= tierDifficulty) return tierDifficulty;
-    return relevelArc(arc, entryDifficulty);
-  }
-
-  /**
-   * The heaviest arc the run has actually cleared, in effective hp. This is the anchor a new world is
-   * re-levelled onto — a number the game has already calibrated against this player, which is what
-   * spares `worldEntryDifficulty` an exponent fitted per crossing.
-   */
-  const hardestClearedWeight = createMemo(() => {
-    const relevelled = animeEntryDifficulties();
-    let hardest = 0;
-    for (const arcId of clearedArcIds()) {
-      const arc = arcOf(arcId);
-      if (!arc) continue;
-      // An arc cleared at home was fought by a team that still had its passives and its abilities;
-      // the one about to cross the border is worth `BORDER_CLIFF` less than that. An arc cleared in
-      // a world that was itself re-levelled was already fought abroad, and needs no discount.
-      const tierDifficulty = difficultyMultiplier(tierOf(arc.animeId));
-      const cliff = (relevelled[arc.animeId] ?? 0) > tierDifficulty ? 1 : BORDER_CLIFF;
-      hardest = Math.max(hardest, (arcWeight(arc) * frozenArcDifficulty(arc)) / cliff);
-    }
-    return hardest;
-  });
-
-  /**
-   * The scale a world's **opening** arc is played at: the one frozen when it was entered, or — for a
-   * world not entered yet — what entering it right now would freeze, so a portal previews the real
-   * number.
-   *
-   * The preview is for worlds the run has **not** entered, and only for those. A world already
-   * entered with nothing frozen is a save written before re-levelling existed, and it reads back at
-   * its tier ramp alone — which is exactly what those saves were played at. Letting the preview
-   * answer for it instead made a world the player had already *finished* get harder every time they
-   * grew: `hardestClearedWeight` climbs all run, the first arc's weight is the smallest number in
-   * the game, and the entry world came out at six figures of difficulty (x7.7M on a mid-run save).
-   * A world's scale is frozen at entry, full stop; nothing may recompute it live afterwards.
-   */
-  const entryDifficultyOf = (animeId: string): number => {
-    const frozen = animeEntryDifficulties()[animeId];
-    if (frozen !== undefined) return frozen;
-    if (prestige().unlockedAnimeIds.includes(animeId)) return difficultyMultiplier(tierOf(animeId));
-    return worldEntryDifficulty(tierOf(animeId), firstArcWeightOf(animeId), hardestClearedWeight());
-  };
-
-  /**
-   * What one arc is played at — the only number `enemyHp` and `enemyReward` ever take. A world that
-   * was not re-levelled comes out flat at its tier difficulty, exactly as it always did; that covers
-   * the whole authored chain.
-   */
-  function difficultyOfArc(arc: Arc): number {
-    const tierDifficulty = difficultyMultiplier(tierOf(arc.animeId));
-    const entryDifficulty = entryDifficultyOf(arc.animeId);
-    if (entryDifficulty <= tierDifficulty) return tierDifficulty;
-    return relevelArc(arc, entryDifficulty);
-  }
-
-  /**
-   * How hard a world reads at a glance — its opening arc, the one a portal is offering. Combat
-   * itself always asks `difficultyOfArc`, since a re-levelled world ramps arc by arc.
-   */
-  const difficultyOf = (animeId: string): number => {
-    const first = firstArcOf(animeId);
-    return first ? difficultyOfArc(first) : difficultyMultiplier(tierOf(animeId));
-  };
-
-  /**
-   * Freezes what a world is played at, at the instant it is entered. Must run *before* the player
-   * lands there: both anchors are read off where the run already stands, and would otherwise start
-   * measuring the new world against itself.
-   */
-  function freezeEntryScale(animeId: string) {
-    const difficulty = worldEntryDifficulty(tierOf(animeId), firstArcWeightOf(animeId), hardestClearedWeight());
-    const rungShift = worldEntryScale(authoredRungs[firstArcOf(animeId)?.id ?? ""] ?? 0, reachedPower());
-    setAnimeEntryDifficulties((scales) => ({ ...scales, [animeId]: difficulty }));
-    setAnimeEntryScales((scales) => ({ ...scales, [animeId]: rungShift }));
-  }
 
   const arcCleared = (arc: Arc) => clearedArcIds().includes(arc.id);
 
@@ -1256,7 +630,7 @@ export function createGameStore(data: GameData) {
         .map((evolution) => evolutionKey(character.id, evolution.animeId))
     );
     if (newlyEvolved.length > 0) {
-      setEvolvedCharacterIds((ids) => [...ids, ...newlyEvolved]);
+      roster.markEvolved(newlyEvolved);
       bumpAchievement("evolutionsUnlocked", newlyEvolved.length);
     }
   }
@@ -1316,7 +690,7 @@ export function createGameStore(data: GameData) {
       !ownedCharacterIds().includes(target.characterId) &&
       canRecruitUnder(challengeRules(), ownedCharacterIds().length);
     if (isNewRecruit) {
-      setOwnedCharacterIds((ids) => [...ids, target.characterId!]);
+      roster.recruit(target.characterId!);
       bumpAchievement("charactersRecruited");
       pushNotice("recruit", `${target.name} rejoint l'équipe`);
     }
@@ -1371,19 +745,6 @@ export function createGameStore(data: GameData) {
     }
 
     spawnNext();
-  }
-
-  /** Grants one copy of an item; counted on pickup, not derived from the stack still held. */
-  function grantItem(item: Item) {
-    setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) + 1 }));
-    if (item.kind === "unique") setUniqueUpgradeRanks((ranks) => ({ ...ranks, [item.id]: ranks[item.id] ?? 1 }));
-    if (item.kind === "common") bumpAchievement("commonItemsCollected");
-    pushNotice("item", `${item.name} +1`);
-  }
-
-  function grantUniqueFragment(item: Item) {
-    setUniqueFragments((fragments) => ({ ...fragments, [item.id]: (fragments[item.id] ?? 0) + 1 }));
-    pushNotice("item", `Fragment de ${item.name} +1`);
   }
 
   /**
@@ -1562,20 +923,7 @@ export function createGameStore(data: GameData) {
 
     const cooldownLevel = nodeLevelOf("narratorClick", 4);
     if (cooldownLevel > 0) {
-      const reduction = CLICK_COOLDOWN_REDUCTION_MS * cooldownLevel;
-      const nowMs = Date.now();
-      // Only abilities still on cooldown are shaved: pushing an already-ready timestamp further
-      // into the past changes nothing and lets it drift without bound.
-      setAbilityLastUsed((used) => {
-        const next = { ...used };
-        for (const unlocked of unlockedAbilities()) {
-          const at = next[unlocked.ability.id];
-          if (at !== undefined && nowMs - at < cooldownOf(unlocked.ability)) {
-            next[unlocked.ability.id] = at - reduction;
-          }
-        }
-        return next;
-      });
+      abilities.reduceCooldowns(CLICK_COOLDOWN_REDUCTION_MS * cooldownLevel, Date.now());
     }
 
     const freeTriggerLevel = nodeLevelOf("narratorClick", 5);
@@ -1691,135 +1039,7 @@ export function createGameStore(data: GameData) {
 
   // --- levelling ---
 
-  /**
-   * Every kill trains the whole team equally; levels are uncapped so this never stops paying.
-   * Boosted by "XP" node 1's level — a flat percent on every grant, whatever its source.
-   */
-  function grantXp(amount: number) {
-    if (amount <= 0) return;
-    const xpGainLevel = nodeLevelOf("xp", 1);
-    const boosted = xpGainLevel > 0 ? amount * (1 + XP_GAIN_PERCENT * xpGainLevel) : amount;
-    setCharacterXp((xp) => {
-      const next = { ...xp };
-      for (const id of ownedCharacterIds()) next[id] = (next[id] ?? 0) + boosted;
-      return next;
-    });
-  }
-
-  /** One-off xp grant to a single character — the "XP" tree tier 4 recruit bonus. */
-  function grantXpTo(characterId: string, amount: number) {
-    if (amount <= 0) return;
-    setCharacterXp((xp) => ({ ...xp, [characterId]: (xp[characterId] ?? 0) + amount }));
-  }
-
-  /** Rank the passive runs at (0 = still locked), what the next one costs, and the cap. */
-  function passiveRankOf(character: Character): number {
-    return passiveRanks()[character.id] ?? 0;
-  }
-
-  function passiveUpgradeOf(character: Character) {
-    const level = nodeLevelOf("items", 2);
-    const discount = level > 0 ? scaledDiscount(PASSIVE_RANK_DISCOUNT, level) : 0;
-    return passiveUpgrade(passiveRankOf(character), character.rarity, passiveCopiesOf(character), discount);
-  }
-  const passiveCapOf = (character: Character) => PASSIVE_LEVEL_CAP[character.rarity];
-
-  /**
-   * Every owned character whose passive can be ranked up right now. One memo rather than the same
-   * `some(...)` scan copied into each component: the Codex needs it per character *and* per world,
-   * and the menu only needs to know whether to badge its Codex entry.
-   */
-  const rankablePassiveIds = createMemo(
-    () =>
-      new Set(
-        ownedCharacters()
-          .filter((character) => character.passive && passiveUpgradeOf(character).affordable)
-          .map((character) => character.id),
-      ),
-  );
-
-  /**
-   * The first character whose passive is affordable *and* never yet ranked this save — the tutorial's
-   * payoff. `null` the moment any rank has ever been bought, so it only ever fires once. Lives here
-   * rather than in two components: `App` announces it and `RosterPanel` unfolds the team on it, and
-   * they must agree on which character that is.
-   */
-  const firstAffordablePassive = createMemo<Character | null>(() => {
-    const ranksBought = achievementCount(
-      achievementCounts(),
-      "passiveRanksBought",
-      ownedCharacters().reduce((sum, character) => sum + passiveRankOf(character), 0)
-    );
-    if (ranksBought > 0) return null;
-    return ownedCharacters().find((c) => c.passive && passiveUpgradeOf(c).affordable) ?? null;
-  });
-
-  /**
-   * Spends the origin item to buy the next rank of a character's passive. Refuses on a character
-   * who isn't in the team: `characterContributions` only ever runs on owned characters, so the
-   * copies would be burnt for nothing (the item Codex lists the whole cast, met or not). Refuses
-   * the same way on a character with no `passive` at all — a rank on nothing is copies burnt for
-   * nothing too, and `passive` stays optional in the type even though the whole production cast
-   * carries one.
-   */
-  function rankUpPassive(character: Character): boolean {
-    if (!character.passive) return false;
-    if (!ownedCharacterIds().includes(character.id)) return false;
-    const item = passiveItemOf(character);
-    const upgrade = passiveUpgradeOf(character);
-    if (!item || !upgrade.affordable) return false;
-    setItemCounts((counts) => ({ ...counts, [item.id]: (counts[item.id] ?? 0) - upgrade.cost }));
-    setPassiveRanks((ranks) => ({ ...ranks, [character.id]: upgrade.rank + 1 }));
-    bumpAchievement("passiveRanksBought");
-    return true;
-  }
-
   const worldPointsOf = (animeId: string) => worldPoints()[animeId] ?? 0;
-
-  /** Pack copies held of a character. A function declaration, so `allModifiers` can hoist it. */
-  function duplicatesOf(characterId: string): number {
-    return characterDuplicates()[characterId] ?? 0;
-  }
-
-  /**
-   * What multiplies a character's printed base damage right now: levels, pack duplicates and the
-   * catch-up ramp, stacked exactly as `characterContributions` does it. Lives here rather than in a
-   * component so the roster and the Codex can never print two different numbers for the same
-   * character.
-   */
-  function damageGrowthOf(characterId: string): number {
-    const character = characterOf(characterId);
-    return (
-      levelGrowth(levelOf(characterId)) *
-      duplicateGrowth(duplicatesOf(characterId)) *
-      (character ? catchUpOf(character) : 1)
-    );
-  }
-
-  /**
-   * A character's actual contribution in the active arc, as the roster and Codex show it — the very
-   * term `computeScopedStat` adds for them into `teamDps`/`clickPower`, so the column now sums to
-   * the team's total instead of a fraction of it.
-   *
-   * That is the whole point of routing it through `allModifiers` rather than rebuilding the
-   * character's own contributions here: a scoped group is never folded alone in the team's stat,
-   * it is folded *with* everything team-wide — achievements, the prestige tree, challenge rewards,
-   * every evolution bonus — which is most of a grown team's damage. Leaving it out printed each
-   * character at their bare damage while the team header showed the scaled sum, and a 40-strong
-   * roster averaging 3k dps sat under a 240k total with no ability running.
-   *
-   * The same mastery cap as the team total still applies to temporary abilities, and a character
-   * who isn't recruited has no group at all: they contribute nothing, and read as 0.
-   */
-  function characterStatOf(character: Character, target: "teamDps" | "clickPower"): number {
-    const own = modifiersByScope().get(character.id);
-    if (!own) return 0;
-    // The base term is 0 and the team-wide flats are deliberately left out: this column answers
-    // "what does *this* character bring", and the flats belong to the team, not to a row.
-    // `statClock`, not `now`: a display column, refolded when the buff list changes rather than
-    // five times a second. See the signal for why that is exact and not just cheap.
-    return foldScopedStat(0, target, teamWideScaling(), teamWideScaling(), [own], statClock(), buffCap());
-  }
 
   /** Recruited members of this world's rarity — future story characters never leak through packs. */
   const packPoolOf = (animeId: string, rarity: Rarity) =>
@@ -1842,17 +1062,10 @@ export function createGameStore(data: GameData) {
     const freePackLevel = nodeLevelOf("destin", 5);
     const free = freePackLevel > 0 && Math.random() < scaledChance(FREE_PACK_CHANCE, freePackLevel);
     if (!free) setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
-    setCharacterDuplicates((copies) => ({ ...copies, [drawn.id]: (copies[drawn.id] ?? 0) + 1 }));
+    roster.addDuplicate(drawn.id);
     bumpAchievement("packsOpened");
     return { character: drawn, free };
   }
-
-  /**
-   * The "Destin" node 4 discount, as one number both the display and the till read — the panel
-   * printing one price while `buyShopOffer` charged another is exactly the bug this shape prevents.
-   * `scaledDiscount` already answers 0 at level 0, so no branch is needed here.
-   */
-  const shopDiscount = createMemo(() => scaledDiscount(SHOP_COST_DISCOUNT, nodeLevelOf("destin", 4)));
 
   /**
    * Every shop offer with the display state (price/locked/owned/affordable) the panel needs.
@@ -1892,20 +1105,14 @@ export function createGameStore(data: GameData) {
 
     setCurrency((c) => c - cost);
     if (offer.kind === "item") {
-      setItemCounts((counts) => ({ ...counts, [offer.targetId]: (counts[offer.targetId] ?? 0) + (offer.amount ?? 1) }));
+      inventory.addCopies(offer.targetId, offer.amount ?? 1);
     } else {
-      setOwnedCharacterIds((ids) => [...ids, offer.targetId]);
+      roster.recruit(offer.targetId);
     }
     return true;
   }
 
   // --- actions ---
-
-  /** Synergy multiplier a character currently gets from the active arc (1 when no arc is selected). */
-  function synergyOf(character: Character): number {
-    const arc = activeArc();
-    return arc ? synergyMultiplier(character, arc, activeSynergyConfig(), evolutionStageOf(character)) : 1;
-  }
 
   function setActiveArc(arcId: string) {
     const arc = arcOf(arcId);
@@ -1972,138 +1179,50 @@ export function createGameStore(data: GameData) {
     return true;
   }
 
-  // --- portails de crossover ---------------------------------------------------------------
-  //
-  // The only way a boss's character is ever recruited. Beating a boss in its arc clears the arc and
-  // drops its unique; the character stays behind until the player pays crystals to re-open the
-  // fight as a portal and fells it a second time, sealed and on their own terms.
-
-  /** What this character's portal costs, from their rarity alone — main cast, or a detour. */
-  function portalCostOf(characterId: string): number {
-    const character = characterOf(characterId);
-    return PORTAL_COST[character?.rarity ?? "secondary"];
-  }
-
-  /** True once the crystals are paid: the fight exists and keeps whatever damage it has taken. */
-  const portalIsOpen = (characterId: string) => portalHp()[characterId] !== undefined;
-
   /**
-   * Every portal the run could care about: one per boss recruit whose arc has been cleared and who
-   * has not joined yet. An arc that was never cleared is not on the list at all — a portal re-opens
-   * a fight the player has already won, it never skips one.
+   * Crossover portals — see `store/portals.ts`. It drives the fight on screen while the player
+   * stands in one, so it is handed `showEnemy` and `spawnNext`; `spawnNext` asks it first, which is
+   * what makes a portal outrank the arc.
    */
-  const portalTargets = (): PortalTarget[] => {
-    const cleared = new Set(clearedArcIds());
-    const owned = new Set(ownedCharacterIds());
-    const crystals = crossoverCrystals();
-    const hp = portalHp();
-    const damage = portalDamage();
-    const targets: PortalTarget[] = [];
-    for (const [characterId, arc] of portalIndex) {
-      if (owned.has(characterId) || !cleared.has(arc.id)) continue;
-      const character = characterOf(characterId);
-      if (!character) continue;
-      const cost = PORTAL_COST[character.rarity];
-      const open = hp[characterId] !== undefined;
-      targets.push({
-        character,
-        arc,
-        cost,
-        open,
-        maxHp: hp[characterId] ?? 0,
-        damage: damage[characterId] ?? 0,
-        affordable: crystals >= cost,
-        active: activePortalId() === characterId,
-      });
-    }
-    return targets.sort((a, b) => a.arc.order - b.arc.order);
-  };
-
-  /**
-   * Pays for a portal and freezes what it will cost to win. The hp is a photograph of the team's
-   * dps *now* (see `portalFightHp`): a portal left for later is the reward for having grown since.
-   */
-  function openPortal(characterId: string): boolean {
-    const arc = portalIndex.get(characterId);
-    if (!arc || portalIsOpen(characterId)) return false;
-    if (ownedCharacterIds().includes(characterId)) return false;
-    if (!clearedArcIds().includes(arc.id)) return false;
-    // A run under "En petit comité" would pay for a recruit it is not allowed to take.
-    if (!canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
-    const cost = portalCostOf(characterId);
-    if (crossoverCrystals() < cost) return false;
-    setCrossoverCrystals((c) => c - cost);
-    setPortalHp((map) => ({ ...map, [characterId]: portalFightHp(teamDps(), portalWeightByArc[arc.id] ?? 1) }));
-    setPortalDamage((map) => ({ ...map, [characterId]: 0 }));
-    pushNotice("unlock", `Portail ouvert : ${characterOf(characterId)?.name ?? characterId}`);
-    return true;
-  }
-
-  /** Steps into an open portal. The arc keeps its place; leaving puts the player straight back. */
-  function enterPortal(characterId: string): boolean {
-    if (!portalIsOpen(characterId) || ownedCharacterIds().includes(characterId)) return false;
-    if (!canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
-    setActivePortalId(characterId);
-    cancelPendingAutomation();
-    spawnPortal();
-    return true;
-  }
-
-  /** Puts the sealed boss in front of the player, at whatever hp the last visit left it. */
-  function spawnPortal() {
-    const characterId = activePortalId();
-    const arc = characterId ? portalIndex.get(characterId) : null;
-    if (!characterId || !arc) return;
-    const maxHp = portalHp()[characterId] ?? 0;
-    setEnemy(portalEnemy(arc.boss));
-    setEnemyMaxHp(maxHp);
-    setEnemyHpLeft(Math.max(0, maxHp - (portalDamage()[characterId] ?? 0)));
-    // No clock, ever: a portal is meant to be walked out of and come back to.
-    setTimerDeadline(null);
-    setTimerTotal(null);
-  }
-
-  /**
-   * Writes the damage taken off the portal boss back into the saved map. Called from the tick and
-   * before every save rather than from `dealDamage`: the fight only has to survive a reload, not be
-   * recorded hit by hit, and a per-hit write would rebuild the map twenty times a second.
-   */
-  function syncPortalDamage() {
-    const characterId = activePortalId();
-    if (!characterId) return;
-    const done = Math.max(0, enemyMaxHp() - enemyHpLeft());
-    setPortalDamage((map) => (map[characterId] === done ? map : { ...map, [characterId]: done }));
-  }
-
-  /** Steps back out into the arc, keeping the damage already dealt. */
-  function leavePortal(): boolean {
-    if (!activePortalId()) return false;
-    syncPortalDamage();
-    setActivePortalId(null);
-    spawnNext();
-    return true;
-  }
-
-  /** The portal falls: the character joins, and the portal itself is spent. */
-  function winPortal(characterId: string) {
-    const character = characterOf(characterId);
-    setActivePortalId(null);
-    setPortalHp((map) => {
-      const { [characterId]: _spent, ...rest } = map;
-      return rest;
-    });
-    setPortalDamage((map) => {
-      const { [characterId]: _spent, ...rest } = map;
-      return rest;
-    });
-    if (canRecruitUnder(challengeRules(), ownedCharacterIds().length)) {
-      setOwnedCharacterIds((ids) => (ids.includes(characterId) ? ids : [...ids, characterId]));
-      bumpAchievement("charactersRecruited");
-      pushNotice("recruit", `${character?.name ?? characterId} rejoint l'équipe`);
-    }
-    bumpAchievement("bossesKilled");
-    spawnNext();
-  }
+  const portals = createPortals({
+    content,
+    saved,
+    clearedArcIds,
+    ownedCharacterIds,
+    challengeRules,
+    teamDps,
+    crossoverCrystals,
+    spendCrystals: (amount) => setCrossoverCrystals((c) => c - amount),
+    recruit: roster.recruit,
+    bumpAchievement,
+    pushNotice,
+    enemyMaxHp,
+    enemyHpLeft,
+    showEnemy: (target, maxHp, hpLeft) => {
+      setEnemy(target);
+      setEnemyMaxHp(maxHp);
+      setEnemyHpLeft(hpLeft);
+      // No clock, ever: a portal is meant to be walked out of and come back to.
+      setTimerDeadline(null);
+      setTimerTotal(null);
+    },
+    spawnArcEnemy: spawnNext,
+    cancelPendingAutomation,
+  });
+  const {
+    portalHp,
+    portalDamage,
+    activePortalId,
+    portalCostOf,
+    portalIsOpen,
+    portalTargets,
+    openPortal,
+    enterPortal,
+    leavePortal,
+    winPortal,
+    spawnPortal,
+    syncPortalDamage,
+  } = portals;
 
   /** True when this world's own prerequisite is cleared — the universe's reading order. */
   const animeAvailable = (animeId: string) => isAnimeAvailable(data.animes, animeId, data.arcs, clearedArcIds());
@@ -2144,140 +1263,6 @@ export function createGameStore(data: GameData) {
     spawnNext();
     return true;
   }
-
-  /**
-   * An ability's effects, ready to drop into `temporaryModifiers`. The "DPS Équipe" tree can boost
-   * a percent/multiplier effect's magnitude (node 2) and stretch its duration (node 4) — flat
-   * effects are left alone since "damage boost" is meant to read as a percent, not a flat bump.
-   */
-  function buildAbilityModifiers(unlocked: UnlockedAbility): ActiveModifier[] {
-    const { ability, characterIds } = unlocked;
-    const nowMs = Date.now();
-    const damageBoostLevel = nodeLevelOf("teamDps", 2);
-    const durationLevel = nodeLevelOf("teamDps", 4);
-    const duration =
-      durationLevel > 0 ? ability.durationMs * (1 + ABILITY_DURATION_BOOST * durationLevel) : ability.durationMs;
-    // One modifier per scoped character: a buff only ever boosts the character it comes from, which
-    // is what lets every ability run at once (see `computeScopedStat`).
-    return ability.effects.flatMap((effect) =>
-      characterIds.map((characterId) => ({
-        ...effect,
-        value: boostedAbilityValue(effect, ability, damageBoostLevel),
-        sourceId: ability.id,
-        scope: characterId,
-        expiresAt: nowMs + duration,
-      }))
-    );
-  }
-
-  /**
-   * A percent or multiplier buff lifts its own characters only, so it is worth its printed value
-   * times the share of the team it names — `scopedMagnitude` normalises that share against how much
-   * of the roster any ability reaches at all (see there). Flats are untouched by both: a flat bump
-   * lands whole on its character either way, and node 2 deliberately reads as a percent.
-   */
-  function boostedAbilityValue(effect: ModifierTemplate, ab: AbilityDefinition, level: number): number {
-    if (effect.kind === "flat") return effect.value;
-    const magnitude = abilityCoverage() * dutyMagnitude(ab) * (1 + ABILITY_DAMAGE_BOOST * level);
-    if (effect.kind === "percent") return effect.value * magnitude;
-    return 1 + (effect.value - 1) * magnitude;
-  }
-
-  /** Applies an ability's effects without touching its cooldown — the "Clic du Narrateur" tier 5 freebie. */
-  function triggerAbilityEffects(unlocked: UnlockedAbility) {
-    // Re-firing an ability refreshes its own buff instead of stacking a second copy of it; every
-    // *other* ability keeps running, scoped to its own characters.
-    setTemporaryModifiers((existing) => [
-      ...existing.filter((m) => m.sourceId !== unlocked.ability.id),
-      ...buildAbilityModifiers(unlocked),
-    ]);
-  }
-
-  function activateAbility(abilityId: string) {
-    const unlocked = unlockedAbilities().find((u) => u.ability.id === abilityId);
-    if (!unlocked) return false;
-
-    const nowMs = Date.now();
-    if (!isAbilityReady(abilityLastUsed()[abilityId], cooldownOf(unlocked.ability), nowMs)) return false;
-
-    triggerAbilityEffects(unlocked);
-    setAbilityLastUsed((used) => ({ ...used, [abilityId]: nowMs }));
-    bumpAchievement("abilitiesUsed");
-    return true;
-  }
-
-  function abilityCooldownRemaining(abilityId: string): number {
-    const ability = unlockedAbilities().find((u) => u.ability.id === abilityId)?.ability;
-    const cooldownMs = ability ? cooldownOf(ability) : 0;
-    return cooldownRemaining(abilityLastUsed()[abilityId], cooldownMs, now());
-  }
-
-  /** How much a scoped buff is worth over its printed value right now — see `scopedMagnitude`. */
-  const abilityCoverage = createMemo(() => {
-    const covered = new Set(unlockedAbilities().flatMap((u) => u.characterIds));
-    return scopedMagnitude(ownedCharacterIds().length, covered.size);
-  });
-
-  /** What a buff's printed percent/multiplier is really worth right now — for the tooltips. */
-  function abilityMagnitudeOf(ability: AbilityDefinition): number {
-    return abilityCoverage() * dutyMagnitude(ability);
-  }
-
-  /** Abilities off cooldown right now — the bar's count, and what `activateReadyAbilities` fires. */
-  const readyAbilities = createMemo(() =>
-    unlockedAbilities().filter((u) => isAbilityReady(abilityLastUsed()[u.ability.id], cooldownOf(u.ability), now()))
-  );
-
-  /**
-   * Fires every ability that is off cooldown, and returns how many went off. Buffs stack now, so
-   * firing them all is simply the best play — that used to be impossible (they locked each other
-   * out), and clicking through forty buttons to do it by hand is not a decision, it's chores.
-   */
-  function activateReadyAbilities(): number {
-    return readyAbilities().filter((u) => activateAbility(u.ability.id)).length;
-  }
-
-  /** Is the enemy in front of us the arc's boss — the one condition a `"boss"` policy waits for. */
-  const onBoss = () => {
-    const arc = activeArc();
-    return !!arc && enemy()?.id === arc.boss.id;
-  };
-
-  /**
-   * What the "Réflexe" automation fires: the ready abilities the player's plan allows right now.
-   * Still cadence and scope only — a policy can delay an ability, never make one worth more.
-   */
-  function activatePlannedAbilities(): number {
-    return autoFirable(readyAbilities(), unlockedAbilities(), abilityPolicyOf, onBoss()).filter((u) =>
-      activateAbility(u.ability.id)
-    ).length;
-  }
-
-  /** Buffs running right now, strongest first — what the ability bar shows as the live stack. */
-  const activeBuffs = createMemo(() => {
-    const live = pruneExpired(temporaryModifiers(), now());
-    return [...new Set(live.map((m) => m.sourceId))];
-  });
-
-  /** Every owned ability with the exact reason it is ready, cooling, active or unavailable. */
-  const abilityDiagnostics = createMemo<AbilityDiagnostic[]>(() => {
-    const running = new Set(activeBuffs());
-    return ownedAbilities().flatMap((unlocked) => {
-      const character = characterOf(unlocked.sourceId);
-      if (!character) return [];
-      return [
-        diagnoseAbility(unlocked, character, {
-          activeArc: activeArc(),
-          evolved: evolutionStageOf(character),
-          challengeId: activeChallengeId(),
-          noAbilities: challengeRules().noAbilities === true,
-          lastActivatedAt: abilityLastUsed()[unlocked.ability.id],
-          now: now(),
-          active: running.has(unlocked.ability.id),
-        }),
-      ];
-    });
-  });
 
   // --- défis de run (`challenges.ts`) ---
 
@@ -2366,20 +1351,14 @@ export function createGameStore(data: GameData) {
     setRunStartedAt(endedAt);
     setCurrency(0);
     setLifetimeEarned(0);
-    setOwnedCharacterIds([]);
-    setCharacterXp({});
-    setTemporaryModifiers([]);
-    setAbilityLastUsed({});
-    setItemCounts({});
-    setUniqueFragments({});
+    roster.resetRun();
+    abilities.reset();
+    inventory.resetRun();
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
-    setAnimeEntryDifficulties({});
-    setAnimeEntryScales({});
+    worlds.reset();
     setBossRetreatArcIds([]);
-    setEvolvedCharacterIds([]);
-    setCharacterEquipment({});
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
     // The intendance's list names characters the run no longer has; the switches themselves are a
@@ -2390,15 +1369,17 @@ export function createGameStore(data: GameData) {
     setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
-    setActivePortalId(null);
-    setPortalHp({});
-    setPortalDamage({});
+    portals.reset();
     spawnNext();
   }
 
-  function buildSaveFile(): SaveFile {
+  /**
+   * The live signals assembled into the save shape. `persistence.ts` owns the shape and
+   * `store/saveIO.ts` owns when it is written; this is the only place that knows where each field
+   * comes from.
+   */
+  function buildSaveFile(): Omit<SaveFile, "version"> {
     return {
-      version: SAVE_VERSION,
       currency: currency(),
       lifetimeEarned: lifetimeEarned(),
       ownedCharacterIds: ownedCharacterIds(),
@@ -2424,7 +1405,7 @@ export function createGameStore(data: GameData) {
       worldPoints: worldPoints(),
       characterDuplicates: characterDuplicates(),
       autoClickEnabled: autoClickEnabled(),
-      automationOff: automationOff(),
+      automationOff: tree.automationOff(),
       autoRankCharacterIds: autoRankCharacterIds(),
       abilityPolicy: abilityPolicy(),
       abilityLastUsed: abilityLastUsed(),
@@ -2435,86 +1416,37 @@ export function createGameStore(data: GameData) {
     };
   }
 
-  // An import deliberately reloads the page after replacing localStorage. `pagehide` and Solid's
-  // cleanup both call `save()` during that reload; without this guard they immediately wrote the
-  // still-running old signals over the imported file, making a successful import look ignored.
-  let importedSavePendingReload = false;
-
-  function save() {
-    if (importedSavePendingReload) return;
-    // The portal fight in progress is the one thing a save has to catch up with first.
-    syncPortalDamage();
-    if (writeSave(buildSaveFile(), () => setHasBackupSave(true))) setLastSavedAt(Date.now());
-  }
-
-  /** A portable blob the player can download and hand back later — same shape `readSave` already trusts. */
-  function exportSave(): string {
-    return encodeSave(buildSaveFile());
-  }
-
   /**
-   * Loads a blob produced by `exportSave`. Writing straight to localStorage and reloading is the
-   * simplest way to get every signal back in sync, rather than exposing a setter per field here.
+   * Writing, exporting, importing and restoring — see `store/saveIO.ts`. It is handed
+   * `buildSaveFile` rather than owning any state, and `syncPortalDamage` as the one thing a write
+   * has to catch up with first.
    */
-  function importSave(text: string): boolean {
-    const parsed = decodeSave(text);
-    if (!parsed) return false;
-    importedSavePendingReload = true;
-    if (!writeSave(parsed, () => setHasBackupSave(true))) {
-      importedSavePendingReload = false;
-      return false;
-    }
-    if (typeof location !== "undefined") location.reload();
-    return true;
-  }
-
-  /**
-   * Swaps the current and backup slots so restoring is reversible until the next autosave. A bad
-   * current slot is simply replaced; it is never allowed to destroy the valid backup.
-   */
-  function restoreBackup(): boolean {
-    importedSavePendingReload = true;
-    if (!restoreBackupSlots()) {
-      importedSavePendingReload = false;
-      return false;
-    }
-    if (typeof location !== "undefined") location.reload();
-    return true;
-  }
+  const saveIO = createSaveIO({ buildSaveFile, beforeWrite: syncPortalDamage });
+  const { hasBackupSave, lastSavedAt, save, exportSave, importSave, restoreBackup } = saveIO;
 
   /** Wipes the save and every bit of progress, prestige and worlds included. */
   function hardReset() {
     clearSaveSlots();
-    setHasBackupSave(false);
+    saveIO.forgetBackup();
     setCurrency(0);
     setLifetimeEarned(0);
-    setOwnedCharacterIds([]);
-    setTemporaryModifiers([]);
-    setAbilityLastUsed({});
+    roster.resetAll();
+    abilities.reset();
     setPrestige(createInitialPrestigeState());
-    setAnimeEntryDifficulties({});
-    setAnimeEntryScales({});
-    setCharacterXp({});
-    setItemCounts({});
-    setUniqueFragments({});
-    setUniqueUpgradeRanks({});
-    setPassiveRanks({});
+    worlds.reset();
+    inventory.resetAll();
     setArcKills({});
     setClearedArcIds([]);
     setActiveArcId(null);
     setBossRetreatArcIds([]);
-    setEvolvedCharacterIds([]);
-    setAchievementCounts({});
+    achievements.reset();
     setRunStartedAt(Date.now());
-    setRunAchievementBaseline({});
     setLastPrestigeReport(null);
-    setPrestigeTreeRanks({});
-    setCharacterEquipment({});
+    tree.reset();
     setKillsSinceDrop({});
     setAutoClickAccumMs(0);
     setAutoRankCharacterIds([]);
     setAutoAbilityAccumMs(0);
-    setAutomationOff({});
     setActiveChallengeId(null);
     setCompletedChallengeIds([]);
     cancelPendingAutomation();
@@ -2522,13 +1454,10 @@ export function createGameStore(data: GameData) {
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
     setWorldPoints({});
-    setCharacterDuplicates({});
     // Les portails partent avec le reste, comme dans `prestigeReset` : sinon le joueur reste dans
     // le combat qu'il vient d'effacer, et la prochaine sauvegarde automatique réécrit `portalHp` /
     // `portalDamage` dans un fichier censé être neuf.
-    setActivePortalId(null);
-    setPortalHp({});
-    setPortalDamage({});
+    portals.reset();
     setEnemy(null);
     // Rien ne reste en face du joueur, donc rien ne doit garder d'horloge : `checkTimer` tournerait
     // sur l'échéance du combat qu'on vient d'effacer.
@@ -2536,16 +1465,7 @@ export function createGameStore(data: GameData) {
     setTimerTotal(null);
   }
 
-  /** Buys the next level of one specific node, if it's unlocked, not maxed, and affordable. */
-  function purchaseTreeLevel(categoryId: PrestigeTreeCategoryId, position: number): boolean {
-    const category = PRESTIGE_TREE_CATEGORIES.find((c) => c.id === categoryId);
-    if (!category) return false;
-    const result = purchaseNodeLevel(prestige().prestigePoints, prestigeTreeRanks(), category, position);
-    if (!result) return false;
-    setPrestige((p) => ({ ...p, prestigePoints: result.prestigePoints }));
-    setPrestigeTreeRanks(result.ranks);
-    return true;
-  }
+  const purchaseTreeLevel = tree.purchaseLevel;
 
   spawnNext();
 
@@ -2675,15 +1595,11 @@ export function createGameStore(data: GameData) {
       grantXp(XP_PASSIVE_PER_SECOND * xpTrickleLevel * deltaSeconds);
     }
 
-    // Only rebuild the list when something actually expired, so an idle tick stays a no-op.
-    if (notices().some((n) => n.expiresAt <= nowMs)) {
-      setNotices((list) => list.filter((n) => n.expiresAt > nowMs));
-    }
+    noticeQueue.prune(nowMs);
     // Same shape, and the one thing that keeps `allModifiers` off the clock honest: the fold
     // already ignores an expired buff to the millisecond, but nothing else would ever take it back
     // out of the list, and `modifiersByScope` would carry every ability ever fired this run.
-    if (temporaryModifiers().some((m) => m.expiresAt !== undefined && m.expiresAt <= nowMs)) {
-      setTemporaryModifiers((mods) => pruneExpired(mods, nowMs));
+    if (abilities.pruneExpiredBuffs(nowMs)) {
       setStatClock(nowMs);
     } else if (nowMs - statClock() >= STAT_CLOCK_MS) {
       setStatClock(nowMs);
@@ -2700,11 +1616,8 @@ export function createGameStore(data: GameData) {
       setAutoAdvanceAt(shift);
       setAutoRematchAt(shift);
       setCrossoverUntil((t) => (t ? t + offset : t));
-      setTemporaryModifiers((mods) =>
-        mods.map((m) => (m.expiresAt === undefined ? m : { ...m, expiresAt: m.expiresAt + offset }))
-      );
-      setAbilityLastUsed((map) => Object.fromEntries(Object.entries(map).map(([k, v]) => [k, v + offset])));
-      setNotices((list) => list.map((n) => ({ ...n, expiresAt: n.expiresAt + offset })));
+      abilities.shiftBy(offset);
+      noticeQueue.shiftBy(offset);
       setNow(pausedAt);
       setStatClock(pausedAt);
     }
