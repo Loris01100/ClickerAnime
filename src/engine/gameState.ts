@@ -1122,10 +1122,21 @@ export function createGameStore(data: GameData) {
    * The scale a world's **opening** arc is played at: the one frozen when it was entered, or — for a
    * world not entered yet — what entering it right now would freeze, so a portal previews the real
    * number.
+   *
+   * The preview is for worlds the run has **not** entered, and only for those. A world already
+   * entered with nothing frozen is a save written before re-levelling existed, and it reads back at
+   * its tier ramp alone — which is exactly what those saves were played at. Letting the preview
+   * answer for it instead made a world the player had already *finished* get harder every time they
+   * grew: `hardestClearedWeight` climbs all run, the first arc's weight is the smallest number in
+   * the game, and the entry world came out at six figures of difficulty (x7.7M on a mid-run save).
+   * A world's scale is frozen at entry, full stop; nothing may recompute it live afterwards.
    */
-  const entryDifficultyOf = (animeId: string): number =>
-    animeEntryDifficulties()[animeId] ??
-    worldEntryDifficulty(tierOf(animeId), firstArcWeightOf(animeId), hardestClearedWeight());
+  const entryDifficultyOf = (animeId: string): number => {
+    const frozen = animeEntryDifficulties()[animeId];
+    if (frozen !== undefined) return frozen;
+    if (prestige().unlockedAnimeIds.includes(animeId)) return difficultyMultiplier(tierOf(animeId));
+    return worldEntryDifficulty(tierOf(animeId), firstArcWeightOf(animeId), hardestClearedWeight());
+  };
 
   /**
    * What one arc is played at — the only number `enemyHp` and `enemyReward` ever take. A world that

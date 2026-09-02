@@ -313,6 +313,39 @@ describe("store boot", () => {
     }
   });
 
+  it("never re-levels a world the run has already entered", () => {
+    // Une sauvegarde d'avant le re-nivellement : les mondes sont entrés, rien n'est figé. L'aperçu
+    // « ce que coûterait d'y entrer maintenant » ne doit pas répondre à leur place — il monte tout
+    // au long de la partie, et le monde de départ, terminé depuis longtemps, ressortait à x7,7
+    // millions de difficulté.
+    const narutoArcs = gameData.arcs.filter((arc) => arc.animeId === "naruto");
+    const restore = installSave(
+      baseSave({
+        activeArcId: narutoArcs[0].id,
+        unlockedAnimeIds: ["naruto", "shippuden"],
+        clearedArcIds: [
+          ...narutoArcs.map((arc) => arc.id),
+          ...gameData.arcs.filter((arc) => arc.animeId === "shippuden").slice(0, 10).map((arc) => arc.id),
+        ],
+      })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(gameData);
+        dispose();
+        return store;
+      });
+      // Chacun à sa marche de palier, quoi que la partie ait nettoyé depuis.
+      expect(game.difficultyOf("naruto")).toBe(1);
+      expect(game.difficultyOf("shippuden")).toBeCloseTo(2.5, 6);
+      for (const arc of narutoArcs) expect(game.difficultyOfArc(arc)).toBe(1);
+      // Un monde où l'on n'est jamais allé garde son aperçu honnête, lui.
+      expect(game.difficultyOf("bleach")).toBeGreaterThan(100);
+    } finally {
+      restore();
+    }
+  });
+
   it("pays crossover crystals on the boss that clears an arc, never on a re-farmed one", () => {
     const data = {
       animes: [

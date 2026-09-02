@@ -186,6 +186,14 @@ in `SaveFile.animeEntryDifficulties` and `animeEntryScales`, for exactly the rea
 recomputed live against a `reachedArcPower` that keeps climbing, a world would keep getting harder
 while you are standing in it.
 
+**The preview answers only for a world the run has not entered.** `entryDifficultyOf` falls back to
+`worldEntryDifficulty` so a portal can show what entering *now* would cost — but that number climbs
+with `hardestClearedWeight` all run, and the fallback used to answer for entered worlds too whenever
+nothing was frozen for them, which is every save written before this system existed. The entry world,
+long since finished, then read at **x7.7M** difficulty on a mid-run save and got harder every time
+the player got stronger. An entered world with nothing frozen now reads at its tier ramp alone, which
+is what those saves were actually played at (`store.test.ts` guards it).
+
 | Number | What it does | Fitted to |
 |---|---|---|
 | `worldEntryDifficulty` | the scale the world's **opening arc** plays at | `WORLD_ENTRY_BREATHER` = 0.7 of the heaviest arc already cleared |
