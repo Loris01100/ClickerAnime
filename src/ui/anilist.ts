@@ -357,12 +357,18 @@ function lookup(key: string, fetcher: () => Promise<string | null>): Promise<str
   const existing = inFlight.get(key);
   if (existing) return existing;
 
-  const promise = fetcher().then((url) => {
-    inFlight.delete(key);
-    if (url) persist(key, url);
-    else missed.add(key);
-    return url;
-  });
+  // `.catch` autant que `.then` : `portraitUrl` promet de ne jamais rejeter, et sans lui une
+  // promesse rejetée resterait dans `inFlight` pour toute la session — chaque appel suivant sur
+  // cette clé recevrait le même rejet, que le `createResource` de `Sprite` n'a aucun moyen de
+  // rattraper (ce code n'a pas d'`<ErrorBoundary>`). Un échec se comporte comme un miss.
+  const promise = fetcher()
+    .catch(() => null)
+    .then((url) => {
+      inFlight.delete(key);
+      if (url) persist(key, url);
+      else missed.add(key);
+      return url;
+    });
   inFlight.set(key, promise);
   return promise;
 }

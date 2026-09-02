@@ -252,4 +252,27 @@ describe("portal store", () => {
       restore();
     }
   });
+
+  it("wipes open portals on a hard reset too", () => {
+    const { game, restore } = boot({
+      ownedCharacterIds: ["ca", "cb"],
+      unlockedAnimeIds: ["ta", "tb"],
+      clearedArcIds: ["ta-arc"],
+      crossoverCrystals: PORTAL_COST.main,
+    });
+    try {
+      game.openPortal("cboss");
+      game.enterPortal("cboss");
+      game.hardReset();
+      // Un effacement total efface aussi le portail : sans ça, le joueur reste planté dans le
+      // combat qu'il vient de faire disparaître, et la prochaine sauvegarde automatique réécrit
+      // `portalHp`/`portalDamage` dans un fichier censé être neuf.
+      expect(game.activePortalId()).toBeNull();
+      expect(JSON.parse(atob(game.exportSave())).portalHp).toEqual({});
+      expect(JSON.parse(atob(game.exportSave())).portalDamage).toEqual({});
+      expect(game.portalTargets()).toHaveLength(0);
+    } finally {
+      restore();
+    }
+  });
 });

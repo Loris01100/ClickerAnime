@@ -512,8 +512,6 @@ export function simulateRun(data: GameData, overrides: Partial<SimOptions> = {})
   }
 }
 
-/** Alias that says what it does when several runs are asked for. Same function, same report. */
-export const simulateCampaign = simulateRun;
 
 function playCampaign(game: GameStore, data: GameData, options: SimOptions, clock: Clock): SimReport {
   const startedAt = clock.now();

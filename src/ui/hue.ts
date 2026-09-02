@@ -14,7 +14,7 @@ export function spriteHue(seed: string): number {
  * Callers set it as the `--world-hue` custom property on a container and let `styles.css` do the
  * rest — no component ever builds a colour string itself.
  */
-export function themeOf(anime: Anime | undefined): number {
+export function themeOf(anime: Anime | null | undefined): number {
   if (!anime) return 0;
   return anime.themeHue ?? spriteHue(anime.id);
 }

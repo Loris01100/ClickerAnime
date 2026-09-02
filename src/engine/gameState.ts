@@ -2523,7 +2523,17 @@ export function createGameStore(data: GameData) {
     setCrossoverUntil(0);
     setWorldPoints({});
     setCharacterDuplicates({});
+    // Les portails partent avec le reste, comme dans `prestigeReset` : sinon le joueur reste dans
+    // le combat qu'il vient d'effacer, et la prochaine sauvegarde automatique réécrit `portalHp` /
+    // `portalDamage` dans un fichier censé être neuf.
+    setActivePortalId(null);
+    setPortalHp({});
+    setPortalDamage({});
     setEnemy(null);
+    // Rien ne reste en face du joueur, donc rien ne doit garder d'horloge : `checkTimer` tournerait
+    // sur l'échéance du combat qu'on vient d'effacer.
+    setTimerDeadline(null);
+    setTimerTotal(null);
   }
 
   /** Buys the next level of one specific node, if it's unlocked, not maxed, and affordable. */
@@ -2570,8 +2580,7 @@ export function createGameStore(data: GameData) {
     // A portal only has to survive a reload, so its progress is written back once a tick.
     syncPortalDamage();
 
-    const autoClickLevel = nodeLevelOf("narratorClick", 2);
-    if (autoClickLevel > 0 && autoClickEnabled() && !clickIsMuted(challengeRules(), ownedCharacterIds().length)) {
+    if (autoClickLevel() > 0 && autoClickEnabled() && !clickIsMuted(challengeRules(), ownedCharacterIds().length)) {
       // Levels buy cadence, not strength: every automatic click lands at full click power, they
       // just come closer together — see `autoClickIntervalMs`.
       const interval = autoClickInterval();

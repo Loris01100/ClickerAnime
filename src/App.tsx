@@ -91,7 +91,7 @@ export default function App() {
   }
 
   /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
-  const activeAnime = () => game.data.animes.find((a) => a.id === game.activeArc()?.animeId);
+  const activeAnime = () => game.animeOf(game.activeArc()?.animeId);
 
   /**
    * A fresh run starts with the fight and its immediate objective, then the shell grows with the
