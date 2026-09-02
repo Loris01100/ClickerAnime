@@ -156,13 +156,24 @@ export default function ProgressPanel(props: {
             >
               Un monde déjà dépassé est remis à niveau à l'entrée : la difficulté affichée est
               celle de son premier arc.
-            </Show>
+            </Show>{" "}
+            La difficulté multiplie les points de vie des ennemis à l'entrée (et leurs
+            récompenses d'autant) : x2 = ennemis deux fois plus résistants.
           </p>
+          {/* Colonnes fixes : les multiplicateurs ne se comparent d'un monde à l'autre que s'ils
+              sont alignés, quelle que soit la longueur du titre. */}
+          <div class="row travel-row travel-head">
+            <span class="name">Monde</span>
+            <small>Difficulté</small>
+            <span />
+          </div>
           <For each={otherAnimes()}>
             {(anime) => (
-              <div class="row">
+              <div class="row travel-row">
                 <span class="name">{anime.name}</span>
-                <small class="muted">x{fmt(props.game.difficultyOf(anime.id))}</small>
+                <small class="muted travel-diff" title="Multiplicateur de points de vie des ennemis dans ce monde">
+                  x{fmt(props.game.difficultyOf(anime.id))}
+                </small>
                 <Show
                   when={props.game.canTravel()}
                   fallback={

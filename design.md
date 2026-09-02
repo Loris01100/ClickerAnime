@@ -643,7 +643,11 @@ code écrit à la main.
   difficulté) reste toujours visible, seul le corps se replie. Une exception assumée : « Voyager »
   n'affiche plus de difficulté dans son header, car depuis le re-nivellement des mondes déjà
   dépassés (`docs/progression.md`) il n'existe plus de chiffre unique valable pour « le prochain
-  monde » — chaque ligne de destination porte le sien, comme les panels par monde juste au-dessus. Tout nouveau panel doit suivre ce
+  monde » — chaque ligne de destination porte le sien, comme les panels par monde juste au-dessus.
+  Ces lignes-là sortent donc du `.row` en `space-between` pour une grille à trois colonnes fixes
+  (`.travel-row`, surmontée d'un `.travel-head` « Monde / Difficulté ») : un multiplicateur ne se
+  compare au suivant que s'il est aligné, et un `x3.57K` nu ne disait pas de quoi il parlait — le
+  panel dit maintenant en toutes lettres qu'il s'agit des PV des ennemis. Tout nouveau panel doit suivre ce
   patron dès sa création — ne pas en ajouter un en `<span>` nu qu'il faudrait reconvertir plus
   tard.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.

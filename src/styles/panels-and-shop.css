@@ -125,6 +125,32 @@ small {
   border-bottom: none;
 }
 
+/* Voyager : trois colonnes fixes, pour que les multiplicateurs de difficulté se lisent en pile
+   et se comparent d'un monde à l'autre malgré des titres de longueurs très différentes. */
+.travel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem 5.25rem;
+  justify-content: initial;
+}
+.travel-diff {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.travel-row > button {
+  width: 100%;
+}
+.travel-head {
+  padding-bottom: 0.15rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+.travel-head > small {
+  text-align: right;
+}
+
 /* --- shop --- */
 .shop-modal {
   width: min(980px, calc(100vw - 2rem));
