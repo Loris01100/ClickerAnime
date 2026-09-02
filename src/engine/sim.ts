@@ -38,6 +38,8 @@ export interface SimOptions {
   /** Stop as soon as the chosen entry world is complete, before travelling elsewhere. */
   stopAfterEntryWorld: boolean;
   packs: boolean;
+  /** Whether the simulated player spends crystals on crossover portals to recruit boss characters. */
+  portals: boolean;
   abilities: boolean;
   equip: boolean;
   rankPassives: boolean;
@@ -52,6 +54,7 @@ export const defaultSimOptions: SimOptions = {
   worldOrder: null,
   stopAfterEntryWorld: false,
   packs: true,
+  portals: true,
   abilities: true,
   equip: true,
   rankPassives: true,
@@ -238,6 +241,21 @@ function buyPacks(game: GameStore, animeId: string) {
   }
 }
 
+/**
+ * The crystal policy: a boss's character is only ever recruited by paying for its portal and felling
+ * it a second time, so a run that never opens one ends with 35 fewer characters than the hp tables
+ * were fitted against. Greedy and in story order — finish the portal already open, then buy the
+ * cheapest one within reach, which is what a player collecting a roster does.
+ */
+function runPortals(game: GameStore) {
+  if (game.activePortalId() !== null) return;
+  const targets = game.portalTargets();
+  const target = targets.find((t) => t.open) ?? targets.find((t) => t.affordable);
+  if (!target) return;
+  if (!target.open && !game.openPortal(target.character.id)) return;
+  game.enterPortal(target.character.id);
+}
+
 /** The world to head into next: a sequel of somewhere already played first, else any entry point. */
 function nextWorld(game: GameStore, data: GameData, preferredOrder: string[] | null): string | null {
   const entered = new Set(game.unlockedAnimes().map((a) => a.id));
@@ -381,6 +399,7 @@ function play(
     if (ticks % HOUSEKEEPING_EVERY === 0) {
       if (options.equip) equipUniques(game);
       if (options.packs) buyPacks(game, arc.animeId);
+      if (options.portals) runPortals(game);
     }
     sampleMilestones();
 

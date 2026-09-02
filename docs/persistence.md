@@ -82,6 +82,16 @@ and both are run state, wiped by `prestigeReset` along with `unlockedAnimeIds`. 
 they existed reads back as absent, i.e. as the tier ramp alone, which is exactly what those saves
 were played at.
 
+Two optional fields carry the **crossover portals** (`docs/economy.md`), and neither needed a bump.
+`portalHp` holds the hp each open portal was frozen at when its crystals were paid; `portalDamage`
+holds how much of it the player has already taken off. Together they are the one deliberate
+exception to "combat state is never saved": what they record is not the enemy on screen but progress
+towards a recruit, and a portal exists precisely to be fought in several sittings. `syncPortalDamage`
+writes the running fight back into `portalDamage` once a tick and before every save, so a reload puts
+the player back in their arc with the portal exactly where they left it. Which portal was being
+fought is *not* saved — that is combat state, and it stays transient. Both maps are run-scoped like
+the roster they feed: `prestigeReset` wipes them.
+
 Two more carry the run challenges (`docs/economy.md`), and neither needed a bump either.
 `activeChallengeId` is the challenge being played — it deliberately **survives** `prestigeReset`,
 which restarts the challenge's progress rather than ending it, since progress is counted as the

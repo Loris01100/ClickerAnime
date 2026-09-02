@@ -28,7 +28,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 658,
       reward: 130,
       timerMs: 60_000,
-      characterId: "bleach-renji-abarai",
+      portalCharacterId: "bleach-renji-abarai",
       bossTrait: {
         kind: "shield",
         name: "Garde du zanpakutō",
@@ -69,7 +69,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 68_000,
       reward: 700,
       timerMs: 60_000,
-      characterId: "bleach-byakuya-kuchiki",
+      portalCharacterId: "bleach-byakuya-kuchiki",
     },
   },
   {
@@ -99,7 +99,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 230_000,
       reward: 3_000,
       timerMs: 60_000,
-      characterId: "bleach-jin-kariya",
+      portalCharacterId: "bleach-jin-kariya",
     },
   },
   {
@@ -127,7 +127,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 549_000,
       reward: 14_000,
       timerMs: 60_000,
-      characterId: "bleach-grimmjow-jaegerjaquez",
+      portalCharacterId: "bleach-grimmjow-jaegerjaquez",
     },
   },
   {
@@ -154,7 +154,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 1_020_000,
       reward: 90_000,
       timerMs: 60_000,
-      characterId: "bleach-dordonii-alessandro-del-socacchio",
+      portalCharacterId: "bleach-dordonii-alessandro-del-socacchio",
     },
   },
   {
@@ -183,7 +183,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 1_690_000,
       reward: 180_000,
       timerMs: 60_000,
-      characterId: "bleach-nnoitra-gilga",
+      portalCharacterId: "bleach-nnoitra-gilga",
     },
   },
   {
@@ -209,7 +209,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 2_480_000,
       reward: 360_000,
       timerMs: 60_000,
-      characterId: "bleach-shusuke-amagai",
+      portalCharacterId: "bleach-shusuke-amagai",
     },
   },
   {
@@ -235,7 +235,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 3_720_000,
       reward: 720_000,
       timerMs: 60_000,
-      characterId: "bleach-ulquiorra-cifer",
+      portalCharacterId: "bleach-ulquiorra-cifer",
     },
   },
   {
@@ -265,7 +265,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 7_140_000,
       reward: 1_440_000,
       timerMs: 75_000,
-      characterId: "bleach-kisuke-urahara",
+      portalCharacterId: "bleach-kisuke-urahara",
     },
   },
   {
@@ -298,7 +298,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 11_600_000,
       reward: 2_880_000,
       timerMs: 75_000,
-      characterId: "bleach-coyote-starrk",
+      portalCharacterId: "bleach-coyote-starrk",
     },
   },
   {
@@ -330,7 +330,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 18_100_000,
       reward: 5_760_000,
       timerMs: 75_000,
-      characterId: "bleach-muramasa",
+      portalCharacterId: "bleach-muramasa",
     },
   },
   {
@@ -357,7 +357,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 26_100_000,
       reward: 11_500_000,
       timerMs: 75_000,
-      characterId: "bleach-sosuke-aizen",
+      portalCharacterId: "bleach-sosuke-aizen",
     },
   },
   {
@@ -382,7 +382,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 42_800_000,
       reward: 23_000_000,
       timerMs: 90_000,
-      characterId: "bleach-kageroza-inaba",
+      portalCharacterId: "bleach-kageroza-inaba",
     },
   },
   {
@@ -411,7 +411,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 59_600_000,
       reward: 46_100_000,
       timerMs: 90_000,
-      characterId: "bleach-kugo-ginjo",
+      portalCharacterId: "bleach-kugo-ginjo",
     },
   },
   {
@@ -446,7 +446,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 96_800_000,
       reward: 92_200_000,
       timerMs: 90_000,
-      characterId: "bleach-yhwach",
+      portalCharacterId: "bleach-yhwach",
     },
   },
 ];

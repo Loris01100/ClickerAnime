@@ -110,6 +110,16 @@ These outrank convenience, and several were learned the hard way. Don't break on
   same helpers. Every production boss has one: a bespoke authored trait wins, otherwise
   `data/bossTraits.ts` supplies a mild rotating preset. A trait must be announced before the boss
   spawns. Do not special-case a boss id in `gameState` or the UI.
+- **A boss never recruits its character; a crossover portal does.** 35 arcs name their boss's
+  character in `Enemy.portalCharacterId`, and nothing in `defeat` reads it: felling the boss clears
+  the arc and drops its unique, nothing more. The character is bought with crystals as a **portal** —
+  the same boss, re-opened once its arc is cleared, sealed behind `PORTAL_TRAIT` (a 0.5
+  `dps-resistance`, so only the click finishes it), with no clock, no payout but the recruit, and hp
+  frozen at `PORTAL_SECONDS` of the team's dps *at the moment it was paid for*. Don't put
+  `characterId` back on a boss, don't recompute a portal's hp live, and don't give a portal a
+  reward: it is won once per character per run, which is the only reason it stays out of the
+  balance. The crystals' own rule — a mixed team only — is what makes a first world
+  boss-recruit-free by design (`docs/economy.md`).
 - **A character's `baseDps` is a ramp times a strength, and only the strength is a design
   statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
   the arc the player has reached, so an early recruit never becomes dead weight. Two characters
@@ -172,7 +182,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - Evolution stages only look **forward** in a universe's reading order: every entry in
   `evolutions` must target the direct sequel of the preceding stage and replace its ability.
 - A character belongs to exactly one recruitment world. Later appearances never create another
-  recruit. Regular characters are recruitable in exactly one arc;
+  recruit. Regular characters are recruitable in exactly one arc — as a mob that joins when it
+  falls, or, for a boss's character, through the one crossover portal that arc opens;
   shop-exclusive companions must have exactly one character offer instead.
 - `prestigeReset` wipes the run but spares the meta-progression: prestige points, passive ranks,
   unique forge levels, achievement counts, prestige-tree levels, pack points and duplicates. Only
@@ -186,7 +197,10 @@ These outrank convenience, and several were learned the hard way. Don't break on
   writes it straight to `localStorage`.
 - Every primary write rotates the previous valid save into `SAVE_BACKUP_KEY`. Invalid primary data
   falls back to that backup at boot; hard reset alone clears both slots.
-- Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved.
+- Combat state (current enemy, hp left, timer deadline) is deliberately **not** saved. The one
+  exception is a crossover portal's `portalHp`/`portalDamage`: that is progress towards a recruit,
+  not the enemy on screen, and a portal is meant to be fought in several sittings. Which portal was
+  being fought is still transient.
 
 **Telemetry**
 
@@ -273,7 +287,7 @@ shape when adding a world; omit a file only when the world genuinely has no such
 
 A character belongs to exactly one recruitment world. `appearanceAnimeIds` keeps story abilities
 active in later series without duplicating the recruit; `fullSynergyAnimeIds` is reserved for a
-character who spans a later anime strongly enough to receive 1.0 throughout it. Regular characters are recruitable in exactly one arc;
+character who spans a later anime strongly enough to receive 1.0 throughout it. Regular characters are recruitable in exactly one arc — a mob recruits on defeat, a boss only through its crossover portal;
 shop-exclusive companions are instead covered by one character offer (`src/engine/tests/` enforces
 those entry paths, along with every
 id being unique and every reference resolvable). A mixed team still spans worlds — the team only

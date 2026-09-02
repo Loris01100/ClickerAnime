@@ -44,6 +44,14 @@ export interface SaveFile {
   prestigeTreeRanks?: Record<string, number[]>;
   characterEquipment?: Record<string, string>;
   crossoverCrystals?: number;
+  /**
+   * Crossover portals, keyed by the character they recruit: the hp each open portal was frozen at,
+   * and how much of it has already been taken off. The one piece of a fight that is saved — a
+   * portal is progress towards a recruit, not the enemy on screen, and it is meant to be fought in
+   * several sittings (see `crossover.ts`). Run-scoped: `prestigeReset` wipes both.
+   */
+  portalHp?: Record<string, number>;
+  portalDamage?: Record<string, number>;
   worldPoints?: Record<string, number>;
   characterDuplicates?: Record<string, number>;
   autoClickEnabled?: boolean;
@@ -86,6 +94,8 @@ export function isValidSave(value: unknown): value is SaveFile {
     optional(candidate.lifetimeEarned, isNumber) &&
     optional(candidate.prestigePoints, isNumber) &&
     optional(candidate.crossoverCrystals, isNumber) &&
+    optional(candidate.portalHp, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.portalDamage, (entry) => isRecordOf(entry, isNumber)) &&
     optional(candidate.activeArcId, (entry) => entry === null || typeof entry === "string") &&
     optional(candidate.unlockedAnimeIds, isStringArray) &&
     optional(candidate.animeEntryDifficulties, (entry) => isRecordOf(entry, isNumber)) &&

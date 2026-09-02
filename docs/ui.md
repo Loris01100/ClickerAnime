@@ -298,6 +298,29 @@ world change reads as a rule rather than as a bug. The separate Syn. column keep
 visible so the reason for the drop is explicit. Styling stays hand-written and framework-free:
 `src/styles.css` is the ordered manifest, while `src/styles/` groups rules by responsibility.
 
+## Les portails de crossover à l'écran
+
+Un portail est le seul combat qui ne se quitte pas en changeant d'arc : `spawnNext` lui cède, donc
+l'écran doit dire en permanence où l'on est et par où on sort. Trois surfaces, et pas une de plus :
+
+- **`ClickStage`** pose une bannière `.boss-intel.portal-fight` au-dessus de la scène, même boîte que
+  le renseignement de boss mais en `--accent`, avec l'arc, la recrue, le rappel du sceau et le seul
+  bouton *Quitter le portail*. C'est aussi la seule `.boss-intel` dont la ligne d'explication passe à
+  la ligne : elle doit être lue en entier. `isBoss()` inclut le portail (son `Enemy.id` est celui du
+  boss suffixé, donc la comparaison seule le manquerait), pour que la couronne, la barre de vie de
+  boss et l'animation de scène s'appliquent comme à n'importe quel boss. La ligne « Cadence »
+  disparaît, comme sur tout boss : un seul ennemi, donc un temps de mise à mort, jamais une cadence.
+- **`CrossoverPanel`** liste les portails avant le bloc « Fusion des mondes » — c'est la vraie
+  dépense de la ressource, la fenêtre est le petit achat. Une ligne par recrue de boss manquante,
+  bouton *Ouvrir* (avec son prix) ou *Entrer*, et la barre de vie du portail ouvert en dessous.
+- **`RosterPanel`** met la recrue du boss en tête de « À battre ici », avec son prix en cristaux au
+  lieu de ses stats : `arcRecruits` ne liste que les mobs, et sans cette ligne l'arc semblerait
+  promettre un personnage que le battre ne donne pas.
+
+`portalTargets()` et `arcPortalRecruit()` sont des fonctions simples et non des mémos : elles
+parcourent au plus 35 entrées, et un mémo ne se recalculerait plus dans un store dont la racine a été
+libérée — ce que font les tests du store.
+
 ## L'écran de secours
 
 `src/index.tsx` enveloppe `<App />` dans un `<ErrorBoundary>` de `solid-js`. Une exception dans un

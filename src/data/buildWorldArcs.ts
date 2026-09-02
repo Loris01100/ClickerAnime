@@ -36,7 +36,7 @@ export interface BossSpec {
   reward: number;
   timerMs: number;
   item: string;
-  /** recruited on defeat, when the boss joins the roster */
+  /** recruited by felling this boss inside a crossover portal — never in the arc itself */
   charId?: string;
   /** a bespoke story trait; absent lets `withBossTraits` assign a rotating preset */
   trait?: BossTrait;
@@ -90,7 +90,7 @@ export function buildWorldArcs(world: string, specs: ArcSpec[]): GameData["arcs"
       baseHp: spec.boss.hp,
       reward: spec.boss.reward,
       timerMs: spec.boss.timerMs,
-      ...(spec.boss.charId ? { characterId: spec.boss.charId } : {}),
+      ...(spec.boss.charId ? { portalCharacterId: spec.boss.charId } : {}),
       ...(spec.boss.trait ? { bossTrait: spec.boss.trait } : {}),
     };
 

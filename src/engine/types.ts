@@ -135,6 +135,12 @@ export interface Enemy {
   reward: number;
   /** defeating this enemy recruits that character into the team, for free */
   characterId?: string;
+  /**
+   * Recruited by felling this boss **inside a crossover portal**, never by beating it in its arc.
+   * A boss hands out its unique and clears its arc; the character it is, is bought with crystals
+   * and fought for a second time (see `crossover.ts`). Bosses carry this instead of `characterId`.
+   */
+  portalCharacterId?: string;
   /** the item this enemy can hand over */
   itemId?: string;
   /** odds of that drop, 0..1; absent means guaranteed, which is how bosses hand out their unique */

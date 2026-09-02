@@ -98,13 +98,27 @@ export function validateGameData(data: GameData): ContentIssue[] {
     if (enemy.dropChance !== undefined && (enemy.dropChance < 0 || enemy.dropChance > 1 || !finite(enemy.dropChance))) {
       add("invalid-drop", `${path}.dropChance`, "la probabilité doit être comprise entre 0 et 1");
     }
-    if (enemy.characterId) {
-      const character = characterById.get(enemy.characterId);
-      if (!character) add("unknown-character", `${path}.characterId`, `le personnage « ${enemy.characterId} » n’existe pas`);
+    // Les deux chemins de recrutement d’un ennemi, et ils ne se mélangent pas : un mob rejoint
+    // l’équipe quand il tombe (`characterId`), un boss ne se recrute que dans son portail de
+    // crossover (`portalCharacterId`). Un boss qui garderait `characterId` rendrait sa recrue
+    // gratuite et court-circuiterait tout le système — c’est exactement ce que cette règle interdit.
+    if (boss && enemy.characterId) {
+      add("boss-direct-recruit", `${path}.characterId`, "un boss ne recrute que par son portail : utilisez portalCharacterId");
+    }
+    if (!boss && enemy.portalCharacterId) {
+      add("mob-portal-recruit", `${path}.portalCharacterId`, "un portail de crossover rouvre un boss, pas un mob");
+    }
+    for (const [field, characterId] of [
+      ["characterId", enemy.characterId],
+      ["portalCharacterId", enemy.portalCharacterId],
+    ] as const) {
+      if (!characterId) continue;
+      const character = characterById.get(characterId);
+      if (!character) add("unknown-character", `${path}.${field}`, `le personnage « ${characterId} » n’existe pas`);
       else if (character.animeId !== animeId) {
-        add("wrong-recruit-anime", `${path}.characterId`, `${character.name} appartient à « ${character.animeId} », pas à « ${animeId} »`);
+        add("wrong-recruit-anime", `${path}.${field}`, `${character.name} appartient à « ${character.animeId} », pas à « ${animeId} »`);
       }
-      recruitSources.set(enemy.characterId, [...(recruitSources.get(enemy.characterId) ?? []), path]);
+      recruitSources.set(characterId, [...(recruitSources.get(characterId) ?? []), path]);
     }
     if (enemy.itemId) {
       const item = itemById.get(enemy.itemId);

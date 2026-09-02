@@ -26,7 +26,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 588,
       reward: 130,
       timerMs: 60_000,
-      characterId: "hxh-hisoka",
+      portalCharacterId: "hxh-hisoka",
       bossTrait: {
         kind: "dps-resistance",
         name: "Provocation",
@@ -57,7 +57,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 60_600,
       reward: 700,
       timerMs: 60_000,
-      characterId: "hxh-kastro",
+      portalCharacterId: "hxh-kastro",
     },
   },
   {
@@ -84,7 +84,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 550_000,
       reward: 3_000,
       timerMs: 60_000,
-      characterId: "hxh-kuroro",
+      portalCharacterId: "hxh-kuroro",
     },
   },
   {
@@ -110,7 +110,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 1_800_000,
       reward: 14_000,
       timerMs: 60_000,
-      characterId: "hxh-razor",
+      portalCharacterId: "hxh-razor",
     },
   },
   {
@@ -140,7 +140,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 6_000_000,
       reward: 90_000,
       timerMs: 60_000,
-      characterId: "hxh-meruem",
+      portalCharacterId: "hxh-meruem",
     },
   },
   {
@@ -169,7 +169,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 16_000_000,
       reward: 400_000,
       timerMs: 60_000,
-      characterId: "hxh-pariston",
+      portalCharacterId: "hxh-pariston",
     },
   },
 ];

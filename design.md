@@ -837,14 +837,32 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
 d'objets — les objets se lisent déjà dans le panneau « Objets » de la colonne de gauche). Trois blocs
 `.codex-block`, dans l'ordre où la question se pose :
 
-1. **La réserve** et d'où elle vient (12% par mob, 5 par boss, uniquement en équipe multi-mondes).
+1. **La réserve** et d'où elle vient (2% par mob, 5 par boss, uniquement en équipe multi-mondes).
 2. **L'équipe**, un `.codex-row` par monde représenté — c'est le diagnostic : si un seul monde est
    listé, la ligne muette explique que la source est coupée.
-3. **Fusion des mondes**, le bouton `.primary` d'activation (coût + durée), remplacé pendant la
+3. **Portails**, la vraie dépense : un `.portal-list > li` par recrue de boss encore manquante, dans
+   l'ordre de l'histoire. Une ligne porte le nom, son arc et un bouton — *Ouvrir* avec son prix en
+   cristaux tant que le portail n'existe pas, *Entrer* une fois payé. Un portail ouvert affiche en
+   dessous sa barre de vie (`.bar.hp-bar.boss`, la même que le combat) : c'est là que se voit ce
+   qu'il reste d'un boss qu'on grignote en plusieurs fois. La ligne du combat en cours prend
+   `.active` (bordure `--accent`, fond `--active-tint`).
+4. **Fusion des mondes**, le bouton `.primary` d'activation (coût + durée), remplacé pendant la
    fenêtre par le décompte en secondes.
 
 La tuile Ressources prend `.currency.active` (fond `--active-tint`) tant que la fenêtre est ouverte :
 c'est un buff temporaire, il doit se voir sans ouvrir le tiroir.
+
+**Dans le combat**, un portail se signale par une bannière `.boss-intel.portal-fight` au-dessus de la
+scène : même boîte que le renseignement de boss, mais en `--accent` plutôt qu'en `--boss`, et c'est
+la seule dont la ligne d'explication passe à la ligne au lieu d'être coupée — elle doit être lue en
+entier. Elle nomme l'arc et la recrue, rappelle le sceau et que les dégâts sont conservés, et porte
+le seul bouton de sortie : *Quitter le portail*. Un portail ne se quitte pas en changeant d'arc, donc
+l'écran doit dire en permanence où l'on est et par où on sort. Le boss d'un portail porte la couronne
+et le traitement « boss » de la scène comme n'importe quel autre.
+
+Côté colonne de gauche, « À battre ici » liste d'abord la recrue que le boss garde derrière son
+portail, avec son prix en cristaux au lieu de ses stats — la battre dans l'arc ne la donne pas, et
+c'est le seul endroit où la liste pourrait laisser croire le contraire.
 
 ### 11.2 Packs et doublons
 

@@ -60,7 +60,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 30_300,
       reward: 700,
       timerMs: BOSS_TIMER_MS,
-      characterId: "neji-hyuga",
+      portalCharacterId: "neji-hyuga",
     },
   },
   {

@@ -16,8 +16,13 @@ import {
   CROSSOVER_COST,
   CROSSOVER_DURATION_MS,
   CROSSOVER_MOB_CHANCE,
+  PORTAL_COST,
   crossoverSynergyConfig,
   isMixedTeam,
+  portalEnemy,
+  portalFightHp,
+  portalIndexOf,
+  portalWeights,
 } from "./crossover";
 import {
   autoFirable,
@@ -197,6 +202,22 @@ export interface PackDraw {
   free: boolean;
 }
 
+/**
+ * One boss recruit as the crossover panel sees it: the fight that stands between the player and a
+ * character a boss no longer hands out. `open` means the crystals are paid and the fight exists,
+ * with `damage` of `maxHp` already taken off it.
+ */
+export interface PortalTarget {
+  character: Character;
+  arc: Arc;
+  cost: number;
+  open: boolean;
+  maxHp: number;
+  damage: number;
+  affordable: boolean;
+  active: boolean;
+}
+
 /** One "you just gained something" event, popped up by the HUD and pruned by the main tick. */
 export interface Notice {
   id: number;
@@ -274,13 +295,20 @@ export function createGameStore(data: GameData) {
    */
   const originArcIndex = new Map<string, Arc>();
   for (const arc of data.arcs) {
-    if (arc.boss.characterId && !originArcIndex.has(arc.boss.characterId)) {
-      originArcIndex.set(arc.boss.characterId, arc);
+    // A boss recruit is met in its arc even though it only joins through a portal: this is where
+    // the character's passive item and home arc come from, so the portal must not move it.
+    const bossRecruitId = arc.boss.characterId ?? arc.boss.portalCharacterId;
+    if (bossRecruitId && !originArcIndex.has(bossRecruitId)) {
+      originArcIndex.set(bossRecruitId, arc);
     }
     for (const mob of arc.mobs) {
       if (mob.characterId && !originArcIndex.has(mob.characterId)) originArcIndex.set(mob.characterId, arc);
     }
   }
+
+  /** Which arc each portal recruit is fought in, and how heavy their portal is. Both static. */
+  const portalIndex = portalIndexOf(data.arcs);
+  const portalWeightByArc = portalWeights(data.arcs);
 
   /** Which world each item comes from — its drop's arc. Static like the data it is built from. */
   const itemAnimeIds = itemAnimeIndex(data.arcs);
@@ -437,6 +465,17 @@ export function createGameStore(data: GameData) {
   );
   // When the current crossover window ends. Transient like combat state: a reload drops the buff.
   const [crossoverUntil, setCrossoverUntil] = createSignal(0);
+  // Portails de crossover, keyed by the character they recruit. `portalHp` holds the hp each open
+  // portal was frozen at, `portalDamage` how much of it the player has already taken off — and that
+  // second map is the one exception to "combat state is never saved": it is not the fight in front
+  // of the player, it is progress towards a recruit, and the whole point of a portal is that it can
+  // be left and picked up again. Both are run-scoped like the roster they feed: prestigeReset wipes
+  // them (see crossover.ts).
+  const [portalHp, setPortalHp] = createSignal<Record<string, number>>(saved?.portalHp ?? {});
+  const [portalDamage, setPortalDamage] = createSignal<Record<string, number>>(saved?.portalDamage ?? {});
+  // Which portal is being fought right now — transient like the rest of combat state, so a reload
+  // puts the player back in their arc with the portal's progress intact.
+  const [activePortalId, setActivePortalId] = createSignal<string | null>(null);
   /** True while a bought crossover window is still running — see activateCrossover. */
   const crossoverActive = () => crossoverUntil() > now();
   const crossoverRemaining = () => Math.max(0, crossoverUntil() - now());
@@ -1162,6 +1201,18 @@ export function createGameStore(data: GameData) {
     return target ? setActiveArc(target.id) : false;
   }
 
+  /**
+   * The character this arc's boss keeps behind its portal, while they are still missing. Kept apart
+   * from `arcRecruits` on purpose: felling the boss here does *not* recruit them — see the portals
+   * section below — so the roster must not list them among the fights that do.
+   */
+  const arcPortalRecruit = (): Character | null => {
+    const arc = activeArc();
+    const characterId = arc?.boss.portalCharacterId;
+    if (!characterId || ownedCharacterIds().includes(characterId)) return null;
+    return characterOf(characterId);
+  };
+
   /** Characters of the active arc still waiting to be beaten. */
   const arcRecruits = createMemo(() => {
     const arc = activeArc();
@@ -1202,6 +1253,13 @@ export function createGameStore(data: GameData) {
   /** Puts the next enemy of the active arc in front of the player, at full hp. */
   function spawnNext() {
     maybeEvolve();
+    // A portal outranks the arc: it is a fight the player deliberately walked into and paid for, so
+    // nothing that respawns an enemy — an arc switch, a boss timeout, "Relève" — may take it away.
+    // Only `leavePortal` and winning it end it.
+    if (activePortalId()) {
+      spawnPortal();
+      return;
+    }
     const arc = activeArc();
     if (!arc) {
       setEnemy(null);
@@ -1221,6 +1279,13 @@ export function createGameStore(data: GameData) {
   }
 
   function defeat(target: Enemy) {
+    // Inside a portal the enemy on screen is always the portal's, and felling it pays in exactly one
+    // thing: the recruit. No currency, no xp, no drop, no crystal, no arc progress — see winPortal.
+    const portalId = activePortalId();
+    if (portalId) {
+      winPortal(portalId);
+      return;
+    }
     const arc = activeArc();
     if (!arc) return;
 
@@ -1557,7 +1622,8 @@ export function createGameStore(data: GameData) {
   const killRate = createMemo(() => {
     const arc = activeArc();
     const target = enemy();
-    if (!arc || !target || target.id === arc.boss.id) return null;
+    // A portal is a single sealed boss, like an arc boss: a time to kill, never a cadence.
+    if (!arc || !target || target.id === arc.boss.id || activePortalId()) return null;
     return killRateOf(enemyMaxHp(), teamDps(), MAX_KILLS_PER_SECOND);
   });
 
@@ -1895,6 +1961,139 @@ export function createGameStore(data: GameData) {
     return true;
   }
 
+  // --- portails de crossover ---------------------------------------------------------------
+  //
+  // The only way a boss's character is ever recruited. Beating a boss in its arc clears the arc and
+  // drops its unique; the character stays behind until the player pays crystals to re-open the
+  // fight as a portal and fells it a second time, sealed and on their own terms.
+
+  /** What this character's portal costs, from their rarity alone — main cast, or a detour. */
+  function portalCostOf(characterId: string): number {
+    const character = characterOf(characterId);
+    return PORTAL_COST[character?.rarity ?? "secondary"];
+  }
+
+  /** True once the crystals are paid: the fight exists and keeps whatever damage it has taken. */
+  const portalIsOpen = (characterId: string) => portalHp()[characterId] !== undefined;
+
+  /**
+   * Every portal the run could care about: one per boss recruit whose arc has been cleared and who
+   * has not joined yet. An arc that was never cleared is not on the list at all — a portal re-opens
+   * a fight the player has already won, it never skips one.
+   */
+  const portalTargets = (): PortalTarget[] => {
+    const cleared = new Set(clearedArcIds());
+    const owned = new Set(ownedCharacterIds());
+    const crystals = crossoverCrystals();
+    const hp = portalHp();
+    const damage = portalDamage();
+    const targets: PortalTarget[] = [];
+    for (const [characterId, arc] of portalIndex) {
+      if (owned.has(characterId) || !cleared.has(arc.id)) continue;
+      const character = characterOf(characterId);
+      if (!character) continue;
+      const cost = PORTAL_COST[character.rarity];
+      const open = hp[characterId] !== undefined;
+      targets.push({
+        character,
+        arc,
+        cost,
+        open,
+        maxHp: hp[characterId] ?? 0,
+        damage: damage[characterId] ?? 0,
+        affordable: crystals >= cost,
+        active: activePortalId() === characterId,
+      });
+    }
+    return targets.sort((a, b) => a.arc.order - b.arc.order);
+  };
+
+  /**
+   * Pays for a portal and freezes what it will cost to win. The hp is a photograph of the team's
+   * dps *now* (see `portalFightHp`): a portal left for later is the reward for having grown since.
+   */
+  function openPortal(characterId: string): boolean {
+    const arc = portalIndex.get(characterId);
+    if (!arc || portalIsOpen(characterId)) return false;
+    if (ownedCharacterIds().includes(characterId)) return false;
+    if (!clearedArcIds().includes(arc.id)) return false;
+    // A run under "En petit comité" would pay for a recruit it is not allowed to take.
+    if (!canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
+    const cost = portalCostOf(characterId);
+    if (crossoverCrystals() < cost) return false;
+    setCrossoverCrystals((c) => c - cost);
+    setPortalHp((map) => ({ ...map, [characterId]: portalFightHp(teamDps(), portalWeightByArc[arc.id] ?? 1) }));
+    setPortalDamage((map) => ({ ...map, [characterId]: 0 }));
+    pushNotice("unlock", `Portail ouvert : ${characterOf(characterId)?.name ?? characterId}`);
+    return true;
+  }
+
+  /** Steps into an open portal. The arc keeps its place; leaving puts the player straight back. */
+  function enterPortal(characterId: string): boolean {
+    if (!portalIsOpen(characterId) || ownedCharacterIds().includes(characterId)) return false;
+    if (!canRecruitUnder(challengeRules(), ownedCharacterIds().length)) return false;
+    setActivePortalId(characterId);
+    cancelPendingAutomation();
+    spawnPortal();
+    return true;
+  }
+
+  /** Puts the sealed boss in front of the player, at whatever hp the last visit left it. */
+  function spawnPortal() {
+    const characterId = activePortalId();
+    const arc = characterId ? portalIndex.get(characterId) : null;
+    if (!characterId || !arc) return;
+    const maxHp = portalHp()[characterId] ?? 0;
+    setEnemy(portalEnemy(arc.boss));
+    setEnemyMaxHp(maxHp);
+    setEnemyHpLeft(Math.max(0, maxHp - (portalDamage()[characterId] ?? 0)));
+    // No clock, ever: a portal is meant to be walked out of and come back to.
+    setTimerDeadline(null);
+    setTimerTotal(null);
+  }
+
+  /**
+   * Writes the damage taken off the portal boss back into the saved map. Called from the tick and
+   * before every save rather than from `dealDamage`: the fight only has to survive a reload, not be
+   * recorded hit by hit, and a per-hit write would rebuild the map twenty times a second.
+   */
+  function syncPortalDamage() {
+    const characterId = activePortalId();
+    if (!characterId) return;
+    const done = Math.max(0, enemyMaxHp() - enemyHpLeft());
+    setPortalDamage((map) => (map[characterId] === done ? map : { ...map, [characterId]: done }));
+  }
+
+  /** Steps back out into the arc, keeping the damage already dealt. */
+  function leavePortal(): boolean {
+    if (!activePortalId()) return false;
+    syncPortalDamage();
+    setActivePortalId(null);
+    spawnNext();
+    return true;
+  }
+
+  /** The portal falls: the character joins, and the portal itself is spent. */
+  function winPortal(characterId: string) {
+    const character = characterOf(characterId);
+    setActivePortalId(null);
+    setPortalHp((map) => {
+      const { [characterId]: _spent, ...rest } = map;
+      return rest;
+    });
+    setPortalDamage((map) => {
+      const { [characterId]: _spent, ...rest } = map;
+      return rest;
+    });
+    if (canRecruitUnder(challengeRules(), ownedCharacterIds().length)) {
+      setOwnedCharacterIds((ids) => (ids.includes(characterId) ? ids : [...ids, characterId]));
+      bumpAchievement("charactersRecruited");
+      pushNotice("recruit", `${character?.name ?? characterId} rejoint l'équipe`);
+    }
+    bumpAchievement("bossesKilled");
+    spawnNext();
+  }
+
   /** True when this world's own prerequisite is cleared — the universe's reading order. */
   const animeAvailable = (animeId: string) => isAnimeAvailable(data.animes, animeId, data.arcs, clearedArcIds());
 
@@ -2180,6 +2379,9 @@ export function createGameStore(data: GameData) {
     setKillBudget(MAX_KILLS_PER_SECOND);
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
+    setActivePortalId(null);
+    setPortalHp({});
+    setPortalDamage({});
     spawnNext();
   }
 
@@ -2206,6 +2408,8 @@ export function createGameStore(data: GameData) {
       prestigeTreeRanks: prestigeTreeRanks(),
       characterEquipment: characterEquipment(),
       crossoverCrystals: crossoverCrystals(),
+      portalHp: portalHp(),
+      portalDamage: portalDamage(),
       worldPoints: worldPoints(),
       characterDuplicates: characterDuplicates(),
       autoClickEnabled: autoClickEnabled(),
@@ -2227,6 +2431,8 @@ export function createGameStore(data: GameData) {
 
   function save() {
     if (importedSavePendingReload) return;
+    // The portal fight in progress is the one thing a save has to catch up with first.
+    syncPortalDamage();
     if (writeSave(buildSaveFile(), () => setHasBackupSave(true))) setLastSavedAt(Date.now());
   }
 
@@ -2350,6 +2556,8 @@ export function createGameStore(data: GameData) {
     setKillBudget((budget) => Math.min(MAX_KILLS_PER_SECOND, budget + deltaSeconds * MAX_KILLS_PER_SECOND));
     dealDamage(teamDps() * deltaSeconds, "teamDps");
     checkTimer(nowMs);
+    // A portal only has to survive a reload, so its progress is written back once a tick.
+    syncPortalDamage();
 
     const autoClickLevel = nodeLevelOf("narratorClick", 2);
     if (autoClickLevel > 0 && autoClickEnabled() && !clickIsMuted(challengeRules(), ownedCharacterIds().length)) {
@@ -2373,8 +2581,12 @@ export function createGameStore(data: GameData) {
     // --- "Automatisation": each node plays a move the player could have played by hand ---
     // None of them grants anything on its own; every reward still comes from the kill it leads to,
     // which is what keeps the branch out of the balance.
+    // Both moves below belong to the arc; while the player stands in a portal they would walk the
+    // arc out from under them. Skipped, not cancelled: they fire again on the way out.
+    const inPortal = activePortalId() !== null;
+
     const advanceAt = autoAdvanceAt();
-    if (advanceAt !== null && nowMs >= advanceAt) {
+    if (!inPortal && advanceAt !== null && nowMs >= advanceAt) {
       setAutoAdvanceAt(null);
       // `stepArc` walks `playableArcs`; at the end of a world there is nothing to step to, and the
       // next world stays the player's call — it costs prestige points, or the run itself.
@@ -2384,7 +2596,7 @@ export function createGameStore(data: GameData) {
     }
 
     const rematchAt = autoRematchAt();
-    if (rematchAt !== null && nowMs >= rematchAt) {
+    if (!inPortal && rematchAt !== null && nowMs >= rematchAt) {
       const arc = activeArc();
       // Only once the boss is actually within reach. Retrying one the team cannot fell yet trades
       // the farming that would *make* it fellable for a fight that ends the same way — and, from the
@@ -2624,6 +2836,14 @@ export function createGameStore(data: GameData) {
     hasRetreatedFromBoss,
     bossChallengeable,
     challengeBoss,
+    arcPortalRecruit,
+    portalTargets,
+    portalCostOf,
+    portalIsOpen,
+    openPortal,
+    enterPortal,
+    leavePortal,
+    activePortalId,
     // world progression
     animeAvailable,
     animeBlockedBy,

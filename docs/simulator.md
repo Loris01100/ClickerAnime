@@ -29,12 +29,15 @@ browser. `simulateRun(data, options)` fakes everything the store reaches for —
 `setInterval`, `localStorage` and `Math.random` (seeded: **same `--seed`, same run**, which is what
 makes a before/after comparison of one constant honest) — and restores every one of them on the way
 out, guarded by a test. The auto-player clicks at a set cadence, fires any ready ability, ranks up
-every affordable passive, equips uniques, buys packs, steps to the next arc on a clear and travels
-to the next world when one is finished; an arc it can't clear within `--stall` minutes is reported
+every affordable passive, equips uniques, buys packs, opens and fights crossover portals — the only
+way a boss's character is ever recruited (`docs/economy.md`) — steps to the next arc on a clear and
+travels to the next world when one is finished; an arc it can't clear within `--stall` minutes is reported
 as a wall rather than looped on forever.
 
 Flags: `--minutes`, `--stall`, `--cps`, `--seed`, `--world`, `--json`, and `--no-packs` /
-`--no-abilities` / `--no-equip` / `--no-passives` to price one system by removing it.
+`--no-portals` / `--no-abilities` / `--no-equip` / `--no-passives` to price one system by removing
+it. `--no-portals` is the honest measure of what the portals are worth: it ends the run 35 boss
+recruits short, which is a *weaker* team than the hp tables were fitted against, not a faster one.
 
 It needs its own **`vite.sim.config.ts`**: `vite-node` runs in SSR mode, where Node resolves
 `solid-js` to its *server* build and signals never propagate to memos — `travelTo` would flip a

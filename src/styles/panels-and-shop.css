@@ -723,3 +723,38 @@ small {
   color: var(--gold);
 }
 
+
+/* La liste des portails du panneau Crossover : une ligne par recrue de boss encore à conquérir. */
+.portal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.portal-list > li {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+.portal-list > li.active {
+  border-color: var(--accent);
+  background: var(--active-tint);
+}
+.portal-line {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.portal-line > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portal-list .bar {
+  margin-top: 0.3rem;
+}

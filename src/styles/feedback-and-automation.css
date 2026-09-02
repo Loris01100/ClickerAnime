@@ -447,3 +447,19 @@ button.danger {
 }
 
 
+
+/*
+ * Un portail de crossover est le seul combat qu'on ne quitte pas en changeant d'arc : sa bannière
+ * reprend la boîte de boss, en accent plutôt qu'en couleur de boss, et laisse sa ligne d'explication
+ * passer à la ligne — c'est la seule de l'écran qui doit être lue en entier.
+ */
+.boss-intel.portal-fight {
+  border-left-color: var(--accent);
+}
+.boss-intel.portal-fight > svg {
+  color: var(--accent);
+}
+.boss-intel.portal-fight > span {
+  white-space: normal;
+  overflow: visible;
+}

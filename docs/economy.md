@@ -354,6 +354,50 @@ resource never had — true only while the player is fighting somewhere at least
 at the steep other-anime malus, which is exactly the "come back and farm an old world's common"
 case; `CurrencyBar` pulses the tile on it.
 
+### Portals: the only way a boss's character is ever recruited
+
+A boss hands out its unique and clears its arc. It does **not** hand out its character: 35 of the 55
+arcs name one in `Enemy.portalCharacterId` rather than `characterId`, and `defeat` never reads that
+field. The character is recruited by paying crystals to re-open the fight as a **portal**, once the
+arc is cleared, and felling the boss a second time — which is what turns the crystal from a
+one-minute buff into the run's currency of collection.
+
+The chicken-and-egg is deliberate: crystals only drop for a team spanning two worlds, so a first
+world is played through end to end without a single boss recruit. Travelling, recruiting elsewhere
+and coming back to open the portals *is* the loop the resource exists to reward.
+
+- **`openPortal` freezes the fight.** Its hp is `portalFightHp(teamDps(), weight)` —
+  `PORTAL_SECONDS` (30) of the dps the team has *at that instant*, times the boss's own weight.
+  Frozen, a portal left for later is the reward for having grown since; recomputed live it would run
+  away from the player exactly as fast as they climbed.
+- **The weight is derived, never authored.** `portalWeights` reads a boss's `baseHp` against the
+  mean of the mobs of its own arc, normalised against its world's median and clamped to
+  `PORTAL_WEIGHT_MIN`..`MAX` (0.7..1.6). The world's absolute hp ramp cancels out of that ratio, so
+  it says only what it means to say — which of a world's bosses hit harder than that world's usual —
+  and no world has to author a portal number.
+- **The seal is the difficulty, not the hp.** `PORTAL_TRAIT` is a `dps-resistance` at
+  `PORTAL_DPS_RESISTANCE` (0.5), so 30 seconds of raw dps is a minute of fighting for a team that
+  just stands there, and the Clic du Narrateur — untouched by the seal — is what brings it back
+  under. A portal is the one fight in the game that refuses to be idled through. Sizing it by hp
+  instead would have been pointless: the hp is a photograph of the team, so it can never be *hard*,
+  only long.
+- **No clock, and it can be left.** A portal has no `timerMs` — the whole point is that it is fought
+  in several sittings. `spawnNext` yields to an open portal, so nothing that respawns an enemy (an
+  arc switch, a boss timeout, "Relève") can take it away; only `leavePortal` and winning it do. The
+  two arc automations skip while one is up, so they cannot walk the arc out from under the player.
+- **A portal pays in the recruit alone.** No currency, no xp, no drop, no crystal, no arc progress —
+  `defeat` branches to `winPortal` before any of it. It can be won exactly once per character per
+  run, so there is nothing here to farm and nothing of it lands in the balance.
+- **The costs are `PORTAL_COST`**, 15 crystals for a `main` and 8 for a `secondary` — rarity alone,
+  never the arc, so a late world's portals stay reachable. A full simulated run affords roughly two
+  thirds of the 35 boss recruits (24 at seed 1): the stock is a real choice between portals and
+  synergy windows, and two runs do not build the same roster.
+
+`npm run sim` grew a `portals` policy alongside `packs` — greedy and in story order — because a run
+that never opened one would end 35 characters short of the roster the hp tables were fitted against.
+With it the full run goes from 152 to 180 minutes at seed 1, and every one of those 28 minutes is
+portal fights: no arc got slower, and nothing stalled.
+
 ## Packs and duplicates (`packs.ts`)
 
 A character is recruited exactly once — refighting their arc never gives them again — so packs are

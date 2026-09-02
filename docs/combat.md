@@ -54,7 +54,12 @@ the hp bar already gives.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
-change — by default only bosses carry one, because timed mobs would break idling.
+change — by default only bosses carry one, because timed mobs would break idling. The one boss that
+carries none is a **crossover portal** (`docs/economy.md`): its whole design is to be walked out of
+and come back to, so it has no clock, its damage is remembered, and `spawnNext` yields to it rather
+than replacing it. Its hp is not read off the data at all — it is a minute of the team's own dps,
+frozen when the portal was paid for, sealed behind a 0.5 `dps-resistance` so the click has to
+finish it.
 
 ### Generalized boss traits
 

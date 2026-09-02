@@ -67,6 +67,9 @@ function parseArgs(argv: string[]): Partial<SimOptions> & { json: boolean } {
       case "no-packs":
         options.packs = false;
         break;
+      case "no-portals":
+        options.portals = false;
+        break;
       case "no-abilities":
         options.abilities = false;
         break;
@@ -99,6 +102,7 @@ Usage: npm run sim -- [flags]
   --order=a,b,c   preferred travel order after the entry world
   --entry-only    stop after completing the chosen entry world
   --no-packs      never buy a pack
+  --no-portals    never open a crossover portal (no boss recruits at all)
   --no-abilities  never fire an ability
   --no-equip      never equip a unique
   --no-passives   never rank up a passive

@@ -54,7 +54,7 @@
       "baseHp": 4260000,
       "reward": 120000,
       "timerMs": 50000,
-      "characterId": "deidara",
+      "portalCharacterId": "deidara",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Pression écrasante",
@@ -181,7 +181,7 @@
       "baseHp": 23900000,
       "reward": 411000,
       "timerMs": 60000,
-      "characterId": "kakuzu",
+      "portalCharacterId": "kakuzu",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Lecture du combat",
@@ -252,7 +252,7 @@
       "baseHp": 56500000,
       "reward": 760000,
       "timerMs": 75000,
-      "characterId": "kisame",
+      "portalCharacterId": "kisame",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Aura dominante",
@@ -372,7 +372,7 @@
       "baseHp": 317000000,
       "reward": 2600000,
       "timerMs": 105000,
-      "characterId": "itachi",
+      "portalCharacterId": "itachi",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Esquive instinctive",
@@ -1003,7 +1003,7 @@
       "baseHp": 739000000000,
       "reward": 660000000,
       "timerMs": 165000,
-      "characterId": "toneri",
+      "portalCharacterId": "toneri",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Lecture du combat",

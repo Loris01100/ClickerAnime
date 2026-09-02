@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { BOSS_REPLAY_KILLS } from "../engine/combat";
+import { PORTAL_TRAIT } from "../engine/crossover";
 import { bannerUrl } from "./anilist";
 import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
@@ -101,7 +102,11 @@ export default function ClickStage(props: { game: GameStore }) {
   const anime = () => props.game.animeOf(arc()?.animeId);
   const terms = () => termsOf(anime() ?? undefined);
   const enemy = () => props.game.enemy();
-  const isBoss = () => !!enemy() && enemy()!.id === arc()?.boss.id;
+  /** The portal being fought, if any — a boss re-opened with crystals to recruit its character. */
+  const portal = () => props.game.portalTargets().find((target) => target.active) ?? null;
+  // A portal boss is a boss: it wears the crown, the boss hp bar and the boss stage treatment. Its
+  // enemy id is the arc boss's with a suffix, so the plain comparison alone would miss it.
+  const isBoss = () => !!enemy() && (enemy()!.id === arc()?.boss.id || !!portal());
   const hpRatio = () => (props.game.enemyMaxHp() > 0 ? props.game.enemyHpLeft() / props.game.enemyMaxHp() : 0);
   const timer = () => props.game.timerRemaining();
 
@@ -213,7 +218,28 @@ export default function ClickStage(props: { game: GameStore }) {
         )}
       </Show>
 
-      <Show when={arc()?.boss.bossTrait}>
+      {/* Un portail est le seul combat qui ne se quitte pas en changeant d'arc : il faut donc que
+          l'écran dise en permanence où l'on est, ce qu'on y gagne, et par où on sort. */}
+      <Show when={portal()}>
+        {(target) => (
+          <div class="boss-intel active portal-fight">
+            <IconCrown />
+            <div>
+              <small>Portail de crossover · {target().arc.name}</small>
+              <strong>{target().character.name}</strong>
+            </div>
+            <span>
+              {PORTAL_TRAIT.description} Vaincre {target().character.name} le recrute — les dégâts déjà infligés
+              sont conservés si vous ressortez.
+            </span>
+            <div class="boss-preparation">
+              <button onClick={() => props.game.leavePortal()}>Quitter le portail</button>
+            </div>
+          </div>
+        )}
+      </Show>
+
+      <Show when={!portal() && arc()?.boss.bossTrait}>
         {(trait) => (
           <div class="boss-intel" classList={{ active: isBoss() }}>
             <IconCrown />
