@@ -74,6 +74,14 @@ the branch existed, reads as "on" like the autoclicker's `autoClickEnabled`. `au
 holds the characters handed to "Intendance"; it names characters, so `prestigeReset` empties it
 along with the roster while the switches, being a preference rather than progress, survive.
 
+Two more carry the re-levelling of worlds the run has outgrown (`docs/progression.md`), and neither
+needed a bump. `animeEntryDifficulties` holds the scale each entered world's opening arc was entered
+at; `animeEntryScales` holds how far its `arcPower` rungs were shifted. Both are frozen at entry for
+the same reason the tier is — recomputed live they would keep rising inside the world they scale —
+and both are run state, wiped by `prestigeReset` along with `unlockedAnimeIds`. A save written before
+they existed reads back as absent, i.e. as the tier ramp alone, which is exactly what those saves
+were played at.
+
 Two more carry the run challenges (`docs/economy.md`), and neither needed a bump either.
 `activeChallengeId` is the challenge being played — it deliberately **survives** `prestigeReset`,
 which restarts the challenge's progress rather than ending it, since progress is counted as the

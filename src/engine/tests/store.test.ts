@@ -3,6 +3,7 @@ import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND, SAVE_BACKUP_KEY, SAVE_KEY } from "../gameState";
 import { CROSSOVER_BOSS_REWARD } from "../crossover";
 import { gameData } from "../../data";
+import { decodeSave } from "../persistence";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
@@ -236,6 +237,76 @@ describe("store boot", () => {
       expect(game.synergyOf(data.characters[0])).toBeCloseTo(0.5);
       expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(10);
       expect(game.characterStatOf(data.characters[0], "teamDps")).toBeCloseTo(5);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("relevels a world the run has outgrown, and freezes what it was entered at", () => {
+    // "tb" is written for a fresh team (a 100 hp boss) but is entered after clearing a world that
+    // ended on a 1e6 one — exactly the shape of walking into Hunter x Hunter out of Boruto.
+    const data = {
+      animes: [
+        { id: "ta", name: "A", unlockCost: 0 },
+        { id: "tb", name: "B", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc A", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob-a", name: "Mob A", baseHp: 1_000, reward: 1 }],
+          boss: { id: "boss-a", name: "Boss A", baseHp: 1_000_000, reward: 1 },
+        },
+        {
+          id: "tb-arc", animeId: "tb", name: "Arc B", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob-b", name: "Mob B", baseHp: 10, reward: 1 }],
+          boss: { id: "boss-b", name: "Boss B", baseHp: 100, reward: 1 },
+        },
+        {
+          id: "tb-arc2", animeId: "tb", name: "Arc B2", order: 1, mobsToBoss: 1,
+          mobs: [{ id: "mob-b2", name: "Mob B2", baseHp: 100, reward: 1 }],
+          boss: { id: "boss-b2", name: "Boss B2", baseHp: 1_000, reward: 1 },
+        },
+      ],
+      characters: [
+        {
+          id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const,
+          arcIds: ["ta-arc"], baseClickPower: 1, baseDps: 10,
+        },
+        // "tb" has rungs of its own, four times apart, so its climb is a real one to re-profile.
+        {
+          id: "cb1", name: "B1", animeId: "tb", rarity: "secondary" as const,
+          arcIds: ["tb-arc"], baseClickPower: 1, baseDps: 5,
+        },
+        {
+          id: "cb2", name: "B2", animeId: "tb", rarity: "secondary" as const,
+          arcIds: ["tb-arc2"], baseClickPower: 1, baseDps: 20,
+        },
+      ],
+      items: [],
+    };
+    const restore = installSave(baseSave({ unlockedAnimeIds: ["ta"], clearedArcIds: ["ta-arc"] }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+
+      // The world just cleared is the one the player played natively: its tier difficulty stands.
+      expect(game.difficultyOf("ta")).toBe(1);
+
+      expect(game.travelTo("tb")).toBe(true);
+      const entered = game.difficultyOf("tb");
+      // Far past the 2.5x the tier alone would have handed a world entered second.
+      expect(entered).toBeGreaterThan(500);
+      // Its second arc climbs on the re-levelling ramp, not on the world's authored jump.
+      expect(game.difficultyOfArc(data.arcs[2])).toBeLessThan(entered);
+      expect(game.difficultyOfArc(data.arcs[2]) * 1_100).toBeGreaterThan(entered * 110);
+
+      // Frozen in the save, so it cannot drift as the run goes on — nor across a reload.
+      const saved = decodeSave(game.exportSave());
+      expect(saved?.animeEntryDifficulties?.tb).toBeCloseTo(entered, 6);
     } finally {
       disposeRoot();
       restore();

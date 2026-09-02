@@ -182,7 +182,8 @@ export default function ClickStage(props: { game: GameStore }) {
           <small class="portal-badge alpha">Alpha</small>
         </Show>
         <small class="muted">
-          {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
+          {anime()?.name ?? "—"} · difficulté x
+          {arc() ? fmt(props.game.difficultyOfArc(arc()!)) : "1"}
         </small>
       </header>
 

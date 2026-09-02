@@ -153,6 +153,7 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   number of worlds already finished — the difficulty ramp the design calls for. Freezing the tier at
   entry is what stops a cleared anime from un-clearing itself when global difficulty rises; do not
   recompute a tier from the live completed-count or you reintroduce that circularity.
+- A world the run has **outgrown** is re-levelled on top of that tier — see the section below.
 - **Worlds of one universe are ordered.** `Anime.requiresAnimeId` names the world that must be
   *cleared* first, and `isAnimeAvailable` gates both routes into a world — free travel and the paid
   shortcut alike. Prestige buys an early entry, never a way to read a sequel first: Shippūden sits
@@ -168,6 +169,71 @@ Animes are the worlds; arcs are the stages inside them. `progression.ts` holds i
   achievements, tree levels, pack points and duplicates. Kill counts, cleared arcs, the worlds entered and the team all
   go, and the player picks an entry world again from scratch. Tier is the
   index in `unlockedAnimeIds`, so the difficulty ramp restarts with it.
+
+## Re-levelling a world the run has outgrown
+
+The tier ramp answers "how many worlds have you finished", and that is only the right question for a
+**chain**: Shippūden opens at `arcPower` 130 where Naruto ends at 78, so 2.5x is the whole of the gap
+and the world plays as authored. It is the wrong question for an **entry world reached late**. Hunter
+x Hunter, Bleach and Horimiya all open at `arcPower` 6 with a ~600 hp boss, written for a fresh team;
+a player walking in out of Boruto stands at 9.6e7 with trillions of dps. The tier hands them 15x
+against a gap near 1e9. Before this was fixed the simulator cleared **24 of 55 arcs in 0.1-0.2 minutes
+each** — three whole worlds scrolling past — and it was not a late-game problem either: Naruto entered
+second, after Bleach, is just as free.
+
+So a world entered from above itself is re-levelled, and three numbers do it. Two are frozen at entry,
+in `SaveFile.animeEntryDifficulties` and `animeEntryScales`, for exactly the reason the tier is:
+recomputed live against a `reachedArcPower` that keeps climbing, a world would keep getting harder
+while you are standing in it.
+
+| Number | What it does | Fitted to |
+|---|---|---|
+| `worldEntryDifficulty` | the scale the world's **opening arc** plays at | `WORLD_ENTRY_BREATHER` = 0.7 of the heaviest arc already cleared |
+| `relevelledDifficulty` | re-profiles every later arc off that anchor | `RELEVEL_RAMP` = 1.1 per `arcPower` rung |
+| `worldEntryScale` | shifts the world's `arcPower` rungs onto the player's | nothing — it is exactly `reached / opening rung` |
+
+**The anchor is an arc, not a boss.** `arcWeight` is `mobsToBoss * mean mob hp + boss hp`: the mobs are
+most of the clock, and two arcs sharing a boss are not the same fight when one runs 18 mobs to it and
+the other 52. Anchoring on the boss alone put a world's opening arc anywhere between one and twenty
+minutes depending on its mob count.
+
+**The anchor is discounted by `BORDER_CLIFF` (12) when the arc it reads was cleared at home.** Crossing
+out of the worlds you call home costs every carried character its passive, its ability and half its
+damage — measured at 10.36T → 1.43T leaving Boruto. The heaviest arc cleared *before* that crossing was
+beaten by a team that no longer exists, so calibrating a new world on it undiscounted walls the very
+first arc; and a world cleared *after* it (i.e. one that was itself re-levelled) was already fought
+abroad and needs no discount at all. That single distinction is what lets one breather constant serve
+the first crossing and every crossing after it.
+
+**A re-levelled world's climb is re-profiled, not scaled.** An entry world's authored hp table climbs
+3.4-4x per rung because a fresh player's dps climbs with it — they are recruiting that world's entire
+cast, passives included. A visitor arriving with a hundred characters gains none of that: their dps
+climbs with the shifted rungs alone, i.e. at `CATCH_UP` (0.85). Scaling such a world by one constant
+opens it fairly and walls it four arcs later, which is exactly what the first attempt at this did.
+`RELEVEL_RAMP` = 1.1 sits just above `CATCH_UP`, so arcs still lengthen as the world goes on, at the
+rate the late chain actually plays at (Boruto: 2.4 min an arc opening, 8 closing).
+
+**What is deliberately *not* re-levelled is the world's own cast.** Scaling their `baseDps` up to the
+enemies was tried, and it runs away: a fresh player's arc-1 recruit is level 12 with no passive, while
+a visitor's lands straight into an endgame stack of levels, passives, achievements and items worth a
+thousandfold — the same printed number is not the same character. The simulator's answer was blunt, a
+full 55-arc run in **41 minutes**. So a re-levelled world's recruits stay what they are, the carried
+roster stays the backbone, and the ramp is profiled for that team rather than for the one the world
+was written for.
+
+**The boss timer is the binding constraint on how hard entry can be.** Timers are authored per arc for
+the world's own player, and re-levelling does not move them; push `WORLD_ENTRY_BREATHER` up and the
+opening boss stops falling inside its clock. 0.8 walls on Hunter x Hunter's first arc, 0.7 does not.
+
+Measured over the default route (seeds 1, 2, 3, 7 — identical, the economy is seed-stable): worlds 4-6
+went from 0.1-0.2 minutes an arc to **1.5-2.1 (Hunter x Hunter), 1.8-2.5 (Bleach), 1.8-3.1 (Horimiya)**,
+55/55 arcs, 117 → 152 minutes, no boss timeout anywhere. The authored chain is untouched — every scale
+in Naruto, Shippūden and Boruto comes out at 1 and the run is byte-identical through Boruto's last arc.
+Starting on Bleach now *clears* the game (55/55, 132 min) where it used to wall in Shippūden.
+
+Two walls this did **not** fix, both pre-existing and reproducible on the parent commit: Hunter x Hunter
+as an *entry* world walls on its own third arc ("York Shin City"), and the Horimiya route walls in
+Shippūden ("Quatrième Guerre : Confrontation"). Those are authored-table problems, not re-levelling.
 
 ## Synergy
 

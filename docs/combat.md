@@ -274,6 +274,11 @@ before sizing a fourth world on it.** The mechanism is what matters here and is 
 magnitude is not, since both changes altered how much of a team's dps comes from characters whose
 passives the crossing switches off.
 
+A world entered *below* the player instead of above them is not sized at all: it is re-levelled at
+entry, off the heaviest arc already cleared and discounted by that same crossing cliff — the cliff is
+a constant there, `BORDER_CLIFF` (`docs/progression.md`). The rest of this section is about authoring
+a world that continues the chain.
+
 So a world's arc 0 is sized against the dps the team has **once it is standing there**, which is far
 below where the previous world left off. The cliff closes fast — Boruto's own recruits bring their
 passives home, and its arc 1 is already back to 15B — so only arc 0 needs the allowance; the ramp

@@ -154,6 +154,16 @@ These outrank convenience, and several were learned the hard way. Don't break on
 
 - Tier is the anime's index in `unlockedAnimeIds`, **frozen at entry**. Never recompute a tier from
   the live completed-count — that is what stops a cleared anime from un-clearing itself.
+- **A world the run has outgrown is re-levelled, and its scale is frozen at entry too.** `2.5^tier`
+  only ever described a *chain*; an entry world reached late (Hunter x Hunter out of Boruto) is
+  authored for a fresh team and the tier is nothing against that gap. `worldEntryDifficulty` anchors
+  its opening arc on the heaviest arc already cleared, `relevelledDifficulty` re-profiles the arcs
+  after it, `worldEntryScale` shifts its `arcPower` rungs. Three rules hold: the anchor is an
+  `arcWeight` (mobs included, never the boss alone); it is discounted by `BORDER_CLIFF` when the arc
+  it reads was cleared *at home*; and a re-levelled world's **own cast is never scaled** — scaling it
+  runs away, since a visitor's recruit lands in an endgame stack of levels and passives. A world
+  authored above the player comes out at exactly its tier, so the authored chain is untouched
+  (`docs/progression.md`).
 - **Every entry world ends at roughly the same `arcPower`.** `reachedArcPower` is one scalar for the
   whole game, so where a player's *first* world leaves them sets the difficulty of every world after
   it — Naruto ends at 78, Hunter x Hunter and Horimiya at 120, Bleach at 125, and Shippūden opens at 130. A long

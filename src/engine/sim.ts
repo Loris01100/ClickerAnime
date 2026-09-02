@@ -334,7 +334,7 @@ function play(
       id: arc.id,
       world: data.animes.find((a) => a.id === arc.animeId)?.name ?? arc.animeId,
       arc: arc.name,
-      difficulty: game.difficultyOf(arc.animeId),
+      difficulty: game.difficultyOfArc(arc),
       minutes: (clock.now() - arcEnteredAt) / MINUTE_MS,
       kills,
       commons,

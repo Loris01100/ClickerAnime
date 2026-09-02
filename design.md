@@ -640,7 +640,10 @@ code écrit à la main.
   d'affichage, pas un réglage à sauvegarder) ; un panel généré par un `<For>` (un par monde
   débloqué dans `ProgressPanel.tsx`) garde un état par instance via un `Record<id, boolean>`
   plutôt qu'un signal booléen unique. L'info secondaire à droite du header (compteur, select,
-  difficulté) reste toujours visible, seul le corps se replie. Tout nouveau panel doit suivre ce
+  difficulté) reste toujours visible, seul le corps se replie. Une exception assumée : « Voyager »
+  n'affiche plus de difficulté dans son header, car depuis le re-nivellement des mondes déjà
+  dépassés (`docs/progression.md`) il n'existe plus de chiffre unique valable pour « le prochain
+  monde » — chaque ligne de destination porte le sien, comme les panels par monde juste au-dessus. Tout nouveau panel doit suivre ce
   patron dès sa création — ne pas en ajouter un en `<span>` nu qu'il faudrait reconvertir plus
   tard.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.

@@ -19,6 +19,21 @@ export interface SaveFile {
   activeArcId: string | null;
   prestigePoints: number;
   unlockedAnimeIds: string[];
+  /**
+   * Per-world re-levelling factor, frozen the moment the world was entered — like the tier the
+   * entry order encodes, and for the same reason: a scale recomputed from a live `reachedArcPower`
+   * would keep rising *inside* the world it scales. Absent on a save written before worlds were
+   * re-levelled, which reads back as 1 everywhere, i.e. the tier ramp alone.
+   */
+  /**
+   * The scale each entered world is played at, frozen when it was entered — like the tier its entry
+   * order encodes, and for the same reason: recomputed live it would keep rising inside the world it
+   * scales. Absent on a save written before worlds were re-levelled, which reads back as the tier
+   * ramp alone.
+   */
+  animeEntryDifficulties?: Record<string, number>;
+  /** How far each entered world's `arcPower` rungs are shifted, frozen alongside the difficulty. */
+  animeEntryScales?: Record<string, number>;
   arcKills: Record<string, number>;
   clearedArcIds: string[];
   characterXp: Record<string, number>;
@@ -73,6 +88,8 @@ export function isValidSave(value: unknown): value is SaveFile {
     optional(candidate.crossoverCrystals, isNumber) &&
     optional(candidate.activeArcId, (entry) => entry === null || typeof entry === "string") &&
     optional(candidate.unlockedAnimeIds, isStringArray) &&
+    optional(candidate.animeEntryDifficulties, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.animeEntryScales, (entry) => isRecordOf(entry, isNumber)) &&
     optional(candidate.clearedArcIds, isStringArray) &&
     optional(candidate.evolvedCharacterIds, isStringArray) &&
     optional(candidate.arcKills, (entry) => isRecordOf(entry, isNumber)) &&

@@ -147,7 +147,6 @@ export default function ProgressPanel(props: {
             <PanelTitle open={travelOpen()} onToggle={() => setTravelOpen(!travelOpen())}>
               Voyager
             </PanelTitle>
-            <small class="muted">x{fmt(props.game.nextDifficulty())}</small>
           </header>
           <Show when={travelOpen()}>
           <p class="muted pad small">
@@ -155,13 +154,15 @@ export default function ProgressPanel(props: {
               when={props.game.canTravel()}
               fallback="Terminez l'anime en cours pour partir, ou payez le raccourci en prestige."
             >
-              Le prochain monde sera joué à cette difficulté.
+              Un monde déjà dépassé est remis à niveau à l'entrée : la difficulté affichée est
+              celle de son premier arc.
             </Show>
           </p>
           <For each={otherAnimes()}>
             {(anime) => (
               <div class="row">
                 <span class="name">{anime.name}</span>
+                <small class="muted">x{fmt(props.game.difficultyOf(anime.id))}</small>
                 <Show
                   when={props.game.canTravel()}
                   fallback={
