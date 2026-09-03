@@ -652,6 +652,55 @@ const shippudenBaseCharacters: GameData["characters"] = [
       ],
     },
   },
+  /*
+   * Les quatre antagonistes de Shippūden dont le boss ne débloquait personne. Même règle que pour
+   * Naruto : leur `baseDps` égale le `debutPower` que leur arc a déjà, donc `arcPowerTable` ne bouge
+   * pas d'un cran et aucune table de PV n'est à refitter.
+   */
+  {
+    id: "danzo-shimura",
+    name: "Danzô Shimura",
+    animeId: "shippuden",
+    rarity: "main",
+    tags: ["root", "sharingan"],
+    arcIds: ["shippuden-sommet"],
+    baseClickPower: 1_850,
+    baseDps: 9_640,
+    passive: { target: "teamDps", kind: "percent", value: 0.26 },
+  },
+  {
+    id: "mu-tsuchikage",
+    name: "Mû",
+    animeId: "shippuden",
+    rarity: "main",
+    tags: ["kage", "iwa"],
+    arcIds: ["shippuden-confrontation"],
+    baseClickPower: 3_050,
+    baseDps: 16_500,
+    passive: { target: "clickPower", kind: "percent", value: 0.28 },
+  },
+  {
+    id: "fugaku-uchiwa",
+    name: "Fugaku Uchiwa",
+    animeId: "shippuden",
+    rarity: "main",
+    tags: ["uchiwa", "sharingan"],
+    arcIds: ["shippuden-histoire-itachi"],
+    baseClickPower: 40_200,
+    baseDps: 209_000,
+    passive: { target: "teamDps", kind: "percent", value: 0.3 },
+  },
+  {
+    id: "kaguya-otsutsuki",
+    name: "Kaguya Ôtsutsuki",
+    animeId: "shippuden",
+    rarity: "main",
+    tags: ["otsutsuki", "kekkei-genkai"],
+    arcIds: ["shippuden-kaguya"],
+    baseClickPower: 74_300,
+    baseDps: 387_000,
+    passive: { target: "teamDps", kind: "percent", value: 0.35 },
+  },
 ];
 
 const recurringEvolutions: Record<string, CharacterEvolution[]> = {

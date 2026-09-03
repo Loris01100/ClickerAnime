@@ -71,6 +71,36 @@ rank. Only `hardReset` wipes that mastery.
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
 
+
+### Tous les boss, ou presque
+
+Chaque arc du jeu se termine désormais sur un boss qui **débloque quelqu'un** : 52 des 55 en portail
+de crossover. Trois font exception et ne peuvent pas faire autrement — Orochimaru, Pain et Kabuto
+sont chacun le boss de *deux* arcs, et un personnage n'est recrutable qu'une fois. Leur seconde
+apparition passe par une `evolution`, le mécanisme prévu pour « le même personnage, plus tard ».
+
+Sept personnages ont été créés pour des boss qui n'existaient pas dans le casting (Zabuza,
+Orochimaru, Kabuto, Danzô, Mû, Fugaku, Kaguya). Leur `baseDps` est posé **exactement sur le
+`debutPower` que leur arc a déjà** : `arcPowerTable` lit le maximum de la cohorte, donc l'égaler ne
+déplace aucune table — vérifié, la table est identique au caractère près.
+
+Neuf autres boss étaient des personnages **déjà recrutables en mob** (Sasuke, Nagato, Obito, Madara,
+et six d'Horimiya). Leur recrutement a été déplacé du mob vers le portail de leur boss. **C'est le
+seul changement de ce lot qui touche l'équilibrage, et il le touche fort** : ces recrues étaient
+gratuites, elles coûtent maintenant des cristaux. Mesuré avec `npm run sim`, qui joue une partie
+sans jamais dévier de sa politique d'achat :
+
+| | avant | après |
+|---|---|---|
+| Arcs terminés | 55 / 55 | 18 / 55 (mur sur Kaguya) |
+| Portails gagnés | 6 | 0 |
+
+Le chronomètre des portails n'y est pour rien (vérifié en le portant à l'infini : même résultat). La
+cause est Madara — 387 000 de DPS, la recrue la plus forte juste avant le mur de Kaguya — passée
+derrière un portail que le simulateur n'achète jamais. **Ce lot demande donc soit un refit des tables
+de PV de Shippūden, soit de rendre ces neuf recrues à leur mob.** Rien n'est cassé côté données
+(`validate:data` passe, la table de puissance est inchangée) : c'est une décision de rythme.
+
 ## Forge
 
 The pure forge and equipment rules live in `src/engine/forge.ts`; `gameState.ts` only wires them to

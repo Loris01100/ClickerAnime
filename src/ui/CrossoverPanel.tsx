@@ -1,5 +1,6 @@
 import { For, Show, onCleanup, onMount } from "solid-js";
-import type { GameStore } from "../engine/gameState";
+import type { GameStore, PortalTarget } from "../engine/gameState";
+import { themeOf } from "./hue";
 import {
   CROSSOVER_BOSS_REWARD,
   CROSSOVER_COST,
@@ -35,8 +36,25 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
 
   const seconds = () => Math.ceil(props.game.crossoverRemaining() / 1000);
 
-  /** Portals first: they are what the stock is really for, and the window is the small spend. */
+  /**
+   * Les portails **rangés par monde**, dans l'ordre de l'histoire. À plat, la liste dépasse la
+   * cinquantaine d'entrées une fois le jeu avancé : on n'y retrouve plus d'où sort un boss. Le tri
+   * est fait par le moteur (`portalTargets`), on ne fait ici que refermer un groupe dès que le monde
+   * change — la liste arrivant déjà ordonnée, un simple découpage suffit.
+   */
+  const portalsByWorld = () => {
+    const groups: { animeId: string; name: string; targets: PortalTarget[] }[] = [];
+    for (const target of props.game.portalTargets()) {
+      const animeId = target.arc.animeId;
+      const last = groups[groups.length - 1];
+      if (last?.animeId === animeId) last.targets.push(target);
+      else groups.push({ animeId, name: props.game.animeOf(animeId)?.name ?? animeId, targets: [target] });
+    }
+    return groups;
+  };
+
   const portals = () => props.game.portalTargets();
+  const openCount = () => portals().filter((target) => target.open).length;
 
   return (
     <div class="overlay" onClick={props.onClose}>
@@ -96,67 +114,87 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
                 </p>
               }
             >
-              <ul class="portal-list">
-                <For each={portals()}>
-                  {(target) => (
-                    <li classList={{ open: target.open, active: target.active }}>
-                      <div class="portal-line">
-                        <strong>{target.character.name}</strong>
-                        <span class="muted small">{target.arc.name}</span>
-                        <Show
-                          when={target.open}
-                          fallback={
-                            <button
-                              class="primary"
-                              disabled={!target.affordable}
-                              onClick={() => props.game.openPortal(target.character.id)}
+              <p class="muted small">
+                {portals().length} recrue{portals().length > 1 ? "s" : ""} à conquérir
+                <Show when={openCount() > 0}>
+                  {" "}
+                  · {openCount()} déjà payée{openCount() > 1 ? "s" : ""}
+                </Show>
+              </p>
+              <For each={portalsByWorld()}>
+                {(world) => (
+                  <section
+                    class="crossover-world"
+                    style={{ "--world-hue": themeOf(props.game.animeOf(world.animeId)) }}
+                  >
+                    <h5>
+                      {world.name}
+                      <small>{world.targets.length}</small>
+                    </h5>
+                    <ul class="crossover-portals">
+                      <For each={world.targets}>
+                        {(target) => (
+                          <li classList={{ open: target.open, active: target.active }}>
+                          <div class="portal-line">
+                            <strong>{target.character.name}</strong>
+                            <span class="muted small">{target.arc.name}</span>
+                            <Show
+                              when={target.open}
+                              fallback={
+                                <button
+                                  class="primary"
+                                  disabled={!target.affordable}
+                                  onClick={() => props.game.openPortal(target.character.id)}
+                                >
+                                  Ouvrir ({target.cost} <Coin kind="crystal" />)
+                                </button>
+                              }
                             >
-                              Ouvrir ({target.cost} <Coin kind="crystal" />)
-                            </button>
-                          }
-                        >
-                          {/*
-                            Entrer dans un portail **ferme le panneau**. Le combat démarre dans la
-                            colonne du milieu, sous cette modale : sans cela le joueur cliquait
-                            « Entrer », voyait la ligne passer à « Combat en cours » et rien d'autre
-                            — le boss qu'il venait de payer se battait derrière l'écran qui le
-                            cachait. On ne ferme que si l'entrée a réussi : `enterPortal` refuse un
-                            portail non ouvert ou une équipe déjà pleine sous « En petit comité ».
-                            « Ouvrir », lui, laisse le panneau en place : on en ouvre souvent
-                            plusieurs d'affilée, et cela n'emmène nulle part.
-                          */}
-                          <Show
-                            when={!target.active}
-                            fallback={
-                              <button onClick={() => props.onClose()}>Reprendre le combat</button>
-                            }
-                          >
-                            <button
-                              class="primary"
-                              onClick={() => props.game.enterPortal(target.character.id) && props.onClose()}
-                            >
-                              Entrer
-                            </button>
+                              {/*
+                                Entrer dans un portail **ferme le panneau**. Le combat démarre dans la
+                                colonne du milieu, sous cette modale : sans cela le joueur cliquait
+                                « Entrer », voyait la ligne passer à « Combat en cours » et rien d'autre
+                                — le boss qu'il venait de payer se battait derrière l'écran qui le
+                                cachait. On ne ferme que si l'entrée a réussi : `enterPortal` refuse un
+                                portail non ouvert ou une équipe déjà pleine sous « En petit comité ».
+                                « Ouvrir », lui, laisse le panneau en place : on en ouvre souvent
+                                plusieurs d'affilée, et cela n'emmène nulle part.
+                              */}
+                              <Show
+                                when={!target.active}
+                                fallback={
+                                  <button onClick={() => props.onClose()}>Reprendre le combat</button>
+                                }
+                              >
+                                <button
+                                  class="primary"
+                                  onClick={() => props.game.enterPortal(target.character.id) && props.onClose()}
+                                >
+                                  Entrer
+                                </button>
+                              </Show>
+                            </Show>
+                          </div>
+                          <Show when={target.open}>
+                            <div class="bar hp-bar boss">
+                              <div
+                                class="bar-fill"
+                                style={{
+                                  width: `${Math.max(0, 1 - target.damage / (target.maxHp || 1)) * 100}%`,
+                                }}
+                              />
+                              <span class="bar-label">
+                                {fmt(Math.max(0, target.maxHp - target.damage))} / {fmt(target.maxHp)} PV
+                              </span>
+                            </div>
                           </Show>
-                        </Show>
-                      </div>
-                      <Show when={target.open}>
-                        <div class="bar hp-bar boss">
-                          <div
-                            class="bar-fill"
-                            style={{
-                              width: `${Math.max(0, 1 - target.damage / (target.maxHp || 1)) * 100}%`,
-                            }}
-                          />
-                          <span class="bar-label">
-                            {fmt(Math.max(0, target.maxHp - target.damage))} / {fmt(target.maxHp)} PV
-                          </span>
-                        </div>
-                      </Show>
-                    </li>
-                  )}
-                </For>
-              </ul>
+                          </li>
+                        )}
+                      </For>
+                    </ul>
+                  </section>
+                )}
+              </For>
             </Show>
           </div>
 

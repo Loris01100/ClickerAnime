@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore } from "../gameState";
 import {
   PORTAL_COST,
   PORTAL_DPS_RESISTANCE,
   PORTAL_SECONDS,
+  PORTAL_TIMER_MS,
   PORTAL_WEIGHT_MAX,
   PORTAL_WEIGHT_MIN,
   portalEnemy,
@@ -125,8 +126,8 @@ describe("portal fight", () => {
     const sealed = portalEnemy({ id: "boss", name: "B", baseHp: 1, reward: 1 });
     expect(damageMultiplierAgainst(sealed, "teamDps")).toBe(PORTAL_DPS_RESISTANCE);
     expect(damageMultiplierAgainst(sealed, "click")).toBe(1);
-    // Ni horloge ni butin : un portail ne paie qu'en recrue.
-    expect(sealed.timerMs).toBeUndefined();
+    // Une horloge de 30 s, et aucun butin : un portail ne paie qu'en recrue.
+    expect(sealed.timerMs).toBe(PORTAL_TIMER_MS);
     expect(sealed.itemId).toBeUndefined();
     expect(sealed.reward).toBe(0);
   });
@@ -271,6 +272,85 @@ describe("portal store", () => {
       expect(JSON.parse(atob(game.exportSave())).portalHp).toEqual({});
       expect(JSON.parse(atob(game.exportSave())).portalDamage).toEqual({});
       expect(game.portalTargets()).toHaveLength(0);
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe("le chronomètre d'un portail", () => {
+  /**
+   * Un portail est un assaut de 30 s. Avec `PORTAL_SECONDS` à 12 et le sceau qui divise le DPS par
+   * deux, une équipe plantée met 24 s : elle gagne, de justesse. Seuls les portails les plus lourds
+   * (`PORTAL_WEIGHT_MAX`, 1.6 → 38 s) débordent du chronomètre — et c'est là que la sanction se
+   * mesure : le portail se referme, mais les dégâts sont gardés pour la prochaine ouverture.
+   */
+  function heavyPortalWorld(dps: number) {
+    const world = portalWorld(0, dps);
+    // Un second arc au boss léger tire la médiane du monde vers le bas, ce qui pousse le poids du
+    // premier au plafond — c'est le seul levier honnête, `portalWeights` normalisant par monde.
+    world.arcs[0].boss.baseHp = 1_000;
+    world.arcs.push({
+      id: "ta-arc-2",
+      animeId: "ta",
+      name: "Arc 2",
+      order: 1,
+      mobsToBoss: 1,
+      mobs: [{ id: "mob2", name: "Mob", baseHp: 1, reward: 1 }],
+      boss: { id: "boss2", name: "Boss 2", baseHp: 1, reward: 1, portalCharacterId: "cb" },
+    });
+    return world;
+  }
+
+  it("referme le portail à l'échéance, en gardant les dégâts déjà infligés", () => {
+    const restore = installSave(baseSave({ clearedArcIds: ["ta-arc"], crossoverCrystals: 99 }));
+    vi.useFakeTimers();
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(heavyPortalWorld(10));
+      });
+      expect(game.openPortal("cboss")).toBe(true);
+      expect(game.enterPortal("cboss")).toBe(true);
+
+      vi.advanceTimersByTime(PORTAL_TIMER_MS + 1_000);
+
+      // Le portail est refermé : plus de combat en cours, et il faudra repayer.
+      expect(game.activePortalId()).toBeNull();
+      expect(game.portalIsOpen("cboss")).toBe(false);
+      // Mais les dégâts sont en mémoire.
+      const target = () => game.portalTargets().find((t) => t.character.id === "cboss")!;
+      const kept = target().damage;
+      expect(kept).toBeGreaterThan(0);
+
+      // Réouverture : on repaie, et on repart de là où on s'était arrêté.
+      expect(game.openPortal("cboss")).toBe(true);
+      expect(target().damage).toBe(Math.min(kept, target().maxHp - 1));
+    } finally {
+      disposeRoot();
+      vi.useRealTimers();
+      restore();
+    }
+  });
+
+  it("laisse un portail ordinaire se gagner dans la fenêtre, sceau compris", () => {
+    // 12 s de DPS, moitié encaissée : 24 s de combat pour une équipe qui ne clique même pas.
+    expect(PORTAL_SECONDS * (1 / PORTAL_DPS_RESISTANCE)).toBeLessThan(PORTAL_TIMER_MS / 1000);
+  });
+
+  it("ne laisse jamais une réouverture se gagner toute seule", () => {
+    const { game, restore } = boot({
+      clearedArcIds: ["ta-arc"],
+      crossoverCrystals: 99,
+      portalDamage: { cboss: 1e12 },
+    });
+    try {
+      expect(game.portalIsOpen("cboss")).toBe(false);
+      expect(game.openPortal("cboss")).toBe(true);
+      const target = game.portalTargets().find((t) => t.character.id === "cboss")!;
+      expect(target.maxHp).toBeGreaterThan(0);
+      expect(target.damage).toBeLessThan(target.maxHp);
     } finally {
       restore();
     }

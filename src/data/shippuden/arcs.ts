@@ -133,11 +133,10 @@ const specs: ArcSpec[] = [
     ],
     rivals: [
       { name: "Konan", charId: "konan" },
-      { name: "Nagato", charId: "nagato" },
     ],
     rivalHp: 110_000_000,
     rivalReward: 481_000,
-    boss: { name: "Pain — Tendô", hp: 750_000_000, reward: 4_810_000, timerMs: 90_000, item: "item-barre" },
+    boss: { name: "Pain — Tendô", hp: 750_000_000, reward: 4_810_000, timerMs: 90_000, item: "item-barre", charId: "nagato" },
   },
   {
     slug: "sommet",
@@ -160,7 +159,7 @@ const specs: ArcSpec[] = [
     ],
     rivalHp: 243_000_000,
     rivalReward: 890_000,
-    boss: { name: "Danzô Shimura", hp: 1_770_000_000, reward: 8_900_000, timerMs: 90_000, item: "item-bras" },
+    boss: { name: "Danzô Shimura", hp: 1_770_000_000, reward: 8_900_000, timerMs: 90_000, item: "item-bras", charId: "danzo-shimura" },
   },
   {
     slug: "compte-a-rebours",
@@ -202,7 +201,7 @@ const specs: ArcSpec[] = [
     ],
     rivalHp: 1_190_000_000,
     rivalReward: 3_050_000,
-    boss: { name: "Mû, le Second Tsuchikage", hp: 9_940_000_000, reward: 30_500_000, timerMs: 120_000, item: "item-sceau-kage" },
+    boss: { name: "Mû, le Second Tsuchikage", hp: 9_940_000_000, reward: 30_500_000, timerMs: 120_000, item: "item-sceau-kage", charId: "mu-tsuchikage" },
   },
   {
     slug: "climax",
@@ -223,7 +222,7 @@ const specs: ArcSpec[] = [
     ],
     rivalHp: 2_640_000_000,
     rivalReward: 5_640_000,
-    boss: { name: "Madara Uchiwa — Ressuscité", hp: 23_500_000_000, reward: 56_400_000, timerMs: 120_000, item: "item-gunbai" },
+    boss: { name: "Madara Uchiwa — Ressuscité", hp: 23_500_000_000, reward: 56_400_000, timerMs: 120_000, item: "item-gunbai", charId: "madara" },
   },
   {
     slug: "dix-queues",
@@ -237,12 +236,11 @@ const specs: ArcSpec[] = [
       { name: "Son Goku", hp: 2_370_000_000, reward: 3_060_000 },
     ],
     rivals: [
-      { name: "Obito Uchiwa", charId: "obito" },
       { name: "Kurama", charId: "kurama" },
     ],
     rivalHp: 5_730_000_000,
     rivalReward: 10_400_000,
-    boss: { name: "Obito — Jinchûriki de Dix-Queues", hp: 55_700_000_000, reward: 104_000_000, timerMs: 120_000, item: "item-masque-spirale" },
+    boss: { name: "Obito — Jinchûriki de Dix-Queues", hp: 55_700_000_000, reward: 104_000_000, timerMs: 120_000, item: "item-masque-spirale", charId: "obito" },
   },
   {
     slug: "histoire-itachi",
@@ -261,7 +259,7 @@ const specs: ArcSpec[] = [
     ],
     rivalHp: 12_800_000_000,
     rivalReward: 19_300_000,
-    boss: { name: "Fugaku Uchiwa", hp: 132_000_000_000, reward: 193_000_000, timerMs: 120_000, item: "item-kotoamatsukami" },
+    boss: { name: "Fugaku Uchiwa", hp: 132_000_000_000, reward: 193_000_000, timerMs: 120_000, item: "item-kotoamatsukami", charId: "fugaku-uchiwa" },
   },
   {
     slug: "kaguya",
@@ -275,12 +273,11 @@ const specs: ArcSpec[] = [
       { name: "Naruto Uzumaki", hp: 11_600_000_000, reward: 10_500_000 },
     ],
     rivals: [
-      { name: "Madara Uchiwa", charId: "madara" },
       { name: "Zetsu Noir", charId: "zetsu-noir" },
     ],
     rivalHp: 28_200_000_000,
     rivalReward: 35_700_000,
-    boss: { name: "Kaguya Ôtsutsuki", hp: 312_000_000_000, reward: 357_000_000, timerMs: 120_000, item: "item-fruit" },
+    boss: { name: "Kaguya Ôtsutsuki", hp: 312_000_000_000, reward: 357_000_000, timerMs: 120_000, item: "item-fruit", charId: "kaguya-otsutsuki" },
   },
   {
     slug: "the-last",

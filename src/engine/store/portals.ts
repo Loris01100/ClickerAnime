@@ -55,9 +55,11 @@ export interface PortalDeps {
  *  - its hp is a **photograph** of the team's dps at the moment the crystals were paid, frozen in
  *    `portalHp` and never recomputed: a portal left for later is the reward for having grown since;
  *  - it pays in **exactly one thing**, the recruit — no currency, no xp, no drop, no arc progress;
- *  - it has **no clock**, because it is meant to be walked out of and come back to. That last one is
- *    why `portalDamage` is the single exception to "combat state is never saved": it is progress
- *    towards a recruit, not the enemy on screen.
+ *  - it is an **assault on a 30-second clock** (`PORTAL_TIMER_MS`). Running out closes the portal —
+ *    the crystals are spent and have to be paid again — but the damage already dealt is kept and
+ *    found again on the next opening (`timeOutPortal`, then `openPortal`). Losing costs the stake,
+ *    never the work. That is why `portalDamage` remains the single exception to "combat state is
+ *    never saved": it is progress towards a recruit, not the enemy on screen.
  */
 export function createPortals(deps: PortalDeps) {
   const { content, saved } = deps;
@@ -70,6 +72,9 @@ export function createPortals(deps: PortalDeps) {
   // Which portal is being fought right now — transient like the rest of combat state, so a reload
   // puts the player back in their arc with the portal's progress intact.
   const [activePortalId, setActivePortalId] = createSignal<string | null>(null);
+
+  /** Position de chaque arc dans l'ordre d'assemblage du contenu — voir le tri de `portalTargets`. */
+  const arcRank = content.arcRank;
 
   /** What this character's portal costs, from their rarity alone — main cast, or a detour. */
   const portalCostOf = (characterId: string) => PORTAL_COST[characterOf(characterId)?.rarity ?? "secondary"];
@@ -139,7 +144,11 @@ export function createPortals(deps: PortalDeps) {
           active: activePortalId() === characterId,
         });
       }
-      return targets.sort((a, b) => a.arc.order - b.arc.order);
+      // Ordre de l'histoire, monde par monde. Trier sur `arc.order` seul mélangeait les univers :
+      // c'est un rang *dans* son monde, donc l'arc 3 de Bleach venait s'intercaler entre les arcs 2
+      // et 4 de Hunter x Hunter. `arcRank` est la position dans `data.arcs`, qui est déjà l'ordre
+      // dans lequel les mondes sont assemblés.
+      return targets.sort((a, b) => (arcRank[a.arc.id] ?? 0) - (arcRank[b.arc.id] ?? 0));
     },
 
     /**
@@ -156,9 +165,20 @@ export function createPortals(deps: PortalDeps) {
       const cost = portalCostOf(characterId);
       if (deps.crossoverCrystals() < cost) return false;
       deps.spendCrystals(cost);
-      setPortalHp((map) => ({ ...map, [characterId]: portalFightHp(deps.teamDps(), portalWeightByArc[arc.id] ?? 1) }));
-      setPortalDamage((map) => ({ ...map, [characterId]: 0 }));
-      deps.pushNotice("unlock", `Portail ouvert : ${characterOf(characterId)?.name ?? characterId}`);
+      const hp = portalFightHp(deps.teamDps(), portalWeightByArc[arc.id] ?? 1);
+      // Les dégâts d'une tentative précédente sont retrouvés ici : un portail refermé par son
+      // chronomètre a coûté la mise, jamais le travail. Bornés à `hp - 1` pour qu'une réouverture ne
+      // puisse pas se gagner toute seule — les PV, eux, sont bien re-photographiés au moment où l'on
+      // repaie (règle inchangée), donc une équipe qui a grandi retrouve un mur plus haut.
+      const carried = Math.min(portalDamage()[characterId] ?? 0, Math.max(0, hp - 1));
+      setPortalHp((map) => ({ ...map, [characterId]: hp }));
+      setPortalDamage((map) => ({ ...map, [characterId]: carried }));
+      deps.pushNotice(
+        "unlock",
+        carried > 0
+          ? `Portail rouvert : ${characterOf(characterId)?.name ?? characterId} (dégâts conservés)`
+          : `Portail ouvert : ${characterOf(characterId)?.name ?? characterId}`
+      );
       return true;
     },
 
@@ -177,6 +197,29 @@ export function createPortals(deps: PortalDeps) {
       if (!activePortalId()) return false;
       syncPortalDamage();
       setActivePortalId(null);
+      deps.spawnArcEnemy();
+      return true;
+    },
+
+    /**
+     * Le chronomètre du portail est arrivé au bout. Le portail **se referme** — les cristaux sont
+     * consommés, il faudra repayer pour le rouvrir — mais les dégâts infligés sont écrits dans
+     * `portalDamage` et **survivent à la fermeture** : c'est `openPortal` qui les retrouvera.
+     *
+     * `portalDamage` reste donc l'unique exception à « l'état de combat n'est jamais sauvegardé »,
+     * et pour une raison désormais plus forte qu'avant : ce n'est plus la progression d'un combat
+     * qu'on quitte et reprend, c'est ce qui reste d'un assaut raté.
+     */
+    timeOutPortal() {
+      const characterId = activePortalId();
+      if (!characterId) return false;
+      syncPortalDamage();
+      setActivePortalId(null);
+      setPortalHp((map) => forget(map, characterId));
+      deps.pushNotice(
+        "arc",
+        `Portail refermé : ${characterOf(characterId)?.name ?? characterId} — les dégâts sont conservés.`
+      );
       deps.spawnArcEnemy();
       return true;
     },

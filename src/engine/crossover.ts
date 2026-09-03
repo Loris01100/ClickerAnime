@@ -40,14 +40,28 @@ export function crossoverSynergyConfig(config: SynergyConfig): SynergyConfig {
  * recruit, and the portals are the reason to come back to it once the team is mixed.
  */
 
-/** What one portal fight is sized at: a minute of the dps the team has **when it is opened**. */
-export const PORTAL_SECONDS = 30;
+/**
+ * Ce à quoi un combat de portail est dimensionné : **12 secondes** du DPS que l'équipe a *au moment
+ * où elle paie*.
+ *
+ * Ce nombre et `PORTAL_TIMER_MS` sont liés et doivent le rester. Le sceau du portail ne laisse
+ * passer que la moitié du DPS (`PORTAL_DPS_RESISTANCE`), donc une équipe qui reste plantée met
+ * `PORTAL_SECONDS × 2` secondes à venir à bout du boss : 24 s ici, dans une fenêtre de 30. Le Clic
+ * du Narrateur, lui, passe entier — c'est la marge, et c'est ce qui fait du portail le combat qui
+ * refuse de se jouer en pilote automatique.
+ *
+ * Il valait 30 quand un portail n'avait pas d'horloge : cela demandait 60 s de DPS, donc le
+ * chronomètre de 30 s rendait tout portail **mathématiquement ingagnable sans clic**. Mesuré :
+ * `npm run sim`, qui ne clique jamais, ne gagnait plus un seul portail et se bloquait à l'arc 18 sur
+ * 55, faute des recrues qu'ils tiennent. Si le chronomètre bouge, ce nombre bouge avec lui.
+ */
+export const PORTAL_SECONDS = 12;
 
 /**
- * The team fights a portal boss at half strength. The hp is a minute of raw dps, so the seal makes
- * that a two-minute fight for a team that only stands there — and roughly the minute again for one
- * that actually plays it, since the Clic du Narrateur is untouched by it. That is the whole
- * difficulty of a portal: it is the one fight in the game that refuses to be idled through.
+ * The team fights a portal boss at half strength, which is what doubles `PORTAL_SECONDS` into the
+ * real length of the fight — 24 s of standing still inside a 30 s window. The Clic du Narrateur is
+ * untouched by the seal, so it is the margin. That is the whole difficulty of a portal: it is the
+ * one fight in the game that refuses to be idled through.
  */
 export const PORTAL_DPS_RESISTANCE = 0.5;
 
@@ -115,10 +129,20 @@ export function portalFightHp(teamDps: number, weight: number): number {
 }
 
 /**
- * The boss as it is met in its portal: the same enemy, sealed, with no clock and no payout. A
- * portal pays in the recruit alone — no currency, no xp, no drop, no crystals — which is what keeps
- * it out of the economy entirely: it can be won exactly once per character per run, so there is
- * nothing here to farm.
+ * Le temps qu'on a pour abattre un boss de portail, une fois qu'on y est entré.
+ *
+ * Un portail n'est plus une porte qu'on pousse quand on veut : c'est un assaut de **30 secondes**.
+ * Le chronomètre écoulé **referme le portail** — il faut repayer les cristaux pour le rouvrir — mais
+ * **les dégâts déjà infligés sont gardés en mémoire** et retrouvés à la réouverture
+ * (`store/portals.ts`). C'est ce qui garde la sanction lisible : on perd la mise, jamais le travail.
+ */
+export const PORTAL_TIMER_MS = 30_000;
+
+/**
+ * The boss as it is met in its portal: the same enemy, sealed, on a 30-second clock and with no
+ * payout. A portal pays in the recruit alone — no currency, no xp, no drop, no crystals — which is
+ * what keeps it out of the economy entirely: it can be won exactly once per character per run, so
+ * there is nothing here to farm.
  */
 export function portalEnemy(boss: Enemy): Enemy {
   return {
@@ -126,6 +150,7 @@ export function portalEnemy(boss: Enemy): Enemy {
     name: boss.name,
     baseHp: boss.baseHp,
     reward: 0,
+    timerMs: PORTAL_TIMER_MS,
     bossTrait: PORTAL_TRAIT,
   };
 }

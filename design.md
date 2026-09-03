@@ -851,8 +851,19 @@ d'objets — les objets se lisent déjà dans le panneau « Objets » de la colo
 1. **La réserve** et d'où elle vient (2% par mob, 5 par boss, uniquement en équipe multi-mondes).
 2. **L'équipe**, un `.codex-row` par monde représenté — c'est le diagnostic : si un seul monde est
    listé, la ligne muette explique que la source est coupée.
-3. **Portails**, la vraie dépense : un `.portal-list > li` par recrue de boss encore manquante, dans
-   l'ordre de l'histoire. Une ligne porte le nom, son arc et un bouton — *Ouvrir* avec son prix en
+3. **Portails**, la vraie dépense : un `.crossover-portals > li` par recrue de boss encore manquante,
+   **groupé par monde** (`.crossover-world`, un titre collant teinté du `--world-hue` de l'univers,
+   avec son compte) et dans l'ordre de l'histoire à l'intérieur de chaque groupe. Le regroupement
+   n'est pas cosmétique : la liste dépasse la cinquantaine d'entrées une fois le jeu avancé, et
+   `Arc.order` étant un rang *dans* son monde, un tri à plat intercalait l'arc 3 de Bleach entre les
+   arcs 2 et 4 de Hunter x Hunter. Le moteur trie sur `arcRank`, la position dans `data.arcs` ; le
+   panneau ne fait que refermer un groupe quand le monde change.
+
+   La classe s'appelait `.portal-list`, **comme la colonne des mondes de `WorldPortal`** : deux
+   écrans sans rapport, un seul nom, et `worlds-and-codex.css` étant importé après
+   `panels-and-shop.css`, c'est la règle des mondes qui gagnait. Le crossover héritait donc d'un
+   `max-height: 70vh` qui n'était pas pour lui, la liste débordait sans être coupée, et « Fusion des
+   mondes » se dessinait par-dessus les dernières lignes. Deux écrans, deux noms. Une ligne porte le nom, son arc et un bouton — *Ouvrir* avec son prix en
    cristaux tant que le portail n'existe pas, *Entrer* une fois payé. Un portail ouvert affiche en
    dessous sa barre de vie (`.bar.hp-bar.boss`, la même que le combat) : c'est là que se voit ce
    qu'il reste d'un boss qu'on grignote en plusieurs fois. La ligne du combat en cours prend

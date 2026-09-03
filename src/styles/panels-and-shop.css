@@ -724,8 +724,17 @@ small {
 }
 
 
-/* La liste des portails du panneau Crossover : une ligne par recrue de boss encore à conquérir. */
-.portal-list {
+/*
+ * La liste des portails du panneau Crossover : une ligne par recrue de boss encore à conquérir.
+ *
+ * Elle s'appelait `.portal-list`, comme la colonne des mondes de `WorldPortal` — deux écrans sans
+ * rapport, un seul nom, et `worlds-and-codex.css` étant importé après celui-ci, c'est *sa* règle qui
+ * gagnait. Le crossover héritait donc d'un `max-height: 70vh` et d'un `border-right` qui n'étaient
+ * pas pour lui : passé une quinzaine de portails, la liste débordait de sa boîte sans être coupée et
+ * les sections suivantes (« Fusion des mondes », son bouton) se dessinaient par-dessus les lignes.
+ * Chacune a désormais son nom.
+ */
+.crossover-portals {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -733,15 +742,51 @@ small {
   flex-direction: column;
   gap: 0.4rem;
 }
-.portal-list > li {
+.crossover-portals > li {
   padding: 0.35rem 0.45rem;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel-2);
 }
-.portal-list > li.active {
+.crossover-portals > li.active {
   border-color: var(--accent);
   background: var(--active-tint);
+}
+/* Une recrue déjà payée : le combat existe, il attend. Elle doit sauter aux yeux dans une liste longue. */
+.crossover-portals > li.open {
+  border-color: var(--gold);
+}
+
+/*
+ * Les portails rangés par monde. Un titre collant par univers : au-delà d'une dizaine de recrues, la
+ * liste à plat ne dit plus d'où sort le boss qu'on regarde, et l'ordre inter-mondes n'a aucun sens
+ * puisque `Arc.order` est un rang *dans son monde*.
+ */
+.crossover-world {
+  display: grid;
+  gap: 0.4rem;
+}
+.crossover-world > h5 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.3rem 0.1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--world-hue) 45% 45%);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.crossover-world > h5 small {
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .portal-line {
   display: grid;
@@ -755,6 +800,6 @@ small {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.portal-list .bar {
+.crossover-portals .bar {
   margin-top: 0.3rem;
 }

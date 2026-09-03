@@ -140,8 +140,8 @@ These outrank convenience, and several were learned the hard way. Don't break on
   same helpers. Every production boss has one: a bespoke authored trait wins, otherwise
   `data/bossTraits.ts` supplies a mild rotating preset. A trait must be announced before the boss
   spawns. Do not special-case a boss id in `gameState` or the UI.
-- **A boss never recruits its character; a crossover portal does.** 35 arcs name their boss's
-  character in `Enemy.portalCharacterId`, and nothing in `defeat` reads it: felling the boss clears
+- **A boss never recruits its character; a crossover portal does.** 52 of the 55 arcs name their
+  boss's character in `Enemy.portalCharacterId`, and nothing in `defeat` reads it: felling the boss clears
   the arc and drops its unique, nothing more. The character is bought with crystals as a **portal** —
   the same boss, re-opened once its arc is cleared, sealed behind `PORTAL_TRAIT` (a 0.5
   `dps-resistance`, so only the click finishes it), with no clock, no payout but the recruit, and hp
@@ -150,6 +150,16 @@ These outrank convenience, and several were learned the hard way. Don't break on
   reward: it is won once per character per run, which is the only reason it stays out of the
   balance. The crystals' own rule — a mixed team only — is what makes a first world
   boss-recruit-free by design (`docs/economy.md`).
+- **A portal is a 30-second assault, and `PORTAL_SECONDS` is chained to that clock.** The seal only
+  lets half the team's dps through, so a portal sized at `PORTAL_SECONDS` of raw dps really takes
+  twice that: 12 → 24s inside a 30s window, with the narrator's click as the margin. Raising one
+  without the other breaks the mode — at 30 it needed 60s of dps and no portal could be won at all,
+  measured by `npm run sim`, which stalled at arc 18 of 55 for want of the recruits they hold.
+  Timing out **closes** the portal (the crystals must be paid again) but keeps `portalDamage`, which
+  the next opening carries over, clamped below the freshly photographed hp.
+- **Only three bosses unlock nobody, and they cannot.** Orochimaru, Pain and Kabuto are each a boss
+  in two different arcs; a character is recruitable exactly once, so their second appearance is
+  represented by an `evolution`, not a second recruit. Don't "fix" it with a duplicate character.
 - **A character's `baseDps` is a ramp times a strength, and only the strength is a design
   statement.** `catchUpGrowth` divides the story's ~1.85x-per-arc ramp back out and re-applies it at
   the arc the player has reached, so an early recruit never becomes dead weight. Two characters

@@ -27,6 +27,12 @@ export interface ContentIndex {
   itemAnimeIds: Record<string, string>;
   /** The world each arc belongs to, as a record — the power tables index by arc id. */
   animeIdOfArc: Record<string, string>;
+  /**
+   * La position de chaque arc dans `data.arcs`, c'est-à-dire l'ordre de l'histoire du jeu entier.
+   * `Arc.order` ne dit qu'un rang *à l'intérieur* d'un monde, donc il ne sert à rien pour ordonner
+   * une liste qui traverse les univers — celle des portails, par exemple.
+   */
+  arcRank: Record<string, number>;
 }
 
 export function createContentIndex(data: GameData): ContentIndex {
@@ -63,5 +69,6 @@ export function createContentIndex(data: GameData): ContentIndex {
     portalWeightByArc: portalWeights(data.arcs),
     itemAnimeIds: itemAnimeIndex(data.arcs),
     animeIdOfArc: Object.fromEntries(data.arcs.map((arc) => [arc.id, arc.animeId])),
+    arcRank: Object.fromEntries(data.arcs.map((arc, index) => [arc.id, index])),
   };
 }

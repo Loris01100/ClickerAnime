@@ -987,6 +987,14 @@ export function createGameStore(data: GameData) {
   function checkTimer(nowMs: number) {
     const deadline = timerDeadline();
     if (deadline === null || nowMs < deadline) return;
+    // Un portail expiré se referme au lieu de renvoyer le joueur au même combat : les cristaux sont
+    // perdus, les dégâts non — voir `timeOutPortal`. Testé avant l'arc, parce que le combat à
+    // l'écran pendant qu'on est dans un portail est toujours celui du portail.
+    if (activePortalId()) {
+      setLastTimeout(nowMs);
+      timeOutPortal();
+      return;
+    }
     const arc = activeArc();
     const target = enemy();
     if (arc && target && target.id === arc.boss.id) {
@@ -1259,9 +1267,10 @@ export function createGameStore(data: GameData) {
       setEnemy(target);
       setEnemyMaxHp(maxHp);
       setEnemyHpLeft(hpLeft);
-      // No clock, ever: a portal is meant to be walked out of and come back to.
-      setTimerDeadline(null);
-      setTimerTotal(null);
+      // Un portail est un assaut chronométré : l'horloge repart à chaque entrée, et son échéance
+      // referme le portail plutôt que de faire revivre le boss (voir `checkTimer`).
+      setTimerDeadline(target.timerMs ? Date.now() + target.timerMs : null);
+      setTimerTotal(target.timerMs ?? null);
     },
     spawnArcEnemy: spawnNext,
     cancelPendingAutomation,
@@ -1279,6 +1288,7 @@ export function createGameStore(data: GameData) {
     winPortal,
     spawnPortal,
     syncPortalDamage,
+    timeOutPortal,
   } = portals;
 
   /** True when this world's own prerequisite is cleared — the universe's reading order. */
