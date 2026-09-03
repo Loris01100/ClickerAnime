@@ -12,11 +12,11 @@ export const horimiyaArcs: GameData["arcs"] = [
     mobs: [
       { id: "horimiya-secrets-apparences", name: "Les apparences", baseHp: 22, reward: 4, itemId: "horimiya-item-messages", dropChance: 0.15 },
       { id: "horimiya-secrets-hori", name: "Kyoko Hori", baseHp: 88, reward: 22, characterId: "horimiya-hori" },
-      { id: "horimiya-secrets-miyamura", name: "Izumi Miyamura", baseHp: 104, reward: 27, characterId: "horimiya-miyamura" },
+      { id: "horimiya-secrets-miyamura", name: "Izumi Miyamura", baseHp: 104, reward: 27 },
       { id: "horimiya-secrets-sota", name: "Sota Hori", baseHp: 72, reward: 18, characterId: "horimiya-sota" },
     ],
     boss: {
-      id: "horimiya-secrets-peur",
+      id: "horimiya-secrets-peur", portalCharacterId: "horimiya-miyamura",
       name: "La peur d’être découvert",
       baseHp: 588,
       reward: 130,
@@ -40,12 +40,12 @@ export const horimiyaArcs: GameData["arcs"] = [
     mobsToBoss: 28,
     mobs: [
       { id: "horimiya-liens-rumeur", name: "Une rumeur de couloir", baseHp: 3_620, reward: 24, itemId: "horimiya-item-photo-classe", dropChance: 0.15 },
-      { id: "horimiya-liens-toru", name: "Toru Ishikawa", baseHp: 10_800, reward: 105, characterId: "horimiya-toru" },
+      { id: "horimiya-liens-toru", name: "Toru Ishikawa", baseHp: 10_800, reward: 105 },
       { id: "horimiya-liens-yuki", name: "Yuki Yoshikawa", baseHp: 9_400, reward: 92, characterId: "horimiya-yuki" },
       { id: "horimiya-liens-sengoku", name: "Kakeru Sengoku", baseHp: 13_000, reward: 120, characterId: "horimiya-sengoku" },
     ],
     boss: {
-      id: "horimiya-liens-regard",
+      id: "horimiya-liens-regard", portalCharacterId: "horimiya-toru",
       name: "Le regard des autres",
       baseHp: 60_600,
       reward: 700,
@@ -69,12 +69,12 @@ export const horimiyaArcs: GameData["arcs"] = [
     mobsToBoss: 34,
     mobs: [
       { id: "horimiya-sentiments-non-dit", name: "Un sentiment tu", baseHp: 33_000, reward: 95, itemId: "horimiya-item-chocolats", dropChance: 0.15 },
-      { id: "horimiya-sentiments-remi", name: "Remi Ayasaki", baseHp: 92_000, reward: 370, characterId: "horimiya-remi" },
+      { id: "horimiya-sentiments-remi", name: "Remi Ayasaki", baseHp: 92_000, reward: 370 },
       { id: "horimiya-sentiments-sakura", name: "Sakura Kono", baseHp: 108_000, reward: 430, characterId: "horimiya-sakura" },
       { id: "horimiya-sentiments-yanagi", name: "Akane Yanagi", baseHp: 132_000, reward: 520, characterId: "horimiya-yanagi" },
     ],
     boss: {
-      id: "horimiya-sentiments-malentendu",
+      id: "horimiya-sentiments-malentendu", portalCharacterId: "horimiya-remi",
       name: "Le malentendu",
       baseHp: 550_000,
       reward: 3_000,
@@ -100,10 +100,10 @@ export const horimiyaArcs: GameData["arcs"] = [
       { id: "horimiya-quotidien-journee", name: "Une journée trop chargée", baseHp: 161_600, reward: 380, itemId: "horimiya-item-ticket-festival", dropChance: 0.15 },
       { id: "horimiya-quotidien-shu", name: "Shu Iura", baseHp: 510_000, reward: 1_550, characterId: "horimiya-shu" },
       { id: "horimiya-quotidien-honoka", name: "Honoka Sawada", baseHp: 445_000, reward: 1_350, characterId: "horimiya-honoka" },
-      { id: "horimiya-quotidien-shindo", name: "Koichi Shindo", baseHp: 790_000, reward: 2_450, characterId: "horimiya-shindo" },
+      { id: "horimiya-quotidien-shindo", name: "Koichi Shindo", baseHp: 790_000, reward: 2_450 },
     ],
     boss: {
-      id: "horimiya-quotidien-distance",
+      id: "horimiya-quotidien-distance", portalCharacterId: "horimiya-shindo",
       name: "La distance",
       baseHp: 1_800_000,
       reward: 14_000,
@@ -127,12 +127,12 @@ export const horimiyaArcs: GameData["arcs"] = [
     mobsToBoss: 46,
     mobs: [
       { id: "horimiya-pieces-souvenir", name: "Un souvenir incomplet", baseHp: 267_000, reward: 1_500, itemId: "horimiya-item-recette", dropChance: 0.15 },
-      { id: "horimiya-pieces-kyosuke", name: "Kyosuke Hori", baseHp: 710_000, reward: 5_800, characterId: "horimiya-kyosuke" },
+      { id: "horimiya-pieces-kyosuke", name: "Kyosuke Hori", baseHp: 710_000, reward: 5_800 },
       { id: "horimiya-pieces-yuriko", name: "Yuriko Hori", baseHp: 540_000, reward: 4_500, characterId: "horimiya-yuriko" },
       { id: "horimiya-pieces-motoko", name: "Motoko Iura", baseHp: 860_000, reward: 7_200, characterId: "horimiya-motoko" },
     ],
     boss: {
-      id: "horimiya-pieces-jalousie",
+      id: "horimiya-pieces-jalousie", portalCharacterId: "horimiya-kyosuke",
       name: "La jalousie",
       baseHp: 3_000_000,
       reward: 90_000,
@@ -157,10 +157,10 @@ export const horimiyaArcs: GameData["arcs"] = [
     mobs: [
       { id: "horimiya-diplome-incertitude", name: "L’incertitude du lendemain", baseHp: 610_000, reward: 2_800, itemId: "horimiya-item-souvenir", dropChance: 0.15 },
       { id: "horimiya-diplome-tanihara", name: "Makio Tanihara", baseHp: 2_200_000, reward: 19_000, characterId: "horimiya-tanihara" },
-      { id: "horimiya-diplome-iori", name: "Iori Miyamura", baseHp: 3_350_000, reward: 31_000, characterId: "horimiya-iori" },
+      { id: "horimiya-diplome-iori", name: "Iori Miyamura", baseHp: 3_350_000, reward: 31_000 },
     ],
     boss: {
-      id: "horimiya-diplome-avenir",
+      id: "horimiya-diplome-avenir", portalCharacterId: "horimiya-iori",
       name: "La peur de l’avenir",
       baseHp: 8_000_000,
       reward: 400_000,

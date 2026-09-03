@@ -659,6 +659,23 @@
   color: var(--muted);
   font-size: 0.7rem;
 }
+/*
+ * Une tuile amputée par un trait de boss. La valeur brute reste lisible mais barrée : le joueur doit
+ * pouvoir comparer d'un coup d'œil ce qu'il vaut et ce qui passe. Le liseré `--boss` est celui du
+ * renseignement de boss juste au-dessus, pour que les deux se lisent comme une seule information.
+ */
+.stat-grid div.nerfed {
+  box-shadow: inset 0 2px 0 var(--boss);
+}
+.stat-nerf {
+  display: flex;
+  gap: 0.25rem;
+  align-items: baseline;
+  line-height: 1;
+}
+.stat-nerf s {
+  opacity: 0.75;
+}
 
 /* Cadence de kills : muette tant qu'elle passe, dorée dès que le plafond mange des dégâts. */
 .kill-rate {

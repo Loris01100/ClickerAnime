@@ -67,6 +67,22 @@
 .portal-badge.current {
   color: var(--accent);
 }
+/* A world still under test: gold reads as "attention", not as a failure like --bad would. */
+.portal-badge.alpha {
+  color: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  border-radius: 999px;
+  padding: 0 0.3rem;
+  font-weight: 700;
+}
+.portal-alpha-note {
+  margin: 0.4rem 0 0;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+  border-radius: 6px;
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+}
 .portal-detail {
   padding: 0.85rem;
   max-height: 70vh;

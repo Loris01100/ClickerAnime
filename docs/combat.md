@@ -54,7 +54,12 @@ the hp bar already gives.
 
 Enemies never deal damage. The only pressure is `Enemy.timerMs`: run out and the enemy respawns at
 full hp, nothing else. It sits on `Enemy`, not on a boss-only type, so making mobs timed is a data
-change — by default only bosses carry one, because timed mobs would break idling.
+change — by default only bosses carry one, because timed mobs would break idling. The one boss that
+carries none is a **crossover portal** (`docs/economy.md`): its whole design is to be walked out of
+and come back to, so it has no clock, its damage is remembered, and `spawnNext` yields to it rather
+than replacing it. Its hp is not read off the data at all — it is a minute of the team's own dps,
+frozen when the portal was paid for, sealed behind a 0.5 `dps-resistance` so the click has to
+finish it.
 
 ### Generalized boss traits
 
@@ -82,6 +87,20 @@ requires complete coverage, all three mechanics and safe values.
 Traits are announced in the arc list and in a persistent strip above combat before the boss appears;
 the strip switches from `Boss à venir` to `Trait actif` when the encounter begins. This is an
 ordinary part of boss readability now, not an entry-arc experiment.
+
+**And the numbers move with it.** A trait that eats damage is applied on the receiving end — in
+`dealDamage`, through `damageMultiplierAgainst` — so `clickPower` and `teamDps` are untouched by it:
+they say what the team is worth, not what lands. For a long time nothing on screen said the
+difference, and the result read as a broken rule. The strip announced « les clics infligent 50 % de
+dégâts en moins », every click really was halved, and the two tiles the player actually watches kept
+printing the full number.
+
+The store therefore also exposes what reaches the enemy currently on screen — `effectiveClickPower`,
+`effectiveTeamDps` and the `damageShareAgainst(source)` they are built from — and the stat grid
+prints *those*, with the raw value struck through beside them and the share that gets through as a
+percentage. Derived in the engine, never in the component: it is the same rule `dealDamage` applies,
+and a screen recomputing it could drift from the blow that actually lands. A `shield` trait changes
+no share — it inflates the boss's hp, which the health bar already shows.
 
 Before the encounter, that strip is also the preparation check. It translates each trait kind into
 its concrete counter (team DPS against click resistance, active clicking against DPS resistance, a
@@ -273,6 +292,11 @@ cliff**, and it gets steeper with every world added because the roster carried a
 before sizing a fourth world on it.** The mechanism is what matters here and is unchanged; the
 magnitude is not, since both changes altered how much of a team's dps comes from characters whose
 passives the crossing switches off.
+
+A world entered *below* the player instead of above them is not sized at all: it is re-levelled at
+entry, off the heaviest arc already cleared and discounted by that same crossing cliff — the cliff is
+a constant there, `BORDER_CLIFF` (`docs/progression.md`). The rest of this section is about authoring
+a world that continues the chain.
 
 So a world's arc 0 is sized against the dps the team has **once it is standing there**, which is far
 below where the previous world left off. The cliff closes fast — Boruto's own recruits bring their

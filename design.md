@@ -154,7 +154,11 @@ branchent jamais sur `anime.id`.
 
 **Horimiya est en alpha, en phase de test.** Sa direction artistique, son vocabulaire de
 présentation et son équilibrage sont provisoires : ils peuvent encore bouger, et le monde ne sert
-pas de référence visuelle pour les autres mondes tant que l'alpha dure.
+pas de référence visuelle pour les autres mondes tant que l'alpha dure. Le joueur le voit : le drapeau
+`Anime.alpha` affiche une pastille **Alpha** en `--gold` partout où le monde est nommé (portail,
+en-tête du théâtre, panneau de progression, carte) et une phrase d'avertissement dans le dossier du
+portail. Une pastille, jamais une couleur en dur — et pas de `--bad`, qui dirait « cassé » là où il
+faut dire « en test ».
 
 Palette fonctionnelle actuelle (rappel, ne pas dupliquer ailleurs) :
 
@@ -636,7 +640,14 @@ code écrit à la main.
   d'affichage, pas un réglage à sauvegarder) ; un panel généré par un `<For>` (un par monde
   débloqué dans `ProgressPanel.tsx`) garde un état par instance via un `Record<id, boolean>`
   plutôt qu'un signal booléen unique. L'info secondaire à droite du header (compteur, select,
-  difficulté) reste toujours visible, seul le corps se replie. Tout nouveau panel doit suivre ce
+  difficulté) reste toujours visible, seul le corps se replie. Une exception assumée : « Voyager »
+  n'affiche plus de difficulté dans son header, car depuis le re-nivellement des mondes déjà
+  dépassés (`docs/progression.md`) il n'existe plus de chiffre unique valable pour « le prochain
+  monde » — chaque ligne de destination porte le sien, comme les panels par monde juste au-dessus.
+  Ces lignes-là sortent donc du `.row` en `space-between` pour une grille à trois colonnes fixes
+  (`.travel-row`, surmontée d'un `.travel-head` « Monde / Difficulté ») : un multiplicateur ne se
+  compare au suivant que s'il est aligné, et un `x3.57K` nu ne disait pas de quoi il parlait — le
+  panel dit maintenant en toutes lettres qu'il s'agit des PV des ennemis. Tout nouveau panel doit suivre ce
   patron dès sa création — ne pas en ajouter un en `<span>` nu qu'il faudrait reconvertir plus
   tard.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.
@@ -724,6 +735,17 @@ code écrit à la main.
   prestige — l'engine, lui, reste en anglais (identifiants, commentaires).
 
 ---
+
+
+**Un chiffre affiché doit être celui qui s'applique.** La grille de stats de la scène imprime le
+clic et le DPS **tels qu'ils frappent l'ennemi en face**, trait de boss compris : devant « Brume
+épaisse », la tuile passe de 3 à 1,5, la valeur brute reste lisible barrée à côté (`.stat-nerf`) et
+la tuile prend un liseré `--boss` — le même que le renseignement de boss juste au-dessus, pour que
+les deux se lisent comme une seule information. Auparavant le trait était annoncé en toutes lettres,
+les dégâts étaient bien amputés, et les deux compteurs continuaient d'afficher la valeur pleine : le
+malus était invisible exactement là où on le cherche, ce qui se lit comme une règle en panne. La
+valeur amputée vient du moteur (`effectiveClickPower`, `effectiveTeamDps`), jamais d'un calcul du
+composant.
 
 ## 9. Écran Succès et export/import de save
 
@@ -826,14 +848,53 @@ vocabulaire du reste de l'app plutôt qu'un système dédié :
 d'objets — les objets se lisent déjà dans le panneau « Objets » de la colonne de gauche). Trois blocs
 `.codex-block`, dans l'ordre où la question se pose :
 
-1. **La réserve** et d'où elle vient (12% par mob, 5 par boss, uniquement en équipe multi-mondes).
+1. **La réserve** et d'où elle vient (2% par mob, 5 par boss, uniquement en équipe multi-mondes).
 2. **L'équipe**, un `.codex-row` par monde représenté — c'est le diagnostic : si un seul monde est
    listé, la ligne muette explique que la source est coupée.
-3. **Fusion des mondes**, le bouton `.primary` d'activation (coût + durée), remplacé pendant la
+3. **Portails**, la vraie dépense : un `.crossover-portals > li` par recrue de boss encore manquante,
+   **groupé par monde** (`.crossover-world`, un titre collant teinté du `--world-hue` de l'univers,
+   avec son compte) et dans l'ordre de l'histoire à l'intérieur de chaque groupe. Le regroupement
+   n'est pas cosmétique : la liste dépasse la cinquantaine d'entrées une fois le jeu avancé, et
+   `Arc.order` étant un rang *dans* son monde, un tri à plat intercalait l'arc 3 de Bleach entre les
+   arcs 2 et 4 de Hunter x Hunter. Le moteur trie sur `arcRank`, la position dans `data.arcs` ; le
+   panneau ne fait que refermer un groupe quand le monde change.
+
+   La classe s'appelait `.portal-list`, **comme la colonne des mondes de `WorldPortal`** : deux
+   écrans sans rapport, un seul nom, et `worlds-and-codex.css` étant importé après
+   `panels-and-shop.css`, c'est la règle des mondes qui gagnait. Le crossover héritait donc d'un
+   `max-height: 70vh` qui n'était pas pour lui, la liste débordait sans être coupée, et « Fusion des
+   mondes » se dessinait par-dessus les dernières lignes. Deux écrans, deux noms. Une ligne porte le nom, son arc et un bouton — *Ouvrir* avec son prix en
+   cristaux tant que le portail n'existe pas, *Entrer* une fois payé. Un portail ouvert affiche en
+   dessous sa barre de vie (`.bar.hp-bar.boss`, la même que le combat) : c'est là que se voit ce
+   qu'il reste d'un boss qu'on grignote en plusieurs fois. La ligne du combat en cours prend
+   `.active` (bordure `--accent`, fond `--active-tint`), et son bouton devient *Reprendre le
+   combat*.
+
+   **« Entrer » referme le panneau**, et c'est une règle et non un détail : le combat démarre dans la
+   colonne du milieu, *sous* cette modale. Tant qu'elle restait ouverte, cliquer « Entrer » ne
+   produisait à l'écran qu'une ligne passant à « Combat en cours » — le boss qu'on venait de payer se
+   battait derrière l'écran qui le cachait, et rien ne disait qu'il fallait fermer. Règle générale
+   pour tout overlay : **un panneau qui démarre un combat s'efface derrière lui**. « Ouvrir », qui
+   n'emmène nulle part et s'enchaîne volontiers plusieurs fois, laisse au contraire le panneau en
+   place. Même règle au portail des mondes, où *Partir* comme le raccourci payant referment la
+   modale : les deux posent le joueur dans le premier arc du nouveau monde.
+4. **Fusion des mondes**, le bouton `.primary` d'activation (coût + durée), remplacé pendant la
    fenêtre par le décompte en secondes.
 
 La tuile Ressources prend `.currency.active` (fond `--active-tint`) tant que la fenêtre est ouverte :
 c'est un buff temporaire, il doit se voir sans ouvrir le tiroir.
+
+**Dans le combat**, un portail se signale par une bannière `.boss-intel.portal-fight` au-dessus de la
+scène : même boîte que le renseignement de boss, mais en `--accent` plutôt qu'en `--boss`, et c'est
+la seule dont la ligne d'explication passe à la ligne au lieu d'être coupée — elle doit être lue en
+entier. Elle nomme l'arc et la recrue, rappelle le sceau et que les dégâts sont conservés, et porte
+le seul bouton de sortie : *Quitter le portail*. Un portail ne se quitte pas en changeant d'arc, donc
+l'écran doit dire en permanence où l'on est et par où on sort. Le boss d'un portail porte la couronne
+et le traitement « boss » de la scène comme n'importe quel autre.
+
+Côté colonne de gauche, « À battre ici » liste d'abord la recrue que le boss garde derrière son
+portail, avec son prix en cristaux au lieu de ses stats — la battre dans l'arc ne la donne pas, et
+c'est le seul endroit où la liste pourrait laisser croire le contraire.
 
 ### 11.2 Packs et doublons
 
@@ -911,6 +972,11 @@ quelque chose à y faire, et pouvoir repartir se battre au bon endroit.
 - **Sa source est unique** : `rankablePassiveIds` dans le store. `ClickStage` et `ProgressPanel`,
   qui conseillaient déjà de monter un passif avant un boss, lisent le même memo — un seul endroit
   décide de ce qui est « améliorable maintenant ».
+- **La forge suit la même chaîne**, avec la même pastille et la même règle : `forgeableNowIds` dans
+  le store → l'encart « Forge » de la colonne droite et son bouton d'ouverture → dans le panneau, la
+  case vide ou le bouton « Changer » qui rouvre la liste → la ligne de chaque unique dont le niveau
+  suivant est payable. Un unique au plafond n'a plus de coût, donc plus de pastille : le point ne
+  promet jamais une action qui n'existe pas.
 - **Raccourci d'arc** (`.codex-travel`, sous le portrait) : un bouton par arc **atteignable** du
   personnage — « Combattre dans » s'il est dans l'équipe, « Le rencontrer dans » sinon. Cliquer
   déplace l'arc actif et referme le Codex : c'est un déplacement, pas une lecture. L'arc actif est
@@ -994,3 +1060,41 @@ partage est délibéré :
 
 Les récompenses sont écrites par `describeModifier` comme n'importe quel effet d'objet : l'arbre, le
 codex et les défis ne doivent jamais inventer une deuxième façon de décrire un même bonus.
+
+## 15. La Tour de l'Ascension (overlay plein écran)
+
+La tour est le seul mode qui **ne se joue pas dans la colonne du milieu** : c'est un overlay
+autonome (`TowerPanel.tsx`, `styles/tower.css`), avec sa propre scène, son propre ennemi et sa propre
+horloge. Le choix n'est pas esthétique, il est sémantique — pendant qu'on grimpe, ce n'est pas
+l'équipe qui frappe mais cinq personnages choisis, l'adversaire n'appartient à aucun monde, et rien
+de ce qui tombe dans un arc ne tombe ici (`docs/tower.md`). Un écran à part dit tout cela sans une
+phrase d'explication ; une prise en main du `ClickStage`, façon portail de crossover, aurait dit
+l'inverse.
+
+Trois idées portent l'écran :
+
+- **Le fond n'a pas de fin.** Une image répétée verticalement (`background-repeat: repeat-y`) dont la
+  position descend d'exactement une tuile par cycle d'animation : à la fin de la boucle le motif est
+  de nouveau aligné sur lui-même, donc la couture ne se voit jamais, quelle que soit la hauteur de
+  l'écran. Une seule couche, pas deux copies empilées à recoller. Tout l'habillage tient dans
+  `--tower-backdrop-image` : poser l'illustration définitive, c'est déposer le fichier dans
+  `public/tower/` et changer cette ligne — à condition que l'image **se raccorde verticalement à
+  elle-même**, sinon la boucle se voit à chaque passage. `prefers-reduced-motion` coupe le défilement,
+  parce qu'un décor qui boucle est exactement ce que ce réglage vise.
+- **L'escouade est toujours cinq cases**, remplies ou non (`.tower-slot`). Une grille qui ne change
+  pas de taille dit la contrainte du mode — cinq, jamais six — mieux qu'un compteur. Une case pleine
+  prend le liseré `--accent` et affiche le DPS réel du personnage, le même nombre que sa ligne du
+  roster : deux écrans qui affichent la même chose doivent afficher le même chiffre.
+- **Les manches sont des pastilles**, trois rangées de cinq (`.tower-dot`), la dernière plus grosse et
+  en `--boss`. C'est la seule représentation de la progression *à l'intérieur* d'un étage, et elle est
+  lisible d'un coup d'œil sans lire un compteur : vert pour tombé, `--accent` pour l'adversaire en
+  cours.
+
+Les trois modes (Normal, Difficile, Enfer) sont **toujours affichés**, les deux fermés cadenassés avec
+`IconLock` : le joueur doit voir la hauteur totale du barreau avant d'y poser le pied. Ils sont
+désactivés pendant une tentative — on ne change pas de barreau au milieu d'un étage.
+
+Le reste suit §8 à la lettre : `.overlay` > `.modal`, en-tête `.panel-head` avec le compte à rebours
+du cycle, contenu qui défile, Échap qui ferme. Une seule nuance, volontaire : dans un étage, Échap
+quitte l'étage avant de fermer le panneau, et un clic sur le voile ne ferme rien — on ne sort pas
+d'une tentative en cours par accident.

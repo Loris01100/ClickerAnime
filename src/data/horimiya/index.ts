@@ -12,6 +12,7 @@ export const horimiyaData: GameData = {
       unlockCost: 3,
       themeHue: 338,
       mapImage: "/horimiya-map.png",
+      alpha: true,
       description:
         "Kyoko Hori et Izumi Miyamura découvrent les facettes qu’ils cachent au lycée. Leur " +
         "rencontre transforme peu à peu leurs amitiés, leurs familles et leur quotidien, jusqu’à " +

@@ -54,7 +54,7 @@
       "baseHp": 4260000,
       "reward": 120000,
       "timerMs": 50000,
-      "characterId": "deidara",
+      "portalCharacterId": "deidara",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Pression écrasante",
@@ -181,7 +181,7 @@
       "baseHp": 23900000,
       "reward": 411000,
       "timerMs": 60000,
-      "characterId": "kakuzu",
+      "portalCharacterId": "kakuzu",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Lecture du combat",
@@ -252,7 +252,7 @@
       "baseHp": 56500000,
       "reward": 760000,
       "timerMs": 75000,
-      "characterId": "kisame",
+      "portalCharacterId": "kisame",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Aura dominante",
@@ -372,7 +372,7 @@
       "baseHp": 317000000,
       "reward": 2600000,
       "timerMs": 105000,
-      "characterId": "itachi",
+      "portalCharacterId": "itachi",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Esquive instinctive",
@@ -420,13 +420,6 @@
         "baseHp": 110000000,
         "reward": 481000,
         "characterId": "konan"
-      },
-      {
-        "id": "shippuden-pain-rival-nagato",
-        "name": "Nagato",
-        "baseHp": 110000000,
-        "reward": 481000,
-        "characterId": "nagato"
       }
     ],
     "boss": {
@@ -436,6 +429,7 @@
       "baseHp": 750000000,
       "reward": 4810000,
       "timerMs": 105000,
+      "portalCharacterId": "nagato",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Pression écrasante",
@@ -527,6 +521,7 @@
       "baseHp": 1770000000,
       "reward": 8900000,
       "timerMs": 105000,
+      "portalCharacterId": "danzo-shimura",
       "bossTrait": {
         "kind": "shield",
         "name": "Défense renforcée",
@@ -681,6 +676,7 @@
       "baseHp": 9940000000,
       "reward": 30500000,
       "timerMs": 145000,
+      "portalCharacterId": "mu-tsuchikage",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Aura dominante",
@@ -758,6 +754,7 @@
       "baseHp": 23500000000,
       "reward": 56400000,
       "timerMs": 145000,
+      "portalCharacterId": "madara",
       "bossTrait": {
         "kind": "shield",
         "name": "Seconde forme",
@@ -800,13 +797,6 @@
         "reward": 3060000
       },
       {
-        "id": "shippuden-dix-queues-rival-obito",
-        "name": "Obito Uchiwa",
-        "baseHp": 5730000000,
-        "reward": 10400000,
-        "characterId": "obito"
-      },
-      {
         "id": "shippuden-dix-queues-rival-kurama",
         "name": "Kurama",
         "baseHp": 5730000000,
@@ -821,6 +811,7 @@
       "baseHp": 55700000000,
       "reward": 104000000,
       "timerMs": 145000,
+      "portalCharacterId": "obito",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Esquive instinctive",
@@ -884,6 +875,7 @@
       "baseHp": 132000000000,
       "reward": 193000000,
       "timerMs": 145000,
+      "portalCharacterId": "fugaku-uchiwa",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Pression écrasante",
@@ -926,13 +918,6 @@
         "reward": 10500000
       },
       {
-        "id": "shippuden-kaguya-rival-madara",
-        "name": "Madara Uchiwa",
-        "baseHp": 28200000000,
-        "reward": 35700000,
-        "characterId": "madara"
-      },
-      {
         "id": "shippuden-kaguya-rival-zetsu-noir",
         "name": "Zetsu Noir",
         "baseHp": 28200000000,
@@ -947,6 +932,7 @@
       "baseHp": 312000000000,
       "reward": 357000000,
       "timerMs": 145000,
+      "portalCharacterId": "kaguya-otsutsuki",
       "bossTrait": {
         "kind": "shield",
         "name": "Défense renforcée",
@@ -1003,7 +989,7 @@
       "baseHp": 739000000000,
       "reward": 660000000,
       "timerMs": 165000,
-      "characterId": "toneri",
+      "portalCharacterId": "toneri",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Lecture du combat",

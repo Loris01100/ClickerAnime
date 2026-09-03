@@ -22,7 +22,7 @@ const arcs: GameData["arcs"] = [
       { id: "vagues-haku", name: "Haku", baseHp: 122, reward: 50, characterId: "haku" },
     ],
     boss: {
-      id: "vagues-zabuza",
+      id: "vagues-zabuza", portalCharacterId: "zabuza-momochi",
       itemId: "item-kubikiri",
       name: "Zabuza Momochi",
       baseHp: 294,
@@ -51,7 +51,7 @@ const arcs: GameData["arcs"] = [
       { id: "chunin-lee", name: "Rock Lee", baseHp: 6_520, reward: 120, characterId: "rock-lee" },
       { id: "chunin-shikamaru", name: "Shikamaru Nara", baseHp: 5_810, reward: 110, characterId: "shikamaru-nara" },
       { id: "chunin-hinata", name: "Hinata Hyûga", baseHp: 6_170, reward: 115, characterId: "hinata-hyuga" },
-      { id: "chunin-sasuke", name: "Sasuke Uchiwa", baseHp: 9_140, reward: 180, characterId: "sasuke-uchiwa" },
+      { id: "chunin-sasuke", name: "Sasuke Uchiwa", baseHp: 9_140, reward: 180 },
     ],
     boss: {
       id: "chunin-neji",
@@ -60,7 +60,7 @@ const arcs: GameData["arcs"] = [
       baseHp: 30_300,
       reward: 700,
       timerMs: BOSS_TIMER_MS,
-      characterId: "neji-hyuga",
+      portalCharacterId: "neji-hyuga",
     },
   },
   {
@@ -79,7 +79,7 @@ const arcs: GameData["arcs"] = [
       { id: "konoha-kankuro", name: "Kankurô", baseHp: 47_300, reward: 380, characterId: "kankuro" },
       { id: "konoha-gaara", name: "Gaara du Désert", baseHp: 91_400, reward: 800, characterId: "gaara" },
     ],
-    boss: { id: "konoha-orochimaru", itemId: "item-kusanagi", name: "Orochimaru", baseHp: 275_000, reward: 3_000, timerMs: BOSS_TIMER_MS },
+    boss: { id: "konoha-orochimaru", portalCharacterId: "orochimaru", itemId: "item-kusanagi", name: "Orochimaru", baseHp: 275_000, reward: 3_000, timerMs: BOSS_TIMER_MS },
   },
   {
     id: "naruto-tsunade",
@@ -97,7 +97,7 @@ const arcs: GameData["arcs"] = [
       { id: "tsunade-jiraya", name: "Jiraya", baseHp: 391_000, reward: 2_400, characterId: "jiraya" },
       { id: "tsunade-tsunade", name: "Tsunade", baseHp: 515_000, reward: 3_000, characterId: "tsunade" },
     ],
-    boss: { id: "tsunade-kabuto", itemId: "item-lunettes", name: "Kabuto Yakushi — Bistouri de chakra", baseHp: 1_360_000, reward: 14_000, timerMs: BOSS_TIMER_MS },
+    boss: { id: "tsunade-kabuto", portalCharacterId: "kabuto-yakushi", itemId: "item-lunettes", name: "Kabuto Yakushi — Bistouri de chakra", baseHp: 1_360_000, reward: 14_000, timerMs: BOSS_TIMER_MS },
   },
   {
     id: "naruto-sasuke",
@@ -116,7 +116,7 @@ const arcs: GameData["arcs"] = [
       { id: "sasuke-kiba", name: "Kiba Inuzuka", baseHp: 669_000, reward: 5_600, characterId: "kiba-inuzuka" },
       { id: "sasuke-kimimaro", name: "Kimimaro", baseHp: 1_340_000, reward: 12_000, characterId: "kimimaro" },
     ],
-    boss: { id: "sasuke-vallee", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 4_970_000, reward: 90_000, timerMs: 90_000 },
+    boss: { id: "sasuke-vallee", portalCharacterId: "sasuke-uchiwa", itemId: "item-collier", name: "Sasuke Uchiwa — Vallée de la Fin", baseHp: 4_970_000, reward: 90_000, timerMs: 90_000 },
   },
 ];
 

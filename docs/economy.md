@@ -71,6 +71,36 @@ rank. Only `hardReset` wipes that mastery.
 `rollsDrop(enemy, roll)` takes the 0..1 draw as an argument; `Math.random()` is called only in
 `gameState`, which keeps the odds testable.
 
+
+### Tous les boss, ou presque
+
+Chaque arc du jeu se termine désormais sur un boss qui **débloque quelqu'un** : 52 des 55 en portail
+de crossover. Trois font exception et ne peuvent pas faire autrement — Orochimaru, Pain et Kabuto
+sont chacun le boss de *deux* arcs, et un personnage n'est recrutable qu'une fois. Leur seconde
+apparition passe par une `evolution`, le mécanisme prévu pour « le même personnage, plus tard ».
+
+Sept personnages ont été créés pour des boss qui n'existaient pas dans le casting (Zabuza,
+Orochimaru, Kabuto, Danzô, Mû, Fugaku, Kaguya). Leur `baseDps` est posé **exactement sur le
+`debutPower` que leur arc a déjà** : `arcPowerTable` lit le maximum de la cohorte, donc l'égaler ne
+déplace aucune table — vérifié, la table est identique au caractère près.
+
+Neuf autres boss étaient des personnages **déjà recrutables en mob** (Sasuke, Nagato, Obito, Madara,
+et six d'Horimiya). Leur recrutement a été déplacé du mob vers le portail de leur boss. **C'est le
+seul changement de ce lot qui touche l'équilibrage, et il le touche fort** : ces recrues étaient
+gratuites, elles coûtent maintenant des cristaux. Mesuré avec `npm run sim`, qui joue une partie
+sans jamais dévier de sa politique d'achat :
+
+| | avant | après |
+|---|---|---|
+| Arcs terminés | 55 / 55 | 18 / 55 (mur sur Kaguya) |
+| Portails gagnés | 6 | 0 |
+
+Le chronomètre des portails n'y est pour rien (vérifié en le portant à l'infini : même résultat). La
+cause est Madara — 387 000 de DPS, la recrue la plus forte juste avant le mur de Kaguya — passée
+derrière un portail que le simulateur n'achète jamais. **Ce lot demande donc soit un refit des tables
+de PV de Shippūden, soit de rendre ces neuf recrues à leur mob.** Rien n'est cassé côté données
+(`validate:data` passe, la table de puissance est inchangée) : c'est une décision de rythme.
+
 ## Forge
 
 The pure forge and equipment rules live in `src/engine/forge.ts`; `gameState.ts` only wires them to
@@ -81,6 +111,10 @@ of another copy. The forge consumes 5, 10, 15 then 25 fragments for ranks 2–5 
 with the first unique). The unique itself and unspent fragments are run-scoped, but its forge rank
 is permanent mastery: after prestige, the next copy found immediately recovers its former rank.
 Only `hardReset` clears that rank.
+
+`forgeableNowIds` is the store's one answer to «which unique can be forged right now», and it is what
+the UI badges with the same `.notice-dot` a rankable passive uses — from the Forge entry down to the
+picker row (`docs/ui.md`). A unique at rank 5 has no next cost, so it is never in that set.
 
 **A chance node must still be a chance at level 5.** `scaledChance` clamps `base * level` at 1, so
 any base at or above 1/5 silently becomes a guarantee at max level, and nothing in the UI says so.
@@ -334,7 +368,11 @@ balance, so they are percents on the two existing `ModifierTarget`s and nothing 
 
 The one resource that exists because the game is inter-anime. Crystals only drop while
 `isMixedTeam(ownedCharacters())` — the team spans two worlds — at `CROSSOVER_MOB_CHANCE` per mob and
-`CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. `activateCrossover()` spends
+`CROSSOVER_BOSS_REWARD` flat per boss, granted in `defeat`. **A boss pays that flat reward once**:
+only the win that clears its arc counts, so re-farming a cleared arc's 50-fight boss cycle earns
+nothing from the boss itself (the mobs of that cycle still roll). Without it the crystal stock was
+best farmed by re-killing an easy cleared boss instead of playing forward, which is the opposite of
+what the resource rewards. `activateCrossover()` spends
 `CROSSOVER_COST` for a `CROSSOVER_DURATION_MS` window during which `activeSynergyConfig` is wrapped
 in `crossoverSynergyConfig` — every malus flattened to `matchingArcMultiplier`, so the whole team
 fights at full power anywhere. Damage only: a passive and an active ability are still story
@@ -345,6 +383,50 @@ transient like combat state, so a reload drops an active buff. `crossoverAdvised
 resource never had — true only while the player is fighting somewhere at least one team member sits
 at the steep other-anime malus, which is exactly the "come back and farm an old world's common"
 case; `CurrencyBar` pulses the tile on it.
+
+### Portals: the only way a boss's character is ever recruited
+
+A boss hands out its unique and clears its arc. It does **not** hand out its character: 35 of the 55
+arcs name one in `Enemy.portalCharacterId` rather than `characterId`, and `defeat` never reads that
+field. The character is recruited by paying crystals to re-open the fight as a **portal**, once the
+arc is cleared, and felling the boss a second time — which is what turns the crystal from a
+one-minute buff into the run's currency of collection.
+
+The chicken-and-egg is deliberate: crystals only drop for a team spanning two worlds, so a first
+world is played through end to end without a single boss recruit. Travelling, recruiting elsewhere
+and coming back to open the portals *is* the loop the resource exists to reward.
+
+- **`openPortal` freezes the fight.** Its hp is `portalFightHp(teamDps(), weight)` —
+  `PORTAL_SECONDS` (30) of the dps the team has *at that instant*, times the boss's own weight.
+  Frozen, a portal left for later is the reward for having grown since; recomputed live it would run
+  away from the player exactly as fast as they climbed.
+- **The weight is derived, never authored.** `portalWeights` reads a boss's `baseHp` against the
+  mean of the mobs of its own arc, normalised against its world's median and clamped to
+  `PORTAL_WEIGHT_MIN`..`MAX` (0.7..1.6). The world's absolute hp ramp cancels out of that ratio, so
+  it says only what it means to say — which of a world's bosses hit harder than that world's usual —
+  and no world has to author a portal number.
+- **The seal is the difficulty, not the hp.** `PORTAL_TRAIT` is a `dps-resistance` at
+  `PORTAL_DPS_RESISTANCE` (0.5), so 30 seconds of raw dps is a minute of fighting for a team that
+  just stands there, and the Clic du Narrateur — untouched by the seal — is what brings it back
+  under. A portal is the one fight in the game that refuses to be idled through. Sizing it by hp
+  instead would have been pointless: the hp is a photograph of the team, so it can never be *hard*,
+  only long.
+- **No clock, and it can be left.** A portal has no `timerMs` — the whole point is that it is fought
+  in several sittings. `spawnNext` yields to an open portal, so nothing that respawns an enemy (an
+  arc switch, a boss timeout, "Relève") can take it away; only `leavePortal` and winning it do. The
+  two arc automations skip while one is up, so they cannot walk the arc out from under the player.
+- **A portal pays in the recruit alone.** No currency, no xp, no drop, no crystal, no arc progress —
+  `defeat` branches to `winPortal` before any of it. It can be won exactly once per character per
+  run, so there is nothing here to farm and nothing of it lands in the balance.
+- **The costs are `PORTAL_COST`**, 15 crystals for a `main` and 8 for a `secondary` — rarity alone,
+  never the arc, so a late world's portals stay reachable. A full simulated run affords roughly two
+  thirds of the 35 boss recruits (24 at seed 1): the stock is a real choice between portals and
+  synergy windows, and two runs do not build the same roster.
+
+`npm run sim` grew a `portals` policy alongside `packs` — greedy and in story order — because a run
+that never opened one would end 35 characters short of the roster the hp tables were fitted against.
+With it the full run goes from 152 to 180 minutes at seed 1, and every one of those 28 minutes is
+portal fights: no arc got slower, and nothing stalled.
 
 ## Packs and duplicates (`packs.ts`)
 

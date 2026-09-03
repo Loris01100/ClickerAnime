@@ -9,7 +9,8 @@ import { gameData } from "../data";
 // The HUD's own formatter, so a dps reads the same here as it does in the game — and because it
 // carries units past G (T, Qa, Qi…), which a late run's numbers reach and a hand-rolled one didn't.
 import { fmt } from "../ui/format";
-import { defaultSimOptions, simulateRun, type ArcReport, type SimOptions, type SimReport } from "./sim";
+import { PRESTIGE_TREE_CATEGORIES, type PrestigeTreeCategoryId } from "./prestigeTree";
+import { defaultSimOptions, simulateRun, type ArcReport, type RunReport, type SimOptions, type SimReport } from "./sim";
 
 // The project has no `@types/node` and doesn't need one for a single CLI: this is the whole of the
 // Node surface used here. Declaring it beats adding a dependency `npm run build` would then carry.
@@ -28,6 +29,19 @@ function positive(value: string, flag: string): number {
     process.exit(1);
   }
   return parsed;
+}
+
+const BRANCH_IDS = PRESTIGE_TREE_CATEGORIES.map((category) => category.id);
+
+/** A branch list must be checked here: a typo would otherwise silently become "no priority". */
+function branches(value: string): PrestigeTreeCategoryId[] {
+  const ids = value.split(",").filter(Boolean);
+  const unknown = ids.filter((id) => !BRANCH_IDS.includes(id as PrestigeTreeCategoryId));
+  if (ids.length === 0 || unknown.length > 0) {
+    console.error(`--tree-order takes branches among ${BRANCH_IDS.join(", ")} (got "${value}").`);
+    process.exit(1);
+  }
+  return ids as PrestigeTreeCategoryId[];
 }
 
 function parseArgs(argv: string[]): Partial<SimOptions> & { json: boolean } {
@@ -64,8 +78,58 @@ function parseArgs(argv: string[]): Partial<SimOptions> & { json: boolean } {
       case "entry-only":
         options.stopAfterEntryWorld = true;
         break;
+      case "runs":
+        options.runs = positive(value, "runs");
+        break;
+      case "run-minutes":
+        options.runMinutes = positive(value, "run-minutes");
+        break;
+      case "no-reset-on-wall":
+        options.resetOnWall = false;
+        break;
+      case "tree-order":
+        options.treeOrder = branches(value);
+        break;
+      case "unlock":
+        options.unlockWorlds = value.split(",").filter(Boolean);
+        break;
+      case "challenges":
+        options.challengeIds = value.split(",").filter(Boolean);
+        break;
+      case "no-tree":
+        options.tree = false;
+        break;
+      case "no-forge":
+        options.forge = false;
+        break;
+      case "no-shop":
+        options.shop = false;
+        break;
+      case "no-crossover":
+        options.crossoverWindows = false;
+        break;
+      case "no-autorank":
+        options.autoRank = false;
+        break;
+      case "solo":
+        // One flag for "measure the bare game": every optional system off at once, which is the
+        // floor every ablation above is read against.
+        options.packs = false;
+        options.portals = false;
+        options.abilities = false;
+        options.equip = false;
+        options.rankPassives = false;
+        options.forge = false;
+        options.shop = false;
+        options.crossoverWindows = false;
+        options.autoRank = false;
+        options.tree = false;
+        break;
       case "no-packs":
         options.packs = false;
+        break;
+      case "no-portals":
+        options.portals = false;
         break;
       case "no-abilities":
         options.abilities = false;
@@ -98,10 +162,25 @@ Usage: npm run sim -- [flags]
   --world=id      entry world                     (default: first entry point)
   --order=a,b,c   preferred travel order after the entry world
   --entry-only    stop after completing the chosen entry world
+
+  --runs=N        prestige runs to chain      (default ${defaultSimOptions.runs})
+  --run-minutes=N reset voluntarily after N min of a run
+  --no-reset-on-wall  stop the campaign on a wall instead of resetting
+  --tree-order=a,b    branch priority for prestige spending (default: cheapest level first)
+                      branches: ${BRANCH_IDS.join(", ")}
+  --unlock=a,b    pay the prestige shortcut into these worlds at every run start
+  --challenges=a,b  play run 1 under challenge a, run 2 under b, ...
   --no-packs      never buy a pack
+  --no-portals    never open a crossover portal (no boss recruits at all)
   --no-abilities  never fire an ability
   --no-equip      never equip a unique
   --no-passives   never rank up a passive
+  --no-tree       never spend a prestige point on the tree
+  --no-forge      never spend fragments on a forge level
+  --no-shop       never buy a shop offer
+  --no-crossover  never open a crossover window
+  --no-autorank   never hand a passive to the intendance
+  --solo          every optional system off at once — the bare game
   --json          print the raw report instead of the table
 `);
   process.exit(code);
@@ -136,22 +215,67 @@ function table(rows: ArcReport[]): string {
   return [render(header), rule, ...body.map(render)].join("\n");
 }
 
-function summary(report: SimReport): string {
-  const { totals, arcs } = report;
+function runSummary(run: RunReport, options: SimOptions): string {
+  const { totals, spend, arcs } = run;
   const lines = [
     `Arcs terminés   ${totals.arcsCleared} / ${totals.arcsTotal}  (${(totals.completion * 100).toFixed(0)} %)`,
     `Temps de jeu    ${totals.minutes.toFixed(0)} min`,
     `Équipe          ${totals.teamSize} personnages`,
     `Gagné au total  ${fmt(totals.lifetimeEarned)}`,
     `Prestige banké  ${totals.prestigeGain} points`,
+    `Dépenses        ${spend.packsOpened} packs · ${spend.portalsWon} portails · ${spend.forgeLevels} forges · ` +
+      `${spend.shopPurchases} achats · ${spend.crossoverWindows} fenêtres · ${spend.evolutions} évolutions`,
+    `Départ          ${spend.treeLevelsAtStart} niveaux d'arbre · ${spend.pointsAtStart} points en réserve`,
   ];
   if (arcs.length > 0) {
     const slowest = [...arcs].sort((a, b) => b.minutes - a.minutes)[0];
     lines.push(`Arc le plus long ${slowest.arc} — ${slowest.minutes.toFixed(1)} min`);
   }
-  if (totals.stalledOn) lines.push(`\n⚠ Mur : ${totals.stalledOn} — non terminé en ${report.options.stallMinutes} min.`);
-  else if (totals.outOfTime) lines.push(`\n⚠ Budget de ${report.options.maxMinutes} min épuisé avant la fin du jeu.`);
+  if (totals.stalledOn) lines.push(`\n⚠ Mur : ${totals.stalledOn} — non terminé en ${options.stallMinutes} min.`);
+  else if (totals.outOfTime) lines.push(`\n⚠ Budget épuisé avant la fin du jeu.`);
   return lines.join("\n");
+}
+
+/**
+ * The campaign line: what the runs left behind. A single-run report never prints it — there is no
+ * meta to read when nothing was reset — and that is the whole question a chain of runs asks.
+ */
+function metaSummary(report: SimReport): string {
+  const { meta } = report;
+  const branches = Object.entries(meta.treeLevels)
+    .filter(([, level]) => level > 0)
+    .map(([id, level]) => `${id} ${level}`)
+    .join(" · ");
+  const lines = [
+    `Runs jouées     ${meta.runsPlayed}`,
+    `Temps total     ${meta.totalMinutes.toFixed(0)} min`,
+    `Points gagnés   ${meta.pointsEarned.toFixed(0)} (${meta.pointsUnspent.toFixed(0)} non dépensés)`,
+    `Arbre           ${meta.treeLevelsTotal} niveaux${branches ? ` — ${branches}` : ""}`,
+    `Meilleure run   ${meta.bestArcsCleared} arcs`,
+  ];
+  if (meta.challengesDone.length > 0) lines.push(`Défis réussis   ${meta.challengesDone.join(", ")}`);
+  return lines.join("\n");
+}
+
+/** One line per run: the shape of the whole campaign, before any arc table. */
+function progressionTable(report: SimReport): string {
+  const headers = ["run", "défi", "arcs", "min", "équipe", "gains", "prestige", "arbre", "mur"];
+  const rows = report.runs.map((run) => [
+    `${run.index + 1}`,
+    run.challenge ?? "·",
+    `${run.totals.arcsCleared}`,
+    run.totals.minutes.toFixed(1),
+    `${run.totals.teamSize}`,
+    fmt(run.totals.lifetimeEarned),
+    `${run.totals.prestigeGain}`,
+    `${run.spend.treeLevelsAtStart}`,
+    run.totals.stalledOn?.replace(/ \([^)]+\)$/, "") ?? "·",
+  ]);
+  const cells = [headers, ...rows];
+  const widths = headers.map((_, i) => Math.max(...cells.map((line) => line[i].length)));
+  const render = (line: string[]) =>
+    line.map((cell, i) => (i === 1 || i === 8 ? cell.padEnd(widths[i]) : cell.padStart(widths[i]))).join("  ");
+  return [render(headers), widths.map((w) => "─".repeat(w)).join("──"), ...rows.map(render)].join("\n");
 }
 
 const parsed = parseArgs(process.argv.slice(2));
@@ -162,6 +286,17 @@ if (json) {
   console.log(JSON.stringify(report, null, 2));
 } else {
   console.log(`\nseed ${report.options.seed} · ${report.options.clicksPerSecond} clics/s\n`);
-  console.log(report.arcs.length > 0 ? table(report.arcs) : "Aucun arc terminé.");
-  console.log(`\n${summary(report)}\n`);
+  if (report.runs.length > 1) {
+    console.log(`${progressionTable(report)}\n`);
+    for (const run of report.runs) {
+      console.log(`── run ${run.index + 1}${run.challenge ? ` · ${run.challenge}` : ""} ──\n`);
+      console.log(run.arcs.length > 0 ? table(run.arcs) : "Aucun arc terminé.");
+      console.log(`\n${runSummary(run, report.options)}\n`);
+    }
+    console.log(`── campagne ──\n\n${metaSummary(report)}\n`);
+  } else {
+    console.log(report.arcs.length > 0 ? table(report.arcs) : "Aucun arc terminé.");
+    const run = report.runs[0];
+    if (run) console.log(`\n${runSummary(run, report.options)}\n`);
+  }
 }

@@ -19,6 +19,21 @@ export interface SaveFile {
   activeArcId: string | null;
   prestigePoints: number;
   unlockedAnimeIds: string[];
+  /**
+   * Per-world re-levelling factor, frozen the moment the world was entered — like the tier the
+   * entry order encodes, and for the same reason: a scale recomputed from a live `reachedArcPower`
+   * would keep rising *inside* the world it scales. Absent on a save written before worlds were
+   * re-levelled, which reads back as 1 everywhere, i.e. the tier ramp alone.
+   */
+  /**
+   * The scale each entered world is played at, frozen when it was entered — like the tier its entry
+   * order encodes, and for the same reason: recomputed live it would keep rising inside the world it
+   * scales. Absent on a save written before worlds were re-levelled, which reads back as the tier
+   * ramp alone.
+   */
+  animeEntryDifficulties?: Record<string, number>;
+  /** How far each entered world's `arcPower` rungs are shifted, frozen alongside the difficulty. */
+  animeEntryScales?: Record<string, number>;
   arcKills: Record<string, number>;
   clearedArcIds: string[];
   characterXp: Record<string, number>;
@@ -29,6 +44,14 @@ export interface SaveFile {
   prestigeTreeRanks?: Record<string, number[]>;
   characterEquipment?: Record<string, string>;
   crossoverCrystals?: number;
+  /**
+   * Crossover portals, keyed by the character they recruit: the hp each open portal was frozen at,
+   * and how much of it has already been taken off. The one piece of a fight that is saved — a
+   * portal is progress towards a recruit, not the enemy on screen, and it is meant to be fought in
+   * several sittings (see `crossover.ts`). Run-scoped: `prestigeReset` wipes both.
+   */
+  portalHp?: Record<string, number>;
+  portalDamage?: Record<string, number>;
   worldPoints?: Record<string, number>;
   characterDuplicates?: Record<string, number>;
   autoClickEnabled?: boolean;
@@ -42,6 +65,16 @@ export interface SaveFile {
   completedChallengeIds?: string[];
   runStartedAt?: number;
   runAchievementBaseline?: Record<string, number>;
+  /**
+   * La Tour de l'Ascension (`docs/tower.md`) — meta-progression, so it survives prestige and only
+   * `hardReset` clears it: the highest floor cleared per mode, the five characters brought to it,
+   * the reward floors already paid this cycle, and when the 15-day cycle started. The attempt in
+   * progress is absent on purpose: a tower fight is combat state like any other.
+   */
+  towerFloors?: Record<string, number>;
+  towerSquadIds?: string[];
+  towerClaimed?: string[];
+  towerCycleStartedAt?: number;
 }
 
 const isNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value);
@@ -71,8 +104,12 @@ export function isValidSave(value: unknown): value is SaveFile {
     optional(candidate.lifetimeEarned, isNumber) &&
     optional(candidate.prestigePoints, isNumber) &&
     optional(candidate.crossoverCrystals, isNumber) &&
+    optional(candidate.portalHp, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.portalDamage, (entry) => isRecordOf(entry, isNumber)) &&
     optional(candidate.activeArcId, (entry) => entry === null || typeof entry === "string") &&
     optional(candidate.unlockedAnimeIds, isStringArray) &&
+    optional(candidate.animeEntryDifficulties, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.animeEntryScales, (entry) => isRecordOf(entry, isNumber)) &&
     optional(candidate.clearedArcIds, isStringArray) &&
     optional(candidate.evolvedCharacterIds, isStringArray) &&
     optional(candidate.arcKills, (entry) => isRecordOf(entry, isNumber)) &&
@@ -97,6 +134,10 @@ export function isValidSave(value: unknown): value is SaveFile {
     optional(candidate.completedChallengeIds, isStringArray) &&
     optional(candidate.runStartedAt, isNumber) &&
     optional(candidate.runAchievementBaseline, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.towerFloors, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.towerSquadIds, isStringArray) &&
+    optional(candidate.towerClaimed, isStringArray) &&
+    optional(candidate.towerCycleStartedAt, isNumber) &&
     optional(candidate.characterEquipment, (entry) =>
       isRecordOf(entry, (id) => typeof id === "string")
     ) &&

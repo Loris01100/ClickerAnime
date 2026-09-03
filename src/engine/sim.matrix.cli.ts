@@ -8,6 +8,7 @@
  */
 import { gameData } from "../data";
 import { fmt } from "../ui/format";
+import { PRESTIGE_TREE_CATEGORIES } from "./prestigeTree";
 import { simulateRun, type SimOptions, type SimReport } from "./sim";
 
 declare const process: { argv: string[]; exit(code?: number): never };
@@ -171,6 +172,40 @@ function runScenarios(
   );
 }
 
+/**
+ * The two campaign matrices below are the ones a single run cannot answer. Whether a prestige point
+ * is worth having, and whether one branch of the tree carries the others, are questions about what
+ * survives a reset — so they are asked over a chain of runs, at a fixed per-run budget, and read as
+ * "arcs cleared in run N" rather than as a single total.
+ */
+const CAMPAIGN: Partial<SimOptions> = {
+  entryAnimeId: "naruto",
+  runs: 4,
+  runMinutes: 12,
+  maxMinutes: 48,
+  stallMinutes: 12,
+};
+
+/** One column per run: the shape of the climb, not just its end. */
+function campaignTable(runs: MatrixRun[]): string {
+  const labels = [...new Set(runs.map((run) => run.label))];
+  const length = Math.max(...runs.map((run) => run.report.runs.length));
+  const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+  return markdown(
+    ["Scénario", ...Array.from({ length }, (_, i) => `run ${i + 1}`), "Arbre final"],
+    labels.map((label) => {
+      const reports = runs.filter((run) => run.label === label).map((run) => run.report);
+      return [
+        label,
+        ...Array.from({ length }, (_, i) =>
+          mean(reports.map((report) => report.runs[i]?.totals.arcsCleared ?? 0)).toFixed(1)
+        ),
+        mean(reports.map((report) => report.meta.treeLevelsTotal)).toFixed(1),
+      ];
+    })
+  );
+}
+
 const seeds = parseSeeds(process.argv.slice(2));
 
 const worlds = runScenarios(
@@ -235,3 +270,25 @@ console.log("### Sortie du seul monde d’entrée\n");
 console.log(`${entryExitSummary(entryOnly)}\n`);
 console.log("### Effet de l’ordre des mondes\n");
 console.log(`${summary(bleachRoutes)}\n\n${details(bleachRoutes, seeds)}\n`);
+
+const campaign = runScenarios(seeds, [
+  { label: "Arbre acheté", options: CAMPAIGN },
+  { label: "Sans arbre", options: { ...CAMPAIGN, tree: false } },
+]);
+
+// One branch at a time, priority-first: everything affordable goes into it before anything else,
+// so a row is "what this branch alone buys", the way `--no-packs` prices the packs.
+const branchValue = runScenarios(
+  seeds,
+  PRESTIGE_TREE_CATEGORIES.map((category) => ({
+    label: category.label,
+    options: { ...CAMPAIGN, treeOrder: [category.id] },
+  }))
+);
+
+console.log("## 6. Méta-progression — 4 runs de 12 min, départ Naruto\n");
+console.log("Arcs terminés par run, moyenne sur les graines. L'écart entre les deux lignes est ce que l'arbre vaut.\n");
+console.log(`${campaignTable(campaign)}\n`);
+console.log("## 7. Valeur de chaque branche de l'arbre\n");
+console.log("Même campagne, points dépensés en priorité dans une seule branche.\n");
+console.log(`${campaignTable(branchValue)}\n`);

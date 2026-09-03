@@ -53,12 +53,17 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
     return props.game.itemOf(itemId);
   };
 
+  /**
+   * Les deux façons d'entrer dans un monde, et **toutes deux referment le portail** : `travelTo`
+   * comme `unlockAnime` posent le joueur dans le premier arc du monde et relancent le combat, donc
+   * laisser la modale ouverte cachait précisément ce qu'on venait de payer. On ne ferme que si le
+   * déplacement a réussi — un raccourci refusé faute de points doit laisser l'écran en place.
+   */
   function travel() {
-    if (props.game.canTravel()) {
-      if (props.game.travelTo(props.anime.id)) props.onTravelled?.();
-    } else {
-      props.game.unlockAnime(props.anime.id);
-    }
+    const moved = props.game.canTravel()
+      ? props.game.travelTo(props.anime.id)
+      : props.game.unlockAnime(props.anime.id);
+    if (moved) props.onTravelled?.();
   }
 
   return (
@@ -76,8 +81,18 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
             </Show>
             {STATUS_LABEL[status()]}
           </span>
+          <Show when={props.anime.alpha}>
+            <span class="portal-badge alpha">Alpha</span>
+          </Show>
         </div>
       </div>
+
+      <Show when={props.anime.alpha}>
+        <p class="portal-alpha-note small">
+          Monde en alpha, encore en phase de test : ses arcs, ses recrues et son équilibrage sont
+          provisoires et peuvent changer.
+        </p>
+      </Show>
 
       <Show when={props.anime.description}>
         <p class="portal-description">{props.anime.description}</p>
@@ -209,6 +224,9 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
               >
                 <Sprite name={anime.name} kind="anime" px={4} dim={status() === "locked"} />
                 <span class="name">{anime.name}</span>
+                <Show when={anime.alpha}>
+                  <span class="portal-badge alpha">Alpha</span>
+                </Show>
                 <span class="portal-badge" classList={{ [status()]: true }}>
                   <Show when={status() === "locked"}>
                     <IconLock />

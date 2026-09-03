@@ -37,6 +37,8 @@ export default function ProgressPanel(props: {
     );
 
   const affordablePassive = createMemo(() => props.game.rankablePassiveIds().size > 0);
+  /** La même pastille que pour un passif prêt à monter, côté forge. */
+  const forgeNotice = createMemo(() => props.game.forgeableNowIds().size > 0);
   const equippableUnique = createMemo(() =>
     props.game.foundItems().some(
       (item) =>
@@ -56,6 +58,9 @@ export default function ProgressPanel(props: {
                 {anime.name}
                 <Show when={props.game.animeCleared(anime.id)}> <IconCheck class="good" /></Show>
               </PanelTitle>
+              <Show when={anime.alpha}>
+                <small class="portal-badge alpha">Alpha</small>
+              </Show>
               <small class="muted">x{fmt(props.game.difficultyOf(anime.id))}</small>
             </header>
             <Show when={isAnimeOpen(anime.id)}>
@@ -142,7 +147,6 @@ export default function ProgressPanel(props: {
             <PanelTitle open={travelOpen()} onToggle={() => setTravelOpen(!travelOpen())}>
               Voyager
             </PanelTitle>
-            <small class="muted">x{fmt(props.game.nextDifficulty())}</small>
           </header>
           <Show when={travelOpen()}>
           <p class="muted pad small">
@@ -150,13 +154,26 @@ export default function ProgressPanel(props: {
               when={props.game.canTravel()}
               fallback="Terminez l'anime en cours pour partir, ou payez le raccourci en prestige."
             >
-              Le prochain monde sera joué à cette difficulté.
-            </Show>
+              Un monde déjà dépassé est remis à niveau à l'entrée : la difficulté affichée est
+              celle de son premier arc.
+            </Show>{" "}
+            La difficulté multiplie les points de vie des ennemis à l'entrée (et leurs
+            récompenses d'autant) : x2 = ennemis deux fois plus résistants.
           </p>
+          {/* Colonnes fixes : les multiplicateurs ne se comparent d'un monde à l'autre que s'ils
+              sont alignés, quelle que soit la longueur du titre. */}
+          <div class="row travel-row travel-head">
+            <span class="name">Monde</span>
+            <small>Difficulté</small>
+            <span />
+          </div>
           <For each={otherAnimes()}>
             {(anime) => (
-              <div class="row">
+              <div class="row travel-row">
                 <span class="name">{anime.name}</span>
+                <small class="muted travel-diff" title="Multiplicateur de points de vie des ennemis dans ce monde">
+                  x{fmt(props.game.difficultyOf(anime.id))}
+                </small>
                 <Show
                   when={props.game.canTravel()}
                   fallback={
@@ -237,12 +254,24 @@ export default function ProgressPanel(props: {
       <Show when={props.game.forgeableUniques().length > 0}>
         <section class="panel">
           <header class="panel-head">
-            <span>Forge</span>
+            <span>
+              Forge
+              <Show when={forgeNotice()}>
+                <span class="notice-dot" aria-label="Un objet unique peut être forgé" role="img" />
+              </Show>
+            </span>
             <small class="muted">Fragments de boss</small>
           </header>
           <div class="pad">
-            <button class="tree-open" onClick={props.onOpenForge}>
+            <button
+              class="tree-open"
+              onClick={props.onOpenForge}
+              title={forgeNotice() ? "Un objet unique peut être forgé" : undefined}
+            >
               Ouvrir la forge ({props.game.forgeableUniques().length})
+              <Show when={forgeNotice()}>
+                <span class="notice-dot" aria-hidden="true" />
+              </Show>
               <IconChevronRight class="tree-open-go" />
             </button>
           </div>

@@ -53,6 +53,12 @@ export interface Anime {
    * keep the same stable concepts, while a non-combat story can describe them in its own terms.
    */
   presentation?: AnimePresentation;
+  /**
+   * The world is still being tested: its arcs, recruits and balance are provisional and may still
+   * change. Purely a warning shown to the player — no rule reads it — but it must be authored data
+   * rather than a component checking for an id, so a world can leave alpha by editing one flag.
+   */
+  alpha?: boolean;
 }
 
 export interface AnimePresentation {
@@ -129,6 +135,12 @@ export interface Enemy {
   reward: number;
   /** defeating this enemy recruits that character into the team, for free */
   characterId?: string;
+  /**
+   * Recruited by felling this boss **inside a crossover portal**, never by beating it in its arc.
+   * A boss hands out its unique and clears its arc; the character it is, is bought with crystals
+   * and fought for a second time (see `crossover.ts`). Bosses carry this instead of `characterId`.
+   */
+  portalCharacterId?: string;
   /** the item this enemy can hand over */
   itemId?: string;
   /** odds of that drop, 0..1; absent means guaranteed, which is how bosses hand out their unique */
@@ -231,4 +243,21 @@ export interface SynergyConfig {
   sameAnimeMalus: number;
   /** multiplier applied when the character is from a different anime entirely */
   otherAnimeMalus: number;
+}
+
+/**
+ * The whole content of the game, one world's `GameData` concatenated per world (`src/data/`).
+ *
+ * It lives here rather than in `gameState.ts` because every store slice takes it as a plain
+ * dependency, and a type reaching back into the module that assembles them would make the whole
+ * `store/` folder circular on the assembler. `gameState.ts` still re-exports it: the 25 data files
+ * import it from there, and moving them all would say nothing.
+ */
+export interface GameData {
+  animes: Anime[];
+  arcs: Arc[];
+  characters: Character[];
+  items: Item[];
+  /** absent in older/test fixtures; every reader defaults it to an empty shop */
+  shop?: ShopOffer[];
 }

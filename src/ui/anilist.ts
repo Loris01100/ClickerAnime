@@ -220,7 +220,7 @@ function bestCastMatch(name: string, cast: CastMember[]): string | null {
 
 // One show's cast, cached per anime name — shared across every character from that show, so a dozen
 // lookups from "Naruto" cost `CAST_PAGES` + 1 queries total, not a dozen separate Character ones.
-const castCache = new Map<string, Promise<CastMember[]>>();
+const castCache = new Map<string, Promise<CastMember[] | null>>();
 
 async function resolveMediaId(animeName: string): Promise<number | null> {
   const pinned = ANIME_ID_OVERRIDES[animeName];
@@ -229,29 +229,79 @@ async function resolveMediaId(animeName: string): Promise<number | null> {
   return data?.data?.Media?.id ?? null;
 }
 
-async function fetchCastPage(mediaId: number, page: number): Promise<CastMember[]> {
+/**
+ * Une page de casting, ou `null` **quand la requête elle-même a échoué**. La distinction porte tout
+ * le correctif plus bas : une page vide est une réponse (on est au-delà du casting), une requête
+ * ratée n'en est pas une. Les confondre, c'est prendre une limite de débit pour « ce show n'a
+ * personne ».
+ */
+async function fetchCastPage(mediaId: number, page: number): Promise<CastMember[] | null> {
   const data = (await runQuery(CAST_QUERY, { id: mediaId, p: page })) as {
     data?: { Media?: { characters?: { nodes?: { name?: { full?: string }; image?: { large?: string } }[] } } };
   } | null;
+  if (data === null) return null;
   const nodes = data?.data?.Media?.characters?.nodes ?? [];
   return nodes
     .map((n) => ({ name: n.name?.full ?? "", image: n.image?.large ?? null }))
     .filter((c): c is CastMember => c.name.length > 0);
 }
 
-async function fetchCast(animeName: string): Promise<CastMember[]> {
+/**
+ * Combien de pages de casting partent en même temps. **Deux, pas huit.**
+ *
+ * AniList limite à ~30 requêtes/minute (observé en direct) et répond 429 au-delà. Les huit pages
+ * tiraient d'un coup : ouvrir le jeu, c'est déjà une poignée de recherches de médias pour les
+ * vignettes de mondes, et le premier personnage affiché ajoutait huit requêtes simultanées. Mesuré :
+ * les cinq boss de Naruto revenaient tous sans portrait, alors que le même casting rapatrié
+ * tranquillement les fait tous correspondre. Deux à la fois étale la salve sans allonger
+ * sensiblement l'attente — le casting est de toute façon mis en cache pour la session, et ses
+ * succès pour toujours.
+ */
+const CAST_CONCURRENCY = 2;
+
+/** Le casting complet, ou `null` si **aucune** page n'a pu être rapatriée — voir `castOf`. */
+async function fetchCast(animeName: string): Promise<CastMember[] | null> {
   const mediaId = await resolveMediaId(animeName);
-  if (mediaId === null) return [];
+  if (mediaId === null) return null;
   const pages = Array.from({ length: CAST_PAGES }, (_, i) => i + 1);
-  const results = await Promise.all(pages.map((page) => fetchCastPage(mediaId, page).catch(() => [])));
-  return results.flat();
+  const cast: CastMember[] = [];
+  let answered = false;
+  for (let i = 0; i < pages.length; i += CAST_CONCURRENCY) {
+    const batch = pages.slice(i, i + CAST_CONCURRENCY);
+    const results = await Promise.all(batch.map((page) => fetchCastPage(mediaId, page).catch(() => null)));
+    for (const result of results) {
+      if (result === null) continue;
+      answered = true;
+      cast.push(...result);
+    }
+  }
+  return answered ? cast : null;
 }
 
-function castOf(animeName: string): Promise<CastMember[]> {
+/**
+ * Un casting par anime, mis en cache — **sauf quand il revient vide**.
+ *
+ * C'est le point qui faisait disparaître les portraits d'un monde entier. Le cache retenait la
+ * *promesse*, celle d'un rapatriement raté (limite de débit, réseau) comprise : une seule seconde
+ * malchanceuse et `bestCastMatch` ne trouvait plus rien pour ce show, pour toute la session. Pire,
+ * chaque échec était ensuite gravé dans `missed`, donc même un nouveau `Sprite` ne réessayait pas.
+ * Un aucun-portrait durable pour un incident d'une seconde.
+ *
+ * Un casting vide n'est jamais une réponse : c'est une panne. On le retire du cache pour que le
+ * prochain appel retente.
+ */
+function castOf(animeName: string): Promise<CastMember[] | null> {
   const key = animeName.toLowerCase();
   const existing = castCache.get(key);
   if (existing) return existing;
-  const promise = fetchCast(animeName).catch(() => []);
+  const promise = fetchCast(animeName)
+    .catch(() => null)
+    .then((cast) => {
+      // Une panne ne se met pas en cache : sans ça, une seule seconde malchanceuse condamnait tous
+      // les portraits de ce show pour la session.
+      if (cast === null) castCache.delete(key);
+      return cast;
+    });
   castCache.set(key, promise);
   return promise;
 }
@@ -267,12 +317,18 @@ function cacheKey(name: string, kind: PortraitKind, context?: string): string {
  * of Naruto's), which is worse than no portrait at all. Only an explicit name override may fall back
  * to the global search when that character is absent from the fetched cast pages.
  */
-async function fetchPortrait(name: string, kind: PortraitKind, context?: string): Promise<string | null> {
+async function fetchPortrait(name: string, kind: PortraitKind, context?: string): Promise<string | null | undefined> {
   const resolvedName = applyNameOverrides(name);
   const resolvedContext = CHARACTER_ANIME_OVERRIDES[name] ?? context;
 
   if (kind === "character" && resolvedContext) {
-    const match = bestCastMatch(resolvedName, await castOf(resolvedContext));
+    const cast = await castOf(resolvedContext);
+    // Casting indisponible : c'est une panne, pas une absence. On rend `undefined` pour que le
+    // résultat ne soit pas gravé comme un miss et que le prochain affichage retente — sans quoi un
+    // seul 429 condamnait tous les portraits du monde en cours pour la session. Un casting bien
+    // rapatrié mais qui ne contient pas ce nom reste, lui, un vrai miss.
+    if (cast === null) return undefined;
+    const match = bestCastMatch(resolvedName, cast);
     if (match || resolvedName === name) return match;
   }
 
@@ -350,19 +406,28 @@ const missed = new Set<string>();
  * Shared tail of every lookup: serve a persisted hit, dedupe a concurrent miss, persist a new hit.
  * `portraitUrl` and `bannerUrl` differ only in the key they use and the fetch they run.
  */
-function lookup(key: string, fetcher: () => Promise<string | null>): Promise<string | null> {
+function lookup(key: string, fetcher: () => Promise<string | null | undefined>): Promise<string | null> {
   if (key in persisted) return Promise.resolve(persisted[key]);
   if (missed.has(key)) return Promise.resolve(null);
 
   const existing = inFlight.get(key);
   if (existing) return existing;
 
-  const promise = fetcher().then((url) => {
-    inFlight.delete(key);
-    if (url) persist(key, url);
-    else missed.add(key);
-    return url;
-  });
+  // `.catch` autant que `.then` : `portraitUrl` promet de ne jamais rejeter, et sans lui une
+  // promesse rejetée resterait dans `inFlight` pour toute la session — chaque appel suivant sur
+  // cette clé recevrait le même rejet, que le `createResource` de `Sprite` n'a aucun moyen de
+  // rattraper (ce code n'a pas d'`<ErrorBoundary>`). Un échec se comporte comme un miss.
+  // `undefined` = panne passagère (casting indisponible) : rien n'est retenu, ni comme succès ni
+  // comme miss, et le prochain appel refera le trajet. `null` = AniList n'a vraiment rien pour ce
+  // nom, et *ça* se retient pour la session.
+  const promise = fetcher()
+    .catch(() => undefined)
+    .then((url) => {
+      inFlight.delete(key);
+      if (url) persist(key, url);
+      else if (url === null) missed.add(key);
+      return url ?? null;
+    });
   inFlight.set(key, promise);
   return promise;
 }

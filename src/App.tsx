@@ -36,6 +36,7 @@ const CatalogPanel = lazy(() => import("./ui/CatalogPanel"));
 const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
 const ForgePanel = lazy(() => import("./ui/ForgePanel"));
 const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
+const TowerPanel = lazy(() => import("./ui/TowerPanel"));
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
@@ -61,6 +62,7 @@ export default function App() {
   const [catalogOpen, setCatalogOpen] = createSignal(false);
   const [reflexOpen, setReflexOpen] = createSignal(false);
   const [forgeOpen, setForgeOpen] = createSignal(false);
+  const [towerOpen, setTowerOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
   let menu: HTMLDetailsElement | undefined;
 
@@ -91,7 +93,7 @@ export default function App() {
   }
 
   /** The world being fought in, whose hue tints the whole shell — see `ui/hue.ts`'s `themeOf`. */
-  const activeAnime = () => game.data.animes.find((a) => a.id === game.activeArc()?.animeId);
+  const activeAnime = () => game.animeOf(game.activeArc()?.animeId);
 
   /**
    * A fresh run starts with the fight and its immediate objective, then the shell grows with the
@@ -129,6 +131,7 @@ export default function App() {
         canTravel: game.canTravel(),
         activeChallenge: Boolean(game.activeChallenge()),
         completedChallenges: game.completedChallengeIds().length,
+        towerFloor: game.towerHighestFloorOf("easy"),
       },
       Math.min(PACK_COST.main, PACK_COST.secondary)
     );
@@ -266,6 +269,9 @@ export default function App() {
                 <Show when={disclosure().challenges}>
                   <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
                 </Show>
+                <Show when={disclosure().tower}>
+                  <button onClick={() => runFromMenu(() => setTowerOpen(true))}>Tour</button>
+                </Show>
                 <Show when={game.automationLevelOf("ability") > 0}>
                   <button onClick={() => runFromMenu(() => setReflexOpen(true))}>Plans</button>
                 </Show>
@@ -285,6 +291,7 @@ export default function App() {
                   disclosure().packs ||
                   disclosure().crossover ||
                   disclosure().challenges ||
+                  disclosure().tower ||
                   disclosure().achievements ||
                   disclosure().prestige
                 }
@@ -411,6 +418,10 @@ export default function App() {
 
       <Show when={forgeOpen()}>
         <ForgePanel game={game} onClose={() => setForgeOpen(false)} />
+      </Show>
+
+      <Show when={towerOpen()}>
+        <TowerPanel game={game} onClose={() => setTowerOpen(false)} />
       </Show>
 
       <Show when={challengesOpen()}>

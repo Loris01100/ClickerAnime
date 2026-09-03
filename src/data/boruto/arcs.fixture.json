@@ -61,7 +61,7 @@
       "baseHp": 310000000000,
       "reward": 1200000000,
       "timerMs": 100000,
-      "characterId": "sumire",
+      "portalCharacterId": "sumire",
       "bossTrait": {
         "kind": "shield",
         "name": "Défense renforcée",
@@ -146,7 +146,7 @@
       "baseHp": 743000000000,
       "reward": 2220000000,
       "timerMs": 105000,
-      "characterId": "momoshiki",
+      "portalCharacterId": "momoshiki",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Lecture du combat",
@@ -217,7 +217,7 @@
       "baseHp": 1780000000000,
       "reward": 4100000000,
       "timerMs": 145000,
-      "characterId": "ku",
+      "portalCharacterId": "ku",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Aura dominante",
@@ -281,7 +281,7 @@
       "baseHp": 4250000000000,
       "reward": 7590000000,
       "timerMs": 175000,
-      "characterId": "shizuma",
+      "portalCharacterId": "shizuma",
       "bossTrait": {
         "kind": "shield",
         "name": "Seconde forme",
@@ -352,7 +352,7 @@
       "baseHp": 10200000000000,
       "reward": 14000000000,
       "timerMs": 180000,
-      "characterId": "deepa",
+      "portalCharacterId": "deepa",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Esquive instinctive",
@@ -423,7 +423,7 @@
       "baseHp": 24300000000000,
       "reward": 26000000000,
       "timerMs": 220000,
-      "characterId": "delta",
+      "portalCharacterId": "delta",
       "bossTrait": {
         "kind": "dps-resistance",
         "name": "Pression écrasante",
@@ -487,7 +487,7 @@
       "baseHp": 58100000000000,
       "reward": 48100000000,
       "timerMs": 265000,
-      "characterId": "boro",
+      "portalCharacterId": "boro",
       "bossTrait": {
         "kind": "shield",
         "name": "Défense renforcée",
@@ -544,7 +544,7 @@
       "baseHp": 139000000000000,
       "reward": 88900000000,
       "timerMs": 265000,
-      "characterId": "isshiki",
+      "portalCharacterId": "isshiki",
       "bossTrait": {
         "kind": "click-resistance",
         "name": "Lecture du combat",

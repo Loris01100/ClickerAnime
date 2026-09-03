@@ -229,6 +229,36 @@ describe("portraitUrl", () => {
     );
   });
 
+  it("ne grave jamais un échec réseau comme une absence : le portrait suivant retente", async () => {
+    /*
+     * Le bug qui faisait disparaître les portraits d'un monde entier. Le casting est mis en cache
+     * par anime ; quand son rapatriement échouait (limite de débit d'AniList, réseau), le cache
+     * retenait la panne, et `missed` gravait le résultat — plus un seul portrait de ce show pour
+     * toute la session, pour un incident d'une seconde.
+     */
+    let calls = 0;
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init!.body as string) as { query: string };
+      if (body.query.includes("characters(")) {
+        calls++;
+        // Première vague de pages : tout échoue. Ensuite AniList répond normalement.
+        if (calls <= CAST_PAGES) return new Response("rate limited", { status: 429 });
+        return Response.json({
+          data: { Media: { characters: { nodes: [{ name: { full: "Zabuza Momochi" }, image: { large: "https://example.com/zabuza.jpg" } }] } } },
+        });
+      }
+      return Response.json({ data: { Media: { id: 20 } } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // Panne : aucun portrait, et surtout aucun souvenir de cet échec.
+    await expect(portraitUrl("Zabuza Momochi", "character", "Retry Context")).resolves.toBeNull();
+    // Le même appel retente pour de bon, et trouve.
+    await expect(portraitUrl("Zabuza Momochi", "character", "Retry Context")).resolves.toBe(
+      "https://example.com/zabuza.jpg"
+    );
+  });
+
   it("with a context, never falls back to a different show's character even on a name miss", async () => {
     const fetchMock = mockCastEndpoint(5, [
       { name: { full: "Unrelated Name" }, image: { large: "https://example.com/nope.jpg" } },

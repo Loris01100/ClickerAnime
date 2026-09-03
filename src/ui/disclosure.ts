@@ -1,3 +1,5 @@
+import { TOWER_SQUAD_SIZE } from "../engine/tower";
+
 /** Presentation-only progressive disclosure: facts go in, visible surfaces come out. */
 export interface DisclosureFacts {
   kills: number;
@@ -22,6 +24,8 @@ export interface DisclosureFacts {
   canTravel: boolean;
   activeChallenge: boolean;
   completedChallenges: number;
+  /** Highest tower floor cleared this cycle — the lifetime fallback for the Tour entry. */
+  towerFloor: number;
 }
 
 export interface DisclosureState {
@@ -39,6 +43,7 @@ export interface DisclosureState {
   prestige: boolean;
   challenges: boolean;
   travel: boolean;
+  tower: boolean;
 }
 
 export function deriveDisclosure(facts: DisclosureFacts, cheapestPack: number): DisclosureState {
@@ -68,5 +73,8 @@ export function deriveDisclosure(facts: DisclosureFacts, cheapestPack: number): 
     prestige,
     challenges: facts.prestiges > 0 || facts.activeChallenge || facts.completedChallenges > 0,
     travel: facts.canTravel || facts.prestiges > 0 || facts.prestigePoints > 0,
+    // La Tour se joue à cinq : elle n'a rien à dire tant qu'on ne peut pas remplir une escouade.
+    // Une grimpe déjà entamée la garde visible après un prestige, qui vide le roster.
+    tower: facts.ownedCharacters >= TOWER_SQUAD_SIZE || facts.towerFloor > 0,
   };
 }

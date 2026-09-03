@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { createGameStore, MAX_KILLS_PER_SECOND, SAVE_BACKUP_KEY, SAVE_KEY } from "../gameState";
+import { CROSSOVER_BOSS_REWARD } from "../crossover";
 import { gameData } from "../../data";
+import { decodeSave } from "../persistence";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
@@ -241,6 +243,169 @@ describe("store boot", () => {
     }
   });
 
+  it("relevels a world the run has outgrown, and freezes what it was entered at", () => {
+    // "tb" is written for a fresh team (a 100 hp boss) but is entered after clearing a world that
+    // ended on a 1e6 one — exactly the shape of walking into Hunter x Hunter out of Boruto.
+    const data = {
+      animes: [
+        { id: "ta", name: "A", unlockCost: 0 },
+        { id: "tb", name: "B", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc A", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob-a", name: "Mob A", baseHp: 1_000, reward: 1 }],
+          boss: { id: "boss-a", name: "Boss A", baseHp: 1_000_000, reward: 1 },
+        },
+        {
+          id: "tb-arc", animeId: "tb", name: "Arc B", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob-b", name: "Mob B", baseHp: 10, reward: 1 }],
+          boss: { id: "boss-b", name: "Boss B", baseHp: 100, reward: 1 },
+        },
+        {
+          id: "tb-arc2", animeId: "tb", name: "Arc B2", order: 1, mobsToBoss: 1,
+          mobs: [{ id: "mob-b2", name: "Mob B2", baseHp: 100, reward: 1 }],
+          boss: { id: "boss-b2", name: "Boss B2", baseHp: 1_000, reward: 1 },
+        },
+      ],
+      characters: [
+        {
+          id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const,
+          arcIds: ["ta-arc"], baseClickPower: 1, baseDps: 10,
+        },
+        // "tb" has rungs of its own, four times apart, so its climb is a real one to re-profile.
+        {
+          id: "cb1", name: "B1", animeId: "tb", rarity: "secondary" as const,
+          arcIds: ["tb-arc"], baseClickPower: 1, baseDps: 5,
+        },
+        {
+          id: "cb2", name: "B2", animeId: "tb", rarity: "secondary" as const,
+          arcIds: ["tb-arc2"], baseClickPower: 1, baseDps: 20,
+        },
+      ],
+      items: [],
+    };
+    const restore = installSave(baseSave({ unlockedAnimeIds: ["ta"], clearedArcIds: ["ta-arc"] }));
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+
+      // The world just cleared is the one the player played natively: its tier difficulty stands.
+      expect(game.difficultyOf("ta")).toBe(1);
+
+      expect(game.travelTo("tb")).toBe(true);
+      const entered = game.difficultyOf("tb");
+      // Far past the 2.5x the tier alone would have handed a world entered second.
+      expect(entered).toBeGreaterThan(500);
+      // Its second arc climbs on the re-levelling ramp, not on the world's authored jump.
+      expect(game.difficultyOfArc(data.arcs[2])).toBeLessThan(entered);
+      expect(game.difficultyOfArc(data.arcs[2]) * 1_100).toBeGreaterThan(entered * 110);
+
+      // Frozen in the save, so it cannot drift as the run goes on — nor across a reload.
+      const saved = decodeSave(game.exportSave());
+      expect(saved?.animeEntryDifficulties?.tb).toBeCloseTo(entered, 6);
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("never re-levels a world the run has already entered", () => {
+    // Une sauvegarde d'avant le re-nivellement : les mondes sont entrés, rien n'est figé. L'aperçu
+    // « ce que coûterait d'y entrer maintenant » ne doit pas répondre à leur place — il monte tout
+    // au long de la partie, et le monde de départ, terminé depuis longtemps, ressortait à x7,7
+    // millions de difficulté.
+    const narutoArcs = gameData.arcs.filter((arc) => arc.animeId === "naruto");
+    const restore = installSave(
+      baseSave({
+        activeArcId: narutoArcs[0].id,
+        unlockedAnimeIds: ["naruto", "shippuden"],
+        clearedArcIds: [
+          ...narutoArcs.map((arc) => arc.id),
+          ...gameData.arcs.filter((arc) => arc.animeId === "shippuden").slice(0, 10).map((arc) => arc.id),
+        ],
+      })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(gameData);
+        dispose();
+        return store;
+      });
+      // Chacun à sa marche de palier, quoi que la partie ait nettoyé depuis.
+      expect(game.difficultyOf("naruto")).toBe(1);
+      expect(game.difficultyOf("shippuden")).toBeCloseTo(2.5, 6);
+      for (const arc of narutoArcs) expect(game.difficultyOfArc(arc)).toBe(1);
+      // Un monde où l'on n'est jamais allé garde son aperçu honnête, lui.
+      expect(game.difficultyOf("bleach")).toBeGreaterThan(100);
+    } finally {
+      restore();
+    }
+  });
+
+  it("pays crossover crystals on the boss that clears an arc, never on a re-farmed one", () => {
+    const data = {
+      animes: [
+        { id: "ta", name: "A", unlockCost: 0 },
+        { id: "tb", name: "B", unlockCost: 0 },
+      ],
+      arcs: [
+        {
+          id: "ta-arc", animeId: "ta", name: "Arc", order: 0, mobsToBoss: 1,
+          mobs: [{ id: "mob", name: "Mob", baseHp: 1, reward: 1 }],
+          boss: { id: "boss", name: "Boss", baseHp: 1, reward: 1 },
+        },
+      ],
+      characters: [
+        { id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 1e9, baseDps: 0 },
+        { id: "cb", name: "B", animeId: "tb", rarity: "secondary" as const, arcIds: [], baseClickPower: 0, baseDps: 0 },
+      ],
+      items: [],
+    };
+    // A mixed team is what makes crystals drop at all; the mob roll is forced to miss so only the
+    // boss can move the stock.
+    const roll = vi.spyOn(Math, "random").mockReturnValue(0.999);
+    const firstClear = installSave(
+      baseSave({ ownedCharacterIds: ["ca", "cb"], unlockedAnimeIds: ["ta", "tb"], arcKills: { "ta-arc": 1 } })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      game.click(); // the boss falls for the first time: the arc clears
+      expect(game.arcCleared(data.arcs[0])).toBe(true);
+      expect(game.crossoverCrystals()).toBe(CROSSOVER_BOSS_REWARD);
+    } finally {
+      firstClear();
+    }
+
+    const rematch = installSave(
+      baseSave({
+        ownedCharacterIds: ["ca", "cb"],
+        unlockedAnimeIds: ["ta", "tb"],
+        clearedArcIds: ["ta-arc"],
+        arcKills: { "ta-arc": 50 },
+      })
+    );
+    try {
+      const game = createRoot((dispose) => {
+        const store = createGameStore(data);
+        dispose();
+        return store;
+      });
+      game.click(); // same boss, arc already cleared: nothing to earn
+      expect(game.crossoverCrystals()).toBe(0);
+    } finally {
+      rematch();
+      roll.mockRestore();
+    }
+  });
+
   it("turns repeat boss uniques into forge fragments", () => {
     const data = {
       animes: [{ id: "ta", name: "A", unlockCost: 0 }],
@@ -299,6 +464,42 @@ describe("store boot", () => {
       expect(game.uniqueUpgradeLevelOf("unique")).toBe(5);
       expect(game.uniqueFragmentsOf("unique")).toBe(0);
       expect(game.characterStatOf(data.characters[0], "clickPower")).toBeCloseTo(10 * (1 + 7 / 6));
+    } finally {
+      disposeRoot();
+      restore();
+    }
+  });
+
+  it("forgeableNowIds lists exactly the owned uniques whose next level is payable", () => {
+    const data = {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [],
+      characters: [{ id: "ca", name: "A", animeId: "ta", rarity: "secondary" as const, arcIds: [], baseClickPower: 1, baseDps: 0 }],
+      items: [
+        { id: "ready", name: "Prête", kind: "unique" as const },
+        { id: "short", name: "Courte", kind: "unique" as const },
+        { id: "maxed", name: "Finie", kind: "unique" as const },
+        { id: "undropped", name: "Jamais tombée", kind: "unique" as const },
+      ],
+    };
+    const restore = installSave(
+      baseSave({
+        itemCounts: { ready: 1, short: 1, maxed: 1 },
+        // 5 fragments paient le niveau 2 ; « short » en est à un de moins ; « maxed » est au plafond,
+        // où il n'y a plus de coût du tout, donc plus de pastille non plus.
+        uniqueFragments: { ready: 5, short: 4, maxed: 99 },
+        uniqueUpgradeRanks: { ready: 1, short: 1, maxed: 5 },
+      })
+    );
+    let disposeRoot!: () => void;
+    try {
+      const game = createRoot((dispose) => {
+        disposeRoot = dispose;
+        return createGameStore(data);
+      });
+      expect([...game.forgeableNowIds()]).toEqual(["ready"]);
+      expect(game.upgradeUnique("ready")).toBe(true);
+      expect([...game.forgeableNowIds()]).toEqual([]);
     } finally {
       disposeRoot();
       restore();

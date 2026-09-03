@@ -465,7 +465,7 @@ export default function RosterPanel(props: {
       </section>
       </Show>
 
-      <Show when={props.game.arcRecruits().length > 0}>
+      <Show when={props.game.arcRecruits().length > 0 || props.game.arcPortalRecruit()}>
         <section class="panel">
           <header class="panel-head">
             <PanelTitle open={recruitsOpen()} onToggle={() => setRecruitsOpen(!recruitsOpen())}>
@@ -474,6 +474,19 @@ export default function RosterPanel(props: {
             <small class="muted">{props.game.arcRecruits().length}</small>
           </header>
           <Show when={recruitsOpen()}>
+          {/* Le boss garde sa recrue derrière son portail : la battre ici ne la donne pas. */}
+          <Show when={props.game.arcPortalRecruit()}>
+            {(character) => (
+              <div class="row">
+                <span class="name">
+                  <Sprite name={character().name} kind="character" anime={animeNameOf(character().animeId)} px={5} />
+                  {character().name}
+                  <span class="rarity">{character().rarity === "main" ? <IconStar /> : <IconStarOutline />}</span>
+                </span>
+                <small class="muted">portail · {props.game.portalCostOf(character().id)} cristaux</small>
+              </div>
+            )}
+          </Show>
           <For each={props.game.arcRecruits()}>
             {(character) => (
               <div class="row">

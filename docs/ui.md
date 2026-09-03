@@ -149,6 +149,12 @@ health bar, boss, click power, team DPS and encounters. `ui/presentation.ts` sup
 defaults and merges overrides, so Horimiya can display Liens, Tension, Épreuve, Courage and Soutien
 without an `anime.id` branch, a second rules engine, or any save-format field.
 
+**A world under test says so, from data.** `Anime.alpha` is a flag, not an id check: it paints a
+gold "Alpha" pill wherever the world is named — the portal list and its hero, the stage header, the
+world's progress panel, the map panel header — plus one sentence in the portal dossier saying the
+arcs, recruits and balance are provisional. Horimiya carries it today. No rule reads the flag, so a
+world leaves alpha by deleting one line, and the pill costs nothing to the save format.
+
 **And a map need not be a route.** Bleach's is the series' cosmology rather than a journey — the
 Garganta with the worlds it links, legended 1 to 9 — so its fifteen arcs are pinned on *where each
 one happens* (six in the Soul Society, four in Karakura, three in Hueco Mundo) instead of trailing
@@ -235,7 +241,11 @@ the owned uniques; choosing one fills that slot with its boss-earned fragments a
 unique in the right slot. Once filled, either slot or the explicit `Changer` action reopens the picker,
 so another unique can be selected without closing the forge. The central action upgrades only that
 selection. The centered workbench leaves the smiths and heated metal visible, and stacks vertically
-on narrow viewports.
+on narrow viewports. The same `.notice-dot` the passives use walks that chain too, from the store's
+`forgeableNowIds`: the right column's Forge entry and its `Ouvrir la forge` button, then — inside the
+panel — the empty slot or the `Changer` button that reopens the picker, then the picker row of each
+unique whose next level is payable right now. Same rule as the passives: a dot means one action is
+available here, never how many, and a maxed unique has no cost left so it carries none.
 
 `ChallengePanel.tsx` is the overlay for the run challenges, opened from `ProgressPanel`'s Prestige
 section — next to the tree button, because a challenge starts from a reset just like a prestige
@@ -255,6 +265,19 @@ orthographie autrement et qu'aucune entrée `NAME_OVERRIDES` ne couvre encore, o
 échoue. Tous les ennemis d'arc sont désormais des personnages nommés présents dans le casting
 AniList de leur anime : ils se résolvent comme une recrue, et il n'y a plus d'art local sous
 `public/portraits/` — en ajouter un demande de choisir un ennemi qu'AniList référence.
+
+**Un portrait en vol ne suspend jamais son ancêtre**, et c'est la seule subtilité du composant.
+`App.tsx` n'a qu'une `<Suspense>`, autour de tous les overlays différés ; lire la ressource pendant
+qu'elle charge y jetait, et Solid **détachait l'overlay entier du DOM** le temps de la requête. Un
+écran dont les vignettes changent souvent clignotait donc en entier plutôt que de remplacer une
+vignette : mesuré à **43 % du temps** dans la Tour de l'Ascension, qui change d'adversaire toutes les
+une à deux secondes. `Sprite` teste donc `portrait.state` avant de lire la valeur — tester l'état ne
+suspend pas — et le `.sprite-empty` redevient ce qu'il a toujours prétendu être : la façon dont *ce*
+composant, à sa propre échelle, montre son propre chargement. Ne pas revenir à un `portrait()` nu.
+
+Le corollaire pour un écran qui enchaîne les portraits : **précharger**. `TowerPanel` demande les
+quinze adversaires d'un étage dès qu'on y entre (`portraitUrl`, qui dédoublonne et met en cache),
+plutôt que d'en découvrir un toutes les deux secondes — sinon le placeholder clignote quinze fois.
 
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.
@@ -287,6 +310,29 @@ character who is abroad for the same reason, and prints `sleepingAbilityCount` u
 world change reads as a rule rather than as a bug. The separate Syn. column keeps the multiplier
 visible so the reason for the drop is explicit. Styling stays hand-written and framework-free:
 `src/styles.css` is the ordered manifest, while `src/styles/` groups rules by responsibility.
+
+## Les portails de crossover à l'écran
+
+Un portail est le seul combat qui ne se quitte pas en changeant d'arc : `spawnNext` lui cède, donc
+l'écran doit dire en permanence où l'on est et par où on sort. Trois surfaces, et pas une de plus :
+
+- **`ClickStage`** pose une bannière `.boss-intel.portal-fight` au-dessus de la scène, même boîte que
+  le renseignement de boss mais en `--accent`, avec l'arc, la recrue, le rappel du sceau et le seul
+  bouton *Quitter le portail*. C'est aussi la seule `.boss-intel` dont la ligne d'explication passe à
+  la ligne : elle doit être lue en entier. `isBoss()` inclut le portail (son `Enemy.id` est celui du
+  boss suffixé, donc la comparaison seule le manquerait), pour que la couronne, la barre de vie de
+  boss et l'animation de scène s'appliquent comme à n'importe quel boss. La ligne « Cadence »
+  disparaît, comme sur tout boss : un seul ennemi, donc un temps de mise à mort, jamais une cadence.
+- **`CrossoverPanel`** liste les portails avant le bloc « Fusion des mondes » — c'est la vraie
+  dépense de la ressource, la fenêtre est le petit achat. Une ligne par recrue de boss manquante,
+  bouton *Ouvrir* (avec son prix) ou *Entrer*, et la barre de vie du portail ouvert en dessous.
+- **`RosterPanel`** met la recrue du boss en tête de « À battre ici », avec son prix en cristaux au
+  lieu de ses stats : `arcRecruits` ne liste que les mobs, et sans cette ligne l'arc semblerait
+  promettre un personnage que le battre ne donne pas.
+
+`portalTargets()` et `arcPortalRecruit()` sont des fonctions simples et non des mémos : elles
+parcourent au plus 35 entrées, et un mémo ne se recalculerait plus dans un store dont la racine a été
+libérée — ce que font les tests du store.
 
 ## L'écran de secours
 

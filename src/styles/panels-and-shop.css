@@ -125,6 +125,32 @@ small {
   border-bottom: none;
 }
 
+/* Voyager : trois colonnes fixes, pour que les multiplicateurs de difficulté se lisent en pile
+   et se comparent d'un monde à l'autre malgré des titres de longueurs très différentes. */
+.travel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem 5.25rem;
+  justify-content: initial;
+}
+.travel-diff {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.travel-row > button {
+  width: 100%;
+}
+.travel-head {
+  padding-bottom: 0.15rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+.travel-head > small {
+  text-align: right;
+}
+
 /* --- shop --- */
 .shop-modal {
   width: min(980px, calc(100vw - 2rem));
@@ -572,7 +598,7 @@ small {
 }
 .forge-picker-item {
   display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr);
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
@@ -697,3 +723,83 @@ small {
   color: var(--gold);
 }
 
+
+/*
+ * La liste des portails du panneau Crossover : une ligne par recrue de boss encore à conquérir.
+ *
+ * Elle s'appelait `.portal-list`, comme la colonne des mondes de `WorldPortal` — deux écrans sans
+ * rapport, un seul nom, et `worlds-and-codex.css` étant importé après celui-ci, c'est *sa* règle qui
+ * gagnait. Le crossover héritait donc d'un `max-height: 70vh` et d'un `border-right` qui n'étaient
+ * pas pour lui : passé une quinzaine de portails, la liste débordait de sa boîte sans être coupée et
+ * les sections suivantes (« Fusion des mondes », son bouton) se dessinaient par-dessus les lignes.
+ * Chacune a désormais son nom.
+ */
+.crossover-portals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.crossover-portals > li {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+.crossover-portals > li.active {
+  border-color: var(--accent);
+  background: var(--active-tint);
+}
+/* Une recrue déjà payée : le combat existe, il attend. Elle doit sauter aux yeux dans une liste longue. */
+.crossover-portals > li.open {
+  border-color: var(--gold);
+}
+
+/*
+ * Les portails rangés par monde. Un titre collant par univers : au-delà d'une dizaine de recrues, la
+ * liste à plat ne dit plus d'où sort le boss qu'on regarde, et l'ordre inter-mondes n'a aucun sens
+ * puisque `Arc.order` est un rang *dans son monde*.
+ */
+.crossover-world {
+  display: grid;
+  gap: 0.4rem;
+}
+.crossover-world > h5 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.3rem 0.1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--world-hue) 45% 45%);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.crossover-world > h5 small {
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.portal-line {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.portal-line > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crossover-portals .bar {
+  margin-top: 0.3rem;
+}

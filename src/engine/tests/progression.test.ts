@@ -4,7 +4,21 @@ import { createGameStore } from "../gameState";
 import { gameData } from "../../data";
 import { characterContributions, defaultSynergyConfig } from "../synergy";
 import { CROSSOVER_COST } from "../crossover";
-import { animeTier, arcsOfAnime, canEnterNewAnime, isAnimeAvailable, isAnimeComplete, isArcUnlocked } from "../progression";
+import {
+  animeTier,
+  arcsOfAnime,
+  arcWeight,
+  canEnterNewAnime,
+  difficultyMultiplier,
+  isAnimeAvailable,
+  isAnimeComplete,
+  isArcUnlocked,
+  relevelledDifficulty,
+  RELEVEL_RAMP,
+  worldEntryDifficulty,
+  worldEntryScale,
+  WORLD_ENTRY_BREATHER,
+} from "../progression";
 import { timeToKillMs } from "../combat";
 import { arcPowerTable, CATCH_UP, catchUpGrowth, firstPassiveDropChance, isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
 import type { Anime, Arc, Character } from "../types";
@@ -24,6 +38,44 @@ describe("world progression", () => {
   it("freezes an anime's difficulty at the tier it was entered", () => {
     expect(animeTier(["a", "b"], "a")).toBe(0);
     expect(animeTier(["a", "b"], "b")).toBe(1);
+  });
+
+  it("weighs an arc by the hp actually in the way, mobs included", () => {
+    const arc = makeArc("w1", "a", 0, [{ id: "m", name: "m", baseHp: 10, reward: 1 }], 5);
+    // 5 mobs at 10 hp, then a 100 hp boss.
+    expect(arcWeight(arc)).toBe(150);
+  });
+
+  it("leaves a world authored above the player exactly at its tier difficulty", () => {
+    // Shippuden's shape: it opens heavier than anything Naruto ever asked for, so nothing to relevel.
+    expect(worldEntryDifficulty(1, 1_000, 100)).toBe(difficultyMultiplier(1));
+    expect(worldEntryScale(130, 78)).toBe(1);
+  });
+
+  it("relevels a world the run has outgrown, onto the heaviest arc it has cleared", () => {
+    const entry = worldEntryDifficulty(4, 2_000, 1e12);
+    expect(entry).toBeCloseTo((WORLD_ENTRY_BREATHER * 1e12) / 2_000, 0);
+    expect(entry).toBeGreaterThan(difficultyMultiplier(4));
+  });
+
+  it("shifts a releveled world's rungs onto the one the player stands at, and never down", () => {
+    expect(worldEntryScale(6, 9.6e7)).toBeCloseTo(1.6e7, 0);
+    expect(worldEntryScale(6, 3)).toBe(1);
+  });
+
+  it("re-profiles a releveled world's climb instead of inheriting its authored one", () => {
+    const first = { weight: 1_000, power: 10 };
+    // An arc four rungs up whose authored weight climbed far faster than the visitor's dps will.
+    const far = relevelledDifficulty(100, first, { weight: 1_000_000, power: 40 });
+    expect(far).toBeCloseTo(100 * (1_000 / 1_000_000) * Math.pow(4, RELEVEL_RAMP), 6);
+    // The world's own opening arc is the anchor, so it comes out at exactly what was frozen.
+    expect(relevelledDifficulty(100, first, first)).toBeCloseTo(100, 6);
+  });
+
+  it("keeps a releveled world climbing faster than the dps its visitor gains", () => {
+    // CATCH_UP is all a visitor's carried roster gains per rung; the ramp has to sit above it or a
+    // releveled world would get *easier* as it goes on.
+    expect(RELEVEL_RAMP).toBeGreaterThan(CATCH_UP);
   });
 
   it("opens an arc only once the previous one of the same anime is cleared", () => {

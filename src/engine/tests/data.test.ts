@@ -272,11 +272,17 @@ describe("game data", () => {
   });
 
   it("recruits each regular character once and keeps shop exclusives purchasable", () => {
-    const recruited = gameData.arcs.flatMap((a) => [...a.mobs, a.boss]).map((e) => e.characterId).filter(Boolean);
+    // Deux chemins, jamais deux fois le même personnage : un mob rejoint l'équipe quand il tombe,
+    // un boss ne se recrute que dans son portail de crossover (`portalCharacterId`).
+    const recruited = gameData.arcs
+      .flatMap((a) => [...a.mobs, a.boss])
+      .flatMap((e) => [e.characterId, e.portalCharacterId])
+      .filter(Boolean);
     expect(recruited.filter((id, i) => recruited.indexOf(id) !== i)).toEqual([]);
     for (const character of gameData.characters) {
       const arc = gameData.arcs.find(
-        (a) => a.boss.characterId === character.id || a.mobs.some((m) => m.characterId === character.id)
+        (a) =>
+          a.boss.portalCharacterId === character.id || a.mobs.some((m) => m.characterId === character.id)
       );
       const shopOffer = gameData.shop?.find((offer) => offer.kind === "character" && offer.targetId === character.id);
       expect(arc || shopOffer, `${character.id} n'est ni recrutable ni vendu`).toBeDefined();

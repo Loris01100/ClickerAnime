@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { BOSS_REPLAY_KILLS } from "../engine/combat";
+import { PORTAL_TRAIT } from "../engine/crossover";
 import { bannerUrl } from "./anilist";
 import AutomationBar from "./AutomationBar";
 import PanelTitle from "./PanelTitle";
@@ -9,6 +10,26 @@ import { fmt, seconds } from "./format";
 import { bossAdvice, bossTraitCounter } from "./advice";
 import { termsOf } from "./presentation";
 import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar, IconTarget } from "./icons";
+
+/**
+ * Une tuile de dégâts de la grille de stats. Tant que rien ne résiste (`share` à 1) c'est une tuile
+ * ordinaire ; dès qu'un trait de boss mord, le chiffre affiché est celui qui frappe réellement, la
+ * valeur brute passe barrée à côté et la part qui passe est nommée en pourcentage.
+ */
+function StatDamage(props: { label: string; value: number; raw: number; share: number }) {
+  const nerfed = () => props.share < 1;
+  return (
+    <div classList={{ nerfed: nerfed() }}>
+      <small>{props.label}</small>
+      <strong classList={{ bad: nerfed() }}>{fmt(props.value)}</strong>
+      <Show when={nerfed()}>
+        <small class="stat-nerf" title={`Le trait du boss ne laisse passer que ${Math.round(props.share * 100)} %`}>
+          <s>{fmt(props.raw)}</s> · {Math.round(props.share * 100)} %
+        </small>
+      </Show>
+    </div>
+  );
+}
 
 interface Pop {
   id: number;
@@ -101,7 +122,11 @@ export default function ClickStage(props: { game: GameStore }) {
   const anime = () => props.game.animeOf(arc()?.animeId);
   const terms = () => termsOf(anime() ?? undefined);
   const enemy = () => props.game.enemy();
-  const isBoss = () => !!enemy() && enemy()!.id === arc()?.boss.id;
+  /** The portal being fought, if any — a boss re-opened with crystals to recruit its character. */
+  const portal = () => props.game.portalTargets().find((target) => target.active) ?? null;
+  // A portal boss is a boss: it wears the crown, the boss hp bar and the boss stage treatment. Its
+  // enemy id is the arc boss's with a suffix, so the plain comparison alone would miss it.
+  const isBoss = () => !!enemy() && (enemy()!.id === arc()?.boss.id || !!portal());
   const hpRatio = () => (props.game.enemyMaxHp() > 0 ? props.game.enemyHpLeft() / props.game.enemyMaxHp() : 0);
   const timer = () => props.game.timerRemaining();
 
@@ -178,8 +203,12 @@ export default function ClickStage(props: { game: GameStore }) {
         <PanelTitle open={open()} onToggle={() => setOpen(!open())}>
           {terms().stage}
         </PanelTitle>
+        <Show when={anime()?.alpha}>
+          <small class="portal-badge alpha">Alpha</small>
+        </Show>
         <small class="muted">
-          {anime()?.name ?? "—"} · difficulté x{anime() ? fmt(props.game.difficultyOf(anime()!.id)) : "1"}
+          {anime()?.name ?? "—"} · difficulté x
+          {arc() ? fmt(props.game.difficultyOfArc(arc()!)) : "1"}
         </small>
       </header>
 
@@ -209,7 +238,28 @@ export default function ClickStage(props: { game: GameStore }) {
         )}
       </Show>
 
-      <Show when={arc()?.boss.bossTrait}>
+      {/* Un portail est le seul combat qui ne se quitte pas en changeant d'arc : il faut donc que
+          l'écran dise en permanence où l'on est, ce qu'on y gagne, et par où on sort. */}
+      <Show when={portal()}>
+        {(target) => (
+          <div class="boss-intel active portal-fight">
+            <IconCrown />
+            <div>
+              <small>Portail de crossover · {target().arc.name}</small>
+              <strong>{target().character.name}</strong>
+            </div>
+            <span>
+              {PORTAL_TRAIT.description} Vaincre {target().character.name} le recrute — les dégâts déjà infligés
+              sont conservés si vous ressortez.
+            </span>
+            <div class="boss-preparation">
+              <button onClick={() => props.game.leavePortal()}>Quitter le portail</button>
+            </div>
+          </div>
+        )}
+      </Show>
+
+      <Show when={!portal() && arc()?.boss.bossTrait}>
         {(trait) => (
           <div class="boss-intel" classList={{ active: isBoss() }}>
             <IconCrown />
@@ -321,15 +371,26 @@ export default function ClickStage(props: { game: GameStore }) {
         </button>
       </Show>
 
+      {/*
+        Les deux tuiles de dégâts affichent ce qui **atteint l'ennemi en face**, pas ce que l'équipe
+        vaut dans l'absolu. Devant un boss qui mange les clics ou le DPS, le chiffre baisse pour de
+        bon et la valeur brute reste lisible, barrée à côté : le trait était jusqu'ici annoncé en
+        toutes lettres au-dessus de la scène et amputait bien les dégâts, mais aucun compteur ne
+        bougeait — le nerf était invisible exactement là où on le cherche.
+      */}
       <div class="stat-grid">
-        <div>
-          <small>{terms().clickPower}</small>
-          <strong>{fmt(props.game.clickPower())}</strong>
-        </div>
-        <div>
-          <small>{terms().teamDps}</small>
-          <strong>{fmt(props.game.teamDps())}</strong>
-        </div>
+        <StatDamage
+          label={terms().clickPower}
+          value={props.game.effectiveClickPower()}
+          raw={props.game.clickPower()}
+          share={props.game.damageShareAgainst("click")}
+        />
+        <StatDamage
+          label={terms().teamDps}
+          value={props.game.effectiveTeamDps()}
+          raw={props.game.teamDps()}
+          share={props.game.damageShareAgainst("teamDps")}
+        />
         <div>
           <small>{cleared() ? `Prochaine ${terms().boss.toLowerCase()}` : `Avant ${terms().boss.toLowerCase()}`}</small>
           <strong>

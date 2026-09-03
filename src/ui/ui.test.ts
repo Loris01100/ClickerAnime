@@ -8,6 +8,7 @@ import { bossAdvice, bossTraitCounter } from "./advice";
 import { newlyUnlocked } from "./unlocks";
 import { termsOf } from "./presentation";
 import { gameData } from "../data";
+import { itemImagePath } from "./ItemIcon";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -32,6 +33,7 @@ const emptyDisclosureFacts: DisclosureFacts = {
   canTravel: false,
   activeChallenge: false,
   completedChallenges: 0,
+  towerFloor: 0,
 };
 
 describe("spriteHue", () => {
@@ -135,6 +137,19 @@ describe("imagePathsForAnime", () => {
     };
 
     expect(imagePathsForAnime(data, "a")).toEqual(["/a.jpg", "/items/item-shuriken.png"]);
+  });
+
+  it("gives every Bleach common item its own illustration", () => {
+    const bleachArcIds = new Set(gameData.arcs.filter((arc) => arc.animeId === "bleach").map((arc) => arc.id));
+    const commonIds = gameData.arcs
+      .filter((arc) => bleachArcIds.has(arc.id))
+      .flatMap((arc) => arc.mobs.map((mob) => mob.itemId))
+      .filter((itemId): itemId is string => Boolean(itemId));
+
+    expect(new Set(commonIds).size).toBe(15);
+    for (const itemId of new Set(commonIds)) {
+      expect(itemImagePath(itemId, "common")).toBe(`/items/${itemId}.png`);
+    }
   });
 });
 

@@ -6,8 +6,7 @@ import fixture from "./arcs.fixture.json";
 // captured from that array before the migration; the builder must reproduce it byte for byte —
 // every id, the boss-trait presets, the timer adjustments, all of it. If you intentionally change a
 // number in `arcs.ts`, re-run `npm run sim`, then refresh this fixture:
-//   npx vite-node -c vite.sim.config.ts -e \
-//     'import{writeFileSync}from"node:fs";import{shippudenArcs}from"./src/data/shippuden/arcs";writeFileSync("src/data/shippuden/arcs.fixture.json",JSON.stringify(shippudenArcs,null,2)+"\n")'
+//   npx vite-node -c vite.sim.config.ts scripts/refresh-fixtures.ts
 describe("shippuden arcs builder", () => {
   it("reproduces the pre-migration literal array exactly", () => {
     // Round-trip through JSON so the comparison ignores nothing but key order (undefined fields,

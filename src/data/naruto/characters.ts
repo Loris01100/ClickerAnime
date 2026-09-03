@@ -430,6 +430,78 @@ const narutoBaseCharacters: GameData["characters"] = [
       },
     }],
   },
+  /*
+   * Les trois antagonistes de Naruto que leur boss garde derrière un portail de crossover. Ils
+   * n'apparaissaient nulle part dans le casting : leur arc se terminait donc sur un boss qui ne
+   * débloquait personne, alors que tous les autres arcs du jeu recrutent le leur.
+   *
+   * Leur `baseDps` est posé **exactement sur le `debutPower` que leur arc a déjà** (7, 27, 55) :
+   * `arcPowerTable` lit le maximum de la cohorte, donc l'égaler ne déplace aucune table de
+   * difficulté — le monde n'est pas à re-simuler (`docs/progression.md`).
+   */
+  {
+    id: "zabuza-momochi",
+    name: "Zabuza Momochi",
+    animeId: "naruto",
+    rarity: "main",
+    tags: ["swordsman", "jonin"],
+    arcIds: ["naruto-vagues"],
+    baseClickPower: 1,
+    baseDps: 7,
+    passive: { target: "clickPower", kind: "percent", value: 0.22 },
+  },
+  {
+    id: "orochimaru",
+    name: "Orochimaru",
+    animeId: "naruto",
+    rarity: "main",
+    tags: ["sannin", "serpent"],
+    arcIds: ["naruto-konoha"],
+    appearanceAnimeIds: ["shippuden"],
+    baseClickPower: 5,
+    baseDps: 27,
+    passive: { target: "teamDps", kind: "percent", value: 0.24 },
+    evolutions: [
+      {
+        animeId: "shippuden",
+        label: "Repaire du Nord",
+        bonus: [{ target: "teamDps", kind: "percent", value: 0.3 }],
+        ability: {
+          id: "ability-huit-serpents",
+          name: "Yamata no Jutsu — Huit Serpents",
+          cooldownMs: 65_000,
+          durationMs: 9_000,
+          effects: [{ target: "teamDps", kind: "multiplier", value: 2.7 }],
+        },
+      },
+    ],
+  },
+  {
+    id: "kabuto-yakushi",
+    name: "Kabuto Yakushi",
+    animeId: "naruto",
+    rarity: "main",
+    tags: ["medical-ninja", "scientist"],
+    arcIds: ["naruto-tsunade"],
+    appearanceAnimeIds: ["shippuden"],
+    baseClickPower: 10,
+    baseDps: 55,
+    passive: { target: "teamDps", kind: "percent", value: 0.22 },
+    evolutions: [
+      {
+        animeId: "shippuden",
+        label: "Mode Ermite",
+        bonus: [{ target: "teamDps", kind: "percent", value: 0.32 }],
+        ability: {
+          id: "ability-mode-ermite-serpent",
+          name: "Mode Ermite du Serpent Blanc",
+          cooldownMs: 65_000,
+          durationMs: 9_000,
+          effects: [{ target: "teamDps", kind: "multiplier", value: 2.8 }],
+        },
+      },
+    ],
+  },
 ];
 
 const recurringEvolutions: Record<string, CharacterEvolution[]> = {
