@@ -456,6 +456,16 @@ the points actually buy (`affordableCount`, capped by the x1–x10 selector) rat
 `PACK_COST × qty` — the same "one number, shown and charged" rule `shopOffers` follows — while the
 buy loop still runs to the full `qty`, since a waived pack pays for one more.
 
+That price has a **third** ceiling beside the selector and the bucket: `packCapacity`, the copies a
+pool can still hand out — `MAX_DUPLICATES` minus what is held, summed over the pool, exposed as
+`packCapacityOf`. It is not a second cap check, and it must not become one: `packPool` is still the
+only thing that refuses a copy, and `openPack` still stops the buy loop on its own when the pool
+empties mid-purchase. What the count buys is **honesty in the panel** — an x10 that had three copies
+left used to announce ten packs, charge for three and look broken. Below the per-purchase maximum
+the button says how many are left, and at 0 the pool is empty, so the button is already gone and the
+row explains why (nobody recruited here, or everyone at the cap). The two conditions coincide by
+construction: a pool is empty exactly when its capacity is 0.
+
 The pool is filtered by the current roster: only characters already recruited in this adventure are
 eligible. This prevents a pack from revealing or strengthening a character before
 their story encounter. After prestige, a character becomes eligible again when recruited again;

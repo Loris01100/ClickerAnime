@@ -5,7 +5,7 @@ import { ACHIEVEMENT_CATEGORIES, achievementContributions, achievementNextThresh
 import { characterContributions, defaultSynergyConfig } from "../synergy";
 import { rollsDrop } from "../combat";
 import { canBuyShopOffer, shopOfferUnlocked } from "../shop";
-import { drawPack, duplicateGrowth, MAX_DUPLICATES, packPool, PACK_COST } from "../packs";
+import { drawPack, duplicateGrowth, MAX_DUPLICATES, packCapacity, packPool, PACK_COST } from "../packs";
 import type { ActiveModifier, Arc, Character, Enemy, Item, ShopOffer } from "../types";
 import { canEquipOn, itemAnimeIndex, sanitizedEquipment } from "../forge";
 import { baseSave, installSave, makeArc } from "./helpers";
@@ -117,6 +117,21 @@ describe("packs", () => {
     // One under the cap is still on offer; the cap is a ceiling, not a threshold.
     expect(packPool(cast, "ta", "main", recruited, () => MAX_DUPLICATES - 1)).toHaveLength(2);
     expect(packPool(cast, "ta", "main", recruited, () => MAX_DUPLICATES)).toEqual([]);
+  });
+
+  it("packCapacity counts the copies a pool can still hand out, and reads 0 when it is exhausted", () => {
+    const recruited = ["m1", "m2"];
+    const pool = packPool(cast, "ta", "main", recruited);
+    // Nobody owns a copy yet: two characters, ten each.
+    expect(packCapacity(pool, () => 0)).toBe(2 * MAX_DUPLICATES);
+    // What is *missing*, not what is held: m1 at 8 and m2 at 10 leaves two draws, and m2 is not in
+    // the pool any more anyway — which is what makes an x10 purchase announce two packs, not ten.
+    const held = (id: string) => (id === "m1" ? MAX_DUPLICATES - 2 : MAX_DUPLICATES);
+    expect(packCapacity(packPool(cast, "ta", "main", recruited, held), held)).toBe(2);
+    // The pool emptying and the capacity reaching 0 are the same event, which is what lets the
+    // panel hide the button on one and size it on the other.
+    expect(packCapacity(packPool(cast, "ta", "main", recruited, () => MAX_DUPLICATES), () => MAX_DUPLICATES)).toBe(0);
+    expect(packCapacity([], () => 0)).toBe(0);
   });
 
   it("duplicates multiply a character's base damage, on top of levels", () => {

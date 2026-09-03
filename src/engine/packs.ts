@@ -53,3 +53,16 @@ export function drawPack(pool: Character[], roll: number): Character | null {
   if (pool.length === 0) return null;
   return pool[Math.min(pool.length - 1, Math.floor(roll * pool.length))];
 }
+
+/**
+ * Copies a pool can still hand out before every character in it is capped — the sum of what each
+ * one is missing. The ceiling itself stays in `packPool`, which is what actually refuses a draw;
+ * this only *sizes* a purchase, so a x10 button never announces ten packs when three copies are
+ * left, and it reads 0 exactly when the pool is empty.
+ */
+export function packCapacity(
+  pool: Character[],
+  duplicatesOf: (characterId: string) => number = () => 0
+): number {
+  return pool.reduce((total, c) => total + Math.max(0, MAX_DUPLICATES - duplicatesOf(c.id)), 0);
+}

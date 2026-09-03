@@ -54,7 +54,7 @@ import { buildPrestigeReport, type PrestigeReport } from "./prestigeReport";
 import {
 } from "./forge";
 export { UNIQUE_FORGE_FRAGMENT_COSTS, UNIQUE_FORGE_MULTIPLIERS } from "./forge";
-import { drawPack, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
+import { drawPack, packCapacity, packPool, PACK_COST, POINTS_PER_KILL } from "./packs";
 import {
   firstPassiveDropChance,
   XP_PER_KILL_REWARD,
@@ -1111,6 +1111,15 @@ export function createGameStore(data: GameData) {
     packPool(data.characters, animeId, rarity, ownedCharacterIds(), duplicatesOf);
 
   /**
+   * Combien de tirages ce pool peut encore payer avant que tout le monde soit au plafond. Ce n'est
+   * pas un second verrou — `packPoolOf` reste le seul à refuser une copie de trop — c'est le nombre
+   * qui dimensionne un achat multiple : il vaut 0 quand le pool est vide, et il tombe sous 10 quand
+   * il ne reste plus qu'une poignée de copies à distribuer.
+   */
+  const packCapacityOf = (animeId: string, rarity: Rarity) =>
+    packCapacity(packPoolOf(animeId, rarity), duplicatesOf);
+
+  /**
    * Spends a world's points on one random draw from its cast at that rarity, and banks the copy.
    * Returns the draw so the panel can show it, or null when it couldn't be bought.
    *
@@ -1788,6 +1797,7 @@ export function createGameStore(data: GameData) {
     damageGrowthOf,
     catchUpOf,
     packPoolOf,
+    packCapacityOf,
     openPack,
     // crossover
     crossoverCrystals,
