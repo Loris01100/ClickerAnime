@@ -6,7 +6,6 @@ import {
   isTowerRewardFloor,
   isTowerSquadReady,
   nextTowerPosition,
-  TOWER_BOSS_TIMER_MS,
   TOWER_CYCLE_MS,
   TOWER_FLOOR_TIMER_MS,
   TOWER_MODES,
@@ -145,30 +144,29 @@ describe("tower ladder", () => {
     expect(enemy.timerMs).toBeUndefined();
   });
 
-  it("gives every floor's boss a 30 s clock, and only the boss", () => {
+  it("keeps the clock on the floor and never on one fight", () => {
     const cast = towerWorld().characters as Character[];
-    const bossSlot = { round: TOWER_ROUNDS_PER_FLOOR - 1, slot: TOWER_UNITS_PER_ROUND - 1 };
-    expect(TOWER_BOSS_TIMER_MS).toBe(30_000);
-    for (const floor of [1, 42, 100]) {
-      for (const mode of ["easy", "hard", "hell"] as const) {
-        expect(towerEnemy(mode, floor, bossSlot, cast).timerMs).toBe(TOWER_BOSS_TIMER_MS);
-      }
-    }
+    // 30 s pour l'étage entier — les quinze combats, boss compris.
+    expect(TOWER_FLOOR_TIMER_MS).toBe(30_000);
     let position: ReturnType<typeof nextTowerPosition> = TOWER_START;
     let timed = 0;
     while (position) {
-      if (towerEnemy("easy", 7, position, cast).timerMs !== undefined) timed++;
+      for (const mode of ["easy", "hard", "hell"] as const) {
+        if (towerEnemy(mode, 7, position, cast).timerMs !== undefined) timed++;
+      }
       position = nextTowerPosition(position);
     }
-    expect(timed).toBe(1);
+    expect(timed).toBe(0);
   });
 
-  it("prices a floor on whichever clock binds — and that is the boss's", () => {
+  it("prices a floor on its own clock: the fifteen fights over the 30 s", () => {
     for (const floor of [1, 50, 100]) {
-      const byFloor = towerFloorHp("easy", floor) / (TOWER_FLOOR_TIMER_MS / 1000);
-      const byBoss = towerBossHp("easy", floor) / (TOWER_BOSS_TIMER_MS / 1000);
-      expect(byBoss).toBeGreaterThan(byFloor);
-      expect(towerRequiredDps("easy", floor)).toBeCloseTo(byBoss, 6);
+      expect(towerRequiredDps("easy", floor)).toBeCloseTo(
+        towerFloorHp("easy", floor) / (TOWER_FLOOR_TIMER_MS / 1000),
+        6
+      );
+      // Le boss reste le combat le plus lourd des quinze, sans horloge à lui.
+      expect(towerBossHp("easy", floor)).toBeLessThan(towerFloorHp("easy", floor));
     }
   });
 
@@ -310,35 +308,30 @@ describe("tower run", () => {
     }
   });
 
-  it("runs the floor clock from the first round, and the boss clock only on the boss", () => {
+  it("runs one clock for the whole floor, armed from the first round", () => {
     const { game, restore } = boot({ towerSquadIds: SQUAD });
     try {
       game.enterTower("easy", 1);
       expect(game.towerTimeLeft()).toBeGreaterThan(TOWER_FLOOR_TIMER_MS - 5_000);
-      // Manche 1 : pas de boss en face, donc pas de seconde horloge.
+      expect(game.towerTimeLeft()).toBeLessThanOrEqual(TOWER_FLOOR_TIMER_MS);
       expect(game.towerOnBoss()).toBe(false);
-      expect(game.towerBossTimeLeft()).toBeNull();
       expect(game.towerEnemy()?.timerMs).toBeUndefined();
     } finally {
       restore();
     }
   });
 
-  it("arms the boss's 30 s clock the moment he shows up", () => {
+  it("does not restart the clock when the boss shows up", () => {
     // Un clic qui tombe les quatorze premiers combats sans emporter le boss avec eux.
-    const wall = towerBossHp("easy", 1);
-    const { game, restore } = boot({ towerSquadIds: SQUAD }, towerWorld(0, wall));
+    const { game, restore } = boot({ towerSquadIds: SQUAD }, towerWorld(0, towerBossHp("easy", 1)));
     try {
       game.enterTower("easy", 1);
+      const before = game.towerTimeLeft()!;
       game.click();
       expect(game.towerOnBoss()).toBe(true);
-      expect(game.towerEnemy()?.timerMs).toBe(TOWER_BOSS_TIMER_MS);
-      const left = game.towerBossTimeLeft();
-      expect(left).not.toBeNull();
-      expect(left!).toBeGreaterThan(TOWER_BOSS_TIMER_MS - 5_000);
-      expect(left!).toBeLessThanOrEqual(TOWER_BOSS_TIMER_MS);
-      // Et elle est bien plus courte que celle de l'étage, qui continue de tourner à côté.
-      expect(left!).toBeLessThan(game.towerTimeLeft()!);
+      expect(game.towerEnemy()?.timerMs).toBeUndefined();
+      // La même horloge continue de courir : elle n'a pas été réarmée sous le boss.
+      expect(game.towerTimeLeft()!).toBeLessThanOrEqual(before);
     } finally {
       restore();
     }

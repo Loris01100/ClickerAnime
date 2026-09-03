@@ -227,17 +227,6 @@
   }
 }
 
-/*
- * L'horloge du boss, sous celle de l'étage. Elle emprunte la teinte `--boss` du reste du jeu — la
- * même que le liseré des boss d'arc — pour qu'on ne confonde jamais les deux barres empilées.
- */
-.timer-bar.boss-timer .bar-fill {
-  background: var(--boss);
-}
-.timer-bar.boss-timer.urgent .bar-fill {
-  background: var(--bad);
-}
-
 /* --- les manches : trois rangées de cinq pastilles, la dernière étant le boss --- */
 .tower-rounds {
   display: grid;

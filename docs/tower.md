@@ -35,10 +35,10 @@ permanent, et c'est sa seule fiction. Ils sont tirés de façon déterministe de
 tentative, ce qui en fait une épreuve comparable plutôt qu'une loterie. La case du boss tire dans le
 casting `main`, pour qu'un étage se termine sur un nom qui porte.
 
-L'ennemi sorti par `towerEnemy` ne porte **ni `characterId`, ni `itemId`, et un `reward` nul** :
-aucune des machineries de l'arc — recrutement, drop, crossover, xp, points de pack — ne peut se
-déclencher par accident sur un kill de tour. La seule chose qu'il puisse porter est le `timerMs` du
-boss, 30 s, sur la dernière case de l'étage (voir plus bas).
+L'ennemi sorti par `towerEnemy` ne porte **ni `characterId`, ni `itemId`, ni `timerMs`, et un
+`reward` nul** : aucune des machineries de l'arc — recrutement, drop, crossover, xp, points de pack —
+ne peut se déclencher par accident sur un kill de tour, et l'horloge appartient à l'étage, jamais à
+un combat.
 
 ## La difficulté
 
@@ -49,40 +49,38 @@ pourcentage du DPS du joueur :
 PV = TOWER_BASE_HP (50) × 1.30^(étage-1) × 1.35^(manche) × (12 si boss)
 ```
 
-Soit un étage 1 à ~2 000 PV au total et un étage 100 à ~3.9e14. Ce qui décide n'est pourtant pas ce
-total mais **le boss**, à cause de son horloge de 30 s (ci-dessous) : `towerRequiredDps` rend le plus
-exigeant des deux rapports, et c'est toujours celui du boss. Il demande **36 DPS d'escouade à
-l'étage 1** et **~6.9e12 à l'étage 100** — c'est-à-dire un jeu entier de progression, cinq
-personnages de fin de partie compris. Le panneau imprime toujours ce chiffre à côté du DPS réel de
-l'escouade : la tour ne cache jamais son mur.
+Soit un étage 1 à ~2 000 PV au total et un étage 100 à ~3.9e14. Rapporté aux 30 s dont on dispose
+pour l'étage entier, cela demande **68 DPS d'escouade à l'étage 1** et **~1.3e13 à l'étage 100** —
+c'est-à-dire un jeu entier de progression, cinq personnages de fin de partie compris.
+`towerRequiredDps` est ce rapport et rien d'autre : le mur des quinze combats divisé par le temps
+qu'il y a pour les gagner. Le panneau l'imprime toujours à côté du DPS réel de l'escouade : la tour
+ne cache jamais son mur.
 
 **Cette courbe est un premier réglage, pas un réglage simulé.** `npm run sim` joue une run d'arcs et
 ne monte pas dans la tour ; les nombres à bouger si elle se révèle trop raide ou trop molle sont
-`TOWER_BASE_HP` (le bas de l'échelle), `TOWER_FLOOR_HP_RAMP` (sa pente) et `TOWER_BOSS_TIMER_MS`
-(la contrainte qui mord réellement), et rien d'autre — le pas par manche et le poids du boss ne
+`TOWER_FLOOR_TIMER_MS` (la contrainte qui mord), `TOWER_BASE_HP` (le bas de l'échelle) et
+`TOWER_FLOOR_HP_RAMP` (sa pente), et rien d'autre — le pas par manche et le poids du boss ne
 décrivent que la forme *interne* d'un étage.
 
-### Les deux horloges, et pourquoi il en faut
+### L'horloge, et pourquoi il en faut une
 
 Un ennemi n'inflige jamais de dégâts dans ce jeu. Un mur de PV tout seul n'est donc jamais une
 défaite, seulement une attente : sans horloge, les cent étages se franchiraient en laissant l'onglet
-ouvert. Il y en a deux, elles tournent ensemble, et la première échue remet la tentative à la manche 1
-(`checkTimer`) :
+ouvert.
 
-- **`TOWER_FLOOR_TIMER_MS` (180 s)**, armée à l'entrée dans l'étage, pour les quinze combats ;
-- **`TOWER_BOSS_TIMER_MS` (30 s)**, armée au moment où le boss apparaît. Elle est portée par
-  `Enemy.timerMs` sur la seule case du boss, exactement comme un boss d'arc porte la sienne — les
-  quatorze autres cases n'ont que l'horloge de l'étage au-dessus d'elles.
+Il y en a **une seule**, et elle porte sur **l'étage entier** : `TOWER_FLOOR_TIMER_MS`, **30 s**,
+armée à l'entrée dans l'étage et courant sur les quinze combats, boss compris. Aucun adversaire n'a
+d'horloge à lui — `towerEnemy` ne pose jamais de `timerMs`, contrairement à un boss d'arc — et le
+boss ne réarme rien en apparaissant : c'est le même compte à rebours du premier mob au dernier coup.
 
-**C'est celle du boss qui mord.** Le boss vaut ~21 mobs de PV et reçoit 30 s là où l'étage entier en
-reçoit 180 : à tous les étages, le DPS exigé par le boss est ~3.2x celui qu'exigerait le total. Arriver
-devant lui avec deux minutes d'avance ne donne donc jamais deux minutes pour l'abattre, et c'est bien
-le point : **les manches se farment, le boss se tombe**. Bouger les 30 s rééquilibre tout le mode à
-lui seul, bien plus que `TOWER_FLOOR_HP_RAMP`.
+Trente secondes pour quinze combats, c'est deux secondes par adversaire : **un étage se joue d'un
+trait, ou pas du tout.** C'est ce qui fait de la tour une épreuve de puissance brute plutôt qu'une
+épreuve de patience, et c'est le premier levier d'équilibrage du mode — diviser cette durée par deux
+double le DPS exigé à chaque étage, bien plus directement que `TOWER_FLOOR_HP_RAMP`.
 
-Le temps écoulé, d'un côté comme de l'autre, ne coûte que la tentative : **rien d'autre n'est perdu**,
-les étages déjà franchis restent acquis, et on peut recommencer immédiatement. C'est la seule sanction
-du mode, et elle est volontairement douce.
+Le temps écoulé ne coûte que la tentative : **rien d'autre n'est perdu**, les étages déjà franchis
+restent acquis, et on peut recommencer immédiatement. C'est la seule sanction du mode, et elle est
+volontairement douce.
 
 ## Les cinq
 
@@ -145,7 +143,7 @@ l'ancienne grimpe qui disparaît 200 ms plus tard sous les yeux du joueur.
 Quatre champs, tous optionnels, donc **sans changement de `SAVE_KEY`** : `towerFloors` (l'étage le
 plus haut franchi par mode), `towerSquadIds`, `towerClaimed` et `towerCycleStartedAt`.
 
-La tentative en cours — l'étage, la manche, les PV de l'adversaire, les deux échéances — n'est **pas**
+La tentative en cours — l'étage, la manche, les PV de l'adversaire, l'échéance — n'est **pas**
 sauvegardée : c'est de l'état de combat, et il suit la même règle que le reste (voir
 `docs/persistence.md`). Recharger repose le joueur dans son arc, la grimpe intacte.
 

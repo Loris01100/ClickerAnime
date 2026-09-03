@@ -206,13 +206,12 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - **The ladder's shape is Summoners War's**: 100 / 100 / 10 floors, three rounds of five, the last
   slot of the last round the boss. It is data (`TOWER_MODES`), so a mode opens by flipping
   `available`. Only `easy` is playable; the other two carry unplayed placeholder multipliers.
-- **A floor's hp is an absolute table and its two clocks are what make it losable.** Enemies deal no
-  damage, so without a timer a floor is only ever "wait longer". `TOWER_FLOOR_TIMER_MS` (180s) runs
-  from the first round; `TOWER_BOSS_TIMER_MS` (**30s**) is armed when the boss appears and is carried
-  by `Enemy.timerMs` on that one slot, exactly like an arc boss. The boss clock is the binding one at
-  every floor — `towerRequiredDps` returns the harder of the two — which is the point: the rounds are
-  ground out, the boss has to be killed. Either running out costs the attempt and nothing else;
-  cleared floors stay cleared.
+- **A floor's hp is an absolute table and its clock is what makes it losable.** Enemies deal no
+  damage, so without a timer a floor is only ever "wait longer". There is exactly **one** clock and
+  it covers the **whole floor**: `TOWER_FLOOR_TIMER_MS`, **30s** for all fifteen fights, boss
+  included. No opponent carries a `timerMs` of its own and the boss re-arms nothing — don't give one
+  a per-fight clock. Running out costs the attempt and nothing else; cleared floors stay cleared. It
+  is also the mode's first balance knob: halving it doubles the dps every floor asks for.
 - The climb is **meta-progression on a 15-day cycle**: `prestigeReset` leaves it alone (it only
   walks out of the floor, since it empties the roster), `hardReset` clears it, and `towerCycleOf` —
   the one place in the game that reads a wall clock — only ever moves forward by whole cycles.

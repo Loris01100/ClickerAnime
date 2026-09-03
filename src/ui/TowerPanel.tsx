@@ -1,11 +1,9 @@
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import {
-  TOWER_BOSS_TIMER_MS,
   TOWER_FLOOR_TIMER_MS,
   TOWER_ROUNDS_PER_FLOOR,
   TOWER_SQUAD_SIZE,
-  TOWER_UNITS_PER_FLOOR,
   TOWER_UNITS_PER_ROUND,
   towerFloorHp,
   towerPlayableFloors,
@@ -85,7 +83,6 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
 
   const hpRatio = () => (props.game.towerMaxHp() > 0 ? props.game.towerHpLeft() / props.game.towerMaxHp() : 0);
   const timeLeft = () => props.game.towerTimeLeft() ?? 0;
-  const bossTimeLeft = () => props.game.towerBossTimeLeft();
 
   /** L'estimation qui décide vraiment : le DPS de l'escouade contre le mur de l'étage visé. */
   const outlook = createMemo(() => {
@@ -146,9 +143,9 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
       <div class="codex-detail scroll">
         <div class="codex-block">
           <p class="muted small">
-            Cent étages, trois manches par étage, cinq adversaires par manche — et la dernière manche
-            se termine sur un boss, qui ne dispose que de {TOWER_BOSS_TIMER_MS / 1000} s pour tomber. Les
-            adversaires viennent de tous les univers du jeu : la tour est
+            Cent étages, trois manches par étage, cinq adversaires par manche, la dernière manche se
+            terminant sur un boss — et l’étage entier, ses quinze combats, doit tomber en{" "}
+            {TOWER_FLOOR_TIMER_MS / 1000} s. Les adversaires viennent de tous les univers du jeu : la tour est
             un crossover permanent. Seuls les <strong>{TOWER_SQUAD_SIZE} personnages</strong> de
             l’escouade se battent, avec toute leur puissance actuelle. Rien ne tombe à l’intérieur —
             ni monnaie, ni objet, ni xp : la tour paie par paliers, tous les {config().rewardEvery}{" "}
@@ -208,10 +205,9 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
             <strong classList={{ good: outlook().ready, bad: !outlook().ready }}>{fmt(outlook().dps)}</strong>
           </div>
           <p class="muted small">
-            L’étage {nextFloor()} demande {fmt(outlook().required)} DPS, sans compter le Clic du
-            Narrateur — qui, lui, frappe aussi fort ici que dans un arc. Deux horloges le décident :{" "}
-            {TOWER_FLOOR_TIMER_MS / 1000} s pour l’étage entier, et surtout{" "}
-            {TOWER_BOSS_TIMER_MS / 1000} s pour le boss seul, à partir du moment où il apparaît.
+            L’étage {nextFloor()} demande {fmt(outlook().required)} DPS pour tomber en entier dans ses{" "}
+            {TOWER_FLOOR_TIMER_MS / 1000} s — quinze combats, boss compris —, sans compter le Clic du
+            Narrateur, qui frappe ici aussi fort que dans un arc.
           </p>
 
           <button onClick={() => setPickerOpen(!pickerOpen())}>
@@ -354,7 +350,7 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
           <Show when={props.game.towerEnemy()}>
             {(enemy) => (
               <>
-                <div class="enemy" classList={{ boss: props.game.towerUnitsDone() === TOWER_UNITS_PER_FLOOR - 1 }}>
+                <div class="enemy" classList={{ boss: props.game.towerOnBoss() }}>
                   {/* `anime` est indispensable ici : la tour mélange tous les univers, et un nom
                       courant cherché sans son show tombe sur le personnage d'un autre anime. */}
                   <Sprite
@@ -365,7 +361,7 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
                   />
                 </div>
                 <div class="enemy-name">
-                  <Show when={props.game.towerUnitsDone() === TOWER_UNITS_PER_FLOOR - 1}>
+                  <Show when={props.game.towerOnBoss()}>
                     <IconCrown class="gold" />{" "}
                   </Show>
                   {enemy().name}
@@ -382,23 +378,13 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
           </span>
         </div>
 
-        <div class="bar timer-bar" classList={{ urgent: timeLeft() < 20_000 }}>
+        {/* Une seule horloge, celle de l'étage : elle couvre les quinze combats, boss compris. */}
+        <div class="bar timer-bar" classList={{ urgent: timeLeft() < 10_000 }}>
           <div class="bar-fill" style={{ width: `${(timeLeft() / TOWER_FLOOR_TIMER_MS) * 100}%` }} />
           <span class="bar-label">
             <IconClock /> Étage · {seconds(timeLeft())}
           </span>
         </div>
-
-        {/* L'horloge du boss n'apparaît que devant lui, sous celle de l'étage : deux barres empilées
-            disent d'elles-mêmes laquelle est la plus courte, et c'est toujours celle du bas. */}
-        <Show when={bossTimeLeft() !== null}>
-          <div class="bar timer-bar boss-timer" classList={{ urgent: (bossTimeLeft() ?? 0) < 10_000 }}>
-            <div class="bar-fill" style={{ width: `${((bossTimeLeft() ?? 0) / TOWER_BOSS_TIMER_MS) * 100}%` }} />
-            <span class="bar-label">
-              <IconCrown /> Boss · {seconds(bossTimeLeft() ?? 0)}
-            </span>
-          </div>
-        </Show>
 
         <div class="tower-rounds">
           <For each={rounds}>

@@ -7,7 +7,6 @@ import {
   isTowerSquadReady,
   nextTowerPosition,
   isTowerBoss,
-  TOWER_BOSS_TIMER_MS,
   TOWER_FLOOR_TIMER_MS,
   TOWER_SQUAD_SIZE,
   TOWER_START,
@@ -85,12 +84,6 @@ export function createTower(deps: TowerDeps) {
   const [hpLeft, setHpLeft] = createSignal(0);
   const [maxHp, setMaxHp] = createSignal(0);
   const [deadline, setDeadline] = createSignal<number | null>(null);
-  /**
-   * L'horloge du boss, distincte de celle de l'étage : elle démarre quand il apparaît et ne dure que
-   * `TOWER_BOSS_TIMER_MS`. Les deux tournent ensemble et la première échue remet l'étage à la manche
-   * 1 — arriver sur le boss très en avance ne rallonge donc jamais le combat qui compte.
-   */
-  const [bossDeadline, setBossDeadline] = createSignal<number | null>(null);
   /** Set when the clock runs out, so the panel can say why the floor went back to its first round. */
   const [lastFailure, setLastFailure] = createSignal<{ floor: number; at: number } | null>(null);
 
@@ -166,7 +159,7 @@ export function createTower(deps: TowerDeps) {
     return true;
   }
 
-  /** Puts the opponent of `position` on the floor's stage, at full hp — and arms the boss's clock. */
+  /** Puts the opponent of `position` on the floor's stage, at full hp. */
   function spawn() {
     const mode = activeMode();
     if (!mode) return;
@@ -175,9 +168,6 @@ export function createTower(deps: TowerDeps) {
     setEnemy(next);
     setMaxHp(hp);
     setHpLeft(hp);
-    // La durée vient de l'ennemi lui-même (`Enemy.timerMs`), comme dans l'arc : seule la case du
-    // boss en porte une, les quatorze autres n'ont que l'horloge de l'étage au-dessus d'elles.
-    setBossDeadline(next.timerMs ? deps.now() + next.timerMs : null);
   }
 
   /** Restarts the floor at its first round, with a fresh clock. The climb itself is untouched. */
@@ -187,10 +177,10 @@ export function createTower(deps: TowerDeps) {
     spawn();
   }
 
-  /** Remet l'étage à la manche 1 et dit pourquoi — les deux horloges finissent ici. */
-  function failFloor(nowMs: number, reason: string) {
+  /** Remet l'étage à la manche 1, et dit pourquoi. La seule façon de perdre, ici. */
+  function failFloor(nowMs: number) {
     setLastFailure({ floor: floor(), at: nowMs });
-    deps.pushNotice("arc", `Étage ${floor()} : ${reason}, l’étage repart de la manche 1.`);
+    deps.pushNotice("arc", `Étage ${floor()} : temps écoulé, l’étage repart de la manche 1.`);
     restartFloor();
   }
 
@@ -216,7 +206,6 @@ export function createTower(deps: TowerDeps) {
     setActiveMode(null);
     setEnemy(null);
     setDeadline(null);
-    setBossDeadline(null);
     setHpLeft(0);
     setMaxHp(0);
   }
@@ -310,19 +299,13 @@ export function createTower(deps: TowerDeps) {
   }
 
   /**
-   * Les deux horloges. L'une comme l'autre ne coûte que la tentative — voir `TOWER_FLOOR_TIMER_MS` et
-   * `TOWER_BOSS_TIMER_MS`. Celle du boss est testée d'abord : quand elle est armée, c'est toujours
-   * elle qui échoit en premier, et le message doit nommer le vrai coupable.
+   * L'horloge de l'étage — la seule du mode. Elle couvre les quinze combats et ne coûte que la
+   * tentative : voir `TOWER_FLOOR_TIMER_MS`.
    */
   function checkTimer(nowMs: number) {
-    if (!inTower()) return;
-    const bossEnd = bossDeadline();
-    if (bossEnd !== null && nowMs >= bossEnd) {
-      failFloor(nowMs, `le boss a tenu ${TOWER_BOSS_TIMER_MS / 1000} s`);
-      return;
-    }
     const end = deadline();
-    if (end !== null && nowMs >= end) failFloor(nowMs, "temps écoulé");
+    if (!inTower() || end === null || nowMs < end) return;
+    failFloor(nowMs);
   }
 
   // Le cycle est vérifié dès le démarrage, pas seulement au premier tick : une partie rouverte
@@ -361,8 +344,7 @@ export function createTower(deps: TowerDeps) {
     towerHpLeft: hpLeft,
     towerMaxHp: maxHp,
     towerTimeLeft: () => (deadline() === null ? null : Math.max(0, deadline()! - deps.now())),
-    /** Le temps qu'il reste au boss, ou `null` tant qu'on n'est pas devant lui. */
-    towerBossTimeLeft: () => (bossDeadline() === null ? null : Math.max(0, bossDeadline()! - deps.now())),
+    /** Vrai quand le dernier des quinze — le boss — est en face. */
     towerOnBoss: () => inTower() && isTowerBoss(position()),
     towerLastFailure: lastFailure,
     enterTower,
