@@ -845,7 +845,17 @@ d'objets — les objets se lisent déjà dans le panneau « Objets » de la colo
    cristaux tant que le portail n'existe pas, *Entrer* une fois payé. Un portail ouvert affiche en
    dessous sa barre de vie (`.bar.hp-bar.boss`, la même que le combat) : c'est là que se voit ce
    qu'il reste d'un boss qu'on grignote en plusieurs fois. La ligne du combat en cours prend
-   `.active` (bordure `--accent`, fond `--active-tint`).
+   `.active` (bordure `--accent`, fond `--active-tint`), et son bouton devient *Reprendre le
+   combat*.
+
+   **« Entrer » referme le panneau**, et c'est une règle et non un détail : le combat démarre dans la
+   colonne du milieu, *sous* cette modale. Tant qu'elle restait ouverte, cliquer « Entrer » ne
+   produisait à l'écran qu'une ligne passant à « Combat en cours » — le boss qu'on venait de payer se
+   battait derrière l'écran qui le cachait, et rien ne disait qu'il fallait fermer. Règle générale
+   pour tout overlay : **un panneau qui démarre un combat s'efface derrière lui**. « Ouvrir », qui
+   n'emmène nulle part et s'enchaîne volontiers plusieurs fois, laisse au contraire le panneau en
+   place. Même règle au portail des mondes, où *Partir* comme le raccourci payant referment la
+   modale : les deux posent le joueur dans le premier arc du nouveau monde.
 4. **Fusion des mondes**, le bouton `.primary` d'activation (coût + durée), remplacé pendant la
    fenêtre par le décompte en secondes.
 

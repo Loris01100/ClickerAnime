@@ -115,11 +115,26 @@ export default function CrossoverPanel(props: { game: GameStore; onClose: () => 
                             </button>
                           }
                         >
+                          {/*
+                            Entrer dans un portail **ferme le panneau**. Le combat démarre dans la
+                            colonne du milieu, sous cette modale : sans cela le joueur cliquait
+                            « Entrer », voyait la ligne passer à « Combat en cours » et rien d'autre
+                            — le boss qu'il venait de payer se battait derrière l'écran qui le
+                            cachait. On ne ferme que si l'entrée a réussi : `enterPortal` refuse un
+                            portail non ouvert ou une équipe déjà pleine sous « En petit comité ».
+                            « Ouvrir », lui, laisse le panneau en place : on en ouvre souvent
+                            plusieurs d'affilée, et cela n'emmène nulle part.
+                          */}
                           <Show
                             when={!target.active}
-                            fallback={<span class="good small">Combat en cours</span>}
+                            fallback={
+                              <button onClick={() => props.onClose()}>Reprendre le combat</button>
+                            }
                           >
-                            <button class="primary" onClick={() => props.game.enterPortal(target.character.id)}>
+                            <button
+                              class="primary"
+                              onClick={() => props.game.enterPortal(target.character.id) && props.onClose()}
+                            >
                               Entrer
                             </button>
                           </Show>
