@@ -266,6 +266,19 @@ orthographie autrement et qu'aucune entrée `NAME_OVERRIDES` ne couvre encore, o
 AniList de leur anime : ils se résolvent comme une recrue, et il n'y a plus d'art local sous
 `public/portraits/` — en ajouter un demande de choisir un ennemi qu'AniList référence.
 
+**Un portrait en vol ne suspend jamais son ancêtre**, et c'est la seule subtilité du composant.
+`App.tsx` n'a qu'une `<Suspense>`, autour de tous les overlays différés ; lire la ressource pendant
+qu'elle charge y jetait, et Solid **détachait l'overlay entier du DOM** le temps de la requête. Un
+écran dont les vignettes changent souvent clignotait donc en entier plutôt que de remplacer une
+vignette : mesuré à **43 % du temps** dans la Tour de l'Ascension, qui change d'adversaire toutes les
+une à deux secondes. `Sprite` teste donc `portrait.state` avant de lire la valeur — tester l'état ne
+suspend pas — et le `.sprite-empty` redevient ce qu'il a toujours prétendu être : la façon dont *ce*
+composant, à sa propre échelle, montre son propre chargement. Ne pas revenir à un `portrait()` nu.
+
+Le corollaire pour un écran qui enchaîne les portraits : **précharger**. `TowerPanel` demande les
+quinze adversaires d'un étage dès qu'on y entre (`portraitUrl`, qui dédoublonne et met en cache),
+plutôt que d'en découvrir un toutes les deux secondes — sinon le placeholder clignote quinze fois.
+
 **`ui/describe.ts`** turns a `ModifierTemplate` or `AbilityDefinition` into French prose. It lives in
 `ui/`, not the engine — the engine has no user-facing strings.
 

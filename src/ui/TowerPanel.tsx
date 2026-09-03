@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import {
   TOWER_BOSS_TIMER_MS,
@@ -14,6 +14,7 @@ import {
   towerRewardFloors,
   type TowerMode,
 } from "../engine/tower";
+import { portraitUrl } from "./anilist";
 import Coin from "./Coin";
 import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
@@ -61,6 +62,25 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
       const inB = squadIds().includes(b.id) ? 0 : 1;
       return inA - inB || props.game.characterStatOf(b, "teamDps") - props.game.characterStatOf(a, "teamDps");
     })
+  );
+
+  /**
+   * Les quinze portraits de l'étage sont demandés d'un coup dès qu'on y entre, et non un par un au
+   * moment où l'adversaire arrive : un étage se traverse en une poignée de secondes, et une vignette
+   * qui se charge à chaque combat, c'est un placeholder qui clignote quinze fois. `portraitUrl`
+   * dédoublonne, met en cache et ne rejette jamais, donc c'est un simple préchauffage — on jette la
+   * promesse, `Sprite` retrouvera l'entrée dans le cache.
+   */
+  createEffect(
+    on(
+      () => [props.game.towerActiveMode(), props.game.towerFloor()] as const,
+      () => {
+        if (!props.game.inTower()) return;
+        for (const opponent of props.game.towerFloorOpponents()) {
+          if (opponent) void portraitUrl(opponent.name, "character", props.game.animeOf(opponent.animeId)?.name);
+        }
+      }
+    )
   );
 
   const hpRatio = () => (props.game.towerMaxHp() > 0 ? props.game.towerHpLeft() / props.game.towerMaxHp() : 0);
@@ -335,7 +355,14 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
             {(enemy) => (
               <>
                 <div class="enemy" classList={{ boss: props.game.towerUnitsDone() === TOWER_UNITS_PER_FLOOR - 1 }}>
-                  <Sprite name={enemy().name} kind="character" px={19} />
+                  {/* `anime` est indispensable ici : la tour mélange tous les univers, et un nom
+                      courant cherché sans son show tombe sur le personnage d'un autre anime. */}
+                  <Sprite
+                    name={enemy().name}
+                    kind="character"
+                    anime={props.game.animeOf(props.game.towerOpponent()?.animeId)?.name}
+                    px={19}
+                  />
                 </div>
                 <div class="enemy-name">
                   <Show when={props.game.towerUnitsDone() === TOWER_UNITS_PER_FLOOR - 1}>

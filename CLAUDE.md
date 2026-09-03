@@ -278,6 +278,12 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - A component never builds a colour string: it sets `--world-hue` on a container and the imported
   CSS modules do the rest.
 - UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.
+- **A pending `Sprite` portrait must never suspend its ancestor.** `App.tsx` has one `<Suspense>`
+  around every deferred overlay, so reading the resource while it loads detached the whole overlay
+  from the DOM — 43% of the time in the tower, which changes opponent every second or two. `Sprite`
+  tests `portrait.state` before reading the value, and its `.sprite-empty` placeholder is the one
+  thing a pending lookup may change on screen. Don't go back to a bare `portrait()`, and preload
+  (`portraitUrl`) on any screen that runs through portraits quickly (`docs/ui.md`).
 
 ## The systems
 

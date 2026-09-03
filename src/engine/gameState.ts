@@ -1851,6 +1851,8 @@ export function createGameStore(data: GameData) {
     towerRound: tower.towerRound,
     towerUnitsDone: tower.towerUnitsDone,
     towerEnemy: tower.towerEnemy,
+    towerFloorOpponents: tower.towerFloorOpponents,
+    towerOpponent: tower.towerOpponent,
     towerHpLeft: tower.towerHpLeft,
     towerMaxHp: tower.towerMaxHp,
     towerTimeLeft: tower.towerTimeLeft,

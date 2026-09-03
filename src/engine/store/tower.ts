@@ -16,6 +16,7 @@ import {
   towerEnemy,
   towerHp,
   towerModeConfig,
+  towerOpponent,
   towerReward,
   towerUnitsDone,
   type TowerCycle,
@@ -115,6 +116,24 @@ export function createTower(deps: TowerDeps) {
     leaveTower();
     deps.pushNotice("unlock", "La Tour de l’Ascension a été réinitialisée : les paliers repaient.");
   }
+
+  /**
+   * Les quinze adversaires de l'étage en cours, dans l'ordre. Un mémo plutôt qu'un tirage par
+   * combat : c'est ce qui permet à l'écran de précharger les portraits de tout l'étage d'un coup au
+   * lieu d'en découvrir un toutes les deux secondes, et de nommer le monde d'où sort chaque
+   * adversaire (`Sprite` cherche dans le casting de ce show-là, pas dans tout AniList).
+   */
+  const floorOpponents = createMemo<(Character | null)[]>(() => {
+    const mode = activeMode();
+    if (!mode) return [];
+    const list: (Character | null)[] = [];
+    let at: TowerPosition | null = TOWER_START;
+    while (at) {
+      list.push(towerOpponent(mode, floor(), at, cast));
+      at = nextTowerPosition(at);
+    }
+    return list;
+  });
 
   const squad = createMemo(() => {
     const owned = new Map(deps.ownedCharacters().map((character) => [character.id, character]));
@@ -336,6 +355,9 @@ export function createTower(deps: TowerDeps) {
     towerRound: () => position().round,
     towerUnitsDone: () => towerUnitsDone(position()),
     towerEnemy: enemy,
+    towerFloorOpponents: floorOpponents,
+    /** Le personnage qui se tient en face, pour ce que l'ennemi de combat ne porte pas : son monde. */
+    towerOpponent: () => floorOpponents()[towerUnitsDone(position())] ?? null,
     towerHpLeft: hpLeft,
     towerMaxHp: maxHp,
     towerTimeLeft: () => (deadline() === null ? null : Math.max(0, deadline()! - deps.now())),
