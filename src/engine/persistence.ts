@@ -65,6 +65,16 @@ export interface SaveFile {
   completedChallengeIds?: string[];
   runStartedAt?: number;
   runAchievementBaseline?: Record<string, number>;
+  /**
+   * La Tour de l'Ascension (`docs/tower.md`) — meta-progression, so it survives prestige and only
+   * `hardReset` clears it: the highest floor cleared per mode, the five characters brought to it,
+   * the reward floors already paid this cycle, and when the 15-day cycle started. The attempt in
+   * progress is absent on purpose: a tower fight is combat state like any other.
+   */
+  towerFloors?: Record<string, number>;
+  towerSquadIds?: string[];
+  towerClaimed?: string[];
+  towerCycleStartedAt?: number;
 }
 
 const isNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value);
@@ -124,6 +134,10 @@ export function isValidSave(value: unknown): value is SaveFile {
     optional(candidate.completedChallengeIds, isStringArray) &&
     optional(candidate.runStartedAt, isNumber) &&
     optional(candidate.runAchievementBaseline, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.towerFloors, (entry) => isRecordOf(entry, isNumber)) &&
+    optional(candidate.towerSquadIds, isStringArray) &&
+    optional(candidate.towerClaimed, isStringArray) &&
+    optional(candidate.towerCycleStartedAt, isNumber) &&
     optional(candidate.characterEquipment, (entry) =>
       isRecordOf(entry, (id) => typeof id === "string")
     ) &&

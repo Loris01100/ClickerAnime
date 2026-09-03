@@ -14,5 +14,6 @@ export function newlyUnlocked(previous: DisclosureState, current: DisclosureStat
   if (!previous.packs && current.packs) messages.push("Packs débloqués");
   if (!previous.crossover && current.crossover) messages.push("Crossover débloqué");
   if (!previous.challenges && current.challenges) messages.push("Défis débloqués");
+  if (!previous.tower && current.tower) messages.push("Tour de l’Ascension débloquée");
   return messages;
 }

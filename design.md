@@ -1028,3 +1028,41 @@ partage est délibéré :
 
 Les récompenses sont écrites par `describeModifier` comme n'importe quel effet d'objet : l'arbre, le
 codex et les défis ne doivent jamais inventer une deuxième façon de décrire un même bonus.
+
+## 15. La Tour de l'Ascension (overlay plein écran)
+
+La tour est le seul mode qui **ne se joue pas dans la colonne du milieu** : c'est un overlay
+autonome (`TowerPanel.tsx`, `styles/tower.css`), avec sa propre scène, son propre ennemi et sa propre
+horloge. Le choix n'est pas esthétique, il est sémantique — pendant qu'on grimpe, ce n'est pas
+l'équipe qui frappe mais cinq personnages choisis, l'adversaire n'appartient à aucun monde, et rien
+de ce qui tombe dans un arc ne tombe ici (`docs/tower.md`). Un écran à part dit tout cela sans une
+phrase d'explication ; une prise en main du `ClickStage`, façon portail de crossover, aurait dit
+l'inverse.
+
+Trois idées portent l'écran :
+
+- **Le fond n'a pas de fin.** Une image répétée verticalement (`background-repeat: repeat-y`) dont la
+  position descend d'exactement une tuile par cycle d'animation : à la fin de la boucle le motif est
+  de nouveau aligné sur lui-même, donc la couture ne se voit jamais, quelle que soit la hauteur de
+  l'écran. Une seule couche, pas deux copies empilées à recoller. Tout l'habillage tient dans
+  `--tower-backdrop-image` : poser l'illustration définitive, c'est déposer le fichier dans
+  `public/tower/` et changer cette ligne — à condition que l'image **se raccorde verticalement à
+  elle-même**, sinon la boucle se voit à chaque passage. `prefers-reduced-motion` coupe le défilement,
+  parce qu'un décor qui boucle est exactement ce que ce réglage vise.
+- **L'escouade est toujours cinq cases**, remplies ou non (`.tower-slot`). Une grille qui ne change
+  pas de taille dit la contrainte du mode — cinq, jamais six — mieux qu'un compteur. Une case pleine
+  prend le liseré `--accent` et affiche le DPS réel du personnage, le même nombre que sa ligne du
+  roster : deux écrans qui affichent la même chose doivent afficher le même chiffre.
+- **Les manches sont des pastilles**, trois rangées de cinq (`.tower-dot`), la dernière plus grosse et
+  en `--boss`. C'est la seule représentation de la progression *à l'intérieur* d'un étage, et elle est
+  lisible d'un coup d'œil sans lire un compteur : vert pour tombé, `--accent` pour l'adversaire en
+  cours.
+
+Les trois modes (Normal, Difficile, Enfer) sont **toujours affichés**, les deux fermés cadenassés avec
+`IconLock` : le joueur doit voir la hauteur totale du barreau avant d'y poser le pied. Ils sont
+désactivés pendant une tentative — on ne change pas de barreau au milieu d'un étage.
+
+Le reste suit §8 à la lettre : `.overlay` > `.modal`, en-tête `.panel-head` avec le compte à rebours
+du cycle, contenu qui défile, Échap qui ferme. Une seule nuance, volontaire : dans un étage, Échap
+quitte l'étage avant de fermer le panneau, et un clic sur le voile ne ferme rien — on ne sort pas
+d'une tentative en cours par accident.

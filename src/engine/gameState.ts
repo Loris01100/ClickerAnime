@@ -10,6 +10,8 @@ import { createRoster } from "./store/roster";
 import { createModifierFold } from "./store/modifiers";
 import { createSaveIO } from "./store/saveIO";
 import { createPortals } from "./store/portals";
+import { createTower } from "./store/tower";
+import { TOWER_MODES } from "./tower";
 export type { PortalTarget } from "./store/portals";
 export type { Notice } from "./store/notices";
 import { achievementCount } from "./achievements";
@@ -510,6 +512,37 @@ export function createGameStore(data: GameData) {
     characterStatOf,
   } = fold;
 
+  /**
+   * La Tour de l'Ascension — see `store/tower.ts` and `docs/tower.md`. It is created after the fold
+   * because its whole damage model is `characterStatOf` summed over the five characters brought to
+   * it, and after the inventory because its reward floors pay in fragments. It reads the arc only
+   * to know which world's pack pool its points go into: the tower belongs to no world.
+   */
+  const tower = createTower({
+    saved,
+    cast: data.characters,
+    now,
+    ownedCharacterIds,
+    ownedCharacters,
+    characterStatOf,
+    foundItems,
+    uniqueFragmentsOf,
+    grantUniqueFragment,
+    grantCurrency: (amount) => {
+      setCurrency((c) => c + amount);
+      setLifetimeEarned((l) => l + amount);
+    },
+    grantCrystals: (amount) => setCrossoverCrystals((c) => c + amount),
+    grantPackPoints: (amount) => {
+      // The tower has no world of its own, so its points land in the pool of the world being played
+      // — the one the player is spending them from anyway.
+      const animeId = arcOf(activeArcId())?.animeId ?? prestige().unlockedAnimeIds[0];
+      if (animeId) setWorldPoints((points) => ({ ...points, [animeId]: (points[animeId] ?? 0) + amount }));
+    },
+    bumpAchievement,
+    pushNotice,
+  });
+
   /** Repeatable supplies for every accessible arc, priced against what its farm mobs actually pay. */
   function supplyOffers(): ShopOffer[] {
     return playableArcs().flatMap((arc) => {
@@ -919,7 +952,10 @@ export function createGameStore(data: GameData) {
     bumpAchievement("clicks");
     const critLevel = nodeLevelOf("narratorClick", 3);
     const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
-    const dealt = dealDamage(crit ? clickPower() * CRIT_MULTIPLIER : clickPower(), "click");
+    // Dans la Tour, le Clic du Narrateur frappe l'étage : c'est le même geste, avec les mêmes perks
+    // (crit, cooldowns, déclenchement gratuit), simplement dirigé vers l'ennemi qui est à l'écran.
+    const swing = crit ? clickPower() * CRIT_MULTIPLIER : clickPower();
+    const dealt = tower.inTower() ? tower.towerHit(swing, "click") : dealDamage(swing, "click");
 
     const cooldownLevel = nodeLevelOf("narratorClick", 4);
     if (cooldownLevel > 0) {
@@ -1370,6 +1406,10 @@ export function createGameStore(data: GameData) {
     setCrossoverCrystals(0);
     setCrossoverUntil(0);
     portals.reset();
+    // Le prestige ne touche pas à la Tour, mais il vide le roster : rester dans un étage avec une
+    // escouade qui n'existe plus laisserait un combat à 0 DPS à l'écran. On en sort, la grimpe est
+    // conservée.
+    tower.leaveTower();
     spawnNext();
   }
 
@@ -1413,6 +1453,10 @@ export function createGameStore(data: GameData) {
       completedChallengeIds: completedChallengeIds(),
       runStartedAt: runStartedAt(),
       runAchievementBaseline: runAchievementBaseline(),
+      towerFloors: tower.towerFloors(),
+      towerSquadIds: tower.towerSquadIds(),
+      towerClaimed: tower.towerClaimed(),
+      towerCycleStartedAt: tower.towerCycleStartedAt(),
     };
   }
 
@@ -1458,6 +1502,9 @@ export function createGameStore(data: GameData) {
     // le combat qu'il vient d'effacer, et la prochaine sauvegarde automatique réécrit `portalHp` /
     // `portalDamage` dans un fichier censé être neuf.
     portals.reset();
+    // La Tour est de la méta-progression : elle ne bouge pas au prestige, seul l'effacement total
+    // la remet à zéro — étages, escouade, paliers réclamés et cycle compris.
+    tower.reset();
     setEnemy(null);
     // Rien ne reste en face du joueur, donc rien ne doit garder d'horloge : `checkTimer` tournerait
     // sur l'échéance du combat qu'on vient d'effacer.
@@ -1495,8 +1542,18 @@ export function createGameStore(data: GameData) {
     // Refill before spending, and never above the cap: banking an idle minute into one burst would
     // hand back exactly the spike this budget exists to remove.
     setKillBudget((budget) => Math.min(MAX_KILLS_PER_SECOND, budget + deltaSeconds * MAX_KILLS_PER_SECOND));
-    dealDamage(teamDps() * deltaSeconds, "teamDps");
-    checkTimer(nowMs);
+    // Le cycle de 15 jours de la Tour est vérifié une fois par tick : c'est le seul endroit du jeu
+    // qui lise une date réelle, et il ne fait rien tant qu'aucun cycle entier n'est passé.
+    tower.refreshCycle();
+    // La Tour prend la main sur le combat pendant qu'on y grimpe : l'arc reste exactement où il
+    // était, et ce sont les cinq personnages de l'escouade qui frappent, pas l'équipe entière.
+    if (tower.inTower()) {
+      tower.towerHit(tower.towerSquadDps() * deltaSeconds, "teamDps");
+      tower.towerCheckTimer(nowMs);
+    } else {
+      dealDamage(teamDps() * deltaSeconds, "teamDps");
+      checkTimer(nowMs);
+    }
     // A portal only has to survive a reload, so its progress is written back once a tick.
     syncPortalDamage();
 
@@ -1507,7 +1564,7 @@ export function createGameStore(data: GameData) {
       const accumMs = autoClickAccumMs() + deltaMs;
       if (accumMs >= interval) {
         const damage = clickPower();
-        const dealt = dealDamage(damage, "click");
+        const dealt = tower.inTower() ? tower.towerHit(damage, "click") : dealDamage(damage, "click");
         bumpAchievement("clicks");
         // Announced, not just dealt: an autoclick that lands in silence is indistinguishable from a
         // perk that isn't working. `ClickStage` turns each pulse into a damage pop-up of its own.
@@ -1777,6 +1834,29 @@ export function createGameStore(data: GameData) {
     enterPortal,
     leavePortal,
     activePortalId,
+    // La Tour de l'Ascension (`store/tower.ts`, `docs/tower.md`)
+    towerModes: TOWER_MODES,
+    towerModeOf: tower.towerModeOf,
+    towerCycle: tower.towerCycle,
+    towerHighestFloorOf: tower.towerHighestFloorOf,
+    towerRewardClaimed: tower.towerRewardClaimed,
+    towerSquad: tower.towerSquad,
+    towerSquadIds: tower.towerSquadIds,
+    towerSquadDps: tower.towerSquadDps,
+    towerSquadReady: tower.towerSquadReady,
+    toggleTowerSquadMember: tower.toggleTowerSquadMember,
+    inTower: tower.inTower,
+    towerActiveMode: tower.towerActiveMode,
+    towerFloor: tower.towerFloor,
+    towerRound: tower.towerRound,
+    towerUnitsDone: tower.towerUnitsDone,
+    towerEnemy: tower.towerEnemy,
+    towerHpLeft: tower.towerHpLeft,
+    towerMaxHp: tower.towerMaxHp,
+    towerTimeLeft: tower.towerTimeLeft,
+    towerLastFailure: tower.towerLastFailure,
+    enterTower: tower.enterTower,
+    leaveTower: tower.leaveTower,
     // world progression
     animeAvailable,
     animeBlockedBy,

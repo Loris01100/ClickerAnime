@@ -1,0 +1,285 @@
+/*
+ * La Tour de l'Ascension (`docs/tower.md`, `design.md` §14).
+ *
+ * Une seule idée visuelle porte tout l'écran : la tour n'a pas de fin. Le fond de l'étage est une
+ * image qui se répète verticalement et défile en continu, si bien qu'aucune hauteur d'écran ne
+ * laisse voir sa couture — on grimpe, littéralement, et le décor ne dit jamais où il s'arrête.
+ * Le reste (les manches en pastilles, l'escouade en cinq cases) reprend le vocabulaire des
+ * panneaux existants : la tour est un mode à part, pas un jeu à part.
+ */
+
+/*
+ * Le fond de la tour, en **un seul jeton à remplacer**. Poser l'illustration définitive, c'est
+ * déposer le fichier dans `public/tower/` et écrire ici :
+ *
+ *   --tower-backdrop-image: url("/tower/tower-background.png");
+ *
+ * Une seule contrainte, et elle est dure : l'image doit être *tuilable verticalement* — son bord
+ * haut doit se raccorder à son bord bas — sinon la couture passe à l'écran à chaque tour de boucle.
+ * `--tower-backdrop-height` doit alors valoir la hauteur à laquelle la tuile est dessinée.
+ *
+ * En attendant, le motif ci-dessous est un mur de briques dégradé : il tuile par construction, ce
+ * qui laisse la boucle visible et vérifiable tant que l'art n'est pas là.
+ */
+:root {
+  --tower-backdrop-image: repeating-linear-gradient(
+      180deg,
+      hsl(var(--world-hue) 30% 30% / 0.35) 0 62px,
+      hsl(var(--world-hue) 30% 22% / 0.35) 62px 64px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      hsl(var(--world-hue) 25% 18% / 0.18) 0 118px,
+      transparent 118px 120px
+    );
+  /* Hauteur d'une tuile : c'est la distance parcourue par un cycle de l'animation. */
+  --tower-backdrop-height: 512px;
+  /* Une tuile toutes les 24 s : assez lent pour être une ascension, pas un tapis roulant. */
+  --tower-backdrop-speed: 24s;
+}
+
+.tower-modal {
+  max-width: 62rem;
+}
+
+/* Les trois modes, dont deux encore fermés : la barre dit la forme du barreau avant d'y entrer. */
+.tower-modes {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.9rem 0;
+}
+.tower-modes button.active {
+  background: var(--active-tint);
+  border-color: var(--accent);
+}
+.tower-modes button.locked {
+  opacity: 0.55;
+}
+
+.tower-progress .bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+
+/* --- l'escouade : cinq cases, toujours cinq, même vides --- */
+.tower-squad {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.7rem;
+}
+.tower-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+}
+.tower-slot.filled {
+  border-style: solid;
+  border-color: var(--accent);
+}
+.tower-slot-filled {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: center;
+}
+.tower-slot-filled small {
+  font-size: 0.7rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.tower-roster {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.25rem;
+}
+.tower-roster button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+}
+.tower-roster button span {
+  flex: 1;
+}
+.tower-roster li.picked button {
+  background: var(--active-tint);
+  border-color: var(--accent);
+}
+
+/* --- la liste des étages : une grille de jetons, le prochain mis en avant --- */
+.tower-floors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr));
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+.tower-floor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.45rem 0.2rem;
+}
+.tower-floor.cleared {
+  color: var(--muted);
+}
+.tower-floor.next {
+  border-color: var(--accent);
+  background: var(--active-tint);
+  font-weight: 700;
+}
+
+.tower-rewards {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.tower-rewards li {
+  display: grid;
+  grid-template-columns: 6rem 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+.tower-rewards li.claimed {
+  border-color: var(--good);
+}
+.tower-rewards li.locked {
+  opacity: 0.6;
+}
+
+/* --- l'étage en cours --- */
+.tower-climb {
+  padding: 0.6rem 0.9rem 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+.tower-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.tower-status > div {
+  display: grid;
+}
+.tower-status > button {
+  margin-left: auto;
+}
+
+.tower-stage {
+  border-radius: 0.6rem;
+}
+/*
+ * Le fond infini. L'image est répétée verticalement et sa position descend d'exactement une tuile
+ * par cycle : à la fin de l'animation le motif est de nouveau aligné sur lui-même, donc la boucle
+ * ne se voit pas. `background-position` plutôt qu'un `transform` sur deux copies empilées — une
+ * seule couche, aucune couture à recoller, et la même règle marche quelle que soit la taille.
+ */
+.tower-backdrop {
+  position: absolute;
+  inset: 0;
+  background-image: var(--tower-backdrop-image);
+  background-repeat: repeat-y;
+  background-size: 100% var(--tower-backdrop-height);
+  animation: tower-scroll var(--tower-backdrop-speed) linear infinite;
+  pointer-events: none;
+}
+.tower-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--stage-veil-soft), var(--stage-veil));
+}
+@keyframes tower-scroll {
+  from {
+    background-position-y: var(--tower-backdrop-height);
+  }
+  to {
+    background-position-y: 0;
+  }
+}
+/* Un décor qui défile en boucle est exactement le genre de mouvement que ce réglage vise. */
+@media (prefers-reduced-motion: reduce) {
+  .tower-backdrop {
+    animation: none;
+  }
+}
+
+/* --- les manches : trois rangées de cinq pastilles, la dernière étant le boss --- */
+.tower-rounds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.tower-round {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+.tower-round.done {
+  border-color: var(--good);
+}
+.tower-dots {
+  display: flex;
+  gap: 0.25rem;
+}
+.tower-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.tower-dot.done {
+  background: var(--good);
+  border-color: var(--good);
+}
+.tower-dot.current {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.tower-dot.boss {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-color: var(--boss);
+}
+.tower-dot.boss.done {
+  background: var(--boss);
+}
+
+@media (max-width: 720px) {
+  .tower-squad {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .tower-rounds {
+    grid-template-columns: 1fr;
+  }
+  .tower-rewards li {
+    grid-template-columns: 1fr;
+  }
+}

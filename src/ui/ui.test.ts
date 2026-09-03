@@ -33,6 +33,7 @@ const emptyDisclosureFacts: DisclosureFacts = {
   canTravel: false,
   activeChallenge: false,
   completedChallenges: 0,
+  towerFloor: 0,
 };
 
 describe("spriteHue", () => {

@@ -72,6 +72,7 @@ read. **The store's public surface is unchanged by the split** — components an
 | `store/abilityState.ts` | Buffs, cooldowns, firing plans. Sole owner of `temporaryModifiers`, the only timed modifier source |
 | `store/modifiers.ts` | The fold and its two outputs, `clickPower` and `teamDps` — the balance itself |
 | `store/portals.ts` | Crossover portals, with the four rules that keep them out of the balance |
+| `store/tower.ts` | La Tour de l'Ascension: the climb, the squad of five, the reward claims, the 15-day cycle — and the only place its fight is resolved |
 | `store/saveIO.ts` | When a save may be written, and the guard that makes an import stick. Owns no game state |
 
 Adding state means picking the slice it belongs to, or adding one — not growing the assembler. A new
@@ -189,6 +190,32 @@ These outrank convenience, and several were learned the hard way. Don't break on
   detect: a run under a rule cannot break it. Starting or abandoning a challenge goes through
   `prestigeReset`, so a run played under a rule never survives the rule being dropped.
 
+**La Tour de l'Ascension**
+
+- **The tower is fought by five characters, never by the team.** `towerSquadDps` is
+  `characterStatOf` summed over the chosen five — the very column the roster prints — so the panel
+  and the roster agree to the bit and there is no second damage model. Don't give the tower its own
+  stat pipeline, and don't let it read `teamDps`.
+- **Nothing is farmed inside a floor.** A tower kill pays no currency, no xp, no item, no crystal
+  and no pack point: `towerEnemy` carries no `characterId`, no `itemId` and a zero `reward`. That is
+  why the climb needs no `MAX_KILLS_PER_SECOND` — the cap bounds per-kill rewards, and there are
+  none here. The whole payout is the reward floors, once per mode per cycle (`towerClaimKey`).
+- **A reward floor never pays strength.** Gold, crossover crystals, pack points and forge fragments,
+  all things the player already farms — and never prestige points, which nothing may multiply. A
+  tower that granted damage would have to be re-simulated; this one doesn't.
+- **The ladder's shape is Summoners War's**: 100 / 100 / 10 floors, three rounds of five, the last
+  slot of the last round the boss. It is data (`TOWER_MODES`), so a mode opens by flipping
+  `available`. Only `easy` is playable; the other two carry unplayed placeholder multipliers.
+- **A floor's hp is an absolute table and its clock is what makes it losable.** Enemies deal no
+  damage, so without `TOWER_FLOOR_TIMER_MS` a floor is only ever "wait longer". Timing out costs the
+  attempt and nothing else — cleared floors stay cleared.
+- The climb is **meta-progression on a 15-day cycle**: `prestigeReset` leaves it alone (it only
+  walks out of the floor, since it empties the roster), `hardReset` clears it, and `towerCycleOf` —
+  the one place in the game that reads a wall clock — only ever moves forward by whole cycles.
+- Its opponents are drawn **deterministically** from the whole cast (`hashSeed`), so floor 37 is the
+  same floor for every player and on every attempt. No `Math.random()` here — that stays
+  `gameState`'s alone, fragment rewards included.
+
 **Progression**
 
 - Tier is the anime's index in `unlockedAnimeIds`, **frozen at entry**. Never recompute a tier from
@@ -266,6 +293,7 @@ the shared vocabulary for equipment restrictions; add their French label in `ui/
 | Telemetry | `docs/telemetry.md` | Opt-in progression milestones, Worker validation, Analytics Engine schema and queries |
 | Content validation | `docs/content-validation.md` | Semantic validation of ids, references, recruitment and sequel presence |
 | Simulator | `docs/simulator.md` | `npm run sim`: playing a run headlessly to check a balance change |
+| Tour de l'Ascension | `docs/tower.md` | The 100-floor climb beside the story: the ladder, the squad of five, the floor clock, the reward tiers, the 15-day cycle |
 
 ## Content
 
