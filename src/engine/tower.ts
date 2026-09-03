@@ -69,6 +69,15 @@ export const TOWER_CYCLE_MS = TOWER_CYCLE_DAYS * 24 * 60 * 60 * 1_000;
  */
 export const TOWER_FLOOR_TIMER_MS = 180_000;
 
+/**
+ * Le boss d'un étage a sa propre horloge, bien plus courte que celle de l'étage : **30 s** à partir
+ * du moment où il apparaît, comme les boss d'arc les plus serrés. Les deux horloges tournent
+ * ensemble et la plus courte gagne — arriver sur le boss avec deux minutes d'avance ne donne donc
+ * jamais deux minutes pour l'abattre. C'est ce qui empêche un étage d'être franchi en grattant les
+ * quinze combats à l'usure : les manches se farment, le boss se tombe.
+ */
+export const TOWER_BOSS_TIMER_MS = 30_000;
+
 /** Floor 1's opening opponent, in hp. Every other number in the ladder is derived from it. */
 export const TOWER_BASE_HP = 50;
 /** Per-floor hp ramp. 1.30^99 spans floor 1 to floor 100 across the game's whole damage range. */
@@ -128,9 +137,23 @@ export function towerFloorHp(mode: TowerMode, floor: number): number {
   return total;
 }
 
-/** The dps that clears a floor inside its clock, ignoring the narrator's click. */
+/** The hp of a floor's boss alone — the fight the 30 s clock is measured against. */
+export function towerBossHp(mode: TowerMode, floor: number): number {
+  return towerHp(mode, floor, { round: TOWER_ROUNDS_PER_FLOOR - 1, slot: TOWER_UNITS_PER_ROUND - 1 });
+}
+
+/**
+ * The dps that clears a floor, ignoring the narrator's click. Two clocks bind it, and the answer is
+ * whichever asks for more: the whole floor inside `TOWER_FLOOR_TIMER_MS`, and the boss alone inside
+ * `TOWER_BOSS_TIMER_MS`. Since the boss carries ~21 mobs' worth of hp and gets 30 s to the floor's
+ * 180, **the boss clock is the binding one** at every floor — which is exactly what it is for: the
+ * rounds are ground out, the boss has to be killed.
+ */
 export function towerRequiredDps(mode: TowerMode, floor: number): number {
-  return towerFloorHp(mode, floor) / (TOWER_FLOOR_TIMER_MS / 1000);
+  return Math.max(
+    towerFloorHp(mode, floor) / (TOWER_FLOOR_TIMER_MS / 1000),
+    towerBossHp(mode, floor) / (TOWER_BOSS_TIMER_MS / 1000)
+  );
 }
 
 /**
@@ -156,9 +179,10 @@ export function towerOpponent(
 }
 
 /**
- * The opponent as combat sees it. It carries no `characterId` (nothing is recruited here), no
- * `itemId` (nothing drops here) and no `timerMs` — the clock belongs to the floor, not to one fight
- * — so none of the arc's per-kill machinery can fire on a tower kill by accident.
+ * The opponent as combat sees it. It carries no `characterId` (nothing is recruited here) and no
+ * `itemId` (nothing drops here), so none of the arc's per-kill machinery can fire on a tower kill by
+ * accident. The one clock it can carry is the boss's `TOWER_BOSS_TIMER_MS`: a mob belongs to the
+ * floor's own clock and to nothing else.
  */
 export function towerEnemy(
   mode: TowerMode,
@@ -172,6 +196,7 @@ export function towerEnemy(
     name: character?.name ?? "Ombre",
     baseHp: towerHp(mode, floor, position),
     reward: 0,
+    ...(isTowerBoss(position) ? { timerMs: TOWER_BOSS_TIMER_MS } : {}),
   };
 }
 
