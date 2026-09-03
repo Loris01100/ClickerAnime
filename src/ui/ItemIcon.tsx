@@ -84,6 +84,21 @@ const ITEM_ART: Record<string, string> = {
   "bleach-item-noyau-reigai": "bleach-item-noyau-reigai.png",
   "bleach-item-catalyseur": "bleach-item-catalyseur.png",
   "bleach-item-croix-quincy": "bleach-item-croix-quincy.png",
+  "bleach-item-zabimaru": "bleach-item-zabimaru.png",
+  "bleach-item-senbonzakura": "bleach-item-senbonzakura.png",
+  "bleach-item-messer": "bleach-item-messer.png",
+  "bleach-item-pantera": "bleach-item-pantera.png",
+  "bleach-item-giralda": "bleach-item-giralda.png",
+  "bleach-item-santa-teresa": "bleach-item-santa-teresa.png",
+  "bleach-item-raika": "bleach-item-raika.png",
+  "bleach-item-murcielago": "bleach-item-murcielago.png",
+  "bleach-item-benihime": "bleach-item-benihime.png",
+  "bleach-item-los-lobos": "bleach-item-los-lobos.png",
+  "bleach-item-lame-muramasa": "bleach-item-lame-muramasa.png",
+  "bleach-item-kyoka-suigetsu": "bleach-item-kyoka-suigetsu.png",
+  "bleach-item-raiku": "bleach-item-raiku.png",
+  "bleach-item-croix-gibet": "bleach-item-croix-gibet.png",
+  "bleach-item-almighty": "bleach-item-almighty.png",
 };
 
 export const itemImagePath = (id: string | undefined, kind: "common" | "unique") =>
