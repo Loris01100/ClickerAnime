@@ -997,12 +997,33 @@ export function createGameStore(data: GameData) {
     spawnNext();
   }
 
-  /** Time the team needs to fell the enemy in front of it right now — `Infinity` at 0 dps. */
-  const timeToKill = createMemo(() => {
+  /**
+   * La part d'une source de dégâts qui atteint vraiment l'ennemi en face : 1 partout, sauf devant un
+   * boss dont le trait mange les clics ou le DPS (`damageMultiplierAgainst`).
+   *
+   * Elle est dérivée ici, dans le moteur, et non dans le composant : c'est la même règle que
+   * `dealDamage` applique réellement, et un écran qui la recalculerait pourrait diverger du coup qui
+   * part. Voir l'invariant « les composants ne calculent jamais l'équilibrage ».
+   */
+  const damageShareAgainst = (source: DamageSource) => {
     const target = enemy();
-    const dps = target ? teamDps() * damageMultiplierAgainst(target, "teamDps") : teamDps();
-    return timeToKillMs(enemyHpLeft(), dps);
-  });
+    return target ? damageMultiplierAgainst(target, source) : 1;
+  };
+
+  /**
+   * Les deux stats **telles qu'elles frappent l'ennemi qui est à l'écran**, trait de boss compris.
+   *
+   * `clickPower` et `teamDps` disent ce que l'équipe vaut ; ceux-ci disent ce qui arrive au bout, et
+   * c'est ce que la scène affiche. Sans eux, un boss « Brume épaisse » divisait le clic par deux sans
+   * qu'aucun chiffre ne bouge à l'écran : le trait était annoncé en toutes lettres au-dessus de la
+   * scène, les dégâts étaient bien réduits, et les deux compteurs continuaient d'afficher la valeur
+   * brute — le nerf était donc invisible là où le joueur le cherche.
+   */
+  const effectiveClickPower = createMemo(() => clickPower() * damageShareAgainst("click"));
+  const effectiveTeamDps = createMemo(() => teamDps() * damageShareAgainst("teamDps"));
+
+  /** Time the team needs to fell the enemy in front of it right now — `Infinity` at 0 dps. */
+  const timeToKill = createMemo(() => timeToKillMs(enemyHpLeft(), effectiveTeamDps()));
 
   /**
    * The kill cadence of the farm on screen, and what `MAX_KILLS_PER_SECOND` is throwing away — or
@@ -1816,6 +1837,10 @@ export function createGameStore(data: GameData) {
     enemy,
     enemyHpLeft,
     enemyMaxHp,
+    // Ce que valent le clic et le DPS *contre l'ennemi en face* — c'est ce que la scène imprime.
+    effectiveClickPower,
+    effectiveTeamDps,
+    damageShareAgainst,
     timeToKill,
     killRate,
     maxKillsPerSecond: MAX_KILLS_PER_SECOND,

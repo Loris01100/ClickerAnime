@@ -11,6 +11,26 @@ import { bossAdvice, bossTraitCounter } from "./advice";
 import { termsOf } from "./presentation";
 import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar, IconTarget } from "./icons";
 
+/**
+ * Une tuile de dégâts de la grille de stats. Tant que rien ne résiste (`share` à 1) c'est une tuile
+ * ordinaire ; dès qu'un trait de boss mord, le chiffre affiché est celui qui frappe réellement, la
+ * valeur brute passe barrée à côté et la part qui passe est nommée en pourcentage.
+ */
+function StatDamage(props: { label: string; value: number; raw: number; share: number }) {
+  const nerfed = () => props.share < 1;
+  return (
+    <div classList={{ nerfed: nerfed() }}>
+      <small>{props.label}</small>
+      <strong classList={{ bad: nerfed() }}>{fmt(props.value)}</strong>
+      <Show when={nerfed()}>
+        <small class="stat-nerf" title={`Le trait du boss ne laisse passer que ${Math.round(props.share * 100)} %`}>
+          <s>{fmt(props.raw)}</s> · {Math.round(props.share * 100)} %
+        </small>
+      </Show>
+    </div>
+  );
+}
+
 interface Pop {
   id: number;
   amount: number;
@@ -351,15 +371,26 @@ export default function ClickStage(props: { game: GameStore }) {
         </button>
       </Show>
 
+      {/*
+        Les deux tuiles de dégâts affichent ce qui **atteint l'ennemi en face**, pas ce que l'équipe
+        vaut dans l'absolu. Devant un boss qui mange les clics ou le DPS, le chiffre baisse pour de
+        bon et la valeur brute reste lisible, barrée à côté : le trait était jusqu'ici annoncé en
+        toutes lettres au-dessus de la scène et amputait bien les dégâts, mais aucun compteur ne
+        bougeait — le nerf était invisible exactement là où on le cherche.
+      */}
       <div class="stat-grid">
-        <div>
-          <small>{terms().clickPower}</small>
-          <strong>{fmt(props.game.clickPower())}</strong>
-        </div>
-        <div>
-          <small>{terms().teamDps}</small>
-          <strong>{fmt(props.game.teamDps())}</strong>
-        </div>
+        <StatDamage
+          label={terms().clickPower}
+          value={props.game.effectiveClickPower()}
+          raw={props.game.clickPower()}
+          share={props.game.damageShareAgainst("click")}
+        />
+        <StatDamage
+          label={terms().teamDps}
+          value={props.game.effectiveTeamDps()}
+          raw={props.game.teamDps()}
+          share={props.game.damageShareAgainst("teamDps")}
+        />
         <div>
           <small>{cleared() ? `Prochaine ${terms().boss.toLowerCase()}` : `Avant ${terms().boss.toLowerCase()}`}</small>
           <strong>

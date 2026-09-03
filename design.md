@@ -736,6 +736,17 @@ code écrit à la main.
 
 ---
 
+
+**Un chiffre affiché doit être celui qui s'applique.** La grille de stats de la scène imprime le
+clic et le DPS **tels qu'ils frappent l'ennemi en face**, trait de boss compris : devant « Brume
+épaisse », la tuile passe de 3 à 1,5, la valeur brute reste lisible barrée à côté (`.stat-nerf`) et
+la tuile prend un liseré `--boss` — le même que le renseignement de boss juste au-dessus, pour que
+les deux se lisent comme une seule information. Auparavant le trait était annoncé en toutes lettres,
+les dégâts étaient bien amputés, et les deux compteurs continuaient d'afficher la valeur pleine : le
+malus était invisible exactement là où on le cherche, ce qui se lit comme une règle en panne. La
+valeur amputée vient du moteur (`effectiveClickPower`, `effectiveTeamDps`), jamais d'un calcul du
+composant.
+
 ## 9. Écran Succès et export/import de save
 
 Deux ajouts récents, tous deux volontairement sans nouveau vocabulaire visuel — la preuve que la

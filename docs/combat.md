@@ -88,6 +88,20 @@ Traits are announced in the arc list and in a persistent strip above combat befo
 the strip switches from `Boss à venir` to `Trait actif` when the encounter begins. This is an
 ordinary part of boss readability now, not an entry-arc experiment.
 
+**And the numbers move with it.** A trait that eats damage is applied on the receiving end — in
+`dealDamage`, through `damageMultiplierAgainst` — so `clickPower` and `teamDps` are untouched by it:
+they say what the team is worth, not what lands. For a long time nothing on screen said the
+difference, and the result read as a broken rule. The strip announced « les clics infligent 50 % de
+dégâts en moins », every click really was halved, and the two tiles the player actually watches kept
+printing the full number.
+
+The store therefore also exposes what reaches the enemy currently on screen — `effectiveClickPower`,
+`effectiveTeamDps` and the `damageShareAgainst(source)` they are built from — and the stat grid
+prints *those*, with the raw value struck through beside them and the share that gets through as a
+percentage. Derived in the engine, never in the component: it is the same rule `dealDamage` applies,
+and a screen recomputing it could drift from the blow that actually lands. A `shield` trait changes
+no share — it inflates the boss's hp, which the health bar already shows.
+
 Before the encounter, that strip is also the preparation check. It translates each trait kind into
 its concrete counter (team DPS against click resistance, active clicking against DPS resistance, a
 damage burst against a shield), compares permanent team DPS with the real boss timer, explicitly

@@ -204,6 +204,108 @@ describe("plafond de kills par seconde", () => {
   });
 });
 
+describe("le trait d'un boss se voit dans les stats", () => {
+  /**
+   * Ce que le joueur ne pouvait pas voir : un trait de boss ampute bien les dégâts (`dealDamage`
+   * applique `damageMultiplierAgainst`), mais « Clic du Narrateur » et « DPS équipe » continuaient
+   * d'afficher la valeur brute. Le nerf était donc annoncé en toutes lettres au-dessus de la scène,
+   * appliqué pour de bon, et invisible là où le joueur regarde. Le store expose désormais ce qui
+   * atteint vraiment l'ennemi en face.
+   */
+  function bossWorld(trait: Enemy["bossTrait"], clickPower: number, dps: number) {
+    return {
+      animes: [{ id: "ta", name: "A", unlockCost: 0 }],
+      arcs: [
+        {
+          id: "ta-arc",
+          animeId: "ta",
+          name: "Arc",
+          order: 0,
+          mobsToBoss: 0,
+          mobs: [{ id: "mob", name: "Mob", baseHp: 1e12, reward: 1 }],
+          boss: { id: "boss", name: "Boss", baseHp: 1e12, reward: 1, bossTrait: trait },
+        },
+      ],
+      characters: [
+        {
+          id: "ca",
+          name: "A",
+          animeId: "ta",
+          rarity: "main" as const,
+          arcIds: ["ta-arc"],
+          baseClickPower: clickPower,
+          baseDps: dps,
+        },
+      ],
+      items: [],
+    };
+  }
+
+  function boot(trait: Enemy["bossTrait"]) {
+    const restore = installSave({ ...baseSave(), ownedCharacterIds: ["ca"], unlockedAnimeIds: ["ta"] });
+    let dispose!: () => void;
+    const game = createRoot((d) => {
+      dispose = d;
+      return createGameStore(bossWorld(trait, 1_000, 500));
+    });
+    return { game, cleanup: () => (dispose(), restore()) };
+  }
+
+  it("montre le clic amputé devant un boss qui mange les clics, et laisse le DPS entier", () => {
+    const { game, cleanup } = boot({
+      kind: "click-resistance",
+      name: "Brume",
+      description: "",
+      multiplier: 0.5,
+    });
+    try {
+      expect(game.enemy()?.id).toBe("boss");
+      // Ce que l'équipe vaut n'a pas bougé…
+      expect(game.clickPower()).toBeGreaterThan(0);
+      // …mais ce qui arrive au bout est bien moitié moindre, et le DPS passe entier.
+      expect(game.effectiveClickPower()).toBeCloseTo(game.clickPower() * 0.5, 6);
+      expect(game.effectiveTeamDps()).toBeCloseTo(game.teamDps(), 6);
+      expect(game.damageShareAgainst("click")).toBe(0.5);
+      expect(game.damageShareAgainst("teamDps")).toBe(1);
+
+      // Et l'affichage ne ment pas : c'est exactement ce qu'un clic retire.
+      const before = game.enemyHpLeft();
+      game.click();
+      expect(before - game.enemyHpLeft()).toBeCloseTo(game.effectiveClickPower(), 6);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("montre le DPS amputé devant un boss qui mange le DPS, et laisse le clic entier", () => {
+    const { game, cleanup } = boot({
+      kind: "dps-resistance",
+      name: "Pression",
+      description: "",
+      multiplier: 0.9,
+    });
+    try {
+      expect(game.effectiveTeamDps()).toBeCloseTo(game.teamDps() * 0.9, 6);
+      expect(game.effectiveClickPower()).toBeCloseTo(game.clickPower(), 6);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("ne retranche rien quand le trait ne touche pas les dégâts", () => {
+    // Un bouclier gonfle les PV du boss : il se voit dans la barre de vie, pas dans les stats.
+    const { game, cleanup } = boot({ kind: "shield", name: "Écaille", description: "", multiplier: 0.5 });
+    try {
+      expect(game.damageShareAgainst("click")).toBe(1);
+      expect(game.damageShareAgainst("teamDps")).toBe(1);
+      expect(game.effectiveClickPower()).toBeCloseTo(game.clickPower(), 6);
+      expect(game.effectiveTeamDps()).toBeCloseTo(game.teamDps(), 6);
+    } finally {
+      cleanup();
+    }
+  });
+});
+
 describe("cadence de kills affichée", () => {
   /**
    * Ce que le joueur ne pouvait pas voir : « DPS équipe » ne dit rien du plafond, donc sur un arc
