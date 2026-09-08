@@ -33,9 +33,17 @@ export const PRESTIGE_SCALE = 5_000;
  * game's arcs, so new content does dilute what a partial run banks — but a *full* clear is still
  * 100% completion against a far bigger `lifetimeEarned`, and that half grows unchecked. Boruto
  * multiplied a full run's earnings by ~366 (8.76B → 3.21T), which at the old 0.22 took a full clear
- * from 236 points to 866 — one run buying the entire 775-point tree. 0.16 puts it back at ~250.
+ * from 236 points to 866 — one run buying the entire 775-point tree. 0.16 put it back at ~250.
+ *
+ * Puis Hunter x Hunter, Bleach et Horimiya ont porté un run complet à **83.47 Qa**, et le même
+ * symptôme est revenu par la même porte : 0.16 banquait **1305 points contre un arbre à 930**, soit
+ * l'arbre entier acheté comptant en une run — mesuré par `npm run sim` le jour où il a su jouer les
+ * 55 arcs. **0.105** remet le run complet à **244**, un peu moins de quatre parcours complets pour
+ * l'arbre. Le nerf est concentré là où il doit l'être : ×5.3 sur un run complet, ×1.8 seulement sur
+ * une run partielle de 25 min, et l'onboarding ne bouge pas d'une seconde (premier niveau d'arbre
+ * payable à 10.6 min avant comme après).
  */
-export const PRESTIGE_EXPONENT = 0.16;
+export const PRESTIGE_EXPONENT = 0.105;
 
 /**
  * Diminishing-returns curve so prestige points don't scale linearly with lifetime earnings,

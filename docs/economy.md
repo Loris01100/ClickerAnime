@@ -130,12 +130,12 @@ base draw's own ~8-kill average, so this class of mistake can't come back.
 
 ## Prestige
 
-Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONENT` is 0.16 and
+Gain is deliberately driven by **completion, not by grinding**: `PRESTIGE_EXPONENT` is 0.105 and
 `COMPLETION_GAIN_BONUS` is 9, so clearing one more arc is worth far more than farming the current
 one for hours. Currency spans an enormous range between clearing the first world and the last, and
 the old 0.65 exponent turned that span into a gain of thousands — a single full run banked ~6 600
 points against a 775-point tree, buying the whole of the game's meta-progression the first time it
-was reachable. At 0.16 a full run banks ~250 and the tree takes several. `src/engine/tests/` guards
+was reachable. At 0.105 a full run banks ~244 and the tree takes several. `src/engine/tests/` guards
 the trio together rather than the individual constants.
 
 **Adding a world only half self-balances, and the exponent is the other half.** `runCompletion` is a
@@ -146,6 +146,20 @@ half: Boruto multiplied a full run's earnings by ~366 (8.76B → 3.21T), which a
 points — one run buying the whole tree. Dropping the exponent to 0.16 puts a full clear back at ~250
 without moving the early game (a Naruto-only clear goes 5 points → 4). Re-run this arithmetic
 whenever a world is added; `npm run sim` prints the banked total on every run.
+
+**Trois mondes plus tard, il a fallu la refaire — et c'est la simulation qui l'a vue.** Une fois que
+`npm run sim` a su jouer le jeu entier (`docs/simulator.md`), un run complet des 55 arcs s'est mis à
+imprimer **83.47 Qa gagnés et 1305 points bankés**, contre un arbre qui en coûte **930** : très
+exactement le symptôme que 0.22 avait produit avant Boruto, revenu par la même porte. La moitié
+« dilution » avait bien joué (le compte d'arcs est passé de 28 à 55), mais la moitié « gains » a été
+multipliée par 26 000 depuis Boruto, et rien ne la dilue. **`PRESTIGE_EXPONENT` 0.16 → 0.105** remet
+le run complet à **244 points**, soit un peu moins de quatre parcours complets pour l'arbre entier.
+
+Le nerf mord là où il doit : l'exposant frappe d'autant plus fort que les gains sont énormes. Un run
+complet perd **×5.3**, une run partielle de 25 minutes seulement ×1.8, et l'onboarding ne bouge pas
+du tout — premier point de prestige à 5.4 min, premier niveau d'arbre payable à 10.6 min, identiques
+au chiffre près (fenêtre visée : 8-15 min). Une campagne de quatre runs de 25 min monte toujours de
+10 arcs à 14 et achète 12 niveaux d'arbre.
 
 **Bleach was re-checked and needed nothing.** Its fifteen arcs take the game from 34 to 49, so the
 dilution half bit as designed — a Naruto + Shippūden clear falls from 20/28 to 20/49, and the
@@ -160,7 +174,7 @@ achievement counts, the prestige tree ranks (see below) and the pack points and 
 and the worlds entered. Gain is `floor((lifetimeEarned / scale) ** PRESTIGE_EXPONENT * (1 + COMPLETION_GAIN_BONUS * completion))`,
 zero below `scale` (`PRESTIGE_SCALE`, **5 000**), where `completion` is the share of the game's arcs
 cleared this run (`runCompletion` in `gameState`) — resetting deep into the game banks up to 10x what
-the same earnings bank early. The exponent is deliberately *low* (0.16, see above): completion has to
+the same earnings bank early. The exponent is deliberately *low* (0.105, see above): completion has to
 dominate, or farming one arc for hours outpaces clearing the next one. **Nothing multiplies that
 gain from outside**: the tree's "Destin" branch used to end on a rolled 2x (`applyPrestige`'s old
 `gainMultiplier`), which is exactly the term this exponent is tuned to hold flat — see the branch
