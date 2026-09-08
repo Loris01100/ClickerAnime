@@ -5,7 +5,7 @@ import { themeOf } from "./hue";
 import PanelTitle from "./PanelTitle";
 import Sprite from "./Sprite";
 import { asset } from "./asset";
-import { fmt } from "./format";
+import { relativeDifficulty } from "./format";
 import { IconCheck, IconLock, IconPin, IconStar } from "./icons";
 
 /** The route map of one world: its arcs on a generated snake path, with a marker on the active one. */
@@ -47,7 +47,14 @@ export default function WorldMap(props: { game: GameStore }) {
             <Show when={anime().alpha}>
               <small class="portal-badge alpha">Alpha</small>
             </Show>
-            <small class="muted">difficulté x{fmt(props.game.difficultyOf(anime().id))}</small>
+            {(() => {
+              const rel = relativeDifficulty(props.game.difficultyOf(anime().id), props.game.currentDifficulty());
+              return (
+                <small class="muted" title={rel.title}>
+                  difficulté {rel.text} {rel.label}
+                </small>
+              );
+            })()}
           </header>
 
           <Show when={open()}>

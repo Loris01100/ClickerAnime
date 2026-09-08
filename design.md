@@ -647,7 +647,12 @@ code écrit à la main.
   Ces lignes-là sortent donc du `.row` en `space-between` pour une grille à trois colonnes fixes
   (`.travel-row`, surmontée d'un `.travel-head` « Monde / Difficulté ») : un multiplicateur ne se
   compare au suivant que s'il est aligné, et un `x3.57K` nu ne disait pas de quoi il parlait — le
-  panel dit maintenant en toutes lettres qu'il s'agit des PV des ennemis. Tout nouveau panel doit suivre ce
+  panel dit maintenant en toutes lettres qu'il s'agit des PV des ennemis. **Le chiffre affiché est
+  relatif** (`relativeDifficulty`, `ui/format.ts`) : la difficulté absolue d'un monde tardif se lit
+  `x99.75B`, ce qui ne se compare à rien de vécu, alors que le rapport à l'arc en cours
+  (`game.currentDifficulty()`) tient en un mot — « équivalent », « plus dur », « bien plus dur » —
+  posé sous le rapport. Le titre du chiffre garde la phrase complète. Partout où une difficulté de
+  monde est affichée (header de panel, `WorldMap`, `WorldPortal`) c'est ce même rapport. Tout nouveau panel doit suivre ce
   patron dès sa création — ne pas en ajouter un en `<span>` nu qu'il faudrait reconvertir plus
   tard.
 - **Un tableau compact = `.table-head` + lignes sur la même classe de grille**, dans un `.scroll`.

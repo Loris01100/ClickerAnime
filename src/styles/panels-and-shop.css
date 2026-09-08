@@ -129,12 +129,18 @@ small {
    et se comparent d'un monde à l'autre malgré des titres de longueurs très différentes. */
 .travel-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 4.5rem 5.25rem;
+  grid-template-columns: minmax(0, 1fr) 7rem 5.25rem;
   justify-content: initial;
 }
 .travel-diff {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+/* Le mot passe sous le rapport : c'est lui qui se lit, le chiffre ne fait que le préciser. */
+.travel-diff-label {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.8;
 }
 .travel-row > button {
   width: 100%;

@@ -5,7 +5,7 @@ import { passiveGrowth } from "../engine/growth";
 import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import { describeModifier } from "./describe";
-import { fmt } from "./format";
+import { relativeDifficulty } from "./format";
 import Coin from "./Coin";
 import { IconLock } from "./icons";
 
@@ -73,7 +73,15 @@ function PortalDetail(props: { game: GameStore; anime: Anime; onTravelled?: () =
         <div>
           <h3>{props.anime.name}</h3>
           <p class="muted small">
-            {arcs().length} arcs · difficulté x{fmt(props.game.difficultyOf(props.anime.id))}
+            {arcs().length} arcs · difficulté{" "}
+            {(() => {
+              const rel = relativeDifficulty(props.game.difficultyOf(props.anime.id), props.game.currentDifficulty());
+              return (
+                <span title={rel.title}>
+                  {rel.text} {rel.label}
+                </span>
+              );
+            })()}
           </p>
           <span class="portal-badge" classList={{ [status()]: true }}>
             <Show when={status() === "locked"}>

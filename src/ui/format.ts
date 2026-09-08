@@ -17,3 +17,20 @@ export function fmt(n: number): string {
 export function seconds(ms: number): string {
   return (ms / 1000).toFixed(ms < 10_000 ? 1 : 0) + "s";
 }
+
+/**
+ * La difficulté absolue d'un monde ne veut rien dire pour le joueur : « x99.75B » ne se compare
+ * qu'à un autre nombre du même acabit. Ce qui se lit, c'est l'écart avec ce qu'il combat *là* —
+ * d'où un rapport ramené à l'arc en cours, et le mot qui va avec.
+ */
+export function relativeDifficulty(difficulty: number, current: number) {
+  const ratio = current > 0 ? difficulty / current : 1;
+  const label =
+    ratio < 0.75 ? "plus facile" : ratio < 1.35 ? "équivalent" : ratio < 4 ? "plus dur" : "bien plus dur";
+  return {
+    ratio,
+    label,
+    text: ratio >= 1 ? `x${fmt(ratio)}` : `÷${fmt(1 / ratio)}`,
+    title: `Ennemis ${ratio >= 1 ? `${fmt(ratio)} fois plus` : `${fmt(1 / ratio)} fois moins`} résistants qu'à votre arc en cours (et récompenses d'autant).`,
+  };
+}

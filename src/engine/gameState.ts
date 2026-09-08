@@ -1908,6 +1908,7 @@ export function createGameStore(data: GameData) {
     tierOf,
     difficultyOf,
     difficultyOfArc,
+    currentDifficulty,
     canTravel,
     travelTo,
     playableArcs,
