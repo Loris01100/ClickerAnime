@@ -41,6 +41,17 @@ export default function ItemCodex(props: { game: GameStore; animeId: string }) {
   const rankedUpBy = (item: Item) =>
     props.game.data.characters.filter((c) => c.passive && props.game.passiveItemOf(c)?.id === item.id);
 
+  /**
+   * The list's indicator: this item can rank up a passive *right now* — a character the run owns,
+   * not yet capped, and enough copies in the reserve. Same three conditions as the button below.
+   */
+  const canUpgradeNow = (item: Item) =>
+    item.kind === "common" &&
+    rankedUpBy(item).some((c) => {
+      const up = props.game.passiveUpgradeOf(c);
+      return props.game.ownedCharacterIds().includes(c.id) && !up.maxed && up.affordable;
+    });
+
   /** Uniques only: who is wearing it right now, if anyone. */
   const wornBy = (item: Item) => {
     const entry = Object.entries(props.game.characterEquipment()).find(([, itemId]) => itemId === item.id);
@@ -81,6 +92,9 @@ export default function ItemCodex(props: { game: GameStore; animeId: string }) {
               <span class="name" classList={{ unique: item.kind === "unique" }}>
                 {item.name}
               </span>
+              <Show when={canUpgradeNow(item)}>
+                <span class="upgradable" title="Un passif peut monter d'un rang" />
+              </Show>
               <span class="rarity">{held(item) > 0 ? `x${held(item)}` : ""}</span>
             </button>
           )}

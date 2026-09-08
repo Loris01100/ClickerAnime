@@ -572,6 +572,15 @@
 .codex-entry.unmet .name {
   color: var(--muted);
 }
+/* Un passif de ce monde peut monter d'un rang avec les copies en réserve. */
+.codex-entry .upgradable {
+  margin-left: auto;
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
 .codex-detail {
   padding: 0.75rem;
   min-height: 0;
