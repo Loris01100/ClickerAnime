@@ -50,6 +50,24 @@ as a wall rather than looped on forever.
 
 Flags: `--minutes`, `--stall`, `--cps`, `--seed`, `--world`, `--order`, `--entry-only`, `--json`.
 
+## La Tour de l'Ascension
+
+The climb is played beside the story, under `--no-tower` to switch it off. The policy is three
+rules, and each one exists because of what the alternative did:
+
+- **the squad is the roster's own top five** by `characterStatOf(c, "teamDps")`, re-picked as the
+  team grows — the tower's whole damage model is that column summed over five;
+- **a lost floor ends the visit.** A floor costs nothing but its attempt and restarts itself at
+  round 1, so without walking out the sim would re-lose the same floor until the run ended;
+- **the climb is budgeted at `TOWER_TIME_SHARE` (5%) of the run.** Nothing is farmed inside a floor,
+  so an unbudgeted policy simply moves the run into the tower: left greedy it spent **147 of 201
+  minutes** climbing and the story fell from 55 arcs to 9.
+
+Tower ticks are subtracted from the arc's own clock, both in the reported `min` column and in the
+stall check — otherwise a dip into the tower would print an inflated arc time and call it a wall.
+The report prints the attempts and minutes per run, and the climb itself (highest floor, reward
+tiers claimed) once at the end, since only `hardReset` clears it.
+
 Campaign: `--runs=N`, `--run-minutes=N`, `--no-reset-on-wall` (stop instead of resetting),
 `--tree-order=a,b` (branch priority for the spending — the default is cheapest-level-first, which
 spreads over the six branches the way a player buying "whatever I can afford" does),
@@ -57,10 +75,27 @@ spreads over the six branches the way a player buying "whatever I can afford" do
 `--challenges=a,b` (run 1 under challenge `a`, run 2 under `b`, …).
 
 Ablations, one system each: `--no-packs`, `--no-portals`, `--no-abilities`, `--no-equip`,
-`--no-passives`, `--no-tree`, `--no-forge`, `--no-shop`, `--no-crossover`, `--no-autorank`, and
-`--solo` for all of them at once — the bare game, the floor every other ablation is read against.
+`--no-passives`, `--no-tree`, `--no-forge`, `--no-shop`, `--no-crossover`, `--no-autorank`,
+`--no-tower`, and `--solo` for all of them at once — the bare game, the floor every other ablation
+is read against.
 `--no-portals` is the honest measure of what the portals are worth: it ends the run 35 boss
 recruits short, which is a *weaker* team than the hp tables were fitted against, not a faster one.
+
+## Crystals: the portal is served first
+
+The window policy holds a reserve for the cheapest portal still pending, and that reserve is the
+difference between a report that reads the whole game and one that stops a third of the way in.
+
+A window costs 12 crystals and a `main` portal 15. Opening a window *whenever the game advised one*
+— which is what the policy used to do — kept the stock between 0 and 6 for an entire run, so
+`runPortals` never once found an affordable target: **0 portals out of 35** over 81 minutes. The run
+then walled on Kaguya at arc 18 of 55, and that wall was read for a long time as a content problem.
+It was the auto-player starving itself of the recruits the hp tables were fitted with. With the
+reserve in place, the same seed clears **55 / 55 in ~185 minutes with 22 portals won**.
+
+So the order is: the portal buys a character for the rest of the run, the window buys sixty seconds,
+and the window gets the surplus. A run that finishes with 0 windows is that policy working, not a
+system going unmeasured — `--no-portals` is where the window is exercised on its own.
 
 It needs its own **`vite.sim.config.ts`**: `vite-node` runs in SSR mode, where Node resolves
 `solid-js` to its *server* build and signals never propagate to memos — `travelTo` would flip a

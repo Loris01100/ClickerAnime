@@ -56,11 +56,20 @@ c'est-à-dire un jeu entier de progression, cinq personnages de fin de partie co
 qu'il y a pour les gagner. Le panneau l'imprime toujours à côté du DPS réel de l'escouade : la tour
 ne cache jamais son mur.
 
-**Cette courbe est un premier réglage, pas un réglage simulé.** `npm run sim` joue une run d'arcs et
-ne monte pas dans la tour ; les nombres à bouger si elle se révèle trop raide ou trop molle sont
-`TOWER_FLOOR_TIMER_MS` (la contrainte qui mord), `TOWER_BASE_HP` (le bas de l'échelle) et
-`TOWER_FLOOR_HP_RAMP` (sa pente), et rien d'autre — le pas par manche et le poids du boss ne
-décrivent que la forme *interne* d'un étage.
+Les nombres à bouger si elle se révèle trop raide ou trop molle sont `TOWER_FLOOR_TIMER_MS` (la
+contrainte qui mord), `TOWER_BASE_HP` (le bas de l'échelle) et `TOWER_FLOOR_HP_RAMP` (sa pente), et
+rien d'autre — le pas par manche et le poids du boss ne décrivent que la forme *interne* d'un étage.
+
+### Ce que la simulation en dit
+
+`npm run sim` grimpe désormais la tour pendant qu'il joue l'histoire (`docs/simulator.md`), et la
+première mesure est nette : sur une run complète des 55 arcs, l'escouade des cinq meilleurs monte
+**au sommet, 100 / 100 étages et les 10 paliers, en 4 visites et ~8 minutes de grimpe**. Le mode
+Normal n'est donc pas un mur de fin de partie mais une récompense de passage : la courbe de PV
+ci-dessus, absolue, est distancée par le DPS d'une équipe de fin de run bien avant l'étage 100.
+C'est exactement le genre de chose que la table faite à la main ne pouvait pas dire. Les deux knobs
+à reprendre en premier si on veut que la grimpe résiste sont la pente (`TOWER_FLOOR_HP_RAMP`) et
+l'horloge — pas le multiplicateur du mode Difficile, qui n'est encore qu'un point de départ.
 
 ### L'horloge, et pourquoi il en faut une
 
@@ -174,6 +183,7 @@ par défaut est un mur de briques dégradé, qui tuile par construction et laiss
 - **Les modes Difficile et Enfer.** Leurs `hpMultiplier` / `rewardMultiplier` sont posés (60x / 8x et
   4 000x / 40x) mais n'ont **jamais été joués** : ce sont des points de départ, à refaire une fois que
   le mode Normal aura été mesuré sur une vraie partie.
-- **Une passe de simulation.** `npm run sim` ignore la tour ; la courbe ci-dessus est fittée à la main
-  contre l'échelle de PV des mondes existants.
+- **Le retour de la passe d'équilibrage.** La simulation grimpe la tour et la trouve trop molle (voir
+  « Ce que la simulation en dit ») ; la courbe reste, elle, fittée à la main contre l'échelle de PV
+  des mondes existants.
 - **L'illustration de fond**, et le réglage de `--tower-backdrop-height` avec elle.

@@ -111,6 +111,9 @@ function parseArgs(argv: string[]): Partial<SimOptions> & { json: boolean } {
       case "no-autorank":
         options.autoRank = false;
         break;
+      case "no-tower":
+        options.tower = false;
+        break;
       case "solo":
         // One flag for "measure the bare game": every optional system off at once, which is the
         // floor every ablation above is read against.
@@ -123,6 +126,7 @@ function parseArgs(argv: string[]): Partial<SimOptions> & { json: boolean } {
         options.shop = false;
         options.crossoverWindows = false;
         options.autoRank = false;
+        options.tower = false;
         options.tree = false;
         break;
       case "no-packs":
@@ -180,6 +184,7 @@ Usage: npm run sim -- [flags]
   --no-shop       never buy a shop offer
   --no-crossover  never open a crossover window
   --no-autorank   never hand a passive to the intendance
+  --no-tower      never climb la Tour de l'Ascension
   --solo          every optional system off at once — the bare game
   --json          print the raw report instead of the table
 `);
@@ -227,6 +232,9 @@ function runSummary(run: RunReport, options: SimOptions): string {
       `${spend.shopPurchases} achats · ${spend.crossoverWindows} fenêtres · ${spend.evolutions} évolutions`,
     `Départ          ${spend.treeLevelsAtStart} niveaux d'arbre · ${spend.pointsAtStart} points en réserve`,
   ];
+  if (spend.towerAttempts > 0) {
+    lines.push(`Tour            ${spend.towerAttempts} étages tentés · ${spend.towerMinutes.toFixed(0)} min de grimpe`);
+  }
   if (arcs.length > 0) {
     const slowest = [...arcs].sort((a, b) => b.minutes - a.minutes)[0];
     lines.push(`Arc le plus long ${slowest.arc} — ${slowest.minutes.toFixed(1)} min`);
@@ -234,6 +242,14 @@ function runSummary(run: RunReport, options: SimOptions): string {
   if (totals.stalledOn) lines.push(`\n⚠ Mur : ${totals.stalledOn} — non terminé en ${options.stallMinutes} min.`);
   else if (totals.outOfTime) lines.push(`\n⚠ Budget épuisé avant la fin du jeu.`);
   return lines.join("\n");
+}
+
+/** The climb, which only `hardReset` clears — so it is read at the end of the campaign, not per run. */
+function towerLine(meta: SimReport["meta"]): string {
+  return (
+    `Tour            étage ${meta.towerFloor} / ${meta.towerFloorsTotal} · ` +
+    `${meta.towerRewardsClaimed} / ${meta.towerRewardsTotal} paliers`
+  );
 }
 
 /**
@@ -252,6 +268,7 @@ function metaSummary(report: SimReport): string {
     `Points gagnés   ${meta.pointsEarned.toFixed(0)} (${meta.pointsUnspent.toFixed(0)} non dépensés)`,
     `Arbre           ${meta.treeLevelsTotal} niveaux${branches ? ` — ${branches}` : ""}`,
     `Meilleure run   ${meta.bestArcsCleared} arcs`,
+    towerLine(meta),
   ];
   if (meta.challengesDone.length > 0) lines.push(`Défis réussis   ${meta.challengesDone.join(", ")}`);
   return lines.join("\n");
@@ -297,6 +314,6 @@ if (json) {
   } else {
     console.log(report.arcs.length > 0 ? table(report.arcs) : "Aucun arc terminé.");
     const run = report.runs[0];
-    if (run) console.log(`\n${runSummary(run, report.options)}\n`);
+    if (run) console.log(`\n${runSummary(run, report.options)}\n${towerLine(report.meta)}\n`);
   }
 }

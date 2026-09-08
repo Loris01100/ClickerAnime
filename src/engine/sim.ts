@@ -1,8 +1,10 @@
 import { createRoot } from "solid-js";
 import { achievementCount } from "./achievements";
+import { CROSSOVER_COST } from "./crossover";
 import { createGameStore, type GameData, type GameStore } from "./gameState";
 import { PACK_COST } from "./packs";
 import { PRESTIGE_TREE_CATEGORIES, type PrestigeTreeCategoryId } from "./prestigeTree";
+import { TOWER_SQUAD_SIZE, towerRewardFloors, type TowerMode } from "./tower";
 import type { Arc } from "./types";
 
 /**
@@ -68,6 +70,8 @@ export interface SimOptions {
   crossoverWindows: boolean;
   /** Hand passives to the intendance once the automation node that runs it is bought. */
   autoRank: boolean;
+  /** Climb la Tour de l'Ascension beside the story — the one system played by five, not by the team. */
+  tower: boolean;
   /** Spend banked prestige points on the tree between runs. */
   tree: boolean;
   /**
@@ -101,6 +105,7 @@ export const defaultSimOptions: SimOptions = {
   shop: true,
   crossoverWindows: true,
   autoRank: true,
+  tower: true,
   tree: true,
   treeOrder: null,
   unlockWorlds: null,
@@ -151,6 +156,9 @@ export interface SpendReport {
   shopPurchases: number;
   crossoverWindows: number;
   evolutions: number;
+  /** Floors entered in the tower this run, and how long the climb took away from the arc. */
+  towerAttempts: number;
+  towerMinutes: number;
   /** Tree levels bought *before* this run started — the meta power it was played with. */
   treeLevelsAtStart: number;
   /** Prestige points still unspent when the run started. */
@@ -193,6 +201,11 @@ export interface MetaReport {
   treeLevelsTotal: number;
   /** Best single-run arc count — whether the meta actually pushed the wall back. */
   bestArcsCleared: number;
+  /** The climb, which no reset but `hardReset` touches: highest floor and reward tiers claimed. */
+  towerFloor: number;
+  towerFloorsTotal: number;
+  towerRewardsClaimed: number;
+  towerRewardsTotal: number;
   challengesDone: string[];
   achievements: Record<string, number>;
 }
@@ -385,11 +398,21 @@ function buyShop(game: GameStore): number {
 
 /**
  * The crystal policy for windows: spend only when the game itself says it would pay — someone in
- * the team is at the steep other-anime malus. That is the same test the HUD hint uses, so the sim
- * opens a window exactly where a player is told to, and never burns the stock a portal needs.
+ * the team is at the steep other-anime malus — **and** only out of what no portal is waiting for.
+ *
+ * That reserve is not a refinement, it is what makes the policy true to its name: a window is 12
+ * crystals and a `main` portal is 15, so a sim that opened one whenever it was advised held the
+ * stock at 0-6 forever and **never opened a single portal in a whole run** — 35 boss recruits the
+ * hp tables were fitted with, missing from every reading. The portal buys a character for the rest
+ * of the run; the window buys sixty seconds. The window gets the surplus.
  */
-function useCrossoverWindow(game: GameStore): boolean {
-  return game.crossoverAdvised() ? game.activateCrossover() : false;
+function useCrossoverWindow(game: GameStore, keepForPortal: boolean): boolean {
+  if (!game.crossoverAdvised()) return false;
+  const reserve = keepForPortal
+    ? game.portalTargets().reduce((min, t) => (t.open ? min : Math.min(min, t.cost)), Infinity)
+    : Infinity;
+  if (game.crossoverCrystals() < CROSSOVER_COST + (reserve === Infinity ? 0 : reserve)) return false;
+  return game.activateCrossover();
 }
 
 /**
@@ -405,6 +428,76 @@ function runPortals(game: GameStore) {
   if (!target) return;
   if (!target.open && !game.openPortal(target.character.id)) return;
   game.enterPortal(target.character.id);
+}
+
+/**
+ * The only mode `TOWER_MODES` opens; the other two carry unplayed placeholder multipliers.
+ */
+const TOWER_MODE: TowerMode = "easy";
+
+/**
+ * How much stronger the five have to be before a floor that beat them is tried again. A floor is
+ * lost to its 30-second clock and costs nothing but the attempt, so without this the sim would
+ * stand in the tower re-losing the same floor for the rest of the run instead of farming the arc.
+ */
+const TOWER_RETRY_GROWTH = 1.5;
+
+/**
+ * The share of a run the climb may take. Nothing is farmed inside a floor, so an unbudgeted policy
+ * simply moves the run into the tower: left greedy it spent **147 of 201 minutes** climbing and the
+ * story fell from 55 arcs to 9. A player dips into the tower between arcs; this is that dip, and it
+ * keeps the arc table readable as the pacing measurement it is.
+ */
+const TOWER_TIME_SHARE = 0.05;
+
+interface TowerPolicy {
+  /** Squad dps the last failed floor was attempted with. 0 means nothing has failed yet. */
+  failedAtDps: number;
+  attempts: number;
+  /** Ticks spent inside the tower, which are ticks the arc did not advance. */
+  ticks: number;
+}
+
+/**
+ * The squad is the five characters the roster itself ranks highest — `characterStatOf` is the very
+ * column the panel prints, and the tower's whole damage model is that column summed over five.
+ * Re-picked as the roster grows, since a recruit two worlds later routinely displaces all five.
+ */
+function pickTowerSquad(game: GameStore) {
+  const best = [...game.ownedCharacters()]
+    .sort((a, b) => game.characterStatOf(b, "teamDps") - game.characterStatOf(a, "teamDps"))
+    .slice(0, TOWER_SQUAD_SIZE)
+    .map((character) => character.id);
+  if (best.length < TOWER_SQUAD_SIZE) return;
+  const current = game.towerSquadIds();
+  if (current.length === best.length && best.every((id) => current.includes(id))) return;
+  for (const id of [...current]) game.toggleTowerSquadMember(id);
+  for (const id of best) game.toggleTowerSquadMember(id);
+}
+
+/**
+ * The climb policy: always take the next uncleared floor, walk out the moment one is lost, and
+ * don't come back until the five have grown by `TOWER_RETRY_GROWTH`. Nothing is farmed inside a
+ * floor, so time in the tower is time the arc is not being cleared — which is exactly the trade the
+ * mode asks a player to make, and the reason it belongs in the pacing report rather than beside it.
+ */
+function runTower(game: GameStore, state: TowerPolicy, runTicks: number) {
+  if (game.inTower()) {
+    // `enterTower` clears it, so a failure standing here is this attempt's: the floor just restarted
+    // itself at round 1 and the sim would otherwise re-lose it until the run ends.
+    if (game.towerLastFailure()) {
+      state.failedAtDps = game.towerSquadDps();
+      game.leaveTower();
+    }
+    return;
+  }
+  if (state.ticks > runTicks * TOWER_TIME_SHARE) return;
+  pickTowerSquad(game);
+  if (!game.towerSquadReady()) return;
+  if (game.towerSquadDps() < state.failedAtDps * TOWER_RETRY_GROWTH) return;
+  const next = game.towerHighestFloorOf(TOWER_MODE) + 1;
+  if (next > game.towerModeOf(TOWER_MODE).floors) return;
+  if (game.enterTower(TOWER_MODE, next)) state.attempts++;
 }
 
 /** Fills the intendance's slots as they are bought — the node is worth nothing while empty. */
@@ -559,6 +652,10 @@ function playCampaign(game: GameStore, data: GameData, options: SimOptions, cloc
       treeLevels: levels,
       treeLevelsTotal: totalOf(levels),
       bestArcsCleared: runs.reduce((best, run) => Math.max(best, run.totals.arcsCleared), 0),
+      towerFloor: game.towerHighestFloorOf(TOWER_MODE),
+      towerFloorsTotal: game.towerModeOf(TOWER_MODE).floors,
+      towerRewardsClaimed: towerRewardFloors(TOWER_MODE).filter((f) => game.towerRewardClaimed(TOWER_MODE, f)).length,
+      towerRewardsTotal: towerRewardFloors(TOWER_MODE).length,
       challengesDone: game.completedChallengeIds(),
       achievements: game.achievementCounts(),
     },
@@ -610,6 +707,8 @@ function playRun(
     shopPurchases: 0,
     crossoverWindows: 0,
     evolutions: 0,
+    towerAttempts: 0,
+    towerMinutes: 0,
     treeLevelsAtStart: totalOf(treeLevels(game)),
     pointsAtStart: game.prestige().prestigePoints,
   };
@@ -620,6 +719,7 @@ function playRun(
   // A portal is won when the fight it opened ends with its character in the roster — the only
   // recruit crystals ever buy, and the one the hp tables were fitted against.
   let lastPortalId: string | null = null;
+  const tower: TowerPolicy = { failedAtDps: 0, attempts: 0, ticks: 0 };
 
   const entry = options.entryAnimeId ?? data.animes.find((a) => !a.requiresAnimeId)?.id ?? null;
   // A paid world shortcut may already have put the player somewhere; only travel when it hasn't.
@@ -637,6 +737,9 @@ function playRun(
   // felled the arc, and an hp table sized on it comes out too heavy.
   let dpsSum = 0;
   let dpsSamples = 0;
+  // Ticks spent in the tower since this arc was entered. Nothing is farmed in there, so counting
+  // them would print an inflated arc time and call a slow climb a wall.
+  let arcTowerMs = 0;
   const milestoneAt = emptyMilestones();
   const elapsedMinutes = () => (clock.now() - startedAt) / MINUTE_MS;
 
@@ -667,7 +770,7 @@ function playRun(
       world: data.animes.find((a) => a.id === arc.animeId)?.name ?? arc.animeId,
       arc: arc.name,
       difficulty: game.difficultyOfArc(arc),
-      minutes: (clock.now() - arcEnteredAt) / MINUTE_MS,
+      minutes: (clock.now() - arcEnteredAt - arcTowerMs) / MINUTE_MS,
       kills,
       commons,
       copiesPerKill: kills > 0 ? commons / kills : 0,
@@ -698,9 +801,15 @@ function playRun(
       baseline = counters(game);
       dpsSum = 0;
       dpsSamples = 0;
+      arcTowerMs = 0;
     }
-    dpsSum += game.teamDps() + game.clickPower() * options.clicksPerSecond;
-    dpsSamples++;
+    if (game.inTower()) {
+      arcTowerMs += TICK_MS;
+      tower.ticks++;
+    } else {
+      dpsSum += game.teamDps() + game.clickPower() * options.clicksPerSecond;
+      dpsSamples++;
+    }
 
     clickCredit += (options.clicksPerSecond * TICK_MS) / 1000;
     while (clickCredit >= 1) {
@@ -718,8 +827,9 @@ function playRun(
       if (options.autoRank) enrollAutoRank(game);
       // A window before a portal: the window is cheap and the portal's hp is frozen at the dps it
       // is paid for, so opening one inside a window is also how a player buys a cheaper portal.
-      if (options.crossoverWindows) useCrossoverWindow(game);
+      if (options.crossoverWindows) useCrossoverWindow(game, options.portals);
       if (options.portals) runPortals(game);
+      if (options.tower) runTower(game, tower, ticks);
     }
     const portalId = game.activePortalId();
     if (lastPortalId && portalId !== lastPortalId && game.ownedCharacterIds().includes(lastPortalId)) {
@@ -730,7 +840,7 @@ function playRun(
 
     // A boss clock that ran out is the one thing that can actually stop a run: count the retreat
     // and ask for the rematch straight away, so a wall shows up as repeated timeouts, not silence.
-    if (game.bossChallengeable(arc)) {
+    if (!game.inTower() && game.bossChallengeable(arc)) {
       timeouts.set(arc.id, (timeouts.get(arc.id) ?? 0) + 1);
       game.challengeBoss();
     }
@@ -748,7 +858,7 @@ function playRun(
       continue;
     }
 
-    if (clock.now() - arcEnteredAt > options.stallMinutes * MINUTE_MS) {
+    if (clock.now() - arcEnteredAt - arcTowerMs > options.stallMinutes * MINUTE_MS) {
       stalledOn = `${arc.name} (${arc.animeId})`;
       break;
     }
@@ -758,6 +868,8 @@ function playRun(
   spend.packsOpened = achievementCount(closingCounts, "packsOpened") - openingPacks;
   spend.evolutions = achievementCount(closingCounts, "evolutionsUnlocked") - openingEvolutions;
   spend.crossoverWindows = achievementCount(closingCounts, "crossoversUsed") - openingCrossovers;
+  spend.towerAttempts = tower.attempts;
+  spend.towerMinutes = (tower.ticks * TICK_MS) / MINUTE_MS;
   const cleared = data.arcs.filter((a) => game.arcCleared(a)).length;
   return {
     index,

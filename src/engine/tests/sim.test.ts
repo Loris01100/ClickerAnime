@@ -19,6 +19,19 @@ describe("le simulateur de run", () => {
     for (const arc of report.arcs) expect(arc.kills).toBeGreaterThan(0);
   });
 
+  // Les deux systèmes que l'auto-joueur *croyait* jouer sans jamais y toucher : les fenêtres de
+  // crossover vidaient le stock de cristaux avant qu'un portail (15) ne soit jamais payable, donc
+  // zéro recrue de boss sur toute une run — soit une équipe bien plus faible que celle sur laquelle
+  // les tables de PV ont été calées — et la tour n'était pas simulée du tout. Ce test ne garde pas
+  // un chiffre, il garde le fait que les deux sont bel et bien joués.
+  it("ouvre des portails et grimpe la tour", () => {
+    const report = simulateRun(gameData, { maxMinutes: 40, stallMinutes: 10, seed: 3 });
+
+    expect(report.runs[0].spend.portalsWon).toBeGreaterThan(0);
+    expect(report.meta.towerFloor).toBeGreaterThan(0);
+    expect(report.runs[0].spend.towerAttempts).toBeGreaterThan(0);
+  });
+
   it("peut isoler le monde d'entrée sans voyager dans le suivant", () => {
     const report = simulateRun(gameData, {
       entryAnimeId: "naruto",
