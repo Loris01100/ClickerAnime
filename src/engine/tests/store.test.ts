@@ -4,6 +4,7 @@ import { createGameStore, MAX_KILLS_PER_SECOND, SAVE_BACKUP_KEY, SAVE_KEY } from
 import { CROSSOVER_BOSS_REWARD } from "../crossover";
 import { gameData } from "../../data";
 import { decodeSave } from "../persistence";
+import { difficultyMultiplier } from "../progression";
 import { baseSave, installSave } from "./helpers";
 
 describe("store boot", () => {
@@ -298,8 +299,10 @@ describe("store boot", () => {
 
       expect(game.travelTo("tb")).toBe(true);
       const entered = game.difficultyOf("tb");
-      // Far past the 2.5x the tier alone would have handed a world entered second.
-      expect(entered).toBeGreaterThan(500);
+      // Far past the 2.5x the tier alone would have handed a world entered second. Le seuil est
+      // dérivé du palier de tier, pas d'un nombre en dur : `WORLD_ENTRY_BREATHER` est un réglage
+      // d'équilibrage et le test garde la règle (« l'ancre écrase le tier »), pas sa valeur.
+      expect(entered).toBeGreaterThan(100 * difficultyMultiplier(1));
       // Its second arc climbs on the re-levelling ramp, not on the world's authored jump.
       expect(game.difficultyOfArc(data.arcs[2])).toBeLessThan(entered);
       expect(game.difficultyOfArc(data.arcs[2]) * 1_100).toBeGreaterThan(entered * 110);

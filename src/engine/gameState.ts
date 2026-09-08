@@ -527,6 +527,7 @@ export function createGameStore(data: GameData) {
     characterStatOf,
     foundItems,
     uniqueFragmentsOf,
+    uniqueUpgradeCostOf,
     grantUniqueFragment,
     grantCurrency: (amount) => {
       setCurrency((c) => c + amount);

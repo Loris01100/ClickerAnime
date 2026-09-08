@@ -10,9 +10,18 @@ Two knobs, deliberately decoupled — this is the main/secondary distinction:
 - **The catch-up ramp** rescales the printed base damage by how far the story has moved since the
   character debuted — see below. It is a common factor on both damage stats, so it never changes two
   characters' relative strength within an arc.
-- **Level is uncapped** and every level grants the *same* flat damage as the one before
+- **Level runs to `MAX_LEVEL` (150)** and every level grants the *same* flat damage as the one before
   (`levelGrowth(level) = 1 + level * LEVEL_DAMAGE_STEP` applied to `baseClickPower` and `baseDps`).
   Linear on purpose; `LEVEL_DAMAGE_STEP` is the pacing knob for how fast damage outruns enemy hp.
+  Le plafond est **mesuré, pas décrété** : une run qui finit les 55 arcs emmenait l'équipe au niveau
+  **253**, et les cent derniers niveaux ne disaient plus rien — la traversée entière de Hunter x
+  Hunter faisait passer la moyenne de 194 à 198, les six arcs d'Horimiya de 251 à 253. La courbe d'xp
+  avait déjà mangé le gain ; le plafond rend le mur explicite. Il n'est pas gratuit pour autant :
+  les niveaux 150 → 253 valaient **×1.68 de dps d'équipe**, et c'est exactement ce que la frontière
+  de Bleach consommait (voir « Les frontières » plus bas). Il est appliqué dans `levelFromXp` et
+  nulle part ailleurs, donc le niveau affiché, celui que `levelGrowth` paie et celui que la
+  sauvegarde relit ne peuvent pas diverger. L'xp, elle, continue de rentrer : remonter le plafond
+  rend aussitôt les niveaux qu'il retenait.
 - **The passive has nothing to do with levels**: it is ranked up with items, see below.
   `PASSIVE_LEVEL_CAP` is the rank cap — 10 for `rarity: "main"`, 5 for `"secondary"`.
 
@@ -196,8 +205,8 @@ is what those saves were actually played at (`store.test.ts` guards it).
 
 | Number | What it does | Fitted to |
 |---|---|---|
-| `worldEntryDifficulty` | the scale the world's **opening arc** plays at | `WORLD_ENTRY_BREATHER` = 0.7 of the heaviest arc already cleared |
-| `relevelledDifficulty` | re-profiles every later arc off that anchor | `RELEVEL_RAMP` = 1.1 per `arcPower` rung |
+| `worldEntryDifficulty` | the scale the world's **opening arc** plays at | `WORLD_ENTRY_BREATHER` = 0.45 of the heaviest arc already cleared |
+| `relevelledDifficulty` | re-profiles every later arc off that anchor | `RELEVEL_RAMP` = 1.2 per `arcPower` rung |
 | `worldEntryScale` | shifts the world's `arcPower` rungs onto the player's | nothing — it is exactly `reached / opening rung` |
 
 **The anchor is an arc, not a boss.** `arcWeight` is `mobsToBoss * mean mob hp + boss hp`: the mobs are
@@ -218,7 +227,7 @@ the first crossing and every crossing after it.
 cast, passives included. A visitor arriving with a hundred characters gains none of that: their dps
 climbs with the shifted rungs alone, i.e. at `CATCH_UP` (0.85). Scaling such a world by one constant
 opens it fairly and walls it four arcs later, which is exactly what the first attempt at this did.
-`RELEVEL_RAMP` = 1.1 sits just above `CATCH_UP`, so arcs still lengthen as the world goes on, at the
+`RELEVEL_RAMP` = 1.2 sits above `CATCH_UP`, so arcs still lengthen as the world goes on, at the
 rate the late chain actually plays at (Boruto: 2.4 min an arc opening, 8 closing).
 
 **What is deliberately *not* re-levelled is the world's own cast.** Scaling their `baseDps` up to the
@@ -231,7 +240,20 @@ was written for.
 
 **The boss timer is the binding constraint on how hard entry can be.** Timers are authored per arc for
 the world's own player, and re-levelling does not move them; push `WORLD_ENTRY_BREATHER` up and the
-opening boss stops falling inside its clock. 0.8 walls on Hunter x Hunter's first arc, 0.7 does not.
+opening boss stops falling inside its clock. 0.8 walls on Hunter x Hunter's first arc, 0.7 did not.
+
+**Puis `MAX_LEVEL` a retiré 1.68x de dps à la fin de partie, et 0.7 est devenu un mur.** Chiffré :
+le boss d'entrée de Bleach, Renji, pèse 658 PV × 1.2 (son trait) × 1.667e12 de difficulté d'entrée,
+soit 1.32e15 dans une horloge de 60 s — **21.9 T de dps exigés**. La run sans plafond arrivait à
+21.93 T : elle passait avec **0.1 % de marge**, et personne ne pouvait le voir. Avec le plafond elle
+arrive à 15.3 T et l'arc n'est pas franchi en 60 minutes de simulation. Une frontière ne doit pas
+être un seuil à 0.1 % près, donc le couple a bougé ensemble : **`WORLD_ENTRY_BREATHER` 0.7 → 0.45**
+rend la frontière franchissable, et **`RELEVEL_RAMP` 1.1 → 1.2** rend à la traversée la pente que
+l'entrée plus douce lui enlevait. 1.35 a été essayé et mure au deuxième arc de Bleach : sur quinze
+arcs, la pente compose.
+
+Mesuré avec le plafond en place (seed 1) : **55/55 arcs en 187 min**, Bleach passe de 1.1-2.0 à
+**1.6-3.5 min l'arc** sur ses quinze, Horimiya de 1.4-6.9, aucun timeout de boss nulle part.
 
 Measured over the default route (seeds 1, 2, 3, 7 — identical, the economy is seed-stable): worlds 4-6
 went from 0.1-0.2 minutes an arc to **1.5-2.1 (Hunter x Hunter), 1.8-2.5 (Bleach), 1.8-3.1 (Horimiya)**,

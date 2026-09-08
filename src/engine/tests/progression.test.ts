@@ -20,7 +20,7 @@ import {
   WORLD_ENTRY_BREATHER,
 } from "../progression";
 import { timeToKillMs } from "../combat";
-import { arcPowerTable, CATCH_UP, catchUpGrowth, firstPassiveDropChance, isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
+import { arcPowerTable, CATCH_UP, catchUpGrowth, firstPassiveDropChance, isPassiveMaxed, LEVEL_DAMAGE_STEP, levelFromXp, levelGrowth, MAX_LEVEL, narratorClickPower, PASSIVE_LEVEL_CAP, passiveRankCost, passiveUpgrade, XP_PER_KILL_REWARD, xpProgress, xpToReach } from "../growth";
 import type { Anime, Arc, Character } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
@@ -207,6 +207,17 @@ describe("xp and levels", () => {
     expect(progress.level).toBe(3);
     expect(progress.into).toBe(10);
     expect(progress.need).toBe(xpToReach(4) - xpToReach(3));
+  });
+
+  // Le plafond : mesuré sur une run complète (l'équipe finissait à 253), et posé à 150 parce que
+  // les niveaux au-delà ne pesaient plus rien. Ce qu'on garde ici, c'est qu'il tienne partout —
+  // le niveau lu, celui que la barre affiche — et pas le chiffre lui-même.
+  it("plafonne le niveau, l'xp continuant de rentrer", () => {
+    expect(levelFromXp(xpToReach(MAX_LEVEL))).toBe(MAX_LEVEL);
+    expect(levelFromXp(xpToReach(MAX_LEVEL + 40))).toBe(MAX_LEVEL);
+    expect(levelFromXp(xpToReach(MAX_LEVEL) * 1e6)).toBe(MAX_LEVEL);
+    // Plus de palier suivant : la barre lit `need === 0` pour s'afficher pleine.
+    expect(xpProgress(xpToReach(MAX_LEVEL + 10))).toEqual({ level: MAX_LEVEL, into: 0, need: 0 });
   });
 
   it("grants xp well above the raw reward, so leveling never stalls under the uncapped curve", () => {

@@ -57,7 +57,7 @@ export function difficultyMultiplier(tier: number): number {
  * cleared. Below 1 on purpose — crossing a border is a breather by construction (`docs/combat.md`),
  * and it costs the carried roster its passives and its abilities on top. Fitted on the simulator.
  */
-export const WORLD_ENTRY_BREATHER = 0.7;
+export const WORLD_ENTRY_BREATHER = 0.45;
 
 /**
  * How much of its own dps a team loses the first time it walks out of the worlds it calls home:
@@ -108,7 +108,7 @@ export function worldEntryDifficulty(tier: number, firstArcWeight: number, harde
  * `CATCH_UP` (0.85), so anything above that still lengthens the arcs as the world goes on. 1.1
  * reproduces the late chain, where Boruto opens at 2.4 min an arc and closes at 8.
  */
-export const RELEVEL_RAMP = 1.1;
+export const RELEVEL_RAMP = 1.2;
 
 /**
  * The difficulty one arc of a re-levelled world is played at: whatever it takes to put that arc's

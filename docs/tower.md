@@ -121,10 +121,13 @@ en est tenue hors : elle accélère ce que le joueur farme déjà, elle n'invent
 jamais été chiffrée. En particulier elle ne donne **aucun point de prestige** — rien ne multiplie ce
 que `calculatePrestigeGain` rend.
 
-Les fragments vont à l'unique **déjà trouvé** qui en a le moins (départage par id) : déterministe,
+Les fragments vont à l'unique **déjà trouvé le plus proche de son palier suivant** (départage par
+id) : déterministe,
 parce que `Math.random()` n'est appelé que dans `gameState` (invariant), et sauté quand la run n'a
 encore trouvé aucun unique. La tour ne crée donc jamais un objet, elle accélère la forge de ceux
-qu'on possède.
+qu'on possède. Elle visait le plus *pauvre* jusqu'à ce que la simulation montre ce que ça donnait :
+25 fragments étalés sur dix uniques, le mieux loti à 4, le premier palier à 5, **zéro niveau de forge
+sur une run complète des 55 arcs**. Étaler garantit qu'aucun palier ne tombe.
 
 Un palier est payé **une fois par mode et par cycle**, la clé étant `mode:étage` (`towerClaimKey`).
 Rejouer un étage déjà franchi ne repaie rien : c'est ce qui empêche l'étage 10 de devenir une ferme.

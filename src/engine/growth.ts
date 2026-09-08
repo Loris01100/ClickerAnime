@@ -62,8 +62,20 @@ export function passiveUpgrade(
 }
 
 /**
+ * Le plafond de niveau. Mesuré avant d'être posé (`npm run sim`) : une run qui finit les 55 arcs
+ * emmène l'équipe au **niveau 253**, et les cent derniers niveaux ne veulent plus rien dire — la
+ * traversée entière de Hunter x Hunter fait passer la moyenne de 194 à 198, les six arcs d'Horimiya
+ * de 251 à 253. La courbe d'xp (`XP_GROWTH`) a mangé le gain bien avant ce plafond ; le poser rend
+ * simplement explicite un mur qui existait déjà, et rend au niveau une fin lisible.
+ *
+ * C'est un **maximum de niveau, pas un maximum d'xp** : l'xp continue de rentrer et reste dans la
+ * sauvegarde, donc bouger ce nombre vers le haut rend aussitôt les niveaux qu'il retenait.
+ */
+export const MAX_LEVEL = 150;
+
+/**
  * Multiplier applied to a base stat at a given level. Linear on purpose: every level grants the
- * same flat damage as the one before, and levels themselves are uncapped.
+ * same flat damage as the one before, up to `MAX_LEVEL`.
  * `LEVEL_DAMAGE_STEP` is the pacing knob: how much of the base stat one level is worth.
  */
 export const LEVEL_DAMAGE_STEP = 0.6;
@@ -88,10 +100,11 @@ const XP_BASE = 25;
 export const XP_GROWTH = 1.15;
 
 /**
- * Kills grant this many times their raw enemy reward as team xp. Pushed well above 1x because level
- * has no cap: a flat 1:1 income gets swallowed by the curve above after a few dozen levels and
- * leveling stalls out, leaving a character's level contributing nothing next to their ability. This
- * keeps levels climbing meaningfully throughout a run instead.
+ * Kills grant this many times their raw enemy reward as team xp. Pushed well above 1x because a flat
+ * 1:1 income gets swallowed by the curve above after a few dozen levels and leveling stalls out,
+ * leaving a character's level contributing nothing next to their ability. This keeps levels climbing
+ * meaningfully through a run — up to `MAX_LEVEL`, which is where they stop by design rather than by
+ * exhaustion.
  */
 export const XP_PER_KILL_REWARD = 3;
 
@@ -102,7 +115,11 @@ export function xpToReach(level: number, growth: number = XP_GROWTH): number {
 }
 
 /**
- * The inverse of `xpToReach`, in closed form.
+ * The inverse of `xpToReach`, in closed form, clamped at `MAX_LEVEL`.
+ *
+ * Le plafond est appliqué **ici et nulle part ailleurs** : `levelOf` et `xpProgress` dérivent tous
+ * deux d'elle, donc le niveau affiché, celui que `levelGrowth` paie et celui que la sauvegarde
+ * relit ne peuvent pas diverger.
  *
  * It used to climb one level at a time, and each step cost a `Math.pow` — fine at level 5, not at
  * the level ~107 the simulator reports mid-run, times a roster of fifty, on every rebuild of the
@@ -118,12 +135,16 @@ export function levelFromXp(xp: number, growth: number = XP_GROWTH): number {
   let level = Math.max(0, Math.floor(Math.log1p((xp * (growth - 1)) / XP_BASE) / Math.log(growth)));
   while (xp >= xpToReach(level + 1, growth)) level++;
   while (level > 0 && xp < xpToReach(level, growth)) level--;
-  return level;
+  return Math.min(level, MAX_LEVEL);
 }
 
-/** Level plus how far into it the character is, for the xp bar. */
+/**
+ * Level plus how far into it the character is, for the xp bar. Au plafond il n'y a plus de palier
+ * suivant : `need` vaut 0, et c'est ce que la barre lit pour s'afficher pleine plutôt que vide.
+ */
 export function xpProgress(xp: number, growth: number = XP_GROWTH): { level: number; into: number; need: number } {
   const level = levelFromXp(xp, growth);
+  if (level >= MAX_LEVEL) return { level, into: 0, need: 0 };
   const floor = xpToReach(level, growth);
   return { level, into: xp - floor, need: xpToReach(level + 1, growth) - floor };
 }

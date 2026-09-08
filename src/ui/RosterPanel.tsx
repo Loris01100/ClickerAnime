@@ -38,7 +38,8 @@ const ITEM_SORTS: Record<ItemSortKey, { label: string; compare: (game: GameStore
   },
 };
 
-const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 0);
+/** `need` à 0, c'est le plafond de niveau atteint : la barre est pleine, pas vide. */
+const pct = (into: number, need: number) => (need > 0 ? Math.min(100, (into / need) * 100) : 100);
 
 /**
  * The sort and the world filter are a view preference, not game state: they live in `localStorage`
@@ -360,7 +361,10 @@ export default function RosterPanel(props: {
                       {props.game.synergyOf(character).toFixed(2)}
                     </span>
                   </div>
-                  <div class="bar xp-bar" title={`${fmt(progress().into)} / ${fmt(progress().need)} xp`}>
+                  <div
+                    class="bar xp-bar"
+                    title={progress().need > 0 ? `${fmt(progress().into)} / ${fmt(progress().need)} xp` : "Niveau maximum"}
+                  >
                     <div class="bar-fill" style={{ width: `${pct(progress().into, progress().need)}%` }} />
                   </div>
                   <Show when={character.passive}>

@@ -40,6 +40,8 @@ export interface TowerDeps {
   /** Uniques the run has actually found — the only items a fragment reward may target. */
   foundItems: () => Item[];
   uniqueFragmentsOf: (itemId: string) => number;
+  /** What the next forge level of a unique costs, or null when it is already at its last rank. */
+  uniqueUpgradeCostOf: (itemId: string) => number | null;
   grantUniqueFragment: (item: Item) => void;
   grantCurrency: (amount: number) => void;
   grantCrystals: (amount: number) => void;
@@ -211,9 +213,15 @@ export function createTower(deps: TowerDeps) {
   }
 
   /**
-   * Pays a reward floor, once per mode per cycle. The fragment share targets the found unique the
-   * run has fewest fragments of — deterministic on purpose, since `Math.random` is `gameState`'s
-   * alone — and is simply skipped when nothing has been found yet.
+   * Pays a reward floor, once per mode per cycle. The fragment share targets the found unique
+   * **closest to its next forge level** — deterministic on purpose, since `Math.random` is
+   * `gameState`'s alone — and is simply skipped when nothing has been found yet.
+   *
+   * Il visait l'unique qui en avait le *moins*, ce qui était équitable et parfaitement inutile :
+   * mesuré sur une run complète des 55 arcs, les fragments finissaient étalés sur dix uniques (le
+   * mieux loti à 4, le premier palier à 5) et **pas un seul niveau de forge n'était atteint**.
+   * Étaler garantit qu'aucun palier ne tombe ; concentrer, c'est le même total de fragments qui
+   * devient enfin une amélioration.
    */
   function claimReward(mode: TowerMode, cleared: number): TowerReward | null {
     if (!isTowerRewardFloor(mode, cleared)) return null;
@@ -225,13 +233,16 @@ export function createTower(deps: TowerDeps) {
     if (reward.crystals > 0) deps.grantCrystals(reward.crystals);
     if (reward.packPoints > 0) deps.grantPackPoints(reward.packPoints);
     if (reward.fragments > 0) {
+      // Ce qu'il reste à payer pour le rang suivant : le plus petit reste gagne. Un unique déjà au
+      // rang maximum n'a plus de coût et sort de la liste plutôt que d'absorber le lot.
+      const remainingOf = (itemId: string) => {
+        const cost = deps.uniqueUpgradeCostOf(itemId);
+        return cost === null ? null : Math.max(0, cost - deps.uniqueFragmentsOf(itemId));
+      };
       const target = deps
         .foundItems()
-        .filter((item) => item.kind === "unique")
-        .sort(
-          (a, b) =>
-            deps.uniqueFragmentsOf(a.id) - deps.uniqueFragmentsOf(b.id) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
-        )[0];
+        .filter((item) => item.kind === "unique" && remainingOf(item.id) !== null)
+        .sort((a, b) => remainingOf(a.id)! - remainingOf(b.id)! || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
       if (target) for (let i = 0; i < reward.fragments; i++) deps.grantUniqueFragment(target);
     }
     return reward;
