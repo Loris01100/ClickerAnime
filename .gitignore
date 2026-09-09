@@ -6,3 +6,4 @@ dist/
 .playwright-mcp/
 playwright-report/
 test-results/
+reports/
