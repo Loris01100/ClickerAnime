@@ -10,6 +10,10 @@ import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import Coin from "./Coin";
 
+/** Packs one purchase may open at once — the ceiling of the quantity selector. */
+const MAX_PACKS_PER_BUY = 10;
+const PACKS_PER_BUY = Array.from({ length: MAX_PACKS_PER_BUY }, (_, i) => i + 1);
+
 /**
  * Packs, an overlay like the shop: one bucket of points per world, spent on a random draw from
  * that world's cast. A duplicate is the only way to get a character again — beating their arc a
@@ -41,6 +45,10 @@ export default function PackPanel(props: {
         props.game.prestige().unlockedAnimeIds.includes(a.id),
     );
 
+  /** Copies que ce pool peut encore distribuer, tous personnages confondus. Vaut 0 pool vide. */
+  const remaining = (animeId: string, rarity: Rarity) =>
+    props.game.packCapacityOf(animeId, rarity);
+
   /** Combien de personnages de ce monde sont recrutés — ce qui distingue un pool vide d'un pool épuisé. */
   const recruitedIn = (animeId: string) =>
     props.game.ownedCharacters().filter((c) => c.animeId === animeId).length;
@@ -53,17 +61,26 @@ export default function PackPanel(props: {
       );
 
   /**
-   * Combien de packs les points en caisse paient réellement, plafonné à `qty` — le prix affiché sur
-   * le bouton, et pas `PACK_COST × qty` : annoncer dix packs pour en ouvrir un est exactement le
-   * décalage prix affiché / prix débité que la boutique a déjà corrigé (voir `shopOffers`).
+   * Combien de packs cet achat ouvre réellement : plafonné par `qty`, par les points en caisse, et
+   * par les copies qu'il reste à distribuer. Les trois comptent — annoncer dix packs pour en ouvrir
+   * trois est exactement le décalage prix affiché / prix débité que la boutique a déjà corrigé
+   * (voir `shopOffers`), que le mur soit la caisse ou le plafond de doublons.
+   *
+   * Le plafond n'est pas revérifié ici : `packCapacityOf` ne fait que compter ce que `packPoolOf`
+   * laisse encore sortir, et c'est toujours `openPack` qui refuse la copie de trop.
    */
   const affordableCount = (animeId: string, rarity: Rarity) =>
-    Math.min(qty(), Math.floor(props.game.worldPointsOf(animeId) / PACK_COST[rarity]));
+    Math.min(
+      qty(),
+      Math.floor(props.game.worldPointsOf(animeId) / PACK_COST[rarity]),
+      props.game.packCapacityOf(animeId, rarity),
+    );
 
   /**
    * Achète jusqu'à `qty` packs d'affilée ; `openPack` s'arrête de lui-même quand les points
-   * manquent. La boucle va bien jusqu'à `qty` et non jusqu'à `affordableCount` : « Carte blanche »
-   * peut rendre les points d'un tirage, et un pack offert en paie donc un de plus.
+   * manquent — ou quand le pool s'est vidé en cours de route, la dernière copie d'un personnage
+   * l'en faisant sortir. La boucle va bien jusqu'à `qty` et non jusqu'à `affordableCount` :
+   * « Carte blanche » peut rendre les points d'un tirage, et un pack offert en paie donc un de plus.
    */
   function buy(animeId: string, rarity: Rarity) {
     const results: PackDraw[] = [];
@@ -109,7 +126,7 @@ export default function PackPanel(props: {
               title="Nombre de packs par achat"
               onChange={(e) => setQty(Number(e.currentTarget.value))}
             >
-              <For each={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}>
+              <For each={PACKS_PER_BUY}>
                 {(n) => <option value={n}>x{n}</option>}
               </For>
             </select>
@@ -161,10 +178,28 @@ export default function PackPanel(props: {
                       <button
                         disabled={affordableCount(anime.id, rarity) === 0}
                         onClick={() => buy(anime.id, rarity)}
+                        title={
+                          remaining(anime.id, rarity) === 1
+                            ? "Dernière copie disponible dans ce pool"
+                            : `${remaining(anime.id, rarity)} copies encore disponibles dans ce pool`
+                        }
                       >
                         {rarity === "main" ? "Principaux" : "Secondaires"} —{" "}
                         {PACK_COST[rarity] *
                           Math.max(1, affordableCount(anime.id, rarity))}
+                        {/* Sous le maximum par achat, on annonce ce qu'il reste : un x10 qui n'ouvre
+                            que trois packs sans le dire ressemble à un bouton cassé. */}
+                        <Show
+                          when={
+                            remaining(anime.id, rarity) <= MAX_PACKS_PER_BUY
+                          }
+                        >
+                          <span class="muted small">
+                            {" "}
+                            · {remaining(anime.id, rarity)} restant
+                            {remaining(anime.id, rarity) > 1 ? "s" : ""}
+                          </span>
+                        </Show>
                       </button>
                     </Show>
                   )}
