@@ -27,7 +27,9 @@ export default function StatsPanel(props: { game: GameStore; onClose: () => void
   const counts = () => props.game.achievementCounts();
 
   const run = () => [
-    ["Durée du run", duration(props.game.now() - props.game.runStartedAt())],
+    // `statClock`, pas `now` : une durée affichée à la seconde n'a rien à gagner à refaire tout ce
+    // bloc cinq fois par seconde — et l'horloge d'affichage existe exactement pour ça.
+    ["Durée du run", duration(props.game.statClock() - props.game.runStartedAt())],
     ["Or gagné ce run", fmt(props.game.lifetimeEarned())],
     ["Complétion", `${Math.round(props.game.runCompletion() * 100)} %`],
     ["Personnages", String(props.game.ownedCharacters().length)],

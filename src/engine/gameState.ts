@@ -1745,6 +1745,8 @@ export function createGameStore(data: GameData) {
     arcOf,
     animeOf,
     now,
+    /** The once-a-second display clock — see the signal. Anything shown to the second reads this. */
+    statClock,
     runStartedAt,
     currency,
     lifetimeEarned,
