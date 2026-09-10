@@ -35,9 +35,10 @@ way this file is kept in sync with architecture changes:
 
 SolidJS + Vite + TypeScript idle/clicker prototype. Two layers, deliberately separated:
 
-**`src/engine/` — pure logic, no Solid imports**, with exactly two exceptions: `gameState.ts` plus
-its `store/` folder, the reactive seam, and `sim.ts`/`sim.cli.ts`, which drive that seam headlessly
-and are tooling rather than game rules. Every other file exports plain functions over plain data,
+**`src/engine/` — pure logic, no Solid imports**, with exactly three exceptions: `gameState.ts` plus
+its `store/` folder, the reactive seam; `sim.ts`/`sim.cli.ts`, which drive that seam headlessly
+and are tooling rather than game rules; and `tests/`, which instantiates it under `createRoot`.
+`src/invariants.test.ts` holds the rule to that list. Every other file exports plain functions over plain data,
 which is why the tests in `src/engine/tests/` run in a node environment with no DOM. Keep new game
 rules pure and here; keep them out of components.
 
@@ -104,7 +105,9 @@ These outrank convenience, and several were learned the hard way. Don't break on
   needs deriving, it belongs in the engine and gets exposed on the store (that is why `synergyOf`,
   `costOf`, `damageGrowthOf` and `pendingPrestigeGain` exist).
 - `Math.random()` is called **only** in `gameState`. Pure functions take the 0..1 roll as an
-  argument (`rollsDrop`, `drawPack`), which is what keeps the odds testable.
+  argument (`rollsDrop`, `drawPack`), which is what keeps the odds testable. `sim.ts` swaps the
+  global for a seeded generator for the length of a run and puts it back; that is the one other
+  mention `src/invariants.test.ts` allows.
 - The engine has no user-facing strings; `ui/describe.ts` turns data into French prose.
 
 **Balance**
@@ -283,7 +286,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
 **UI**
 
 - Never hard-code a colour in a rule. Every colour comes from a token defined in the bare `:root`
-  block, so the light/dark flip works.
+  block, so the light/dark flip works — a colour literal belongs in a custom-property declaration
+  and nowhere else, which is what `src/invariants.test.ts` checks. Gradients are tokens too
+  (`--stage-bg`, `--bar-hp`): a `var(...)` stop inside one is substituted on the element that uses
+  it, so a gradient declared once in `:root` still follows the theme. The single exception is
+  `hsl(var(--world-hue) …)`, the per-world tint, which composes from a token itself.
 - A component never builds a colour string: it sets `--world-hue` on a container and the imported
   CSS modules do the rest.
 - UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.

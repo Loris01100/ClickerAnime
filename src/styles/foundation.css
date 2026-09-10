@@ -114,6 +114,24 @@
   --font-display: "Zen Kaku Gothic New", system-ui, "Segoe UI", sans-serif;
   /* Lettering d'onomatopée — titre, boss, dégâts. Voir le @font-face plus haut pour son périmètre. */
   --font-impact: "Bangers", "Comic Sans MS", var(--font-display);
+  /*
+   * Les jauges. Un dégradé est une couleur comme une autre : il vit ici, pas dans la règle qui le
+   * pose — sur le modèle de `--stage-bg` plus haut. La borne `var(...)` de chacun est substituée
+   * chez l'élément qui l'utilise, donc ces quatre-là suivent bien le thème sans être redéclarés.
+   */
+  --bar-hp: linear-gradient(90deg, #e0483f, #ff7a45);
+  --bar-hp-boss: linear-gradient(90deg, #b3247a, var(--accent-2));
+  --bar-xp: linear-gradient(90deg, #3aa0ff, var(--accent));
+  --bar-arc-cleared: linear-gradient(90deg, #2f9e5f, var(--good));
+  /* Le blanc posé sur une surface d'accent : un contraste fixe, le même dans les deux thèmes. */
+  --on-accent: #ffffff;
+  /*
+   * Les noirs : un voile de lisibilité et deux ombres. Volontairement **non** redéclarés en sombre —
+   * ils assombrissent ce qu'il y a dessous, quel que soit le thème, exactement comme aujourd'hui.
+   */
+  --ink-veil: rgba(0, 0, 0, 0.35);
+  --overlay-scrim: rgba(0, 0, 0, 0.55);
+  --notice-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
   /* Fallback art-direction hue; every world overrides it via ui/hue.ts's themeOf. */
   --world-hue: 260;
   color-scheme: light;
@@ -262,12 +280,12 @@ button.primary {
   width: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   border: none;
-  color: #fff;
+  color: var(--on-accent);
   font-family: var(--font-display);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px var(--ink-veil);
   box-shadow: var(--ink-shadow);
   padding: 0.45rem;
 }

@@ -27,7 +27,7 @@
   background: var(--panel);
   color: var(--text);
   font-size: 0.85rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--notice-shadow);
   animation: notice-in 0.22s ease-out;
 }
 .notice-item {

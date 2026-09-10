@@ -48,14 +48,16 @@ A `PostToolUse` hook (`.claude/hooks/verify-edit.mjs`, wired in `.claude/setting
 edit against the layer it lands in: the suite after `src/engine/`, `validate-data` **then** the
 suite after `src/data/` (a dead reference or a duplicate id is what the semantic validator catches
 and the typechecker cannot, and it reports it in one line for a fraction of the suite's cost), and
-`tsc --noEmit` after `src/ui/` or `src/worker.ts`. A failure comes straight back instead of waiting
-for the next build. It is a safety net, not a substitute for running `npm test` yourself before
+`tsc --noEmit` after `src/ui/` or `src/worker.ts`, and the suite again after `src/styles/` — for
+`src/invariants.test.ts` alone, since nothing else reads a `.css` file. A failure comes straight
+back instead of waiting for the next build. It is a safety net, not a substitute for running `npm test` yourself before
 declaring work done.
 
 The suite is organised by domain, one file per area. No test count is kept here: any number written
 down goes stale on the next commit. Alongside it run two critical browser journeys:
 
 - `src/engine/tests/` — engine rules, one file per area (combat, progression, economy, modifiers, prestige-tree, challenges, store, data…), shared fixtures in `helpers.ts`
+- `src/invariants.test.ts` — the invariants of `CLAUDE.md` a machine can hold, by re-reading the source: no Solid import outside the reactive seam, no `Math.random` outside `gameState`, no colour hard-coded in a CSS rule. It sits at the root of `src/` because it spans both layers
 - `src/ui/ui.test.ts` — small UI utilities
 - `src/ui/format.test.ts` — number and duration formatting
 - `src/ui/anilist.test.ts` — AniList name matching logic

@@ -524,11 +524,11 @@
   font-size: 0.78rem;
 }
 .hp-bar .bar-fill {
-  background: linear-gradient(90deg, #e0483f, #ff7a45);
+  background: var(--bar-hp);
   transition: width 0.1s linear;
 }
 .hp-bar.boss .bar-fill {
-  background: linear-gradient(90deg, #b3247a, var(--accent-2));
+  background: var(--bar-hp-boss);
 }
 .timer-bar {
   height: 14px;
@@ -546,7 +546,7 @@
   margin-top: 0.2rem;
 }
 .xp-bar .bar-fill {
-  background: linear-gradient(90deg, #3aa0ff, var(--accent));
+  background: var(--bar-xp);
 }
 .capped {
   color: var(--good);
@@ -730,7 +730,7 @@
   border-radius: 6px;
 }
 .arc.cleared .arc-bar .bar-fill {
-  background: linear-gradient(90deg, #2f9e5f, var(--good));
+  background: var(--bar-arc-cleared);
 }
 .arc.cleared:not(.active) {
   display: flex;

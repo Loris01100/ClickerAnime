@@ -8,6 +8,8 @@
  *                     semantic validator catches and the typechecker cannot
  *   src/ui/**      -> `tsc --noEmit` (components have no tests; the typecheck is the net)
  *   src/worker.ts  -> `tsc --noEmit` (the edge endpoint has no test either)
+ *   src/styles/**  -> the suite, for `src/invariants.test.ts` alone: a hard-coded colour is the
+ *                     one UI invariant a machine can hold, and nothing else looks at a .css file
  *
  * A failure exits 2, which hands stderr back to Claude instead of leaving the break
  * for the next `npm run build` to find. Anything else is a silent no-op.
@@ -54,7 +56,7 @@ const filePath = payload?.tool_input?.file_path ?? payload?.tool_response?.fileP
 // Windows hands over backslashes; match on one separator only.
 const normalized = filePath.split(sep).join("/").split("\\").join("/");
 
-if (!/\.(ts|tsx)$/.test(normalized)) process.exit(0);
+if (!/\.(ts|tsx|css)$/.test(normalized)) process.exit(0);
 
 // Cheapest first: a content edit that breaks a reference is reported by the validator in one
 // readable line, and the suite never has to run.
@@ -64,7 +66,9 @@ const checks = normalized.includes("/src/data/")
     ? [VITEST]
     : normalized.includes("/src/ui/") || normalized.endsWith("/src/worker.ts")
       ? [TSC]
-      : [];
+      : normalized.includes("/src/styles/")
+        ? [VITEST]
+        : [];
 
 for (const check of checks) {
   // No install (or a moved entry point) is not a code failure: stay quiet rather than block the edit.
