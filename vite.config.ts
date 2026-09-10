@@ -16,5 +16,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // La transformation des modules pesait ~45 % d'un run complet, refaite à chaque fois. Le hook
+    // `PostToolUse` relance la suite après chaque édition du moteur ou du contenu : sans ce cache
+    // (dans node_modules/.vitest-cache, donc déjà ignoré par git), on la repayait à chaque édition.
+    fsModuleCache: true,
   },
 });

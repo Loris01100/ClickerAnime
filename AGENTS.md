@@ -44,16 +44,22 @@ All commands run from the project root.
 - `npm run deploy` — `wrangler deploy`, a manual push to the Cloudflare Worker. Rarely what you
   want: merging into `main` deploys on its own (see **Deployment**).
 
-A `PostToolUse` hook (`.claude/hooks/verify-edit.mjs`, wired in `.claude/settings.json`) runs the
-suite after any edit under `src/engine/`, and `tsc --noEmit` after any edit under `src/ui/`. A
-failure comes straight back instead of waiting for the next build. It is a safety net, not a
-substitute for running `npm test` yourself before declaring work done.
+A `PostToolUse` hook (`.claude/hooks/verify-edit.mjs`, wired in `.claude/settings.json`) checks an
+edit against the layer it lands in: the suite after `src/engine/`, `validate-data` **then** the
+suite after `src/data/` (a dead reference or a duplicate id is what the semantic validator catches
+and the typechecker cannot, and it reports it in one line for a fraction of the suite's cost), and
+`tsc --noEmit` after `src/ui/` or `src/worker.ts`. A failure comes straight back instead of waiting
+for the next build. It is a safety net, not a substitute for running `npm test` yourself before
+declaring work done.
 
-The project currently has **224 passing unit tests** across 15 test files, plus two critical browser journeys:
+The suite is organised by domain, one file per area. No test count is kept here: any number written
+down goes stale on the next commit. Alongside it run two critical browser journeys:
 
 - `src/engine/tests/` — engine rules, one file per area (combat, progression, economy, modifiers, prestige-tree, challenges, store, data…), shared fixtures in `helpers.ts`
 - `src/ui/ui.test.ts` — small UI utilities
+- `src/ui/format.test.ts` — number and duration formatting
 - `src/ui/anilist.test.ts` — AniList name matching logic
+- `src/ui/telemetry.test.ts` — the consent gate and the milestone payload
 - `tests/e2e/critical-player-journey.spec.ts` — a naturally played first Naruto arc plus the save/import/backup/prestige journey
 
 ## Architecture
