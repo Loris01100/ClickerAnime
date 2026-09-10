@@ -1,4 +1,4 @@
-import { Show, Suspense, createEffect, createMemo, createSignal, lazy, on, onMount } from "solid-js";
+import { Show, Suspense, createEffect, createMemo, createSignal, lazy, on, onCleanup, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { createGameStore } from "./engine/gameState";
 import { achievementCount } from "./engine/achievements";
@@ -37,6 +37,8 @@ const ReflexPanel = lazy(() => import("./ui/ReflexPanel"));
 const ForgePanel = lazy(() => import("./ui/ForgePanel"));
 const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
 const TowerPanel = lazy(() => import("./ui/TowerPanel"));
+const ShortcutsPanel = lazy(() => import("./ui/ShortcutsPanel"));
+import { abilitySlots, isTypingTarget, shortcutOf, type ShortcutAction, type ShortcutPanel } from "./ui/shortcuts";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
@@ -63,6 +65,7 @@ export default function App() {
   const [reflexOpen, setReflexOpen] = createSignal(false);
   const [forgeOpen, setForgeOpen] = createSignal(false);
   const [towerOpen, setTowerOpen] = createSignal(false);
+  const [shortcutsOpen, setShortcutsOpen] = createSignal(false);
   let importInput: HTMLInputElement | undefined;
   let menu: HTMLDetailsElement | undefined;
 
@@ -173,6 +176,86 @@ export default function App() {
     setCodexOpen(true);
   }
 
+  /**
+   * Every screen a shortcut can open, with the condition under which the menu shows its entry: a
+   * key must never reach a panel the player hasn't discovered yet (`ui/disclosure.ts`).
+   */
+  const SHORTCUT_PANELS: Record<ShortcutPanel, { visible: () => boolean; open: () => void }> = {
+    codex: { visible: () => disclosure().codex, open: () => openCodexOn(undefined) },
+    worlds: { visible: () => disclosure().worlds, open: () => setPortalOpen(true) },
+    shop: { visible: () => disclosure().shop, open: () => setShopOpen(true) },
+    packs: { visible: () => disclosure().packs, open: () => setPacksOpen(true) },
+    crossover: { visible: () => disclosure().crossover, open: () => setCrossoverOpen(true) },
+    challenges: { visible: () => disclosure().challenges, open: () => setChallengesOpen(true) },
+    tower: { visible: () => disclosure().tower, open: () => setTowerOpen(true) },
+    achievements: { visible: () => disclosure().achievements, open: () => setAchievementsOpen(true) },
+    prestige: { visible: () => disclosure().prestige, open: () => setPrestigeTreeOpen(true) },
+  };
+
+  /**
+   * Only one overlay is ever open, and each listens for its own Escape. While one is up the shell's
+   * shortcuts stay silent: a « C » typed in the tower must not stack the Codex on top of it.
+   */
+  const overlayOpen = () =>
+    codexOpen() ||
+    portalOpen() ||
+    achievementsOpen() ||
+    statsOpen() ||
+    prestigeTreeOpen() ||
+    challengesOpen() ||
+    shopOpen() ||
+    crossoverOpen() ||
+    packsOpen() ||
+    catalogOpen() ||
+    reflexOpen() ||
+    forgeOpen() ||
+    towerOpen() ||
+    shortcutsOpen() ||
+    Boolean(game.lastPrestigeReport());
+
+  /** Plays one shortcut; returns whether it did anything, so an unhandled key keeps its default. */
+  function runShortcut(action: ShortcutAction): boolean {
+    switch (action.kind) {
+      case "ability": {
+        const slots = abilitySlots(game.abilityDiagnostics());
+        const id = [...slots].find(([, slot]) => slot === action.slot)?.[0];
+        return id ? game.activateAbility(id) : false;
+      }
+      case "fire-all":
+        return game.activateReadyAbilities() > 0;
+      case "pause":
+        game.togglePause();
+        return true;
+      case "arc":
+        return game.stepArc(action.direction);
+      case "rematch":
+        return game.challengeBoss();
+      case "help":
+        setShortcutsOpen(true);
+        return true;
+      case "panel": {
+        const panel = SHORTCUT_PANELS[action.panel];
+        if (!panel.visible()) return false;
+        panel.open();
+        return true;
+      }
+    }
+  }
+
+  function onShortcutKey(event: KeyboardEvent) {
+    // No world yet means the shell is the world portal, which owns the screen and its keys.
+    if (event.defaultPrevented || overlayOpen() || game.unlockedAnimes().length === 0) return;
+    if (isTypingTarget(event.target)) return;
+    const action = shortcutOf(event);
+    if (!action) return;
+    if (menu) menu.open = false;
+    // Always swallowed once recognised, played or not: an arrow at the last arc must not scroll the page.
+    event.preventDefault();
+    runShortcut(action);
+  }
+  onMount(() => document.addEventListener("keydown", onShortcutKey));
+  onCleanup(() => document.removeEventListener("keydown", onShortcutKey));
+
   /** Downloads the current save as a portable .txt blob — see gameState's exportSave. */
   function exportSave() {
     const blob = new Blob([game.exportSave()], { type: "text/plain" });
@@ -250,38 +333,39 @@ export default function App() {
                   <Show when={codexNotice()}>
                     <span class="notice-dot" aria-label="Un passif peut être amélioré" role="img" />
                   </Show>
+                  <kbd class="menu-key">C</kbd>
                 </button>
               </Show>
               <Show when={game.unlockedAnimes().length > 0}>
                 <Show when={disclosure().worlds}>
-                  <button onClick={() => runFromMenu(() => setPortalOpen(true))}>Mondes</button>
+                  <button onClick={() => runFromMenu(() => setPortalOpen(true))}>Mondes <kbd class="menu-key">M</kbd></button>
                 </Show>
                 <Show when={disclosure().shop}>
-                  <button onClick={() => runFromMenu(() => setShopOpen(true))}>Boutique</button>
+                  <button onClick={() => runFromMenu(() => setShopOpen(true))}>Boutique <kbd class="menu-key">B</kbd></button>
                 </Show>
                 <Show when={disclosure().packs}>
-                  <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs</button>
+                  <button onClick={() => runFromMenu(() => setPacksOpen(true))}>Packs <kbd class="menu-key">K</kbd></button>
                   <button onClick={() => runFromMenu(() => setCatalogOpen(true))}>Catalogue</button>
                 </Show>
                 <Show when={disclosure().crossover}>
-                  <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover</button>
+                  <button onClick={() => runFromMenu(() => setCrossoverOpen(true))}>Crossover <kbd class="menu-key">X</kbd></button>
                 </Show>
                 <Show when={disclosure().challenges}>
-                  <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis</button>
+                  <button onClick={() => runFromMenu(() => setChallengesOpen(true))}>Défis <kbd class="menu-key">D</kbd></button>
                 </Show>
                 <Show when={disclosure().tower}>
-                  <button onClick={() => runFromMenu(() => setTowerOpen(true))}>Tour</button>
+                  <button onClick={() => runFromMenu(() => setTowerOpen(true))}>Tour <kbd class="menu-key">T</kbd></button>
                 </Show>
                 <Show when={game.automationLevelOf("ability") > 0}>
                   <button onClick={() => runFromMenu(() => setReflexOpen(true))}>Plans</button>
                 </Show>
               </Show>
               <Show when={disclosure().achievements}>
-                <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès</button>
+                <button onClick={() => runFromMenu(() => setAchievementsOpen(true))}>Succès <kbd class="menu-key">S</kbd></button>
                 <button onClick={() => runFromMenu(() => setStatsOpen(true))}>Statistiques</button>
               </Show>
               <Show when={disclosure().prestige}>
-                <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige</button>
+                <button onClick={() => runFromMenu(() => setPrestigeTreeOpen(true))}>Prestige <kbd class="menu-key">A</kbd></button>
               </Show>
               <Show
                 when={
@@ -298,6 +382,9 @@ export default function App() {
               >
                 <hr />
               </Show>
+              <button onClick={() => runFromMenu(() => setShortcutsOpen(true))}>
+                Raccourcis clavier <kbd class="menu-key">?</kbd>
+              </button>
               <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
               <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
               <button
@@ -426,6 +513,10 @@ export default function App() {
 
       <Show when={challengesOpen()}>
         <ChallengePanel game={game} onClose={() => setChallengesOpen(false)} />
+      </Show>
+
+      <Show when={shortcutsOpen()}>
+        <ShortcutsPanel onClose={() => setShortcutsOpen(false)} />
       </Show>
 
       <Show when={game.lastPrestigeReport()}>

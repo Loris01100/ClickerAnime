@@ -200,7 +200,16 @@
   padding: 0.3rem 0.4rem;
   min-width: 0;
 }
+/* Le numéro de raccourci, dans le coin : lisible sans pousser le nom, qui garde toute la largeur. */
+.ability-key {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.25rem;
+  font-size: 0.58rem;
+  padding: 0 0.22rem;
+}
 .ability-name {
+  padding-right: 0.9rem;
   font-weight: 600;
   font-size: 0.72rem;
   white-space: nowrap;

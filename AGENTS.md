@@ -108,6 +108,7 @@ Key components:
 - `PrestigeTree.tsx` — prestige skill tree overlay.
 - `AchievementsPanel.tsx` — achievements overlay.
 - `PrestigeReportPanel.tsx` — detailed recap shown after an explicit prestige.
+- `ShortcutsPanel.tsx` — keyboard-shortcut help overlay; the key map itself is the pure `shortcuts.ts` (`docs/ui.md`).
 - `TelemetryConsent.tsx` — explicit anonymous-measurement choice.
 - `Sprite.tsx` — AniList portrait wrapper with empty fallback.
 - `icons.tsx` — SVG icon set (factory pattern; never materialize JSX at module load).

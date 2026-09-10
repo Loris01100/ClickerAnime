@@ -360,6 +360,42 @@ opens a modal must not leave the menu open underneath it) and `onMenuFocusOut` (
 on an outside click by itself). The world-dependent entries stay behind the same
 `game.unlockedAnimes().length > 0` guard they had in the old bar.
 
+Each entry that has a keyboard shortcut prints it on its right (`kbd.menu-key`), and a « Raccourcis
+clavier » entry opens the help overlay.
+
+## Keyboard shortcuts
+
+`ui/shortcuts.ts` is pure: `shortcutOf` turns a key into a `ShortcutAction` (or `null`), and
+`App.tsx`'s one `document` listener decides whether it may run and plays it through the store's
+existing actions. No shortcut does anything a button on screen doesn't already do.
+
+| Keys | Action |
+|---|---|
+| `1`–`9` | fire the ability carrying that number |
+| `L` | Tout lancer |
+| `R` | re-challenge the boss |
+| `←` / `→` | previous / next arc (`stepArc`) |
+| `P` | pause / resume |
+| `C` `M` `B` `K` `X` `D` `T` `S` `A` | Codex, Mondes, Boutique, Packs, Crossover, Défis, Tour, Succès, Arbre de prestige |
+| `?` | the help overlay (`ShortcutsPanel.tsx`), which `?` or Escape close again |
+
+The rules that keep it from getting in the way:
+
+- **Digits are read from `event.code`, letters from `event.key`.** An AZERTY top row gives `& é " '`
+  without Shift, so `Digit1`/`Numpad1` is the only reliable reading; a letter, on the other hand,
+  should be the one printed on the key, whatever the layout.
+- **An ability's number follows team order, not bar order.** The bar floats ready abilities to the
+  top on every cooldown; a key that changed ability every twenty seconds could never be learnt.
+  `abilitySlots` numbers the first nine *awake* abilities — one asleep abroad or under a challenge
+  takes no digit — and the bar prints each number in the button's corner (`kbd.ability-key`).
+- **Silent while an overlay is open**, while no world is unlocked (the shell is then the world
+  portal), while focus is in an input, textarea, select or contenteditable, and whenever Ctrl, Cmd or
+  Alt is held — those keep the browser's own shortcuts. A held key (`repeat`) never fires twice.
+- **A panel key obeys `disclosure`** exactly like its menu entry (`SHORTCUT_PANELS` in `App.tsx`): a
+  key must never open a screen the player hasn't discovered yet.
+- A recognised key is always `preventDefault`ed, played or not, so `→` at the last arc doesn't scroll
+  the page. Space and Enter stay the stage's own (`ClickStage.handleKey`) and are not handled here.
+
 ## Paths into `public/`
 
 Anything under `public/` is referenced by an absolute path in the source (`/bleach-map.jpg`,

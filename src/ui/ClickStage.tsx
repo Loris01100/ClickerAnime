@@ -214,11 +214,11 @@ export default function ClickStage(props: { game: GameStore }) {
 
       <Show when={open()}>
       <div class="arc-stepper">
-        <button disabled={!neighbour(-1)} onClick={() => props.game.stepArc(-1)}>
+        <button disabled={!neighbour(-1)} title="Arc précédent (flèche gauche)" onClick={() => props.game.stepArc(-1)}>
           <IconChevronLeft /> {neighbour(-1)?.name ?? "—"}
         </button>
         <span class="arc-current">{arc()?.name ?? "Aucun arc"}</span>
-        <button disabled={!neighbour(1)} onClick={() => props.game.stepArc(1)}>
+        <button disabled={!neighbour(1)} title="Arc suivant (flèche droite)" onClick={() => props.game.stepArc(1)}>
           {neighbour(1)?.name ?? "—"} <IconChevronRight />
         </button>
       </div>
@@ -366,7 +366,7 @@ export default function ClickStage(props: { game: GameStore }) {
       </Show>
 
       <Show when={bossChallengeable()}>
-        <button class="primary boss-rematch" onClick={() => props.game.challengeBoss()}>
+        <button class="primary boss-rematch" title="Touche R" onClick={() => props.game.challengeBoss()}>
           <IconCrown class="gold" /> Retenter {terms().boss.toLowerCase()}
         </button>
       </Show>

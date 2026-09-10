@@ -78,7 +78,7 @@ export default function AutomationBar(props: { game: GameStore }) {
       <button
         class="auto-toggle"
         classList={{ on: props.game.paused() }}
-        title={props.game.paused() ? "Jeu en pause — cliquez pour reprendre." : "Mettre le jeu en pause : dégâts, timers et automatisations s'arrêtent."}
+        title={props.game.paused() ? "Jeu en pause — cliquez pour reprendre. (P)" : "Mettre le jeu en pause : dégâts, timers et automatisations s'arrêtent. (P)"}
         onClick={() => props.game.togglePause()}
       >
         {props.game.paused() ? "▶ Reprendre" : "⏸ Pause"}

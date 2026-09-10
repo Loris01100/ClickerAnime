@@ -12,6 +12,7 @@ import { fmt, seconds } from "./format";
 import ItemIcon from "./ItemIcon";
 import { IconGear, IconStar, IconStarOutline } from "./icons";
 import type { DisclosureState } from "./disclosure";
+import { abilitySlots } from "./shortcuts";
 
 type SortKey = "level" | "click" | "dps" | "synergy";
 
@@ -149,6 +150,9 @@ export default function RosterPanel(props: {
     return [...props.game.abilityDiagnostics()].sort((a, b) => rank(a) - rank(b));
   });
 
+  /** The 1–9 key of each ability, in team order — see `abilitySlots` for why not bar order. */
+  const slots = createMemo(() => abilitySlots(props.game.abilityDiagnostics()));
+
   const abilityReason = (diagnostic: AbilityDiagnostic): string => {
     const state = diagnostic.availability;
     if (state.status === "ready") return "Prête à être lancée.";
@@ -217,7 +221,7 @@ export default function RosterPanel(props: {
           <button
             class="fire-all"
             disabled={props.game.readyAbilities().length === 0}
-            title="Lance toutes les capacités prêtes — elles se cumulent, chacune sur ses propres personnages."
+            title="Lance toutes les capacités prêtes — elles se cumulent, chacune sur ses propres personnages. (L)"
             onClick={() => props.game.activateReadyAbilities()}
           >
             Tout lancer {props.game.readyAbilities().length}/{props.game.abilityDiagnostics().length}
@@ -259,6 +263,7 @@ export default function RosterPanel(props: {
                     // before the printed value does, and hiding it made every ability read alike.
                     `Maîtrise : x${Math.round(props.game.buffCap())} au maximum par personnage`,
                     abilityReason(unlocked),
+                    ...(slots().has(unlocked.ability.id) ? [`Touche : ${slots().get(unlocked.ability.id)}`] : []),
                   ].join("\n");
                 return (
                   <button
@@ -268,6 +273,9 @@ export default function RosterPanel(props: {
                     title={tooltip()}
                     onClick={() => props.game.activateAbility(unlocked.ability.id)}
                   >
+                    <Show when={slots().get(unlocked.ability.id)}>
+                      {(slot) => <kbd class="ability-key" aria-hidden="true">{slot()}</kbd>}
+                    </Show>
                     <span class="ability-name">{unlocked.ability.name}</span>
                     <span class="ability-cd">{label()}</span>
                     <Show when={state().status === "blocked-anime" || state().status === "blocked-challenge"}>

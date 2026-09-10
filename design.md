@@ -1103,3 +1103,26 @@ Le reste suit §8 à la lettre : `.overlay` > `.modal`, en-tête `.panel-head` a
 du cycle, contenu qui défile, Échap qui ferme. Une seule nuance, volontaire : dans un étage, Échap
 quitte l'étage avant de fermer le panneau, et un clic sur le voile ne ferme rien — on ne sort pas
 d'une tentative en cours par accident.
+
+## 16. Raccourcis clavier
+
+Un clicker se joue longtemps, et la souris fait l'aller-retour entre la scène, la barre de capacités
+et le menu. Le clavier raccourcit ces trajets sans rien ajouter au jeu : **chaque raccourci rejoue un
+bouton déjà à l'écran**, et aucun n'existe sans lui. Le détail des touches et des garde-fous est dans
+`docs/ui.md` ; ici, ce qui se voit.
+
+- **La touche s'affiche là où est le bouton.** Chaque capacité porte son chiffre dans le coin
+  (`kbd.ability-key`), chaque entrée du menu sa lettre à droite (`kbd.menu-key`). On apprend les
+  raccourcis en jouant, pas en lisant une notice ; les infobulles le répètent (« (L) », « (P) »).
+- **Un seul style de touche**, l'élément `kbd` de `foundation.css` : fond `--panel`, liseré `--line`
+  plus épais en bas pour le relief d'une touche, texte `--muted`. Discret à dessein — c'est une
+  indication, pas un appel à l'action.
+- **Des lettres françaises** : C pour Codex, M pour Mondes, B pour Boutique, A pour l'Arbre de
+  prestige, L pour Lancer. Elles se lisent sur la touche imprimée, donc restent justes en AZERTY.
+- **Le chiffre d'une capacité ne bouge pas** quand la barre remonte les prêtes en tête : il suit
+  l'ordre de l'équipe. Le bouton change de place, son chiffre le suit.
+- **Un écran d'aide** (`ShortcutsPanel.tsx`), ouvert par `?` ou par « Raccourcis clavier » dans le
+  menu, suit §8 : `.overlay` > `.modal`, deux groupes (Combat, Écrans), Échap ou `?` qui referme. Les
+  flèches y sont dessinées avec `IconChevronLeft`/`IconChevronRight` (§10), jamais tapées en unicode.
+- **Rien ne part sous un écran ouvert.** Un overlay garde le clavier pour lui ; les raccourcis du
+  shell reprennent quand il se ferme.

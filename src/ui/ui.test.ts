@@ -9,6 +9,8 @@ import { newlyUnlocked } from "./unlocks";
 import { termsOf } from "./presentation";
 import { gameData } from "../data";
 import { itemImagePath } from "./ItemIcon";
+import { ABILITY_SLOTS, abilitySlots, isTypingTarget, shortcutOf, type KeyLike } from "./shortcuts";
+import type { AbilityAvailability, AbilityDiagnostic } from "../engine/abilities";
 
 const emptyDisclosureFacts: DisclosureFacts = {
   kills: 0,
@@ -284,5 +286,71 @@ describe("unlock notices", () => {
     const before = deriveDisclosure(emptyDisclosureFacts, 100);
     const after = deriveDisclosure({ ...emptyDisclosureFacts, arcsCleared: 1 }, 100);
     expect(newlyUnlocked(before, after)).toContain("Portail des mondes et boutique débloqués");
+  });
+});
+
+describe("keyboard shortcuts", () => {
+  const press = (key: string, extra: Partial<KeyLike> = {}): KeyLike => ({
+    key,
+    code: "",
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    repeat: false,
+    ...extra,
+  });
+
+  it("reads ability digits from the physical key, so AZERTY and the numpad both work", () => {
+    // AZERTY's top row gives "&" unshifted: the key is useless, the code is not.
+    expect(shortcutOf(press("&", { code: "Digit1" }))).toEqual({ kind: "ability", slot: 1 });
+    expect(shortcutOf(press("9", { code: "Numpad9" }))).toEqual({ kind: "ability", slot: 9 });
+    expect(shortcutOf(press("0", { code: "Digit0" }))).toBeNull();
+  });
+
+  it("maps letters case-insensitively, whatever the layout", () => {
+    expect(shortcutOf(press("c"))).toEqual({ kind: "panel", panel: "codex" });
+    expect(shortcutOf(press("C"))).toEqual({ kind: "panel", panel: "codex" });
+    expect(shortcutOf(press("a"))).toEqual({ kind: "panel", panel: "prestige" });
+    expect(shortcutOf(press("l"))).toEqual({ kind: "fire-all" });
+    expect(shortcutOf(press("p"))).toEqual({ kind: "pause" });
+    expect(shortcutOf(press("r"))).toEqual({ kind: "rematch" });
+    expect(shortcutOf(press("?"))).toEqual({ kind: "help" });
+    expect(shortcutOf(press("ArrowLeft"))).toEqual({ kind: "arc", direction: -1 });
+    expect(shortcutOf(press("ArrowRight"))).toEqual({ kind: "arc", direction: 1 });
+    expect(shortcutOf(press("z"))).toBeNull();
+  });
+
+  it("leaves browser shortcuts and held keys alone", () => {
+    expect(shortcutOf(press("c", { ctrlKey: true }))).toBeNull();
+    expect(shortcutOf(press("r", { metaKey: true }))).toBeNull();
+    expect(shortcutOf(press("ArrowLeft", { altKey: true }))).toBeNull();
+    expect(shortcutOf(press("p", { repeat: true }))).toBeNull();
+  });
+
+  it("numbers abilities in team order, skipping sleeping ones, up to nine", () => {
+    const diagnostic = (id: string, availability: AbilityAvailability) =>
+      ({ ability: { id }, sourceId: id, characterIds: [id], availability }) as unknown as AbilityDiagnostic;
+    const slots = abilitySlots([
+      diagnostic("a", { status: "cooldown", remainingMs: 5000 }),
+      diagnostic("b", { status: "blocked-anime", animeId: "x", availableAnimeIds: [] }),
+      diagnostic("c", { status: "ready" }),
+      diagnostic("d", { status: "blocked-challenge", challengeId: "silence" }),
+    ]);
+    expect([...slots]).toEqual([
+      ["a", 1],
+      ["c", 2],
+    ]);
+
+    const many = Array.from({ length: 12 }, (_, i) => diagnostic(`n${i}`, { status: "ready" }));
+    expect(abilitySlots(many).size).toBe(ABILITY_SLOTS);
+    expect(abilitySlots(many).has("n9")).toBe(false);
+  });
+
+  it("stays silent while the player types in a field", () => {
+    expect(isTypingTarget({ tagName: "INPUT" } as unknown as EventTarget)).toBe(true);
+    expect(isTypingTarget({ tagName: "SELECT" } as unknown as EventTarget)).toBe(true);
+    expect(isTypingTarget({ tagName: "DIV", isContentEditable: true } as unknown as EventTarget)).toBe(true);
+    expect(isTypingTarget({ tagName: "BUTTON" } as unknown as EventTarget)).toBe(false);
+    expect(isTypingTarget(null)).toBe(false);
   });
 });
