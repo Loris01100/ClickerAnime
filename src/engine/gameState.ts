@@ -579,18 +579,37 @@ export function createGameStore(data: GameData) {
 
   // --- world progression ---
 
-  const arcCleared = (arc: Arc) => clearedArcIds().includes(arc.id);
+  /**
+   * The cleared arcs as a set — the one place it is built, and what every "is this cleared?" test
+   * reads. The signal stays the `string[]` the save carries; this is the shape the questions asked
+   * per arc on screen and per world want, which `isAnimeComplete` otherwise made quadratic.
+   *
+   * Deliberately **not** a `createMemo`: it reads the signal on every call and only rebuilds the set
+   * when the array identity changes, which every writer here guarantees (they all replace the array,
+   * never mutate it). A memo would have been the obvious shape and is the wrong one — the store is
+   * booted under a `createRoot` that is disposed immediately in the tests and in `sim.ts`, so a memo
+   * stops being notified and serves its boot value forever, while a plain signal read keeps working.
+   * That is why nothing on this path was a memo before either.
+   */
+  let clearedArcIdCache: { ids: string[]; set: ReadonlySet<string> } | null = null;
+  const clearedArcIdSet = (): ReadonlySet<string> => {
+    const ids = clearedArcIds();
+    if (clearedArcIdCache?.ids !== ids) clearedArcIdCache = { ids, set: new Set(ids) };
+    return clearedArcIdCache.set;
+  };
 
-  const arcOpen = (arc: Arc) => isArcUnlocked(data.arcs, arc, clearedArcIds());
+  const arcCleared = (arc: Arc) => clearedArcIdSet().has(arc.id);
+
+  const arcOpen = (arc: Arc) => isArcUnlocked(data.arcs, arc, clearedArcIdSet());
 
   const killsIn = (arc: Arc) => arcKills()[arc.id] ?? 0;
 
-  const animeCleared = (animeId: string) => isAnimeComplete(data.arcs, animeId, clearedArcIds());
+  const animeCleared = (animeId: string) => isAnimeComplete(data.arcs, animeId, clearedArcIdSet());
 
   const clearedAnimes = createMemo(() => data.animes.filter((a) => animeCleared(a.id)));
 
   /** True when nothing is left in progress, so the player may head to a new anime. */
-  const canTravel = createMemo(() => canEnterNewAnime(prestige().unlockedAnimeIds, data.arcs, clearedArcIds()));
+  const canTravel = createMemo(() => canEnterNewAnime(prestige().unlockedAnimeIds, data.arcs, clearedArcIdSet()));
 
   /**
    * Every arc the player can actually fight in right now, in travel order: animes in the order they
@@ -730,7 +749,7 @@ export function createGameStore(data: GameData) {
     }
 
     const isBoss = target.id === arc.boss.id;
-    const isFirstBossWin = isBoss && !clearedArcIds().includes(arc.id);
+    const isFirstBossWin = isBoss && !clearedArcIdSet().has(arc.id);
     // Crossover crystals: only a team spanning two worlds earns them — a boss pays once, the first
     // time its arc falls; re-farming a cleared arc's boss pays nothing, and mobs still roll.
     if (teamIsMixed()) {
@@ -761,7 +780,7 @@ export function createGameStore(data: GameData) {
     maybeDropItem(target, arc);
 
     if (isBoss) {
-      if (!clearedArcIds().includes(arc.id)) {
+      if (!clearedArcIdSet().has(arc.id)) {
         setClearedArcIds((ids) => [...ids, arc.id]);
         bumpAchievement("arcsCleared");
         pushNotice("arc", `${arc.name} terminé`);
@@ -1302,7 +1321,7 @@ export function createGameStore(data: GameData) {
   } = portals;
 
   /** True when this world's own prerequisite is cleared — the universe's reading order. */
-  const animeAvailable = (animeId: string) => isAnimeAvailable(data.animes, animeId, data.arcs, clearedArcIds());
+  const animeAvailable = (animeId: string) => isAnimeAvailable(data.animes, animeId, data.arcs, clearedArcIdSet());
 
   /** The anime that has to be cleared first, when this one is still shut behind it. */
   function animeBlockedBy(animeId: string): Anime | null {
@@ -1745,6 +1764,8 @@ export function createGameStore(data: GameData) {
     arcOf,
     animeOf,
     now,
+    /** The once-a-second display clock — see the signal. Anything shown to the second reads this. */
+    statClock,
     runStartedAt,
     currency,
     lifetimeEarned,

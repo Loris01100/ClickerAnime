@@ -103,37 +103,60 @@ export function computeScopedStat(
 }
 
 /**
- * `computeEffectiveStat` over two lists at once, without concatenating them first.
- *
- * Purely to avoid the allocation: the fold below runs it twice per scoped group, so a fifty-strong
- * roster built two hundred throwaway arrays every time the team's dps was read. The lists are
- * walked `first` then `second`, which is the order the concatenation used to produce — float
- * addition is not associative, so that order is part of the result, not an implementation detail.
- *
- * `permanentOnly` drops every timed modifier from `second` — the "bare" half of the mastery cap,
- * which asks what this character is worth with no buff running. It deliberately does not apply to
- * `first`: the team-wide scaling is filtered by expiry like anywhere else, never by being timed.
+ * The three accumulators the fold walks a modifier list into: the flats it sums, the percents it
+ * sums, and the multipliers it multiplies. Kept as a value so the team-wide half can be folded once
+ * and reused, rather than re-walked for every scoped group — see `foldScaling`.
  */
-function foldPair(
-  base: number,
-  target: ModifierTarget,
-  first: ActiveModifier[],
-  second: ActiveModifier[],
-  now: number,
-  permanentOnly: boolean
-): number {
+interface Accumulators {
+  flatSum: number;
+  percentSum: number;
+  multiplierProduct: number;
+}
+
+/**
+ * The team-wide scaling, walked into its three accumulators once.
+ *
+ * `foldScopedStat` used to re-walk this list inside each group's own fold — twice per scoped group,
+ * so a fifty-strong roster walked it a hundred times per read for a result that is the same every
+ * time. Hoisting it is exact rather than merely cheap: the accumulators below start from these
+ * values and the group's own modifiers are added on top, which is the very sequence of float
+ * operations the two nested loops used to perform. Float addition is not associative, so that order
+ * is the result, not an implementation detail.
+ */
+function foldScaling(target: ModifierTarget, scaling: ActiveModifier[], now: number): Accumulators {
   let flatSum = 0;
   let percentSum = 0;
   let multiplierProduct = 1;
 
-  for (const mod of first) {
+  for (const mod of scaling) {
     if (mod.target !== target) continue;
     if (mod.expiresAt !== undefined && mod.expiresAt <= now) continue;
     if (mod.kind === "flat") flatSum += mod.value;
     else if (mod.kind === "percent") percentSum += mod.value;
     else if (mod.kind === "multiplier") multiplierProduct *= mod.value;
   }
-  for (const mod of second) {
+  return { flatSum, percentSum, multiplierProduct };
+}
+
+/**
+ * One scoped group folded on top of an already-folded team-wide half.
+ *
+ * `permanentOnly` drops every timed modifier from the group — the "bare" half of the mastery cap,
+ * which asks what this character is worth with no buff running. It deliberately does not apply to
+ * `scaling`, which is why the same `Accumulators` serve both halves: the team-wide scaling is
+ * filtered by expiry like anywhere else, never by being timed.
+ */
+function foldGroup(
+  base: number,
+  target: ModifierTarget,
+  scaling: Accumulators,
+  group: ActiveModifier[],
+  now: number,
+  permanentOnly: boolean
+): number {
+  let { flatSum, percentSum, multiplierProduct } = scaling;
+
+  for (const mod of group) {
     if (mod.target !== target) continue;
     if (mod.expiresAt !== undefined && (permanentOnly || mod.expiresAt <= now)) continue;
     if (mod.kind === "flat") flatSum += mod.value;
@@ -165,9 +188,11 @@ export function foldScopedStat(
   cap: number = SCOPED_BUFF_CAP
 ): number {
   let total = computeEffectiveStat(base, target, global, now);
+  // Folded once for the whole roster: it is the same list, at the same instant, for every group.
+  const scalingFold = foldScaling(target, scaling, now);
   for (const group of groups) {
-    const buffed = foldPair(0, target, scaling, group, now, false);
-    const bare = foldPair(0, target, scaling, group, now, true);
+    const buffed = foldGroup(0, target, scalingFold, group, now, false);
+    const bare = foldGroup(0, target, scalingFold, group, now, true);
     total += Math.min(buffed, bare * cap);
   }
   return total;

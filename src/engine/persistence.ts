@@ -25,12 +25,6 @@ export interface SaveFile {
    * would keep rising *inside* the world it scales. Absent on a save written before worlds were
    * re-levelled, which reads back as 1 everywhere, i.e. the tier ramp alone.
    */
-  /**
-   * The scale each entered world is played at, frozen when it was entered — like the tier its entry
-   * order encodes, and for the same reason: recomputed live it would keep rising inside the world it
-   * scales. Absent on a save written before worlds were re-levelled, which reads back as the tier
-   * ramp alone.
-   */
   animeEntryDifficulties?: Record<string, number>;
   /** How far each entered world's `arcPower` rungs are shifted, frozen alongside the difficulty. */
   animeEntryScales?: Record<string, number>;

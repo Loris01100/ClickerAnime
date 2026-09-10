@@ -125,21 +125,60 @@ export function relevelledDifficulty(
   return entryDifficulty * (first.weight / arc.weight) * Math.pow(arc.power / first.power, RELEVEL_RAMP);
 }
 
+/**
+ * Every world's arcs, in progression order, split out of the flat `data.arcs` **once per array**.
+ *
+ * The split used to run on every call — a filter over all 55 arcs plus a sort, allocating two
+ * throwaway arrays. That is one call per arc drawn on a world map, one per world in `clearedAnimes`,
+ * one per unlocked world in `canTravel`, and four more per world in the re-levelling tables: the
+ * same six answers, rebuilt dozens of times per render for a `data` that never changes at runtime.
+ *
+ * Keyed on the array itself, so it stays a pure function of its arguments: a test passing a fresh
+ * `arcs` gets a fresh split, and a `WeakMap` lets that one be collected with it. The corollary is
+ * that the returned array is **shared** — like everything `store/content.ts` builds, it is the
+ * content indexed, and no caller may mutate or re-sort it in place.
+ */
+const orderedArcsByAnime = new WeakMap<Arc[], Map<string, Arc[]>>();
+
 export function arcsOfAnime(arcs: Arc[], animeId: string): Arc[] {
-  return arcs.filter((a) => a.animeId === animeId).sort((a, b) => a.order - b.order);
+  let byAnime = orderedArcsByAnime.get(arcs);
+  if (!byAnime) {
+    byAnime = new Map<string, Arc[]>();
+    for (const arc of arcs) {
+      const ordered = byAnime.get(arc.animeId);
+      if (ordered) ordered.push(arc);
+      else byAnime.set(arc.animeId, [arc]);
+    }
+    for (const ordered of byAnime.values()) ordered.sort((a, b) => a.order - b.order);
+    orderedArcsByAnime.set(arcs, byAnime);
+  }
+  return byAnime.get(animeId) ?? EMPTY_ARCS;
 }
 
+/** Shared so a world with no arcs doesn't allocate one empty array per call. Never mutated. */
+const EMPTY_ARCS: Arc[] = [];
+
+/**
+ * The arcs this run has cleared, as a set.
+ *
+ * A `Set` rather than the `string[]` the save carries: these predicates are asked per arc on screen
+ * and per world, and `isAnimeComplete` walks a world's arcs against it, so a linear `includes` made
+ * the pair quadratic in the number of arcs. The store keeps the set as a memo of the signal
+ * (`clearedArcIdSet`), which is also the one place it is built.
+ */
+export type ClearedArcs = ReadonlySet<string>;
+
 /** An arc opens once the previous arc of its anime is cleared; the first one is always open. */
-export function isArcUnlocked(arcs: Arc[], arc: Arc, clearedArcIds: string[]): boolean {
+export function isArcUnlocked(arcs: Arc[], arc: Arc, clearedArcIds: ClearedArcs): boolean {
   const ordered = arcsOfAnime(arcs, arc.animeId);
   const index = ordered.findIndex((a) => a.id === arc.id);
   if (index <= 0) return true;
-  return clearedArcIds.includes(ordered[index - 1].id);
+  return clearedArcIds.has(ordered[index - 1].id);
 }
 
-export function isAnimeComplete(arcs: Arc[], animeId: string, clearedArcIds: string[]): boolean {
+export function isAnimeComplete(arcs: Arc[], animeId: string, clearedArcIds: ClearedArcs): boolean {
   const ordered = arcsOfAnime(arcs, animeId);
-  return ordered.length > 0 && ordered.every((arc) => clearedArcIds.includes(arc.id));
+  return ordered.length > 0 && ordered.every((arc) => clearedArcIds.has(arc.id));
 }
 
 /**
@@ -152,7 +191,7 @@ export function isAnimeAvailable(
   animes: Anime[],
   animeId: string,
   arcs: Arc[],
-  clearedArcIds: string[]
+  clearedArcIds: ClearedArcs
 ): boolean {
   const anime = animes.find((a) => a.id === animeId);
   if (!anime) return false;
@@ -163,6 +202,6 @@ export function isAnimeAvailable(
  * The player may head to a new anime only when nothing is left in progress: at the very start
  * (nothing entered yet) or once every anime already entered is finished.
  */
-export function canEnterNewAnime(unlockedAnimeIds: string[], arcs: Arc[], clearedArcIds: string[]): boolean {
+export function canEnterNewAnime(unlockedAnimeIds: string[], arcs: Arc[], clearedArcIds: ClearedArcs): boolean {
   return unlockedAnimeIds.every((id) => isAnimeComplete(arcs, id, clearedArcIds));
 }
