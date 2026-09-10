@@ -711,7 +711,7 @@ code écrit à la main.
 - **La mesure de progression demande un choix explicite.** Son bandeau reste compact mais écrit la
   finalité, ce qui n'est jamais transmis, la durée de conservation et le chemin de retrait. Refuser
   et autoriser ont la même accessibilité ; la couleur primaire indique l'action utile sans déguiser
-  le refus. Le choix vit dans sa propre préférence locale et peut être inversé depuis le menu.
+  le refus. Le choix vit dans sa propre préférence locale et peut être inversé depuis les Paramètres.
 - **Le prestige se conclut par un bilan, pas par un écran vide.** Après confirmation, un overlay
   résume le temps, la complétion, les points gagnés, l'activité de combat et d'économie, la puissance
   finale et surtout les maîtrises conservées. Les valeurs sont figées avant la remise à zéro : le
@@ -776,15 +776,21 @@ densité PokéClicker (§1) et le principe de réutilisation (§8) tiennent mêm
   PokéClicker : la rangée de boutons grandissait d'un cran à chaque panneau ajouté et finissait par
   toucher le titre. Un `<details>` natif, pas de librairie ni d'état de dropdown ; le panneau
   (`.startmenu-items`) réutilise `--panel`, `--line` et `--ink-shadow`, ses entrées sont les mêmes
-  `<button>` que partout, seulement alignées à gauche et sans bordure. L'état de la sauvegarde et le
-  « Tout effacer » ont suivi les autres entrées dans le menu.
-- **Exporter/Importer** sont des boutons texte sans icône ni mise en avant particulière dans le menu,
-  comme leurs voisins — l'export d'une sauvegarde n'est pas une action plus "importante"
+  `<button>` que partout, seulement alignées à gauche et sans bordure. L'état de la sauvegarde reste
+  en bas du menu.
+- **Le menu ne liste que des écrans de jeu, plus « Paramètres ».** Thème, raccourcis clavier,
+  sauvegarde, mesure anonyme et « Tout effacer » faisaient six lignes à plat et le menu dépassait
+  l'écran ; ils sont regroupés dans une modale `SettingsPanel.tsx` (§8 : `.overlay` > `.modal`,
+  groupes séparés d'un filet comme l'aide des raccourcis). Le thème y a un choix explicite en trois
+  boutons (état actif en dégradé d'accent, comme `.tabs`), en plus du bouton cyclique de la topbar.
+  « Tout effacer » garde son `button.danger`, isolé dans un dernier groupe « Zone de danger ».
+- **Exporter/Importer** sont des boutons texte sans icône ni mise en avant particulière dans les
+  Paramètres, comme leurs voisins — l'export d'une sauvegarde n'est pas une action plus "importante"
   visuellement, seulement plus rare. L'input de fichier caché derrière `Importer` n'a pas de style
   propre (`display: none`), le `<button>` visible est ce qui capte le clic. La topbar n'a plus de
   bouton `Sauvegarder`/`Réinitialiser` : l'autosave (`gameState`, toutes les 5s) rend le premier
-  redondant, et le hard reset reste une action du moteur (`game.hardReset`) sans point d'entrée UI
-  pour l'instant plutôt qu'un bouton risquant un clic accidentel.
+  redondant, et le hard reset (« Tout effacer », derrière un `confirm`) vit dans les Paramètres
+  plutôt qu'à portée d'un clic accidentel.
 
 ---
 
@@ -1121,8 +1127,8 @@ bouton déjà à l'écran**, et aucun n'existe sans lui. Le détail des touches 
   prestige, L pour Lancer. Elles se lisent sur la touche imprimée, donc restent justes en AZERTY.
 - **Le chiffre d'une capacité ne bouge pas** quand la barre remonte les prêtes en tête : il suit
   l'ordre de l'équipe. Le bouton change de place, son chiffre le suit.
-- **Un écran d'aide** (`ShortcutsPanel.tsx`), ouvert par `?` ou par « Raccourcis clavier » dans le
-  menu, suit §8 : `.overlay` > `.modal`, deux groupes (Combat, Écrans), Échap ou `?` qui referme. Les
+- **Un écran d'aide** (`ShortcutsPanel.tsx`), ouvert par `?` ou par « Raccourcis clavier » dans les
+  Paramètres, suit §8 : `.overlay` > `.modal`, deux groupes (Combat, Écrans), Échap ou `?` qui referme. Les
   flèches y sont dessinées avec `IconChevronLeft`/`IconChevronRight` (§10), jamais tapées en unicode.
 - **Rien ne part sous un écran ouvert.** Un overlay garde le clavier pour lui ; les raccourcis du
   shell reprennent quand il se ferme.

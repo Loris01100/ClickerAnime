@@ -13,7 +13,7 @@ export default function TelemetryConsent() {
             ou historique de navigation n’est transmis.
           </span>
           <small>
-            Conservation : 3 mois chez Cloudflare. Ce choix reste modifiable dans le menu.
+            Conservation : 3 mois chez Cloudflare. Ce choix reste modifiable dans les Paramètres.
           </small>
         </div>
         <button onClick={() => setTelemetryConsent("disabled")}>Refuser</button>

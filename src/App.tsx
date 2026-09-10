@@ -38,13 +38,14 @@ const ForgePanel = lazy(() => import("./ui/ForgePanel"));
 const PrestigeReportPanel = lazy(() => import("./ui/PrestigeReportPanel"));
 const TowerPanel = lazy(() => import("./ui/TowerPanel"));
 const ShortcutsPanel = lazy(() => import("./ui/ShortcutsPanel"));
+const SettingsPanel = lazy(() => import("./ui/SettingsPanel"));
 import { abilitySlots, isTypingTarget, shortcutOf, type ShortcutAction, type ShortcutPanel } from "./ui/shortcuts";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
 import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
 import { imagePathsForAnime, preloadImages, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./ui/preload";
 import TelemetryConsent from "./ui/TelemetryConsent";
-import { setTelemetryConsent, setupTelemetry, telemetryConsent } from "./ui/telemetry";
+import { setupTelemetry } from "./ui/telemetry";
 
 const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 
@@ -66,7 +67,7 @@ export default function App() {
   const [forgeOpen, setForgeOpen] = createSignal(false);
   const [towerOpen, setTowerOpen] = createSignal(false);
   const [shortcutsOpen, setShortcutsOpen] = createSignal(false);
-  let importInput: HTMLInputElement | undefined;
+  const [settingsOpen, setSettingsOpen] = createSignal(false);
   let menu: HTMLDetailsElement | undefined;
 
   onMount(() => {
@@ -211,6 +212,7 @@ export default function App() {
     forgeOpen() ||
     towerOpen() ||
     shortcutsOpen() ||
+    settingsOpen() ||
     Boolean(game.lastPrestigeReport());
 
   /** Plays one shortcut; returns whether it did anything, so an unhandled key keeps its default. */
@@ -255,49 +257,6 @@ export default function App() {
   }
   onMount(() => document.addEventListener("keydown", onShortcutKey));
   onCleanup(() => document.removeEventListener("keydown", onShortcutKey));
-
-  /** Downloads the current save as a portable .txt blob — see gameState's exportSave. */
-  function exportSave() {
-    const blob = new Blob([game.exportSave()], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    // Local date and time, not the epoch: the player sorts these by hand in their downloads
-    // folder, and two exports the same day have to be told apart. `h` rather than `:` — Windows
-    // refuses a colon in a filename.
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const time = `${pad(now.getHours())}h${pad(now.getMinutes())}`;
-    link.download = `[Clicker-Anime][${date}][${time}].txt`;
-    link.click();
-    // Revoking synchronously can cancel the download before the browser has read the blob.
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-  }
-
-  /**
-   * The full wipe. Lives in the topbar rather than in a panel because it is also the way out of a
-   * save the player can't otherwise recover from — and the topbar is the one thing on screen in
-   * every state, including the world portal.
-   */
-  function onHardReset() {
-    if (!confirm("Tout effacer ? Points de prestige, arbre, succès, packs et doublons compris. Irréversible.")) return;
-    game.hardReset();
-  }
-
-  function onRestoreBackup() {
-    if (!confirm("Remplacer la partie actuelle par la copie de secours ? La partie actuelle restera disponible comme copie de retour.")) return;
-    if (!game.restoreBackup()) alert("Aucune copie de secours valide n’est disponible.");
-  }
-
-  async function onImportFile(event: Event) {
-    const input = event.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = "";
-    if (!file) return;
-    const text = await file.text();
-    if (!game.importSave(text)) alert("Fichier de sauvegarde invalide.");
-  }
 
   return (
     <>
@@ -382,25 +341,12 @@ export default function App() {
               >
                 <hr />
               </Show>
-              <button onClick={() => runFromMenu(() => setShortcutsOpen(true))}>
-                Raccourcis clavier <kbd class="menu-key">?</kbd>
-              </button>
-              <button onClick={() => runFromMenu(exportSave)}>Exporter</button>
-              <button onClick={() => runFromMenu(() => importInput?.click())}>Importer</button>
-              <button
-                title="Jalons de progression agrégés, sans identifiant de joueur"
-                onClick={() =>
-                  runFromMenu(() => setTelemetryConsent(telemetryConsent() === "enabled" ? "disabled" : "enabled"))
-                }
-              >
-                Mesure anonyme : {telemetryConsent() === "enabled" ? "activée" : "désactivée"}
-              </button>
-              <Show when={game.hasBackupSave()}>
-                <button onClick={() => runFromMenu(onRestoreBackup)}>Restaurer la copie de secours</button>
-              </Show>
-              <button class="danger" onClick={() => runFromMenu(onHardReset)}>
-                Tout effacer
-              </button>
+              {/*
+                Réglages, sauvegarde, mesure anonyme et « Tout effacer » vivent dans un seul écran :
+                le menu grandissait d'une ligne par réglage. Toujours affichée, portail des mondes
+                compris — c'est aussi la sortie d'une sauvegarde dont on ne se relève pas autrement.
+              */}
+              <button onClick={() => runFromMenu(() => setSettingsOpen(true))}>Paramètres</button>
               {/* Une sauvegarde automatique silencieuse ne se distingue pas d'une sauvegarde cassée. */}
               <small class="save-state muted" title="Sauvegarde automatique toutes les 5s">
                 <Show when={game.lastSavedAt() > 0} fallback="pas encore sauvegardé">
@@ -409,13 +355,6 @@ export default function App() {
               </small>
             </div>
           </details>
-          <input
-            ref={importInput}
-            type="file"
-            accept=".txt"
-            style={{ display: "none" }}
-            onChange={onImportFile}
-          />
         </div>
       </header>
 
@@ -517,6 +456,17 @@ export default function App() {
 
       <Show when={shortcutsOpen()}>
         <ShortcutsPanel onClose={() => setShortcutsOpen(false)} />
+      </Show>
+
+      <Show when={settingsOpen()}>
+        <SettingsPanel
+          game={game}
+          onClose={() => setSettingsOpen(false)}
+          onOpenShortcuts={() => {
+            setSettingsOpen(false);
+            setShortcutsOpen(true);
+          }}
+        />
       </Show>
 
       <Show when={game.lastPrestigeReport()}>

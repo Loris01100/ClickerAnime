@@ -91,7 +91,7 @@ announcements reuse the bounded, dismissible notice queue used by drops and recr
 
 `TelemetryConsent.tsx` is a fixed, compact consent banner shown once until the player chooses. It
 states the aggregate milestones collected, the categories never sent, the three-month retention and
-the permanent menu switch used to withdraw or grant consent later. The client does not contact the
+the permanent switch in « Paramètres » used to withdraw or grant consent later. The client does not contact the
 telemetry endpoint while the state is pending or refused.
 
 The ability bar keeps every owned ability visible. Disabled cards print their precise state rather
@@ -349,8 +349,8 @@ pointerait sur du JS minifié.
 
 The topbar is a centred title plus, anchored right, the theme toggle and one `<details class="startmenu">`
 holding every entry point, text-only and a size up from the game's buttons — Codex, Mondes, Boutique,
-Packs, Catalogue, Crossover, Défis, Succès, Prestige, then
-Exporter / Importer / Tout effacer and the autosave line. It replaced a row of buttons that grew by one
+Packs, Catalogue, Crossover, Défis, Tour, Plans, Succès, Statistiques, Prestige, then « Paramètres » and
+the autosave line. It replaced a row of buttons that grew by one
 every time a panel was added, and would eventually have collided with the title; PokéClicker's StartMenu
 is the model.
 
@@ -360,8 +360,14 @@ opens a modal must not leave the menu open underneath it) and `onMenuFocusOut` (
 on an outside click by itself). The world-dependent entries stay behind the same
 `game.unlockedAnimes().length > 0` guard they had in the old bar.
 
-Each entry that has a keyboard shortcut prints it on its right (`kbd.menu-key`), and a « Raccourcis
-clavier » entry opens the help overlay.
+Each entry that has a keyboard shortcut prints it on its right (`kbd.menu-key`).
+
+Everything that configures the game rather than plays it sits behind the single « Paramètres » entry
+(`SettingsPanel.tsx`, an ordinary overlay): theme, the « Raccourcis clavier » help, the save
+(Exporter / Importer / Restaurer la copie de secours, with the hidden file input), the telemetry
+switch and « Tout effacer ». Those used to be six flat menu entries and the menu had outgrown the
+screen. The entry is shown unconditionally, world portal included, because import and the full wipe
+are also the way out of a save the player can't otherwise recover from.
 
 ## Keyboard shortcuts
 

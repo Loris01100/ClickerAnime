@@ -4,17 +4,28 @@ import { readFile } from "node:fs/promises";
 const SAVE_KEY = "clicker-anime:save:v10";
 const BACKUP_KEY = `${SAVE_KEY}:backup`;
 
-async function exportedSave(page: Page): Promise<Record<string, any>> {
+/** Export, import and backup recovery live in the settings overlay, reached through the menu. */
+async function openSettings(page: Page) {
   await page.locator("summary", { hasText: "Menu" }).click();
+  await page.getByRole("button", { name: "Paramètres", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeVisible();
+}
+
+async function exportedSave(page: Page): Promise<Record<string, any>> {
+  await openSettings(page);
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exporter", exact: true }).click();
   const download = await downloadPromise;
   const path = await download.path();
   if (!path) throw new Error("Le téléchargement de la sauvegarde n’a produit aucun fichier.");
+  // The overlay would otherwise sit over the game the rest of the journey has to click.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeHidden();
   return JSON.parse(Buffer.from(await readFile(path, "utf8"), "base64").toString("utf8"));
 }
 
 async function importSave(page: Page, save: Record<string, any>) {
+  await openSettings(page);
   const encoded = Buffer.from(JSON.stringify(save), "utf8").toString("base64");
   const navigation = page.waitForEvent("framenavigated", (frame) => frame === page.mainFrame());
   await page.locator('input[type="file"]').setInputFiles({
@@ -179,9 +190,9 @@ test("nouvelle partie → export/import → secours → prestige", async ({ page
   expect(afterPrestige.uniqueUpgradeRanks["item-kubikiri"]).toBe(5);
   expect(afterPrestige.prestigePoints).toBeGreaterThan(0);
 
-  // Manual recovery is exposed in the same menu as import/export and swaps the slots, so it can
-  // itself be undone until the next autosave.
-  await page.locator("summary", { hasText: "Menu" }).click();
+  // Manual recovery is exposed in the same settings as import/export and swaps the slots, so it
+  // can itself be undone until the next autosave.
+  await openSettings(page);
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Restaurer la copie de secours" }).click();
   await page.waitForLoadState("domcontentloaded");

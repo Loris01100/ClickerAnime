@@ -393,6 +393,51 @@
   margin: 0.8rem 0 0;
   font-size: 0.75rem;
 }
+/* Paramètres : mêmes groupes séparés d'un filet que l'aide des raccourcis. */
+.settings-modal {
+  width: min(560px, 96vw);
+}
+/* `.scroll` plafonne à 260px, taille d'un panneau latéral : ici c'est la modale (88vh) qui borne. */
+.settings-body {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  padding: 0.75rem 1rem 1rem;
+}
+.settings-group + .settings-group {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+.settings-group h3 {
+  margin: 0 0 0.45rem;
+}
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.8rem;
+}
+.settings-row > span {
+  flex: 1 1 12rem;
+}
+.settings-actions,
+.settings-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.settings-choice button.active {
+  border-color: transparent;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: var(--on-accent);
+  text-shadow: 0 1px 2px var(--ink-veil);
+}
+.settings-note {
+  margin: 0.4rem 0;
+  font-size: 0.75rem;
+}
 .prestige-report-hero {
   display: flex;
   align-items: center;
