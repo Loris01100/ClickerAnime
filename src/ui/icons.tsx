@@ -88,6 +88,22 @@ export const IconMoon = icon("0 0 24 24", () => (
   <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="currentColor" />
 ));
 
+/** Haut-parleur et ses deux ondes : le son est actif. */
+export const IconVolume = icon("0 0 24 24", () => (
+  <>
+    <path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+  </>
+));
+
+/** Le même haut-parleur, barré d'une croix : le son est coupé. */
+export const IconVolumeOff = icon("0 0 24 24", () => (
+  <>
+    <path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor" />
+    <path d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+  </>
+));
+
 /** Collapse/expand toggle for panel headers — points down when open, rotated closed via CSS. */
 export const IconChevron = icon("0 0 24 24", () => (
   <path

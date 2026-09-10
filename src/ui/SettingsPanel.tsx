@@ -2,6 +2,31 @@ import { For, Show, onCleanup, onMount } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { setTheme, theme, type Theme } from "./theme";
 import { setTelemetryConsent, telemetryConsent } from "./telemetry";
+import { playCue, soundPrefs, updateSoundPrefs } from "./sound";
+import type { SoundPrefs } from "./soundCues";
+
+/** Un curseur de volume, 0 à 100 % par pas de 5. Relâché, il fait entendre ce qu'il vient de régler. */
+function VolumeSlider(props: { label: string; field: "effects" | "music"; onRelease?: () => void }) {
+  const percent = () => Math.round(soundPrefs()[props.field] * 100);
+  return (
+    <label class="settings-row">
+      <span>{props.label}</span>
+      <input
+        type="range"
+        class="settings-slider"
+        min="0"
+        max="100"
+        step="5"
+        value={percent()}
+        disabled={soundPrefs().muted}
+        aria-valuetext={`${percent()} %`}
+        onInput={(event) => updateSoundPrefs({ [props.field]: Number(event.currentTarget.value) / 100 } as Partial<SoundPrefs>)}
+        onChange={() => props.onRelease?.()}
+      />
+      <output class="settings-slider-value">{percent()} %</output>
+    </label>
+  );
+}
 
 const THEME_CHOICES: { id: Theme; label: string }[] = [
   { id: "system", label: "Système" },
@@ -100,6 +125,36 @@ export default function SettingsPanel(props: { game: GameStore; onClose: () => v
                 </For>
               </div>
             </div>
+          </section>
+
+          <section class="settings-group">
+            <h3>Son</h3>
+            <div class="settings-row">
+              <span>Son du jeu</span>
+              <button
+                aria-pressed={!soundPrefs().muted}
+                onClick={() => updateSoundPrefs({ muted: !soundPrefs().muted })}
+              >
+                {soundPrefs().muted ? "Coupé" : "Activé"}
+              </button>
+            </div>
+            <VolumeSlider label="Effets" field="effects" onRelease={() => playCue("passive")} />
+            <VolumeSlider label="Musique" field="music" />
+            <div class="settings-row">
+              <span>Bruits de combat</span>
+              <button
+                aria-pressed={soundPrefs().combat}
+                disabled={soundPrefs().muted}
+                onClick={() => updateSoundPrefs({ combat: !soundPrefs().combat })}
+              >
+                {soundPrefs().combat ? "Activés" : "Coupés"}
+              </button>
+            </div>
+            <p class="muted settings-note">
+              Les bruits de combat reviennent plusieurs fois par seconde : clics, ennemis vaincus, capacités,
+              objets communs et dernières secondes du chrono. Les couper garde les boss, recrues et
+              récompenses. <kbd>V</kbd> coupe tout le son en jeu.
+            </p>
           </section>
 
           <section class="settings-group">

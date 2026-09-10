@@ -294,6 +294,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - A component never builds a colour string: it sets `--world-hue` on a container and the imported
   CSS modules do the rest.
 - UI strings are French. The player's click is **le Clic du Narrateur** — keep that name in the UI.
+- **Sound is derived, never emitted.** Every event sound is read off counters and signals the store
+  already exposes (`ui/sound.ts` diffs a `SoundFacts` snapshot through the pure `cueBetween`); the
+  engine has no audio call and must not grow one. Only the narrator's click plays directly, from
+  `ClickStage`. All sound is synthesised — no audio file — and nothing plays before the first gesture
+  or in a hidden tab (`docs/ui.md`).
 - **A pending `Sprite` portrait must never suspend its ancestor.** `App.tsx` has one `<Suspense>`
   around every deferred overlay, so reading the resource while it loads detached the whole overlay
   from the DOM — 43% of the time in the tower, which changes opponent every second or two. `Sprite`
@@ -314,7 +319,7 @@ One file per area under `docs/`. Each carries the full rationale and the tuning 
 Every production character has at least one `tags` entry. These types are shown in the Codex and are
 the shared vocabulary for equipment restrictions; add their French label in `ui/describe.ts`.
 | Modifiers | `docs/modifiers.md` | The `ActiveModifier` pipeline and its three sources; abilities, cooldowns and the same-stat lock |
-| UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming |
+| UI | `docs/ui.md` | The 3-column shell and overlays, world maps, AniList portraits and banners, `Sprite`, per-world hue, theming, keyboard shortcuts, synthesised sound and music |
 | Persistence | `docs/persistence.md` | The `SaveFile` shape, versioning, export/import |
 | Telemetry | `docs/telemetry.md` | Opt-in progression milestones, Worker validation, Analytics Engine schema and queries |
 | Content validation | `docs/content-validation.md` | Semantic validation of ids, references, recruitment and sequel presence |

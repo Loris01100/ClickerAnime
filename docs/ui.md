@@ -383,6 +383,7 @@ existing actions. No shortcut does anything a button on screen doesn't already d
 | `←` / `→` | previous / next arc (`stepArc`) |
 | `P` | pause / resume |
 | `C` `M` `B` `K` `X` `D` `T` `S` `A` | Codex, Mondes, Boutique, Packs, Crossover, Défis, Tour, Succès, Arbre de prestige |
+| `V` | mute / unmute (see **Sound**) |
 | `?` | the help overlay (`ShortcutsPanel.tsx`), which `?` or Escape close again |
 
 The rules that keep it from getting in the way:
@@ -401,6 +402,56 @@ The rules that keep it from getting in the way:
   key must never open a screen the player hasn't discovered yet.
 - A recognised key is always `preventDefault`ed, played or not, so `→` at the last arc doesn't scroll
   the page. Space and Enter stay the stage's own (`ClickStage.handleKey`) and are not handled here.
+
+## Sound
+
+Every sound is **synthesised** with the Web Audio API — no audio file to source, license, ship or
+preload. Two files, split like the rest of `ui/`:
+
+- **`ui/soundCues.ts` — pure, tested in node.** The preferences and their parser, each effect as data
+  (`CUES`: oscillator and filtered-noise voices with a pitch, a length and a gain), the event diff
+  (`cueBetween`) and the music themes (`MUSIC_THEMES`, `chordOf`).
+- **`ui/sound.ts` — the browser side.** One `AudioContext`, three gain buses (`master` for mute,
+  `effects`, `music`) through a compressor, `playCue`, the music scheduler, and `setupSound(game)`,
+  called from `App.tsx` right after `setupTelemetry`.
+
+**The engine knows nothing about it.** Every event sound is derived from what the store already
+exposes: `setupSound` folds a `SoundFacts` snapshot — the lifetime achievement counters
+(`bossesKilled`, `charactersRecruited`, `packsOpened`…), the achievement tiers reached, unique items
+found, worlds unlocked, tower floors, `lastTimeout` / `towerLastFailure`, the boss on screen and the
+running timer — and `cueBetween` compares two snapshots. A counter that **rises** plays its cue; one
+that falls (Tout effacer) plays nothing, and a jump no tick could make (more than 50 kills, or two
+prestiges at once) is a save being loaded, which is silent too. The first snapshot has no
+predecessor, so booting the game plays nothing.
+
+**One cue per snapshot**, the highest in `CUE_PRIORITY`: a boss kill that clears the arc, drops an
+item and completes an achievement tier plays the arc fanfare, not four overlapping jingles. Each cue
+also has a `minGapMs`, so a capped 5 kills/s or a twenty-click burst never stacks sounds. The
+repetitive ones (`category: "combat"` — click, crit, kill, ability, common item, the timer's last five
+seconds) can be switched off apart from the rest.
+
+The narrator's click is the one cue played directly (`ClickStage.strike`), because it answers a
+gesture rather than a counter and must land in the same frame as its damage number. The prestige
+autoclicker stays silent: it would double every manual click.
+
+**The browser's autoplay rule.** The context is created on the first `pointerdown`/`keydown`
+(capture phase, so it exists before the stage's own click handler). Until then, and whenever the
+context isn't `running`, `playCue` **drops** the sound instead of queueing it — a queue would burst
+out on the first click. A hidden tab suspends the context (the game keeps ticking; a kill heard from
+another tab is noise), and a visible one resumes it.
+
+**The music is generative**: a look-ahead scheduler (`setInterval` every 100 ms placing the next
+250 ms of eighth notes on the context clock) plays, per bar, the world theme's chord as a pad, a bass
+on the root and a random arpeggio over the chord tones. Each world has a scale, a four-chord
+progression, a tempo and a lead timbre; the world portal uses `DEFAULT_THEME`. A boss on screen
+(`SoundFacts.bossId`, arc boss, portal or tower boss) raises the tempo by `BOSS_TEMPO` and adds a
+beat; a pause stops the music. A new world needs its entry in `MUSIC_THEMES` — `sound.test.ts`
+fails without it.
+
+**Preferences** (`clicker-anime:sound:v1`, beside the theme, never in the save): mute, effects volume,
+music volume, "Bruits de combat". Sliders go through `gainOf` (a square law), since a linear gain puts
+all the useful range in the first quarter of the slider. They live in the « Son » group of
+`SettingsPanel`; the topbar's speaker button and the `V` shortcut toggle mute.
 
 ## Paths into `public/`
 

@@ -1132,3 +1132,30 @@ bouton déjà à l'écran**, et aucun n'existe sans lui. Le détail des touches 
   flèches y sont dessinées avec `IconChevronLeft`/`IconChevronRight` (§10), jamais tapées en unicode.
 - **Rien ne part sous un écran ouvert.** Un overlay garde le clavier pour lui ; les raccourcis du
   shell reprennent quand il se ferme.
+
+## 17. Son et musique
+
+Dans un clicker, le retour sonore compte presque autant que l'animation : un clic, un boss qui
+tombe ou une recrue qui rejoint l'équipe doivent s'entendre. Le mécanisme est décrit dans
+`docs/ui.md` ; ici, ce qu'on entend.
+
+- **Tout est synthétisé, dans l'esprit des consoles 8/16 bits** : ondes triangle et carrées
+  filtrées, souffles de bruit. Même esprit que la densité façon PokéClicker (§1) : rétro, lisible,
+  sans rien à sourcer ni à licencier.
+- **Plus un son revient souvent, plus il est discret.** Un clic est un « tac » court et sans note
+  marquée, un ennemi vaincu un petit « pop » ; seuls les événements rares (fin d'arc, recrue,
+  évolution, prestige) ont droit à une mélodie. Les sons répétés varient légèrement de hauteur à
+  chaque fois, pour ne pas sonner comme une machine.
+- **Une seule tonalité claire pour les effets** (Do majeur) : deux sons qui se chevauchent ne jurent
+  pas. Et **un seul jingle à la fois** — le plus important de l'instant.
+- **Une musique par monde**, générée à la volée et jamais bouclée à l'identique : Naruto en mode
+  dorien, Shippūden et Boruto plus sombres, Hunter x Hunter aventurier en majeur, Bleach tendu,
+  Horimiya lent et doux. Un boss accélère la musique et y ajoute un rythme : on entend le danger
+  avant de lire le chrono. Les cinq dernières secondes d'un chrono tiquent.
+- **Le son se coupe en un geste** : le haut-parleur de la barre du haut (`IconVolume` /
+  `IconVolumeOff`, à côté du thème) ou `V`. Les Paramètres ont un groupe « Son » : les volumes des
+  effets et de la musique séparément, et « Bruits de combat » pour couper les sons répétitifs sans
+  perdre les autres. Le curseur des effets fait entendre un son quand on le relâche.
+- **Rien avant le premier geste, rien dans un onglet caché.** Le navigateur l'impose pour le
+  premier point ; le second, parce qu'un idle tourne en arrière-plan et qu'un bruit venu d'un autre
+  onglet n'est que du bruit.

@@ -438,6 +438,29 @@
   margin: 0.4rem 0;
   font-size: 0.75rem;
 }
+/* Les curseurs de volume : la couleur native du navigateur, repeinte à l'accent du thème. */
+label.settings-row {
+  margin-top: 0.35rem;
+  cursor: pointer;
+}
+.settings-slider {
+  flex: 0 1 11rem;
+  min-width: 6rem;
+  accent-color: var(--accent);
+}
+.settings-slider:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.settings-slider-value {
+  min-width: 3.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.settings-group > .settings-row + .settings-row {
+  margin-top: 0.35rem;
+}
 .prestige-report-hero {
   display: flex;
   align-items: center;

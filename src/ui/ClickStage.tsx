@@ -9,6 +9,7 @@ import Sprite from "./Sprite";
 import { fmt, seconds } from "./format";
 import { bossAdvice, bossTraitCounter } from "./advice";
 import { termsOf } from "./presentation";
+import { playCue } from "./sound";
 import { IconChevronLeft, IconChevronRight, IconClock, IconCrown, IconStar, IconTarget } from "./icons";
 
 /**
@@ -86,6 +87,10 @@ export default function ClickStage(props: { game: GameStore }) {
     if (damage <= 0) return;
     setHit(true);
     addPop(damage, crit, false, at);
+    // Le clic sonne ici, pas dans `setupSound` : c'est le seul son qui répond à un geste plutôt
+    // qu'à un compteur, et il doit partir dans la même image que le chiffre. L'autoclicker, lui,
+    // reste muet — il doublerait chaque clic de la main.
+    playCue(crit ? "crit" : "click");
   }
 
   // The prestige autoclicker (Clic du Narrateur node 2) fires from the tick, with no pointer behind

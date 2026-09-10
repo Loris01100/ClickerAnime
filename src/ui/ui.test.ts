@@ -314,6 +314,7 @@ describe("keyboard shortcuts", () => {
     expect(shortcutOf(press("l"))).toEqual({ kind: "fire-all" });
     expect(shortcutOf(press("p"))).toEqual({ kind: "pause" });
     expect(shortcutOf(press("r"))).toEqual({ kind: "rematch" });
+    expect(shortcutOf(press("V"))).toEqual({ kind: "mute" });
     expect(shortcutOf(press("?"))).toEqual({ kind: "help" });
     expect(shortcutOf(press("ArrowLeft"))).toEqual({ kind: "arc", direction: -1 });
     expect(shortcutOf(press("ArrowRight"))).toEqual({ kind: "arc", direction: 1 });

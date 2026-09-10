@@ -42,7 +42,8 @@ const SettingsPanel = lazy(() => import("./ui/SettingsPanel"));
 import { abilitySlots, isTypingTarget, shortcutOf, type ShortcutAction, type ShortcutPanel } from "./ui/shortcuts";
 import { themeOf } from "./ui/hue";
 import { NEXT_THEME, setTheme, theme, THEME_LABEL } from "./ui/theme";
-import { IconMonitor, IconMoon, IconSun } from "./ui/icons";
+import { IconMonitor, IconMoon, IconSun, IconVolume, IconVolumeOff } from "./ui/icons";
+import { setupSound, soundPrefs, toggleMute } from "./ui/sound";
 import { imagePathsForAnime, preloadImages, PRESTIGE_IMAGE_PATHS, STARTUP_IMAGE_PATHS } from "./ui/preload";
 import TelemetryConsent from "./ui/TelemetryConsent";
 import { setupTelemetry } from "./ui/telemetry";
@@ -52,6 +53,7 @@ const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon };
 export default function App() {
   const game = createGameStore(gameData);
   setupTelemetry(game);
+  setupSound(game);
   const [codexOpen, setCodexOpen] = createSignal(false);
   const [codexFocusId, setCodexFocusId] = createSignal<string | undefined>();
   const [portalOpen, setPortalOpen] = createSignal(false);
@@ -232,6 +234,9 @@ export default function App() {
         return game.stepArc(action.direction);
       case "rematch":
         return game.challengeBoss();
+      case "mute":
+        toggleMute();
+        return true;
       case "help":
         setShortcutsOpen(true);
         return true;
@@ -263,6 +268,19 @@ export default function App() {
       <header class="topbar">
         <h1>ClickerAnime</h1>
         <div class="topbar-actions">
+          {/* Couper le son doit se faire en un geste, sans ouvrir les Paramètres : c'est le réglage
+              qu'on cherche dans l'urgence, quand quelqu'un entre dans la pièce. */}
+          <button
+            class="theme-toggle"
+            title={soundPrefs().muted ? "Rétablir le son (V)" : "Couper le son (V)"}
+            aria-label={soundPrefs().muted ? "Rétablir le son" : "Couper le son"}
+            aria-pressed={soundPrefs().muted}
+            onClick={toggleMute}
+          >
+            <Show when={soundPrefs().muted} fallback={<IconVolume />}>
+              <IconVolumeOff />
+            </Show>
+          </button>
           <button
             class="theme-toggle"
             title={THEME_LABEL[theme()]}

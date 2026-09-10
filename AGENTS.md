@@ -62,6 +62,7 @@ down goes stale on the next commit. Alongside it run two critical browser journe
 - `src/ui/format.test.ts` — number and duration formatting
 - `src/ui/anilist.test.ts` — AniList name matching logic
 - `src/ui/telemetry.test.ts` — the consent gate and the milestone payload
+- `src/ui/sound.test.ts` — sound preferences, the effect recipes, which event plays which cue, and the music themes
 - `tests/e2e/critical-player-journey.spec.ts` — a naturally played first Naruto arc plus the save/import/backup/prestige journey
 
 ## Architecture

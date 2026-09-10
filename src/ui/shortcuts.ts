@@ -23,6 +23,7 @@ export type ShortcutAction =
   | { kind: "arc"; direction: 1 | -1 }
   | { kind: "rematch" }
   | { kind: "panel"; panel: ShortcutPanel }
+  | { kind: "mute" }
   | { kind: "help" };
 
 /** Autant de capacités que de chiffres : au-delà, « Tout lancer » prend le relais. */
@@ -76,6 +77,10 @@ export const SHORTCUT_HELP: { group: string; entries: { keys: string[]; label: s
       { keys: ["Échap"], label: "Fermer l'écran ouvert" },
     ],
   },
+  {
+    group: "Son",
+    entries: [{ keys: ["V"], label: "Couper / rétablir le son" }],
+  },
 ];
 
 /** Le sous-ensemble de `KeyboardEvent` lu ici — ce qui garde la fonction testable sans DOM. */
@@ -108,6 +113,7 @@ export function shortcutOf(event: KeyLike): ShortcutAction | null {
   if (letter === "l") return { kind: "fire-all" };
   if (letter === "p") return { kind: "pause" };
   if (letter === "r") return { kind: "rematch" };
+  if (letter === "v") return { kind: "mute" };
   const panel = PANEL_KEYS[letter];
   return panel ? { kind: "panel", panel } : null;
 }
