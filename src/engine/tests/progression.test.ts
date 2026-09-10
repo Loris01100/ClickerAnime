@@ -24,6 +24,9 @@ import { arcPowerTable, CATCH_UP, catchUpGrowth, firstPassiveDropChance, isPassi
 import type { Anime, Arc, Character } from "../types";
 import { makeArc, baseSave, installSave } from "./helpers";
 
+/** The cleared-arc set the progression predicates take, spelled as the ids they used to list. */
+const cleared = (...ids: string[]) => new Set(ids);
+
 describe("world progression", () => {
   const arcs: Arc[] = [
     makeArc("a1", "a", 0, []),
@@ -79,20 +82,20 @@ describe("world progression", () => {
   });
 
   it("opens an arc only once the previous one of the same anime is cleared", () => {
-    expect(isArcUnlocked(arcs, arcs[1], [])).toBe(false);
-    expect(isArcUnlocked(arcs, arcs[1], ["a1"])).toBe(true);
-    expect(isArcUnlocked(arcs, arcs[0], [])).toBe(true);
+    expect(isArcUnlocked(arcs, arcs[1], cleared())).toBe(false);
+    expect(isArcUnlocked(arcs, arcs[1], cleared("a1"))).toBe(true);
+    expect(isArcUnlocked(arcs, arcs[0], cleared())).toBe(true);
   });
 
   it("completes an anime only when every one of its arcs is cleared", () => {
-    expect(isAnimeComplete(arcs, "a", ["a1"])).toBe(false);
-    expect(isAnimeComplete(arcs, "a", ["a1", "a2"])).toBe(true);
+    expect(isAnimeComplete(arcs, "a", cleared("a1"))).toBe(false);
+    expect(isAnimeComplete(arcs, "a", cleared("a1", "a2"))).toBe(true);
   });
 
   it("lets the player pick a first world, then blocks travel until the current one is done", () => {
-    expect(canEnterNewAnime([], arcs, [])).toBe(true);
-    expect(canEnterNewAnime(["a"], arcs, ["a1"])).toBe(false);
-    expect(canEnterNewAnime(["a"], arcs, ["a1", "a2"])).toBe(true);
+    expect(canEnterNewAnime([], arcs, cleared())).toBe(true);
+    expect(canEnterNewAnime(["a"], arcs, cleared("a1"))).toBe(false);
+    expect(canEnterNewAnime(["a"], arcs, cleared("a1", "a2"))).toBe(true);
   });
 });
 
@@ -246,22 +249,22 @@ describe("universe order", () => {
   const arcs = [makeArc("w1-a", "w1", 0, []), makeArc("w2-a", "w2", 0, []), makeArc("w3-a", "w3", 0, [])];
 
   it("opens a sequel only once its predecessor is cleared", () => {
-    expect(isAnimeAvailable(animes, "w1", arcs, [])).toBe(true);
-    expect(isAnimeAvailable(animes, "w2", arcs, [])).toBe(false);
-    expect(isAnimeAvailable(animes, "w2", arcs, ["w1-a"])).toBe(true);
+    expect(isAnimeAvailable(animes, "w1", arcs, cleared())).toBe(true);
+    expect(isAnimeAvailable(animes, "w2", arcs, cleared())).toBe(false);
+    expect(isAnimeAvailable(animes, "w2", arcs, cleared("w1-a"))).toBe(true);
     // the last world stays shut until the middle one is done, not just the first
-    expect(isAnimeAvailable(animes, "w3", arcs, ["w1-a"])).toBe(false);
-    expect(isAnimeAvailable(animes, "w3", arcs, ["w1-a", "w2-a"])).toBe(true);
+    expect(isAnimeAvailable(animes, "w3", arcs, cleared("w1-a"))).toBe(false);
+    expect(isAnimeAvailable(animes, "w3", arcs, cleared("w1-a", "w2-a"))).toBe(true);
   });
 
   it("ships Shippuden behind part 1", () => {
     const shippuden = gameData.animes.find((a) => a.id === "shippuden")!;
     expect(shippuden.requiresAnimeId).toBe("naruto");
-    expect(isAnimeAvailable(gameData.animes, "shippuden", gameData.arcs, [])).toBe(false);
-    expect(isAnimeAvailable(gameData.animes, "naruto", gameData.arcs, [])).toBe(true);
+    expect(isAnimeAvailable(gameData.animes, "shippuden", gameData.arcs, cleared())).toBe(false);
+    expect(isAnimeAvailable(gameData.animes, "naruto", gameData.arcs, cleared())).toBe(true);
 
     const narutoArcIds = gameData.arcs.filter((a) => a.animeId === "naruto").map((a) => a.id);
-    expect(isAnimeAvailable(gameData.animes, "shippuden", gameData.arcs, narutoArcIds)).toBe(true);
+    expect(isAnimeAvailable(gameData.animes, "shippuden", gameData.arcs, new Set(narutoArcIds))).toBe(true);
   });
 
   it("refuses the paid shortcut into a world whose predecessor is unfinished", () => {
