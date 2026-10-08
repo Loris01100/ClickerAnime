@@ -1,6 +1,12 @@
 # GitHub ne fait plus que vérifier le code : c'est Cloudflare Workers Builds qui déploie — sur
 # `main` pour la production (clickeranime.reesch.com), sur les autres branches pour une URL de
 # prévisualisation. Le job `deploy` vers GitHub Pages a été retiré avec ce changement.
+#
+# Chaîne d'approvisionnement : rien dans ce workflow ne doit pouvoir exécuter du code qui n'a pas
+# été épinglé. Les actions sont référencées par leur SHA de commit (un tag `v7` est mutable), les
+# dépendances viennent du `package-lock.json` seul, et aucun script d'installation ne tourne —
+# `npm ci --ignore-scripts` suffit à `validate:data`, `test`, `build` et aux e2e (vérifié : seuls
+# esbuild, workerd et fsevents en déclarent un, et aucun n'est requis ici).
 name: CI
 
 on:
@@ -9,18 +15,27 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # actions/setup-node v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run validate:data
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps firefox
+      # `npm exec --no` refuse de télécharger quoi que ce soit : il n'utilise que le Playwright
+      # déjà épinglé par le lockfile, là où `npx` irait le chercher au registre s'il manquait.
+      - run: npm exec --no -- playwright install --with-deps firefox
       - run: npm run test:e2e
