@@ -1,4 +1,4 @@
-import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 import type { GameStore, PackDraw } from "../engine/gameState";
 import type { Rarity } from "../engine/types";
 import {
@@ -6,6 +6,7 @@ import {
   DUPLICATE_DAMAGE_STEP,
   MAX_DUPLICATES,
 } from "../engine/packs";
+import Overlay from "./Overlay";
 import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import Coin from "./Coin";
@@ -25,12 +26,6 @@ export default function PackPanel(props: {
   onClose: () => void;
   onOpenCatalog: () => void;
 }) {
-  function onKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape") props.onClose();
-  }
-  onMount(() => document.addEventListener("keydown", onKeyDown));
-  onCleanup(() => document.removeEventListener("keydown", onKeyDown));
-
   const [drawn, setDrawn] = createSignal<PackDraw[]>([]);
   const [qty, setQty] = createSignal(1);
 
@@ -93,152 +88,144 @@ export default function PackPanel(props: {
   }
 
   return (
-    <div class="overlay" onClick={props.onClose}>
-      <div
-        class="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Packs"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header class="panel-head">
-          <span>
-            <Coin kind="pack" /> Packs
-          </span>
-          <button onClick={props.onClose} aria-label="Fermer">
-            ✕
-          </button>
-        </header>
+    <Overlay label="Packs" onClose={props.onClose}>
+      <header class="panel-head">
+        <span>
+          <Coin kind="pack" /> Packs
+        </span>
+        <button onClick={props.onClose} aria-label="Fermer">
+          ✕
+        </button>
+      </header>
 
-        <div class="codex-detail scroll">
-          <p class="muted small pad">
-            Un point par combat gagné, dans le monde où il a été gagné. Chaque
-            doublon ajoute {Math.round(DUPLICATE_DAMAGE_STEP * 100)}% des dégâts
-            de base du personnage — clic et DPS — jusqu'à {MAX_DUPLICATES}{" "}
-            doublons. Seuls les personnages déjà recrutés, et pas encore au
-            maximum, peuvent sortir d'un pack.
-          </p>
+      <div class="codex-detail scroll">
+        <p class="muted small pad">
+          Un point par combat gagné, dans le monde où il a été gagné. Chaque
+          doublon ajoute {Math.round(DUPLICATE_DAMAGE_STEP * 100)}% des dégâts
+          de base du personnage — clic et DPS — jusqu'à {MAX_DUPLICATES}{" "}
+          doublons. Seuls les personnages déjà recrutés, et pas encore au
+          maximum, peuvent sortir d'un pack.
+        </p>
 
-          <div class="row">
-            <span class="name">Packs par achat</span>
-            <select
-              value={qty()}
-              title="Nombre de packs par achat"
-              onChange={(e) => setQty(Number(e.currentTarget.value))}
+        <div class="row">
+          <span class="name">Packs par achat</span>
+          <select
+            value={qty()}
+            title="Nombre de packs par achat"
+            onChange={(e) => setQty(Number(e.currentTarget.value))}
+          >
+            <For each={PACKS_PER_BUY}>
+              {(n) => <option value={n}>x{n}</option>}
+            </For>
+          </select>
+        </div>
+
+        <For each={drawn()}>
+          {(draw) => (
+            <div
+              class="pack-result"
+              style={{
+                "--world-hue": themeOf(
+                  props.game.animeOf(draw.character.animeId) ?? undefined,
+                ),
+              }}
             >
-              <For each={PACKS_PER_BUY}>
-                {(n) => <option value={n}>x{n}</option>}
-              </For>
-            </select>
-          </div>
-
-          <For each={drawn()}>
-            {(draw) => (
-              <div
-                class="pack-result"
-                style={{
-                  "--world-hue": themeOf(
-                    props.game.animeOf(draw.character.animeId) ?? undefined,
-                  ),
-                }}
-              >
-                <Sprite
-                  name={draw.character.name}
-                  kind="character"
-                  anime={animeNameOf(draw.character.animeId)}
-                  px={9}
-                />
-                <div>
-                  <strong>{draw.character.name}</strong>
-                  <div class="muted small">
-                    x{props.game.duplicatesOf(draw.character.id)} —{" "}
-                    {animeNameOf(draw.character.animeId)}
-                  </div>
+              <Sprite
+                name={draw.character.name}
+                kind="character"
+                anime={animeNameOf(draw.character.animeId)}
+                px={9}
+              />
+              <div>
+                <strong>{draw.character.name}</strong>
+                <div class="muted small">
+                  x{props.game.duplicatesOf(draw.character.id)} —{" "}
+                  {animeNameOf(draw.character.animeId)}
                 </div>
-                {/* Un pack offert qui ne le dit pas est indiscernable d'un nœud qui ne marche pas. */}
-                <Show when={draw.free}>
-                  <span class="pack-result-free">Carte blanche — offert</span>
-                </Show>
               </div>
-            )}
-          </For>
+              {/* Un pack offert qui ne le dit pas est indiscernable d'un nœud qui ne marche pas. */}
+              <Show when={draw.free}>
+                <span class="pack-result-free">Carte blanche — offert</span>
+              </Show>
+            </div>
+          )}
+        </For>
 
-          <For each={worlds()}>
-            {(anime) => (
-              <div class="row">
-                <span class="name">{anime.name}</span>
-                <span class="muted small">
-                  {props.game.worldPointsOf(anime.id)} <Coin kind="pack" />
-                </span>
-                <For each={["main", "secondary"] as const}>
-                  {(rarity) => (
-                    <Show
-                      when={props.game.packPoolOf(anime.id, rarity).length > 0}
+        <For each={worlds()}>
+          {(anime) => (
+            <div class="row">
+              <span class="name">{anime.name}</span>
+              <span class="muted small">
+                {props.game.worldPointsOf(anime.id)} <Coin kind="pack" />
+              </span>
+              <For each={["main", "secondary"] as const}>
+                {(rarity) => (
+                  <Show
+                    when={props.game.packPoolOf(anime.id, rarity).length > 0}
+                  >
+                    <button
+                      disabled={affordableCount(anime.id, rarity) === 0}
+                      onClick={() => buy(anime.id, rarity)}
+                      title={
+                        remaining(anime.id, rarity) === 1
+                          ? "Dernière copie disponible dans ce pool"
+                          : `${remaining(anime.id, rarity)} copies encore disponibles dans ce pool`
+                      }
                     >
-                      <button
-                        disabled={affordableCount(anime.id, rarity) === 0}
-                        onClick={() => buy(anime.id, rarity)}
-                        title={
-                          remaining(anime.id, rarity) === 1
-                            ? "Dernière copie disponible dans ce pool"
-                            : `${remaining(anime.id, rarity)} copies encore disponibles dans ce pool`
+                      {rarity === "main" ? "Principaux" : "Secondaires"} —{" "}
+                      {PACK_COST[rarity] *
+                        Math.max(1, affordableCount(anime.id, rarity))}
+                      {/* Sous le maximum par achat, on annonce ce qu'il reste : un x10 qui n'ouvre
+                          que trois packs sans le dire ressemble à un bouton cassé. */}
+                      <Show
+                        when={
+                          remaining(anime.id, rarity) <= MAX_PACKS_PER_BUY
                         }
                       >
-                        {rarity === "main" ? "Principaux" : "Secondaires"} —{" "}
-                        {PACK_COST[rarity] *
-                          Math.max(1, affordableCount(anime.id, rarity))}
-                        {/* Sous le maximum par achat, on annonce ce qu'il reste : un x10 qui n'ouvre
-                            que trois packs sans le dire ressemble à un bouton cassé. */}
-                        <Show
-                          when={
-                            remaining(anime.id, rarity) <= MAX_PACKS_PER_BUY
-                          }
-                        >
-                          <span class="muted small">
-                            {" "}
-                            · {remaining(anime.id, rarity)} restant
-                            {remaining(anime.id, rarity) > 1 ? "s" : ""}
-                          </span>
-                        </Show>
-                      </button>
-                    </Show>
-                  )}
-                </For>
-                <Show
-                  when={
-                    props.game.packPoolOf(anime.id, "main").length === 0 &&
-                    props.game.packPoolOf(anime.id, "secondary").length === 0
-                  }
-                >
-                  {/* Deux raisons d'avoir un pool vide : personne de recruté, ou tout le monde au plafond. */}
-                  <span class="muted small">
-                    {recruitedIn(anime.id) === 0
-                      ? "Recrutez un personnage de cet anime pour ouvrir ses packs."
-                      : `Tous les personnages recrutés ici sont à ${MAX_DUPLICATES} doublons.`}
-                  </span>
-                </Show>
-              </div>
-            )}
-          </For>
-
-          <Show when={worlds().length === 0}>
-            <p class="muted pad">Aucun monde visité pour l'instant.</p>
-          </Show>
-
-          <Show when={duplicates().length > 0}>
-            {/* La collection se lit dans le catalogue : ici on achète, là-bas on regarde. */}
-            <div class="row">
-              <span class="name">
-                Doublons détenus{" "}
+                        <span class="muted small">
+                          {" "}
+                          · {remaining(anime.id, rarity)} restant
+                          {remaining(anime.id, rarity) > 1 ? "s" : ""}
+                        </span>
+                      </Show>
+                    </button>
+                  </Show>
+                )}
+              </For>
+              <Show
+                when={
+                  props.game.packPoolOf(anime.id, "main").length === 0 &&
+                  props.game.packPoolOf(anime.id, "secondary").length === 0
+                }
+              >
+                {/* Deux raisons d'avoir un pool vide : personne de recruté, ou tout le monde au plafond. */}
                 <span class="muted small">
-                  ({duplicates().length} personnages)
+                  {recruitedIn(anime.id) === 0
+                    ? "Recrutez un personnage de cet anime pour ouvrir ses packs."
+                    : `Tous les personnages recrutés ici sont à ${MAX_DUPLICATES} doublons.`}
                 </span>
-              </span>
-              <button onClick={props.onOpenCatalog}>Voir le catalogue</button>
+              </Show>
             </div>
-          </Show>
-        </div>
+          )}
+        </For>
+
+        <Show when={worlds().length === 0}>
+          <p class="muted pad">Aucun monde visité pour l'instant.</p>
+        </Show>
+
+        <Show when={duplicates().length > 0}>
+          {/* La collection se lit dans le catalogue : ici on achète, là-bas on regarde. */}
+          <div class="row">
+            <span class="name">
+              Doublons détenus{" "}
+              <span class="muted small">
+                ({duplicates().length} personnages)
+              </span>
+            </span>
+            <button onClick={props.onOpenCatalog}>Voir le catalogue</button>
+          </div>
+        </Show>
       </div>
-    </div>
+    </Overlay>
   );
 }

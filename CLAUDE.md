@@ -103,8 +103,11 @@ These outrank convenience, and several were learned the hard way. Don't break on
 - Game rules are pure functions in `src/engine/`. Components never compute balance — if a number
   needs deriving, it belongs in the engine and gets exposed on the store (that is why `synergyOf`,
   `costOf`, `damageGrowthOf` and `pendingPrestigeGain` exist).
-- `Math.random()` is called **only** in `gameState`. Pure functions take the 0..1 roll as an
-  argument (`rollsDrop`, `drawPack`), which is what keeps the odds testable.
+- `Math.random()` is called **only** in `gameState`, through its one `roll()` helper. Pure
+  functions take the 0..1 roll as an argument (`rollsDrop`, `drawPack`), which is what keeps the
+  odds testable. `roll()` reads the global **lazily** — `sim.ts` swaps `Math.random` for a seeded
+  generator, so capturing it at module load would silently desync the simulator. It is also the one
+  place to answer a scanner's "is this PRNG safe here": game chance, never a security primitive.
 - The engine has no user-facing strings; `ui/describe.ts` turns data into French prose.
 
 **Balance**

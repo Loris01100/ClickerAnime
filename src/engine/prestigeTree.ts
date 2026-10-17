@@ -199,10 +199,12 @@ export function scaledDiscount(base: number, level: number): number {
 /** Seconds, written the French way — 2s, 0,8s — for the node descriptions. */
 const secs = (ms: number) => `${String(ms / 1000).replace(".", ",")}s`;
 
-const pct = (value: number) => {
-  const percent = value * 100;
-  return Number.isInteger(percent) ? `${Math.round(percent)}%` : `${percent.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}%`;
-};
+/**
+ * A ratio as a percentage, trailing zeros dropped: 0.05 → 5%, 0.125 → 12.5%. `toFixed(2)` rounds to
+ * the two decimals the node descriptions show, and `Number` is what trims — parsing the fixed form
+ * back drops `.00` and a lone trailing `0` on its own, with no trailing-zero pattern to scan for.
+ */
+const pct = (value: number) => `${Number((value * 100).toFixed(2))}%`;
 
 export const PRESTIGE_TREE_CATEGORIES: PrestigeTreeCategory[] = [
   {
