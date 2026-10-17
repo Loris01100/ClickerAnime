@@ -24,7 +24,8 @@ jobs:
       - run: npm run validate:data
       - run: npm test
       - run: npm run build
-      # `npm exec --no` : on exige le binaire déjà installé par `npm ci` (version figée par
-      # package-lock.json) au lieu de laisser npx télécharger un paquet à la volée.
-      - run: npm exec --no -- playwright install --with-deps firefox
+      # On appelle directement le binaire posé par `npm ci` : pas de verbe npm d'installation sur
+      # cette ligne, donc rien qui puisse résoudre, télécharger ni exécuter un paquet. La version
+      # est celle figée par package-lock.json, et seuls les navigateurs sont téléchargés ensuite.
+      - run: ./node_modules/.bin/playwright install --with-deps firefox
       - run: npm run test:e2e
