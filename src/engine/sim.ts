@@ -453,15 +453,19 @@ function spendPrestige(game: GameStore, order: PrestigeTreeCategoryId[] | null):
   for (;;) {
     const options = buyableNodes(game);
     if (options.length === 0) return bought;
-    const rank = (node: BuyableNode) => (order ? order.indexOf(node.categoryId) : -1);
+    // A branch not named in `treeOrder` comes last, never first: `indexOf` gives it -1.
+    const rank = (node: BuyableNode) => {
+      const at = order ? order.indexOf(node.categoryId) : -1;
+      return at < 0 ? Number.MAX_SAFE_INTEGER : at;
+    };
+    // Seeded with the first candidate rather than left to pick its own: a seedless `reduce` throws
+    // on an empty array, and the seed is what makes it evident here that it cannot — the emptiness
+    // guard is above, the proof is on the call.
     const best = options.reduce((a, b) => {
-      // A branch not named in `treeOrder` comes last, never first: `indexOf` gives it -1.
-      const ra = rank(a) < 0 ? Number.MAX_SAFE_INTEGER : rank(a);
-      const rb = rank(b) < 0 ? Number.MAX_SAFE_INTEGER : rank(b);
-      if (order && ra !== rb) return ra < rb ? a : b;
+      if (order && rank(a) !== rank(b)) return rank(a) < rank(b) ? a : b;
       if (a.cost !== b.cost) return a.cost < b.cost ? a : b;
       return a.position <= b.position ? a : b;
-    });
+    }, options[0]);
     if (!game.purchaseTreeLevel(best.categoryId, best.position)) return bought;
     bought++;
   }
