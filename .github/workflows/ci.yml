@@ -17,9 +17,14 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      # `--ignore-scripts` : aucune dépendance n'exécute de script d'installation ici (seuls esbuild,
+      # workerd et fsevents en ont, et tous trois résolvent leur binaire via leur paquet de plateforme).
+      # La CI installe donc sans jamais exécuter de code arbitraire d'un paquet.
+      - run: npm ci --ignore-scripts
       - run: npm run validate:data
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps firefox
+      # `npm exec --no` : on exige le binaire déjà installé par `npm ci` (version figée par
+      # package-lock.json) au lieu de laisser npx télécharger un paquet à la volée.
+      - run: npm exec --no -- playwright install --with-deps firefox
       - run: npm run test:e2e
