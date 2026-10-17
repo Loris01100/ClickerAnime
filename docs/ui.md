@@ -26,7 +26,23 @@ map, right is the arc lists per world plus travel and prestige. Everything else 
 is built from a frozen pre-reset snapshot: it shows the duration and completion of the adventure,
 points banked, combat and economy actions, final power, worlds and arcs cleared, and the permanent
 passive/forge mastery carried into the next run. It is transient — closing or reloading dismisses it
-without adding presentation state to the save. `Notices.tsx` is the exception to the overlay rule: a fixed,
+without adding presentation state to the save.
+
+`Overlay.tsx` **is** that `.overlay` > `.modal` pair: the backdrop, the `role="dialog"` box, and the
+`keydown` listener that closes on Escape, in one place instead of fourteen copies. A panel passes
+`label`, an optional extra modal class, and `onClose`; `onEscape` is for the one panel whose Escape
+isn't simply a close — the tower leaves the floor first, and closes only on the second press.
+
+Two details there are deliberate and a scanner will argue with both. **The backdrop is not
+focusable.** A `onClick` on a `div` reads as an interactive element with no keyboard support, and
+the reflex fix — `tabIndex` + `role="button"` — would put a full-screen tab stop in front of the
+dialog's own controls and announce nothing. Escape and the ✕ button inside every dialog are the
+accessible ways out; the backdrop click is the mouse shortcut on top, which is what
+`role="presentation"` declares. **A click inside is ignored by comparing the event's target to the
+backdrop**, not by a `stopPropagation` handler on the box: the box carries no handler at all, and no
+click inside a panel is swallowed before it reaches a listener on `document`.
+
+`Notices.tsx` is the exception to the overlay rule: a fixed,
 non-blocking stack of pop-ups fed by the store's `notices` queue, which `grantItem` and `defeat`
 push to so that a drop, a recruit and a cleared arc stop happening in silence. The queue lives in
 the store because those events are born in the engine, and it is expired by the existing 200ms tick

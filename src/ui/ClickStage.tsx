@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { BOSS_REPLAY_KILLS } from "../engine/combat";
+import { hashSeed } from "../engine/hash";
 import { PORTAL_TRAIT } from "../engine/crossover";
 import { bannerUrl } from "./anilist";
 import AutomationBar from "./AutomationBar";
@@ -40,6 +41,16 @@ interface Pop {
   x: number;
   y: number;
 }
+
+/**
+ * Scatter for an autoclicker pop: hashed from the pulse's own id rather than rolled. `hashSeed` is
+ * the deterministic id → number hash the world-map tint and layout already run on, so the UI layer
+ * needs no generator of its own — `roll()` in `gameState` stays the game's only one — and a pop
+ * lands in the same place on every run. A stride-based jitter was the obvious alternative and is
+ * worse here: any near-rational stride walks the pops through a handful of repeating positions,
+ * which is a visible lattice, and scattering them is the whole point.
+ */
+const popJitter = (id: number, axis: "x" | "y") => (hashSeed(`pop:${axis}:${id}`) % 1024) / 1024;
 
 /** Middle column: the arc stepper, the fight, and the running combat stats. */
 export default function ClickStage(props: { game: GameStore }) {
@@ -95,7 +106,7 @@ export default function ClickStage(props: { game: GameStore }) {
     const pulse = props.game.autoClickPulse();
     if (previous !== undefined && pulse.id !== previous && pulse.damage > 0) {
       setHit(true);
-      addPop(pulse.damage, false, true, { x: 42 + Math.random() * 16, y: 32 + Math.random() * 16 });
+      addPop(pulse.damage, false, true, { x: 42 + popJitter(pulse.id, "x") * 16, y: 32 + popJitter(pulse.id, "y") * 16 });
     }
     return pulse.id;
   });

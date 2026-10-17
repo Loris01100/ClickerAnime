@@ -1,7 +1,8 @@
-import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import type { Anime, Arc, Character } from "../engine/types";
 import { passiveGrowth } from "../engine/growth";
+import Overlay from "./Overlay";
 import Sprite from "./Sprite";
 import { themeOf } from "./hue";
 import { describeModifier } from "./describe";
@@ -211,11 +212,6 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
   const [selectedId, setSelectedId] = createSignal(firstSelectable()?.id ?? "");
   const selected = createMemo(() => props.game.animeOf(selectedId()) ?? undefined);
 
-  function onKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape") props.onClose?.();
-  }
-  onMount(() => document.addEventListener("keydown", onKeyDown));
-  onCleanup(() => document.removeEventListener("keydown", onKeyDown));
 
   const body = (
     <div class="portal">
@@ -267,14 +263,8 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
         </div>
       }
     >
-      <div class="overlay" onClick={props.onClose}>
-        <div
-          class="modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Portail des mondes"
-          onClick={(e) => e.stopPropagation()}
-        >
+      {(close) => (
+        <Overlay label="Portail des mondes" onClose={close()}>
           <header class="panel-head">
             <span>Portail des mondes</span>
             <button onClick={props.onClose} aria-label="Fermer">
@@ -282,8 +272,8 @@ export default function WorldPortal(props: { game: GameStore; onClose?: () => vo
             </button>
           </header>
           {body}
-        </div>
-      </div>
+        </Overlay>
+      )}
     </Show>
   );
 }
