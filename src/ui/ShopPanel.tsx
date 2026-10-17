@@ -1,5 +1,6 @@
-import { For, Index, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Index, Show, createMemo, createSignal } from "solid-js";
 import type { GameStore } from "../engine/gameState";
+import Overlay from "./Overlay";
 import Sprite from "./Sprite";
 import { fmt } from "./format";
 import Coin from "./Coin";
@@ -13,12 +14,6 @@ import { themeOf } from "./hue";
  * bought; item offers stay listed, they stack.
  */
 export default function ShopPanel(props: { game: GameStore; onClose: () => void }) {
-  function onKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape") props.onClose();
-  }
-  onMount(() => document.addEventListener("keydown", onKeyDown));
-  onCleanup(() => document.removeEventListener("keydown", onKeyDown));
-
   const animeNameOf = (animeId: string) => props.game.animeOf(animeId)?.name ?? animeId;
   const entries = createMemo(() => props.game.shopOffers());
   const supplyArcs = createMemo(() =>
@@ -123,66 +118,64 @@ export default function ShopPanel(props: { game: GameStore; onClose: () => void 
   );
 
   return (
-    <div class="overlay" onClick={props.onClose}>
-      <div class="modal shop-modal" role="dialog" aria-modal="true" aria-label="Boutique" onClick={(e) => e.stopPropagation()}>
-        <header class="panel-head">
-          <span>
-            <IconShop /> Boutique
+    <Overlay label="Boutique" class="shop-modal" onClose={props.onClose}>
+      <header class="panel-head">
+        <span>
+          <IconShop /> Boutique
+        </span>
+        <span class="shop-head-actions">
+          <span class="shop-balance">
+            <small>Solde</small>
+            <strong>{fmt(props.game.currency())}</strong>
+            <Coin kind="gold" px={18} />
           </span>
-          <span class="shop-head-actions">
-            <span class="shop-balance">
-              <small>Solde</small>
-              <strong>{fmt(props.game.currency())}</strong>
-              <Coin kind="gold" px={18} />
-            </span>
-            <button onClick={props.onClose} aria-label="Fermer">
-              ✕
-            </button>
-          </span>
-        </header>
+          <button onClick={props.onClose} aria-label="Fermer">
+            ✕
+          </button>
+        </span>
+      </header>
 
-        <div class="shop-body scroll">
-          <Show when={characterOffers().length > 0}>
-            <section class="shop-section">
+      <div class="shop-body scroll">
+        <Show when={characterOffers().length > 0}>
+          <section class="shop-section">
+            <SectionTitle
+              title="Compagnons"
+              subtitle="Des alliés exclusifs qui rejoignent définitivement votre équipe."
+              count={characterOffers().length}
+            />
+            <div class="shop-grid companions">
+              {/* Currency changes during combat; Index preserves the button between pointer down/up. */}
+              <Index each={characterOffers()}>{(entry) => <OfferCard entry={entry} />}</Index>
+            </div>
+          </section>
+        </Show>
+        <Show when={supplyArcs().length > 0}>
+          <section class="shop-section">
+            <div class="shop-supply-head">
               <SectionTitle
-                title="Compagnons"
-                subtitle="Des alliés exclusifs qui rejoignent définitivement votre équipe."
-                count={characterOffers().length}
+                title="Ravitaillement"
+                subtitle="Achetez les objets communs d'un arc pour renforcer ses passifs."
+                count={supplyOffers().length}
               />
-              <div class="shop-grid companions">
-                {/* Currency changes during combat; Index preserves the button between pointer down/up. */}
-                <Index each={characterOffers()}>{(entry) => <OfferCard entry={entry} />}</Index>
-              </div>
-            </section>
-          </Show>
-          <Show when={supplyArcs().length > 0}>
-            <section class="shop-section">
-              <div class="shop-supply-head">
-                <SectionTitle
-                  title="Ravitaillement"
-                  subtitle="Achetez les objets communs d'un arc pour renforcer ses passifs."
-                  count={supplyOffers().length}
-                />
-                <select
-                  aria-label="Arc à ravitailler"
-                  value={supplyArcId()}
-                  onChange={(event) => setSupplyArcId(event.currentTarget.value)}
-                >
-                  <For each={supplyArcs()}>
-                    {(arc) => <option value={arc.id}>{animeNameOf(arc.animeId)} · {arc.name}</option>}
-                  </For>
-                </select>
-              </div>
-              <div class="shop-grid supplies">
-                <Index each={supplyOffers()}>{(entry) => <OfferCard entry={entry} />}</Index>
-              </div>
-            </section>
-          </Show>
-          <Show when={characterOffers().length === 0 && supplyOffers().length === 0}>
-            <p class="muted pad">Plus rien à acheter pour l'instant.</p>
-          </Show>
-        </div>
+              <select
+                aria-label="Arc à ravitailler"
+                value={supplyArcId()}
+                onChange={(event) => setSupplyArcId(event.currentTarget.value)}
+              >
+                <For each={supplyArcs()}>
+                  {(arc) => <option value={arc.id}>{animeNameOf(arc.animeId)} · {arc.name}</option>}
+                </For>
+              </select>
+            </div>
+            <div class="shop-grid supplies">
+              <Index each={supplyOffers()}>{(entry) => <OfferCard entry={entry} />}</Index>
+            </div>
+          </section>
+        </Show>
+        <Show when={characterOffers().length === 0 && supplyOffers().length === 0}>
+          <p class="muted pad">Plus rien à acheter pour l'instant.</p>
+        </Show>
       </div>
-    </div>
+    </Overlay>
   );
 }
