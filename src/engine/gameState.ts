@@ -108,6 +108,23 @@ import type {
 // module that assembles them. Re-exported here because that is where the data files ask for it.
 export type { GameData } from "./types";
 
+/**
+ * The game's one source of chance. Every roll — drops, crits, pack draws, the prestige tree's
+ * chance nodes — goes through it, which is what keeps `Math.random` to a single call site: the
+ * invariant that pure functions take their 0..1 roll as an argument (`rollsDrop`, `drawPack`) only
+ * holds because nothing below this file reaches for randomness itself.
+ *
+ * `Math.random` is the right generator here and a CSPRNG would be the wrong one. Nothing rolled is
+ * a secret or a credential: these are client-side loot and crit rolls in a single-player idle game
+ * whose save sits in the player's own `localStorage`, editable by hand — there is no server to
+ * defend, no adversary that predicting a drop would gain anything against, and no value that must
+ * be unguessable. `crypto.getRandomValues` would cost a syscall per roll inside a 200ms tick and
+ * buy nothing. It must also stay *patchable*: `sim.ts` swaps `Math.random` for a seeded generator
+ * so a headless run is reproducible, which is why this reads the global lazily instead of
+ * capturing it.
+ */
+const roll = () => Math.random(); // NOSONAR — see above: game chance, not a security primitive
+
 const TICK_MS = 200;
 /**
  * Ceiling on one tick's elapsed time. `setInterval` doesn't fire while the machine sleeps or the
@@ -737,7 +754,7 @@ export function createGameStore(data: GameData) {
         ? isFirstBossWin
           ? CROSSOVER_BOSS_REWARD
           : 0
-        : Math.random() < CROSSOVER_MOB_CHANCE
+        : roll() < CROSSOVER_MOB_CHANCE
           ? 1
           : 0;
       if (crystals > 0) setCrossoverCrystals((c) => c + crystals);
@@ -753,7 +770,7 @@ export function createGameStore(data: GameData) {
 
     // "Destin" node 2: a small chance per kill to gain 1 prestige point outright.
     const luckyLevel = nodeLevelOf("destin", 2);
-    if (luckyLevel > 0 && Math.random() < scaledChance(PRESTIGE_PER_KILL_CHANCE, luckyLevel)) {
+    if (luckyLevel > 0 && roll() < scaledChance(PRESTIGE_PER_KILL_CHANCE, luckyLevel)) {
       setPrestige((p) => ({ ...p, prestigePoints: p.prestigePoints + 1 }));
     }
 
@@ -820,15 +837,15 @@ export function createGameStore(data: GameData) {
             hasCompatiblePassive: compatibleUpgrades.length > 0,
           })
         : boostedChance;
-      if (rollsDrop({ ...target, dropChance }, Math.random())) {
+      if (rollsDrop({ ...target, dropChance }, roll())) {
         if (item) {
           if (item.kind === "unique" && countOf(item.id) > 0) grantUniqueFragment(item);
           else grantItem(item);
           dropped = true;
-          if (doubleDropLevel > 0 && item.kind === "common" && Math.random() < scaledChance(DOUBLE_DROP_CHANCE, doubleDropLevel)) {
+          if (doubleDropLevel > 0 && item.kind === "common" && roll() < scaledChance(DOUBLE_DROP_CHANCE, doubleDropLevel)) {
             grantItem(item);
           }
-          if (auspiceLevel > 0 && item.kind === "common" && Math.random() < scaledChance(AUSPICE_DOUBLE_DROP_CHANCE, auspiceLevel)) {
+          if (auspiceLevel > 0 && item.kind === "common" && roll() < scaledChance(AUSPICE_DOUBLE_DROP_CHANCE, auspiceLevel)) {
             grantItem(item);
           }
         }
@@ -855,7 +872,7 @@ export function createGameStore(data: GameData) {
       }
     }
 
-    if (ghostLootLevel > 0 && !target.itemId && Math.random() < scaledChance(GHOST_LOOT_CHANCE, ghostLootLevel)) {
+    if (ghostLootLevel > 0 && !target.itemId && roll() < scaledChance(GHOST_LOOT_CHANCE, ghostLootLevel)) {
       const common = arcCommonItem(arc);
       if (common) grantItem(common);
     }
@@ -951,7 +968,7 @@ export function createGameStore(data: GameData) {
     if (clickIsMuted(challengeRules(), ownedCharacterIds().length)) return { damage: 0, crit: false };
     bumpAchievement("clicks");
     const critLevel = nodeLevelOf("narratorClick", 3);
-    const crit = critLevel > 0 && Math.random() < scaledChance(CRIT_CHANCE, critLevel);
+    const crit = critLevel > 0 && roll() < scaledChance(CRIT_CHANCE, critLevel);
     // Dans la Tour, le Clic du Narrateur frappe l'étage : c'est le même geste, avec les mêmes perks
     // (crit, cooldowns, déclenchement gratuit), simplement dirigé vers l'ennemi qui est à l'écran.
     const swing = crit ? clickPower() * CRIT_MULTIPLIER : clickPower();
@@ -963,13 +980,13 @@ export function createGameStore(data: GameData) {
     }
 
     const freeTriggerLevel = nodeLevelOf("narratorClick", 5);
-    if (freeTriggerLevel > 0 && Math.random() < scaledChance(FREE_ABILITY_TRIGGER_CHANCE, freeTriggerLevel)) {
+    if (freeTriggerLevel > 0 && roll() < scaledChance(FREE_ABILITY_TRIGGER_CHANCE, freeTriggerLevel)) {
       // Buffs are scoped and stack freely now, so the only wasted pick is one already running:
       // re-firing it would just refresh the buff the player already has.
       const running = new Set(pruneExpired(temporaryModifiers(), Date.now()).map((m) => m.sourceId));
       const candidates = unlockedAbilities().filter((u) => !running.has(u.ability.id));
       if (candidates.length > 0) {
-        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        const pick = candidates[Math.floor(roll() * candidates.length)];
         triggerAbilityEffects(pick);
       }
     }
@@ -1131,10 +1148,10 @@ export function createGameStore(data: GameData) {
   function openPack(animeId: string, rarity: Rarity): PackDraw | null {
     const cost = PACK_COST[rarity];
     if (worldPointsOf(animeId) < cost) return null;
-    const drawn = drawPack(packPoolOf(animeId, rarity), Math.random());
+    const drawn = drawPack(packPoolOf(animeId, rarity), roll());
     if (!drawn) return null;
     const freePackLevel = nodeLevelOf("destin", 5);
-    const free = freePackLevel > 0 && Math.random() < scaledChance(FREE_PACK_CHANCE, freePackLevel);
+    const free = freePackLevel > 0 && roll() < scaledChance(FREE_PACK_CHANCE, freePackLevel);
     if (!free) setWorldPoints((points) => ({ ...points, [animeId]: points[animeId] - cost }));
     roster.addDuplicate(drawn.id);
     bumpAchievement("packsOpened");
