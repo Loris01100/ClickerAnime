@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import {
   TOWER_FLOOR_TIMER_MS,
@@ -12,6 +12,7 @@ import {
   towerRewardFloors,
   type TowerMode,
 } from "../engine/tower";
+import Overlay from "./Overlay";
 import { portraitUrl } from "./anilist";
 import Coin from "./Coin";
 import Sprite from "./Sprite";
@@ -37,15 +38,15 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
   const [mode, setMode] = createSignal<TowerMode>("easy");
   const [pickerOpen, setPickerOpen] = createSignal(false);
 
-  function onKeyDown(event: KeyboardEvent) {
-    if (event.key !== "Escape") return;
-    // Échap sort d'abord de l'étage, ensuite du panneau : on ne ferme jamais la tour sur une
-    // tentative en cours sans que le joueur l'ait demandé deux fois.
+  /**
+   * Échap sort d'abord de l'étage, ensuite du panneau : on ne ferme jamais la tour sur une
+   * tentative en cours sans que le joueur l'ait demandé deux fois. Le clic sur le fond, lui, ne
+   * ferme rien tant qu'un étage est en cours — voir `onClose` sur l'`Overlay`.
+   */
+  function escape() {
     if (props.game.inTower()) props.game.leaveTower();
     else props.onClose();
   }
-  onMount(() => document.addEventListener("keydown", onKeyDown));
-  onCleanup(() => document.removeEventListener("keydown", onKeyDown));
 
   const config = () => props.game.towerModeOf(mode());
   const highest = () => props.game.towerHighestFloorOf(mode());
@@ -92,49 +93,41 @@ export default function TowerPanel(props: { game: GameStore; onClose: () => void
   });
 
   return (
-    <div class="overlay" onClick={() => (props.game.inTower() ? undefined : props.onClose())}>
-      <div
-        class="modal tower-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Tour de l'Ascension"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header class="panel-head">
-          <span>
-            <IconTrophy class="gold" /> Tour de l’Ascension
-          </span>
-          <small class="muted">
-            <IconClock /> Réinitialisation dans {cycleLabel(props.game.towerCycle().remainingMs)}
-          </small>
-          <button onClick={props.onClose} aria-label="Fermer">
-            ✕
-          </button>
-        </header>
+    <Overlay label="Tour de l'Ascension" class="tower-modal" onClose={() => (props.game.inTower() ? undefined : props.onClose())} onEscape={escape}>
+      <header class="panel-head">
+        <span>
+          <IconTrophy class="gold" /> Tour de l’Ascension
+        </span>
+        <small class="muted">
+          <IconClock /> Réinitialisation dans {cycleLabel(props.game.towerCycle().remainingMs)}
+        </small>
+        <button onClick={props.onClose} aria-label="Fermer">
+          ✕
+        </button>
+      </header>
 
-        <div class="tower-modes">
-          <For each={props.game.towerModes}>
-            {(entry) => (
-              <button
-                classList={{ active: mode() === entry.id, locked: !entry.available }}
-                disabled={!entry.available || props.game.inTower()}
-                title={entry.available ? undefined : "Mode encore fermé"}
-                onClick={() => !props.game.inTower() && setMode(entry.id)}
-              >
-                <Show when={!entry.available}>
-                  <IconLock />{" "}
-                </Show>
-                {entry.name} · {entry.floors} étages
-              </button>
-            )}
-          </For>
-        </div>
-
-        <Show when={props.game.inTower()} fallback={<TowerLobby />}>
-          <TowerClimb />
-        </Show>
+      <div class="tower-modes">
+        <For each={props.game.towerModes}>
+          {(entry) => (
+            <button
+              classList={{ active: mode() === entry.id, locked: !entry.available }}
+              disabled={!entry.available || props.game.inTower()}
+              title={entry.available ? undefined : "Mode encore fermé"}
+              onClick={() => !props.game.inTower() && setMode(entry.id)}
+            >
+              <Show when={!entry.available}>
+                <IconLock />{" "}
+              </Show>
+              {entry.name} · {entry.floors} étages
+            </button>
+          )}
+        </For>
       </div>
-    </div>
+
+      <Show when={props.game.inTower()} fallback={<TowerLobby />}>
+        <TowerClimb />
+      </Show>
+    </Overlay>
   );
 
   /** Hors combat : l'escouade, l'étage à tenter, et ce que paient les paliers. */
