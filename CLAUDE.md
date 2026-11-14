@@ -11,6 +11,8 @@ the deep rationale per system lives in `docs/`, one file per area, read on deman
 - `npm run dev` — Vite dev server
 - `npm run build` — `tsc --noEmit` typecheck, then Vite build
 - `npm test` — `vitest run` (node environment, only `src/**/*.test.ts`)
+- `npm run test:coverage` — same tests with v8 coverage → `coverage/lcov.info`, which the CI's
+  SonarQube Cloud step imports (`sonar-project.properties`)
 - `npm run test:e2e` — critical player journey in Playwright Firefox
 - `npm run validate:data` — validates all authored ids, references, arcs and sequel presences
 - `npm run check:worker` — dry-run the telemetry Worker and its Analytics Engine binding

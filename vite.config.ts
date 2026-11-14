@@ -16,5 +16,14 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // `npm run test:coverage` (la CI) écrit coverage/lcov.info, que SonarQube importe via
+    // sonar.javascript.lcov.reportPaths. `npm test` reste sans instrumentation, donc aussi rapide.
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "lcov"],
+      reportsDirectory: "coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.ts", "src/**/tests/**", "src/**/*.cli.ts", "src/data/**"],
+    },
   },
 });

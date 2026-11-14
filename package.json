@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "validate:data": "vite-node -c vite.sim.config.ts scripts/validate-data.ts",
     "sim": "vite-node -c vite.sim.config.ts src/engine/sim.cli.ts",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vite-node": "^6.0.0",

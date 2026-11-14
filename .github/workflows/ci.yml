@@ -21,6 +21,8 @@ jobs:
         with:
           # Ne laisse pas le jeton dans .git/config, où tout code lancé ensuite pourrait le lire.
           persist-credentials: false
+          # Historique complet : SonarQube s'en sert pour le blame et pour délimiter le « nouveau code ».
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 20
@@ -30,7 +32,17 @@ jobs:
       # La CI installe donc sans jamais exécuter de code arbitraire d'un paquet.
       - run: npm ci --ignore-scripts
       - run: npm run validate:data
-      - run: npm test
+      # Mêmes tests que `npm test`, instrumentés : coverage/lcov.info alimente SonarQube.
+      - run: npm run test:coverage
+      # Sauté là où le secret n'existe pas : PR venue d'un fork, PR Dependabot. Le jeton n'est posé
+      # que sur cette étape, jamais au niveau du job où le code des dépendances pourrait le lire.
+      - name: SonarQube Cloud
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - run: npm run build
       # On appelle directement le binaire posé par `npm ci` : pas de verbe npm d'installation sur
       # cette ligne, donc rien qui puisse résoudre, télécharger ni exécuter un paquet. La version
