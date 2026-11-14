@@ -1,0 +1,17 @@
+# En-têtes servis par Cloudflare Static Assets (copié tel quel dans dist/ par Vite).
+#
+# - frame-ancestors 'none' + X-Frame-Options : aucune page tierce ne peut encadrer le jeu et piéger
+#   un clic sur « Tout effacer » ou « Importer ».
+# - connect-src : le jeu ne parle qu'à lui-même (/api/telemetry) et à l'API GraphQL d'AniList.
+# - img-src https: : les portraits et bannières viennent du CDN d'AniList, dont les URL sont mises en
+#   cache chez les joueurs ; un hôte précis casserait les entrées déjà enregistrées.
+# - style-src 'unsafe-inline' : Solid pose des attributs style (--world-hue, largeurs de barres).
+#
+# Si un script est un jour injecté par Cloudflare (Web Analytics, Rocket Loader…), il faudra
+# l'ajouter à script-src — sinon la CSP le bloquera.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self'; connect-src 'self' https://graphql.anilist.co; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

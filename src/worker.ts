@@ -4,8 +4,17 @@ interface AnalyticsDataset {
   writeDataPoint(point: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
 }
 
+interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
 interface Env {
   GAME_ANALYTICS: AnalyticsDataset;
+  /**
+   * Workers Rate Limiting (`wrangler.jsonc` › `ratelimits`). Optional so the tests and a local
+   * `wrangler dev` without the binding still run; in production it is always bound.
+   */
+  TELEMETRY_LIMITER?: RateLimiter;
 }
 
 const response = (status: number, body: string | null = null) =>
@@ -29,6 +38,14 @@ export default {
     if (url.pathname !== "/api/telemetry") return response(404, "Not found");
     if (request.method !== "POST") return response(405, "Method not allowed");
     if (request.headers.get("origin") !== url.origin) return response(403, "Forbidden");
+    // The origin check binds a browser, not a script: without a ceiling any client could flood the
+    // dataset with fake milestones. The address is only the limiter's transient counter key at the
+    // edge — it is never written to the dataset, which still receives no IP (`docs/telemetry.md`).
+    if (env.TELEMETRY_LIMITER) {
+      const key = request.headers.get("cf-connecting-ip") ?? "unknown";
+      const { success } = await env.TELEMETRY_LIMITER.limit({ key });
+      if (!success) return response(429, "Too many requests");
+    }
     const declared = Number(request.headers.get("content-length"));
     if (Number.isFinite(declared) && declared > MAX_BODY_CHARS) return response(413, "Payload too large");
 

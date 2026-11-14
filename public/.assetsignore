@@ -1,0 +1,3 @@
+# Lu par wrangler dans dist/ : ces fichiers sont construits mais jamais envoyés à Static Assets.
+# Les sourcemaps (sourcesContent compris) restent dans dist/ pour déboguer en local.
+*.map

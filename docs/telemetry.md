@@ -20,6 +20,14 @@ simply opt out of, which is precisely the client this endpoint has to hold again
 still consulted first, purely to refuse an oversized upload before reading it; the limit that
 actually bounds `JSON.parse` is `raw.length > MAX_BODY_CHARS` after `request.text()`.
 
+The `Origin` check binds a browser, not a script, so two more guards hold against a hand-written
+client. `animeId` and `arcId` must match `TELEMETRY_ID_PATTERN` (a lowercase slug, at most 60
+characters): they are content ids, and checking only their length let anyone write free-form text
+into the dataset. `worker.test.ts` holds every authored anime and arc id to that pattern, so new
+content can't silently stop reporting. And the `TELEMETRY_LIMITER` binding (Workers Rate Limiting,
+20 requests a minute per address) answers 429 past that ceiling. The address is only the limiter's
+transient counter key at the edge; it is still never written to the dataset.
+
 `clickeranime_progression` columns are:
 
 | Column | Meaning |

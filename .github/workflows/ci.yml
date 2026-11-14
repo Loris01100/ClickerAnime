@@ -8,11 +8,19 @@ on:
     branches: [main, development]
   pull_request:
 
+# Le job ne fait que lire le dépôt : le jeton n'a pas à pouvoir écrire, même si le réglage par défaut
+# du dépôt le permet. Vite, vitest et Playwright exécutent du code de dépendances avec ce jeton à portée.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Ne laisse pas le jeton dans .git/config, où tout code lancé ensuite pourrait le lire.
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 20

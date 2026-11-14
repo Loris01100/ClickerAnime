@@ -33,7 +33,18 @@ export interface TelemetryPayload {
 
 const finiteOptional = (value: unknown) =>
   value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1_000_000_000_000);
-const shortOptional = (value: unknown) => value === undefined || (typeof value === "string" && value.length <= 80);
+/**
+ * The shape every authored anime and arc id has (`naruto`, `naruto-vagues`). `animeId`/`arcId` are
+ * content ids, never text: checking only their length let any client — the `origin` check binds a
+ * browser, not curl — write free-form strings into the dataset, which `docs/telemetry.md` forbids.
+ * `worker.test.ts` holds every authored id to this pattern, so new content can't be silently dropped.
+ */
+export const TELEMETRY_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const TELEMETRY_ID_MAX = 60;
+
+const idOptional = (value: unknown) =>
+  value === undefined ||
+  (typeof value === "string" && value.length <= TELEMETRY_ID_MAX && TELEMETRY_ID_PATTERN.test(value));
 
 export function validTelemetryPayload(value: unknown): value is TelemetryPayload {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -44,8 +55,8 @@ export function validTelemetryPayload(value: unknown): value is TelemetryPayload
   if (payload.event === "progression" && !PROGRESSION_MILESTONES.includes(payload.milestone as ProgressionMilestone)) return false;
   if (payload.event === "prestige" && payload.milestone !== "completed") return false;
   return (
-    shortOptional(payload.animeId) &&
-    shortOptional(payload.arcId) &&
+    idOptional(payload.animeId) &&
+    idOptional(payload.arcId) &&
     finiteOptional(payload.value) &&
     finiteOptional(payload.secondaryValue) &&
     finiteOptional(payload.durationMinutes)
