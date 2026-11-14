@@ -67,6 +67,8 @@ export interface AnimePresentation {
   bossLabel?: string;
   clickPowerLabel?: string;
   teamDpsLabel?: string;
+  /** The banner shouted when a boss falls — "Victoire !" unless the world speaks otherwise. */
+  victoryLabel?: string;
   encounterSingular?: string;
   encounterPlural?: string;
 }

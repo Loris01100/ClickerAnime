@@ -2,6 +2,8 @@
 .panel {
   background: var(--panel);
   border: 2px solid var(--line);
+  /* Le bord haut prend la couleur du monde : chaque case du manga est encrée dans la même teinte. */
+  border-top-color: hsl(var(--world-hue) 60% 50% / 0.7);
   border-radius: 10px;
   overflow: hidden;
   box-shadow: var(--ink-shadow);
@@ -36,7 +38,7 @@
     ),
     var(--panel-2);
   border-bottom: 2px solid var(--line);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 4px 0 0 hsl(var(--world-hue) 70% 50%);
   font-weight: 900;
   font-size: 0.85rem;
   letter-spacing: 0.04em;

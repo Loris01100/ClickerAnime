@@ -125,8 +125,14 @@ C'est déjà à moitié vrai dans le code et le principe doit être renforcé, p
   le `:root` clair, donc aucune règle ne casse hors de ces conteneurs.
   Consommée aujourd'hui par : le fond de `.stage`, le voile de `.stage-backdrop`, le halo de
   `.enemy`, l'aura de `.enemy.boss` (qui était un `--accent-2` fixe, identique pour tous les boss
-  de tous les mondes), le fond de `.map-canvas` et celui de `.portal-hero`.
-- **Le motif, pas seulement la couleur.** À terme, un second champ optionnel léger
+  de tous les mondes), le fond de `.map-canvas` et celui de `.portal-hero` — et, depuis que le
+  monde se voyait trop peu hors de la scène, par le châssis entier : deux lavis fixés au viewport
+  sous la grille (`.game::before`) et une trame de points façon *screentone* qui s'efface depuis
+  le coin haut-droit (`.game::after`), le bord haut de chaque `.panel`, le liseré gauche de
+  `.panel-head`, le liseré de `.hp-bar`, le départ du dégradé de `button.primary` et le bandeau
+  de victoire. Hors de `.game` (overlays), le `:root` retombe sur sa teinte par défaut.
+- **Le motif, pas seulement la couleur.** La trame de points de `.game::after` est le motif
+  générique, teinté par `themeOf`. Reste possible à terme, un second champ optionnel léger
   (`motif?: "leaf" | "cloud" | ...`, une icône SVG discrète répétée en filigrane sur le fond du
   `.map-canvas`) peut renforcer l'identité sans jamais devenir un jeu d'assets à maintenir par
   monde — un seul motif générique suffit tant qu'il est teinté par `themeOf`.
@@ -177,7 +183,11 @@ Tokens ajoutés pour l'habillage (tous définis dans les **trois** blocs, §8) :
 |---|---|
 | `--stage-veil` / `--stage-veil-soft` | voile posé sur la bannière AniList pour garder le combat lisible |
 | `--enemy-ground` | ombre au sol sous l'ennemi |
-| `--world-strength` | à quel point `--world-hue` transparaît (0.2 en clair, 0.32 en sombre) |
+| `--world-strength` | à quel point `--world-hue` transparaît (0.3 en clair, 0.45 en sombre — relevé de 0.2/0.32, qui rendaient tous les mondes identiques) |
+| `--hp-1` / `--hp-2` / `--hp-boss-1` | dégradé de la barre de PV d'un ennemi, et départ de celle d'un boss |
+| `--hp-trail` | traînée claire qui rattrape la barre de PV avec retard |
+| `--bar-gloss` | reflet posé sur le haut des barres de PV |
+| `--ink` / `--on-tint` | trait d'encre d'un lettrage (contour, ombre dure) et blanc posé sur une teinte |
 | `--world-hue` | teinte du monde courant, posée par les composants — voir §2 |
 | `--font-display` | police d'affichage des titres — voir §12 |
 | `--font-impact` | lettering d'onomatopée : titre, nom de boss, dégâts — voir §12 |
@@ -206,6 +216,11 @@ changement moteur, rien dans le tick 200ms) :
 | Notice qui glisse depuis la droite | `.notice` (`notice-in`) | à l'arrivée dans `game.notices()` |
 | Coup critique agrandi et teinté `--accent-2` | `.pop.crit` | `game.click()` renvoie `{ damage, crit }` |
 | Dégât d'auto-clic, plus discret et teinté `--blue` | `.pop.auto` | `createEffect` sur `game.autoClickPulse()` |
+| K.O. de l'ennemi : flash blanc, souffle en arrière, fondu | `.enemy-dying` (`enemy-death`) | `createEffect` : l'id d'`enemy()` change **et** `mobsKilled + bossesKilled` a monté |
+| Éclat d'impact en rayons derrière un critique | `.pop.crit::before` (`crit-burst`) | même pop que le critique |
+| Traînée de dégâts sur la barre de PV | `.bar-trail` | même largeur que `.bar-fill`, transition retardée |
+| Bandeau « Victoire ! » en `--font-impact` | `.victory-banner` | `createEffect` sur `achievementCounts().bossesKilled` |
+| Or qui roule vers sa valeur | `CurrencyBar` | `createAnimatedNumber` (`ui/animatedNumber.ts`) |
 
 Les classes sont levées sur `animationend` plutôt que par un `setTimeout`, pour qu'un clic rapide
 ne laisse jamais une classe collée.
@@ -216,18 +231,26 @@ Rien ne la bornait : chaque pop est un nœud DOM avec son animation, et une main
 seconde doublée d'un auto-clic au niveau max en garde en permanence quelques dizaines à l'écran. Le
 plafond retire les plus anciens, qui sont de toute façon les plus proches de leur fin.
 
-**Nuance assumée sur la mort d'ennemi** : `combat.ts` remplace l'ennemi vaincu par le suivant sur
-place, donc il n'y a plus d'ennemi sortant à animer au moment où le composant l'apprend. C'est
-l'**arrivée** du remplaçant qui est animée, pas la disparition du précédent. Un vrai fondu de mort
-demanderait que `ClickStage` retienne l'ennemi vaincu le temps de l'animation — un état d'affichage
-en plus, non fait.
+**La mort d'ennemi** : `combat.ts` remplace l'ennemi vaincu par le suivant sur place, donc il n'y a
+plus d'ennemi sortant au moment où le composant l'apprend. `ClickStage` garde donc un instantané
+(nom, personnage, boss) de l'ennemi affiché, et le rejoue dans `dying` quand un kill a eu lieu.
+L'ennemi tombé et son remplaçant partagent une seule cellule de grille (`.enemy-slot`) : le K.O. se
+joue exactement là où l'ennemi se tenait, sous l'entrée du suivant. Un seul à la fois : au plafond
+de kills, une mort remplace simplement la précédente. Un changement d'arc ou un boss qui se retire
+sur son chrono ne fait pas monter le compteur de kills, donc n'a pas de K.O. — seulement l'entrée.
+
+Le libellé du bandeau vient de `termsOf(...).victory` (`presentation.victoryLabel`), pour qu'un monde
+non combattant puisse dire autre chose que « Victoire ! ».
+
+Sous `prefers-reduced-motion`, la respiration, l'aura et l'éclat sont coupés ; le K.O. et le
+bandeau ne gardent qu'un fondu. Leurs keyframes sont **redéfinies** dans la media query plutôt que
+retirées : `ClickStage` attend leur `animationend` pour nettoyer, et une animation à `none` ne le
+déclencherait jamais.
 
 Restent des pistes, non faites :
 
-- **Compteurs qui roulent.** `fmt(props.game.currency())` change par à-coups aujourd'hui. Un
-  utilitaire d'incrémentation animée (`ui/animatedNumber.ts`, un memo qui interpole vers la
-  valeur cible sur ~300ms) au lieu de rendre la valeur brute, réutilisable partout où `fmt()`
-  affiche une valeur qui grimpe (monnaie, xp, prestige).
+- **Compteurs qui roulent, ailleurs.** `createAnimatedNumber` ne sert encore qu'à l'or ; il est
+  réutilisable partout où `fmt()` affiche une valeur qui grimpe (xp, total gagné).
 - **Apparition des overlays.** `.overlay`/`.modal` (Codex, WorldPortal, PrestigeTree)
   apparaissent net aujourd'hui ; un fade sur `.overlay` + scale-in léger sur `.modal` (~150ms)
   suffit, c'est une transition d'état, pas une animation de contenu.
@@ -1036,8 +1059,8 @@ toutes tokenisées, lui donnent le poids d'une case de manga sans toucher à la 
   C'est une *texture*, jamais une couleur : elle passe donc par un token comme le reste (§3), et
   se retourne en clair/sombre.
 - **En-tête de panneau** — dégradé sur `--world-hue`, liseré d'accent en `inset box-shadow` à
-  gauche, titre en capitales sur `--font-display` (§12). C'est la seule surface du châssis qui
-  affiche la DA du monde en cours.
+  gauche (désormais à la teinte du monde), titre en capitales sur `--font-display` (§12). Le châssis
+  porte aussi le monde ailleurs, voir §2 : bord haut des panneaux, lavis et trame de fond.
 - **Boutons** — le geste se voit : `translateY(-1px)` + anneau d'accent au survol, `+1px` au clic.
   L'onglet actif est *rempli* du dégradé accent → accent-2, pas seulement souligné.
 

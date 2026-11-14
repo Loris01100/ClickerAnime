@@ -102,7 +102,16 @@
   --stage-veil-soft: rgba(244, 246, 253, 0.45);
   --enemy-ground: rgba(26, 29, 46, 0.18);
   /* How strongly `--world-hue` shows through a world's surfaces; dark needs more to read at all. */
-  --world-strength: 0.2;
+  --world-strength: 0.3;
+  /* Barres de PV : rouge pour un ennemi, magenta pour un boss, et la traînée claire des dégâts. */
+  --hp-1: #e0483f;
+  --hp-2: #ff7a45;
+  --hp-boss-1: #b3247a;
+  --hp-trail: #ffe1a8;
+  --bar-gloss: rgba(255, 255, 255, 0.28);
+  /* Le trait d'encre et le blanc de lettrage : contour d'une onomatopée, texte posé sur une teinte. */
+  --ink: #1a1d2e;
+  --on-tint: #ffffff;
   /* Contour « encre » et ombre portée : ce qui donne aux surfaces leur poids de case de manga. */
   --ink-shadow: 0 2px 0 rgba(26, 29, 46, 0.09), 0 8px 18px rgba(26, 29, 46, 0.08);
   /* Trames de vitesse posées sur les en-têtes — la texture, jamais une couleur. */
@@ -142,7 +151,8 @@
     --stage-veil: rgba(12, 14, 26, 0.78);
     --stage-veil-soft: rgba(12, 14, 26, 0.35);
     --enemy-ground: rgba(0, 0, 0, 0.45);
-    --world-strength: 0.32;
+    --world-strength: 0.45;
+    --hp-trail: #fff1c9;
     --ink-shadow: 0 2px 0 rgba(0, 0, 0, 0.5), 0 10px 22px rgba(0, 0, 0, 0.45);
     --speedlines: repeating-linear-gradient(
       115deg,
@@ -175,7 +185,8 @@
   --stage-veil: rgba(12, 14, 26, 0.78);
   --stage-veil-soft: rgba(12, 14, 26, 0.35);
   --enemy-ground: rgba(0, 0, 0, 0.45);
-  --world-strength: 0.32;
+  --world-strength: 0.45;
+  --hp-trail: #fff1c9;
   --ink-shadow: 0 2px 0 rgba(0, 0, 0, 0.5), 0 10px 22px rgba(0, 0, 0, 0.45);
   --speedlines: repeating-linear-gradient(
     115deg,
@@ -260,9 +271,10 @@ button:disabled {
 }
 button.primary {
   width: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  /* Le CTA part de la teinte du monde : c'est l'action qu'on voit le plus, elle doit en porter la DA. */
+  background: linear-gradient(90deg, hsl(var(--world-hue) 72% 42%), var(--accent) 55%, var(--accent-2));
   border: none;
-  color: #fff;
+  color: var(--on-tint);
   font-family: var(--font-display);
   font-weight: 900;
   letter-spacing: 0.06em;
@@ -402,6 +414,9 @@ button.tree-open:hover:not(:disabled) {
 
 /* --- layout --- */
 .game {
+  /* `isolate` keeps the wash below pinned under this column grid, never under the top bar. */
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(270px, 0.8fr) minmax(600px, 2.4fr) minmax(280px, 0.8fr);
   gap: 0.75rem;
@@ -410,6 +425,31 @@ button.tree-open:hover:not(:disabled) {
   max-width: 1800px;
   margin: 0 auto;
 }
+/*
+ * The world, around the panels (`design.md` §2): two washes of `--world-hue` from opposite corners,
+ * and a halftone screentone fading out of the top-right one — the manga print texture, in the
+ * world's own ink. Fixed to the viewport so it doesn't scroll away with a long right column.
+ */
+.game::before,
+.game::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.game::before {
+  background:
+    radial-gradient(900px 560px at 88% -8%, hsl(var(--world-hue) 75% 55% / var(--world-strength)), transparent 70%),
+    radial-gradient(760px 520px at -4% 108%, hsl(var(--world-hue) 70% 50% / calc(var(--world-strength) * 0.75)), transparent 70%);
+}
+.game::after {
+  background: radial-gradient(circle, hsl(var(--world-hue) 60% 45% / calc(var(--world-strength) * 0.9)) 1.1px, transparent 1.7px)
+    0 0 / 10px 10px;
+  -webkit-mask-image: radial-gradient(ellipse 55% 60% at 100% 0%, var(--ink), transparent 75%);
+  mask-image: radial-gradient(ellipse 55% 60% at 100% 0%, var(--ink), transparent 75%);
+}
+
 .column {
   display: flex;
   flex-direction: column;

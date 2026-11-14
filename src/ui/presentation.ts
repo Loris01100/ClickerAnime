@@ -8,6 +8,7 @@ export interface WorldTerms {
   teamDps: string;
   encounter: string;
   encounters: string;
+  victory: string;
 }
 
 const DEFAULT_TERMS: WorldTerms = {
@@ -18,6 +19,7 @@ const DEFAULT_TERMS: WorldTerms = {
   teamDps: "DPS équipe",
   encounter: "ennemi",
   encounters: "ennemis",
+  victory: "Victoire !",
 };
 
 /** Keeps alternate genres data-driven instead of branching components on a world id. */
@@ -31,5 +33,6 @@ export function termsOf(anime?: Anime): WorldTerms {
     teamDps: presentation?.teamDpsLabel ?? DEFAULT_TERMS.teamDps,
     encounter: presentation?.encounterSingular ?? DEFAULT_TERMS.encounter,
     encounters: presentation?.encounterPlural ?? DEFAULT_TERMS.encounters,
+    victory: presentation?.victoryLabel ?? DEFAULT_TERMS.victory,
   };
 }

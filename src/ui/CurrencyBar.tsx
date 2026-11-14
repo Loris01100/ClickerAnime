@@ -4,6 +4,7 @@ import type { DisclosureState } from "./disclosure";
 import PanelTitle from "./PanelTitle";
 import Coin from "./Coin";
 import { fmt } from "./format";
+import { createAnimatedNumber } from "./animatedNumber";
 
 /**
  * The row of running totals at the top of the middle column. Each total is a shortcut to where that
@@ -18,6 +19,8 @@ export default function CurrencyBar(props: {
   onOpenPacks: () => void;
 }) {
   const [open, setOpen] = createSignal(true);
+  // L'or roule au lieu de sauter : c'est le compteur que chaque kill fait bouger (`design.md` §4).
+  const gold = createAnimatedNumber(() => props.game.currency());
   /** Pack points are per world, so the fourth tile always shows the world being fought in. */
   const currentAnime = () => props.game.animeOf(props.game.activeArc()?.animeId);
   return (
@@ -31,7 +34,7 @@ export default function CurrencyBar(props: {
       <div class="currency-row">
         <button class="currency" title="Dépenser à la boutique" onClick={props.onOpenShop}>
           <Coin kind="gold" px={24} />
-          <span class="currency-copy"><small>Or</small><strong>{fmt(props.game.currency())}</strong></span>
+          <span class="currency-copy"><small>Or</small><strong>{fmt(gold())}</strong></span>
         </button>
         <Show when={props.disclosure().prestigeResource}>
           <button class="currency" title="Dépenser dans l'arbre de prestige" onClick={props.onOpenPrestige}>

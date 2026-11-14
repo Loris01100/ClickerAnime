@@ -397,6 +397,30 @@
 .enemy.spawning {
   animation: enemy-spawn 0.22s ease-out;
 }
+/* The fallen enemy and its replacement share one grid cell (see `ClickStage`'s `.enemy-slot`). */
+.enemy-slot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+.enemy-slot > .enemy {
+  grid-area: 1 / 1;
+}
+/* Le K.O. : un flash blanc, l'ennemi est soufflé en arrière et s'efface — sous le suivant. */
+.enemy-dying {
+  z-index: 0;
+  pointer-events: none;
+  background: none;
+  animation: enemy-death 0.42s ease-in forwards;
+}
+.enemy-dying::before,
+.enemy-dying::after {
+  display: none;
+}
+.enemy-dying .sprite {
+  animation: none;
+}
 .enemy.hit {
   animation: enemy-hit 0.15s ease-out;
 }
@@ -450,6 +474,23 @@
     transform: none;
   }
 }
+@keyframes enemy-death {
+  0% {
+    opacity: 1;
+    transform: none;
+    filter: brightness(2.6) saturate(0);
+  }
+  30% {
+    opacity: 0.95;
+    transform: scale(1.06) rotate(-3deg);
+    filter: brightness(1.8) saturate(0.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(26px, -10px) scale(0.86) rotate(9deg);
+    filter: brightness(1) saturate(0) blur(2px);
+  }
+}
 @keyframes enemy-hit {
   25% {
     transform: translate(-4px, 1px);
@@ -477,6 +518,80 @@
 .pop.crit {
   color: var(--accent-2);
   font-size: 1.5em;
+  -webkit-text-stroke: 1px var(--ink);
+}
+/* L'éclat d'impact derrière un critique : des rayons de manga en couronne, qui s'ouvrent et s'éteignent. */
+.pop.crit::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: 5.5em;
+  height: 5.5em;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 8deg, var(--gold) 0 5deg, transparent 5deg 17deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 24%, var(--ink) 34%, transparent 70%);
+  mask-image: radial-gradient(circle, transparent 24%, var(--ink) 34%, transparent 70%);
+  animation: crit-burst 0.45s ease-out forwards;
+}
+@keyframes crit-burst {
+  from {
+    opacity: 1;
+    scale: 0.4;
+  }
+  to {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+
+/*
+ * Le bandeau de victoire : un boss tombé est le seul mur du jeu qui cède, il a droit à son cri.
+ * Une bande à la teinte du monde, en travers de la scène, en lettrage d'impact cerné d'encre.
+ */
+.victory-banner {
+  position: absolute;
+  left: -5%;
+  right: -5%;
+  top: 38%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 0.5rem 0;
+  rotate: -4deg;
+  pointer-events: none;
+  background: var(--speedlines),
+    linear-gradient(90deg, transparent, hsl(var(--world-hue) 75% 42% / 0.92) 14% 86%, transparent);
+  animation:
+    victory-in 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both,
+    victory-out 0.4s ease-in 1.3s forwards;
+}
+.victory-banner span {
+  font-family: var(--font-impact);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-tint);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+@keyframes victory-in {
+  from {
+    opacity: 0;
+    scale: 1.8 0.4;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes victory-out {
+  to {
+    opacity: 0;
+  }
 }
 @keyframes rise {
   to {
@@ -487,6 +602,26 @@
 @media (prefers-reduced-motion: reduce) {
   .pop {
     animation: fade 0.9s linear forwards;
+  }
+  /* Décor en boucle coupé ; le K.O. et la victoire ne gardent qu'un fondu. Les keyframes sont
+     redéfinies plutôt que retirées : `ClickStage` attend leur `animationend` pour nettoyer. */
+  .enemy .sprite,
+  .enemy.boss::before,
+  .pop.crit::before {
+    animation: none;
+  }
+  .pop.crit::before {
+    display: none;
+  }
+  @keyframes enemy-death {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes victory-in {
+    from {
+      opacity: 0;
+    }
   }
   @keyframes fade {
     to {
@@ -519,16 +654,26 @@
 }
 .hp-bar {
   height: 26px;
+  /* Liseré à la teinte du monde : la barre appartient à la scène, pas à un tableau de bord. */
+  border-top: 2px solid hsl(var(--world-hue) 60% 45% / 0.6);
 }
 .hp-bar .bar-label {
   font-size: 0.78rem;
 }
 .hp-bar .bar-fill {
-  background: linear-gradient(90deg, #e0483f, #ff7a45);
+  position: relative;
+  background: linear-gradient(180deg, var(--bar-gloss), transparent 55%), linear-gradient(90deg, var(--hp-1), var(--hp-2));
   transition: width 0.1s linear;
 }
 .hp-bar.boss .bar-fill {
-  background: linear-gradient(90deg, #b3247a, var(--accent-2));
+  background: linear-gradient(180deg, var(--bar-gloss), transparent 55%), linear-gradient(90deg, var(--hp-boss-1), var(--accent-2));
+}
+/* La traînée : elle rattrape la barre avec un temps de retard, ce qui laisse voir le morceau arraché. */
+.bar-trail {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--hp-trail);
+  transition: width 0.45s ease-out 0.18s;
 }
 .timer-bar {
   height: 14px;

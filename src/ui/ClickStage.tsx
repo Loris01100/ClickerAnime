@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, untrack } from "solid-js";
 import type { GameStore } from "../engine/gameState";
 import { BOSS_REPLAY_KILLS } from "../engine/combat";
 import { hashSeed } from "../engine/hash";
@@ -60,6 +60,14 @@ export default function ClickStage(props: { game: GameStore }) {
   // rather than a timer, so a rapid click never leaves the class stuck on.
   const [hit, setHit] = createSignal(false);
   const [spawning, setSpawning] = createSignal(false);
+  /**
+   * The enemy that just fell, kept on screen for its death animation only. `combat.ts` swaps the
+   * defeated enemy for the next one in place, so without this snapshot a kill had no outgoing frame
+   * at all. One at a time: at the kill cap a new death simply replaces the previous one.
+   */
+  const [dying, setDying] = createSignal<{ key: number; name: string; characterId?: string; boss: boolean } | null>(null);
+  /** Bumped on each boss kill; the banner is keyed on it so two victories in a row replay it. */
+  const [victory, setVictory] = createSignal(0);
   let popId = 0;
   /**
    * How many damage numbers may share the stage. Each lives 900ms, so a hand at twenty clicks a
@@ -148,13 +156,44 @@ export default function ClickStage(props: { game: GameStore }) {
     (name) => bannerUrl(name)
   );
 
-  // `combat.ts` swaps the defeated enemy for the next one in place, so there is no outgoing enemy
-  // left to animate — the replacement itself is what gets the entrance.
-  createEffect((previous: string | undefined) => {
-    const id = enemy()?.id;
-    if (id && previous && id !== previous) setSpawning(true);
-    return id;
+  /**
+   * Kills read off the lifetime ladders the store already keeps. They are what tells a death from
+   * a mere change of enemy (switching arc, a boss retreating on its timer): only a kill gets the
+   * death frame, every change still gets the entrance.
+   */
+  const killCount = () => {
+    const counts = props.game.achievementCounts();
+    return (counts.mobsKilled ?? 0) + (counts.bossesKilled ?? 0);
+  };
+  createEffect(
+    (previous: { id?: string; kills: number; shot: { name: string; characterId?: string; boss: boolean } | null }) => {
+      const current = enemy();
+      const kills = killCount();
+      if (current?.id && previous.id && current.id !== previous.id) {
+        setSpawning(true);
+        if (kills > previous.kills && previous.shot) setDying({ key: kills, ...previous.shot });
+      }
+      return {
+        id: current?.id,
+        kills,
+        shot: current ? { name: current.name, characterId: current.characterId, boss: untrack(isBoss) } : null,
+      };
+    },
+    { id: undefined, kills: 0, shot: null }
+  );
+
+  createEffect((previous: number | undefined) => {
+    const bosses = props.game.achievementCounts().bossesKilled ?? 0;
+    if (previous !== undefined && bosses > previous) setVictory(bosses);
+    return bosses;
   });
+
+  /** What stands on the scene: the portrait, or a non-combat world's emblem for an abstract encounter. */
+  const figure = (name: string, characterId: string | undefined, boss: boolean) => (
+    <Show when={!anime()?.presentation || characterId} fallback={<span class="encounter-symbol"><IconStar /></span>}>
+      <Sprite name={name} kind="character" anime={anime()?.name} px={boss ? 20 : 17} />
+    </Show>
+  );
 
   const neighbour = (offset: number) => {
     const arcs = props.game.playableArcs();
@@ -314,20 +353,33 @@ export default function ClickStage(props: { game: GameStore }) {
                 )}
               </Show>
               <div class="stage-hint">{terms().clickPower}</div>
-              <div
-                class="enemy"
-                classList={{ boss: isBoss(), rival: !!current().characterId, hit: hit(), spawning: spawning() }}
-                onAnimationEnd={(event) => {
-                  if (event.animationName === "enemy-hit") setHit(false);
-                  if (event.animationName === "enemy-spawn") setSpawning(false);
-                }}
-              >
-                <Show
-                  when={!anime()?.presentation || current().characterId}
-                  fallback={<span class="encounter-symbol"><IconStar /></span>}
-                >
-                  <Sprite name={current().name} kind="character" anime={anime()?.name} px={isBoss() ? 20 : 17} />
+              {/* One grid cell for the fallen enemy and its replacement, so the death frame plays
+                  exactly where the enemy stood while the next one walks in on top of it. */}
+              <div class="enemy-slot">
+                <Show when={dying()} keyed>
+                  {(fallen) => (
+                    <div
+                      class="enemy enemy-dying"
+                      classList={{ boss: fallen.boss }}
+                      aria-hidden="true"
+                      onAnimationEnd={(event) => {
+                        if (event.animationName === "enemy-death") setDying(null);
+                      }}
+                    >
+                      {figure(fallen.name, fallen.characterId, fallen.boss)}
+                    </div>
+                  )}
                 </Show>
+                <div
+                  class="enemy"
+                  classList={{ boss: isBoss(), rival: !!current().characterId, hit: hit(), spawning: spawning() }}
+                  onAnimationEnd={(event) => {
+                    if (event.animationName === "enemy-hit") setHit(false);
+                    if (event.animationName === "enemy-spawn") setSpawning(false);
+                  }}
+                >
+                  {figure(current().name, current().characterId, isBoss())}
+                </div>
               </div>
               <div class="enemy-name" classList={{ boss: isBoss() }}>
                 <Show when={isBoss()}>
@@ -338,6 +390,21 @@ export default function ClickStage(props: { game: GameStore }) {
                 </Show>
                 {current().name}
               </div>
+
+              <Show when={victory()} keyed>
+                {(key) => (
+                  <div
+                    class="victory-banner"
+                    data-key={key}
+                    aria-hidden="true"
+                    onAnimationEnd={(event) => {
+                      if (event.animationName === "victory-out") setVictory(0);
+                    }}
+                  >
+                    <span>{terms().victory}</span>
+                  </div>
+                )}
+              </Show>
 
               <For each={pops()}>
                 {(pop) => (
@@ -354,6 +421,9 @@ export default function ClickStage(props: { game: GameStore }) {
             </div>
 
             <div class="bar hp-bar" classList={{ boss: isBoss() }}>
+              {/* The trail: same width, but it catches up late — the chunk a hit took out stays
+                  visible for a beat, which is what makes a big hit read as big. */}
+              <div class="bar-trail" style={{ width: `${Math.max(0, hpRatio()) * 100}%` }} />
               <div class="bar-fill" style={{ width: `${Math.max(0, hpRatio()) * 100}%` }} />
               <span class="bar-label">
                 {fmt(Math.max(0, props.game.enemyHpLeft()))} / {fmt(props.game.enemyMaxHp())} {terms().health}
