@@ -37,7 +37,7 @@ All commands run from the project root.
 - `npm run test:e2e` — run the critical player journey in Playwright Firefox.
 - `npm run validate:data` — validate all content ids, references, arcs and sequel presences.
 - `npm run check:worker` — dry-run the Worker bundle and bindings without deploying.
-- Single test: `npx vitest run src/engine/tests/modifiers.test.ts -t "applies flat, then percent"`
+- Single test: `npm test -- src/engine/tests/modifiers.test.ts -t "applies flat, then percent"` (not a bare `npx vitest`: `scripts/vitest.mjs` fixes a lower-case `c:` cwd, which otherwise fails every suite on Windows)
 - `npm run sim` — play a whole run headlessly and print its pacing, one row per arc. The way to
   check a balance change: run it, change the constant, run it again with the same `--seed`, compare.
   See `docs/simulator.md`.
